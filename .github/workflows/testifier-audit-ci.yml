@@ -1,0 +1,55 @@
+name: Testifier Audit CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "testifier_audit/**"
+      - ".github/workflows/testifier-audit-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "testifier_audit/**"
+      - ".github/workflows/testifier-audit-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: testifier_audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run lint checks
+        run: ./scripts/ci/lint.sh
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: testifier_audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run test suite
+        run: ./scripts/ci/test.sh

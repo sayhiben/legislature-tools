@@ -1,0 +1,138 @@
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+import pandas as pd
+
+from testifier_audit.config import AppConfig
+from testifier_audit.detectors.base import DetectorResult
+from testifier_audit.detectors.registry import default_detectors
+from testifier_audit.io.write import write_summary, write_table
+from testifier_audit.paths import build_output_paths
+from testifier_audit.pipeline.pass1_profile import prepare_base_dataframe
+from testifier_audit.viz.distributions import (
+    plot_burst_null_distribution,
+    plot_periodicity_clockface,
+    plot_periodicity_autocorrelation,
+    plot_periodicity_spectrum,
+    plot_swing_null_distribution,
+)
+from testifier_audit.viz.time_series import plot_counts_with_annotations, plot_pro_rate_with_annotations
+
+LOGGER = logging.getLogger(__name__)
+
+
+def _series_to_table(series: pd.Series, value_column: str) -> pd.DataFrame:
+    return (
+        series.rename(value_column)
+        .to_frame()
+        .reset_index()
+        .rename(columns={"index": "row_index"})
+    )
+
+
+def _render_detector_figures(
+    feature_context: dict[str, pd.DataFrame],
+    out_dir: Path,
+    config: AppConfig,
+) -> None:
+    paths = build_output_paths(out_dir)
+    figure_suffix = config.outputs.figures_format
+
+    counts = feature_context.get("counts_per_minute", pd.DataFrame())
+    if counts.empty:
+        return
+
+    bursts = feature_context.get("bursts.burst_significant_windows", pd.DataFrame())
+    burst_tests = feature_context.get("bursts.burst_window_tests", pd.DataFrame())
+    burst_null_distribution = feature_context.get("bursts.burst_null_distribution", pd.DataFrame())
+    swings = feature_context.get("procon_swings.swing_significant_windows", pd.DataFrame())
+    swing_tests = feature_context.get("procon_swings.swing_window_tests", pd.DataFrame())
+    swing_null_distribution = feature_context.get("procon_swings.swing_null_distribution", pd.DataFrame())
+    periodicity_autocorr = feature_context.get("periodicity.autocorr", pd.DataFrame())
+    periodicity_spectrum = feature_context.get("periodicity.spectrum_top", pd.DataFrame())
+    periodicity_clockface = feature_context.get("periodicity.clockface_distribution", pd.DataFrame())
+    volume_changes = feature_context.get("changepoints.volume_changepoints", pd.DataFrame())
+    pro_rate_changes = feature_context.get("changepoints.pro_rate_changepoints", pd.DataFrame())
+
+    try:
+        plot_counts_with_annotations(
+            counts_per_minute=counts,
+            burst_windows=bursts,
+            volume_changepoints=volume_changes,
+            output_path=paths.figures / f"counts_with_anomalies.{figure_suffix}",
+        )
+        plot_pro_rate_with_annotations(
+            counts_per_minute=counts,
+            swing_windows=swings,
+            pro_rate_changepoints=pro_rate_changes,
+            output_path=paths.figures / f"pro_rate_with_anomalies.{figure_suffix}",
+        )
+        plot_burst_null_distribution(
+            null_distribution=burst_null_distribution,
+            burst_tests=burst_tests,
+            output_path=paths.figures / f"bursts_null_distribution.{figure_suffix}",
+        )
+        plot_swing_null_distribution(
+            null_distribution=swing_null_distribution,
+            swing_tests=swing_tests,
+            output_path=paths.figures / f"swing_null_distribution.{figure_suffix}",
+        )
+        plot_periodicity_autocorrelation(
+            autocorr=periodicity_autocorr,
+            output_path=paths.figures / f"periodicity_autocorr.{figure_suffix}",
+        )
+        plot_periodicity_spectrum(
+            spectrum_top=periodicity_spectrum,
+            output_path=paths.figures / f"periodicity_spectrum.{figure_suffix}",
+        )
+        plot_periodicity_clockface(
+            clockface_distribution=periodicity_clockface,
+            output_path=paths.figures / f"periodicity_clockface.{figure_suffix}",
+        )
+    except Exception:  # pragma: no cover
+        LOGGER.exception("Failed rendering detector overlay figures")
+
+
+def run_detectors(
+    csv_path: Path,
+    artifacts: dict[str, pd.DataFrame],
+    out_dir: Path,
+    config: AppConfig,
+) -> dict[str, DetectorResult]:
+    paths = build_output_paths(out_dir)
+    df = prepare_base_dataframe(csv_path=csv_path, config=config)
+
+    extension = "parquet" if config.outputs.tables_format == "parquet" else "csv"
+    feature_context: dict[str, pd.DataFrame] = dict(artifacts)
+
+    results: dict[str, DetectorResult] = {}
+    for detector in default_detectors(config):
+        result = detector.run(df=df, features=feature_context)
+        results[result.detector] = result
+
+        write_summary(result.summary, paths.summary / f"{result.detector}.json")
+        for table_name, table in result.tables.items():
+            write_table(
+                table,
+                paths.tables / f"{result.detector}__{table_name}.{extension}",
+                fmt=config.outputs.tables_format,
+            )
+            feature_context[f"{result.detector}.{table_name}"] = table
+
+        if result.record_scores is not None:
+            write_table(
+                _series_to_table(result.record_scores, "score"),
+                paths.flags / f"{result.detector}__record_scores.{extension}",
+                fmt=config.outputs.tables_format,
+            )
+        if result.record_flags is not None:
+            write_table(
+                _series_to_table(result.record_flags, "flag"),
+                paths.flags / f"{result.detector}__record_flags.{extension}",
+                fmt=config.outputs.tables_format,
+            )
+
+    _render_detector_figures(feature_context=feature_context, out_dir=out_dir, config=config)
+    return results

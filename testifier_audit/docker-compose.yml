@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  testifier-audit:
+    build:
+      context: .
+    image: testifier-audit:dev
+    working_dir: /work
+    volumes:
+      - .:/work
+    command: ["testifier-audit", "--help"]

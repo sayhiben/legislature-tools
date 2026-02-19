@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wa-leg-testifier-audit"
+version = "0.1.0"
+description = "Tools to analyze WA legislature public participation/testifier CSV data."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+authors = [
+  { name = "Legislature Tools" }
+]
+dependencies = [
+  "datasketch>=1.6.5,<2.0.0",
+  "duckdb>=1.2.1,<2.0.0",
+  "jellyfish>=1.1.3,<2.0.0",
+  "jinja2>=3.1.6,<4.0.0",
+  "matplotlib>=3.10.0,<4.0.0",
+  "numpy>=2.2.3,<3.0.0",
+  "pandas>=2.2.3,<3.0.0",
+  "plotly>=6.0.0,<7.0.0",
+  "polars>=1.22.0,<2.0.0",
+  "pyarrow>=19.0.1,<20.0.0",
+  "pydantic>=2.10.6,<3.0.0",
+  "pyyaml>=6.0.2,<7.0.0",
+  "rapidfuzz>=3.12.1,<4.0.0",
+  "ruptures>=1.1.9,<2.0.0",
+  "scipy>=1.15.2,<2.0.0",
+  "statsmodels>=0.14.4,<0.15.0",
+  "typer>=0.15.2,<1.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.15.0,<2.0.0",
+  "pytest>=8.3.5,<9.0.0",
+  "pytest-cov>=6.0.0,<7.0.0",
+  "ruff>=0.11.0,<0.12.0",
+  "types-PyYAML>=6.0.12.20241230"
+]
+
+[project.scripts]
+testifier-audit = "testifier_audit.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"testifier_audit.report" = ["templates/*.j2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = ["-q"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+plugins = []
+
+[[tool.mypy.overrides]]
+module = ["pandas", "scipy", "statsmodels", "ruptures", "plotly", "matplotlib", "duckdb", "polars", "jellyfish", "datasketch"]
+ignore_missing_imports = true

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Testifier Audit Report</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: 2rem auto;
+        max-width: 1200px;
+        line-height: 1.45;
+        color: #1f2937;
+      }
+      h1, h2, h3 {
+        color: #0f172a;
+      }
+      .meta {
+        color: #475569;
+        font-size: 0.95rem;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+      th, td {
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 0.5rem;
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.95rem;
+      }
+      th {
+        background: #f8fafc;
+      }
+      code {
+        background: #f1f5f9;
+        padding: 0.1rem 0.3rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 1rem;
+      }
+      .card {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0.8rem;
+        background: #ffffff;
+      }
+      .figure-list img {
+        max-width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Testifier Audit Report</h1>
+    <p class="meta">Generated (UTC): <code>{{ generated_at }}</code></p>
+
+    <h2>Profile Artifacts</h2>
+    {% if artifact_rows %}
+      <table>
+        <thead>
+          <tr>
+            <th>Artifact</th>
+            <th>Rows</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for name, rows in artifact_rows.items() %}
+            <tr>
+              <td><code>{{ name }}</code></td>
+              <td>{{ rows }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No profile artifacts found.</p>
+    {% endif %}
+
+    <h2>Detector Summaries</h2>
+    {% if detector_summaries %}
+      <div class="grid">
+        {% for detector, summary in detector_summaries.items() %}
+          <div class="card">
+            <h3><code>{{ detector }}</code></h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for metric, value in summary.items() %}
+                  <tr>
+                    <td>{{ metric }}</td>
+                    <td>{{ value }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No detector summaries found.</p>
+    {% endif %}
+
+    <h2>Evidence Bundle Windows</h2>
+    {% if evidence_bundle_preview %}
+      <table>
+        <thead>
+          <tr>
+            {% for key in evidence_bundle_preview[0].keys() %}
+              <th>{{ key }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in evidence_bundle_preview %}
+            <tr>
+              {% for value in row.values() %}
+                <td>{{ value }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No evidence bundle windows found.</p>
+    {% endif %}
+
+    <h2>Rarity Coverage</h2>
+    {% if rarity_coverage_preview %}
+      <table>
+        <thead>
+          <tr>
+            {% for key in rarity_coverage_preview[0].keys() %}
+              <th>{{ key }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rarity_coverage_preview %}
+            <tr>
+              {% for value in row.values() %}
+                <td>{{ value }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No rarity coverage diagnostics found.</p>
+    {% endif %}
+
+    <h2>Unmatched Rarity Tokens</h2>
+    <h3><code>first_name_tokens</code></h3>
+    {% if rarity_unmatched_first_preview %}
+      <table>
+        <thead>
+          <tr>
+            {% for key in rarity_unmatched_first_preview[0].keys() %}
+              <th>{{ key }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rarity_unmatched_first_preview %}
+            <tr>
+              {% for value in row.values() %}
+                <td>{{ value }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No unmatched first-name tokens found.</p>
+    {% endif %}
+
+    <h3><code>last_name_tokens</code></h3>
+    {% if rarity_unmatched_last_preview %}
+      <table>
+        <thead>
+          <tr>
+            {% for key in rarity_unmatched_last_preview[0].keys() %}
+              <th>{{ key }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rarity_unmatched_last_preview %}
+            <tr>
+              {% for value in row.values() %}
+                <td>{{ value }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No unmatched last-name tokens found.</p>
+    {% endif %}
+
+    <h2>Clock-face Timing</h2>
+    {% if clockface_top_preview %}
+      <table>
+        <thead>
+          <tr>
+            {% for key in clockface_top_preview[0].keys() %}
+              <th>{{ key }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in clockface_top_preview %}
+            <tr>
+              {% for value in row.values() %}
+                <td>{{ value }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No clock-face periodicity diagnostics found.</p>
+    {% endif %}
+
+    <h2>Preview Tables</h2>
+    {% if table_previews %}
+      {% for detector, tables in table_previews.items() %}
+        <h3><code>{{ detector }}</code></h3>
+        {% for table_name, rows in tables.items() %}
+          <h4><code>{{ table_name }}</code></h4>
+          {% if rows %}
+            <table>
+              <thead>
+                <tr>
+                  {% for key in rows[0].keys() %}
+                    <th>{{ key }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in rows %}
+                  <tr>
+                    {% for value in row.values() %}
+                      <td>{{ value }}</td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p>No rows in preview.</p>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+      <p>No detector table previews available.</p>
+    {% endif %}
+
+    <h2>Figures</h2>
+    {% if figure_files %}
+      <div class="grid figure-list">
+        {% for figure in figure_files %}
+          <div class="card">
+            <p><code>{{ figure }}</code></p>
+            <img src="figures/{{ figure }}" alt="{{ figure }}" />
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No figures found.</p>
+    {% endif %}
+  </body>
+</html>

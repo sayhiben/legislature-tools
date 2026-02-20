@@ -258,14 +258,15 @@ def test_render_report_json_payload_does_not_include_nan_literals(tmp_path: Path
     assert "NaN" not in rendered
 
 
-def test_render_report_includes_lazy_mount_bucket_sync_and_zoom_sync_runtime(
+def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     tmp_path: Path,
 ) -> None:
     out_dir = tmp_path / "out"
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
 
-    assert "IntersectionObserver" in rendered
+    assert "IntersectionObserver" not in rendered
+    assert "mountAllSections()" in rendered
     assert "rerenderBucketAwareCharts" in rendered
     assert 'mount.chart.on("dataZoom"' in rendered
     assert "scheduleZoomSync(" in rendered

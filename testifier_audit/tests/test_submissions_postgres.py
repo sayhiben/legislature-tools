@@ -8,6 +8,7 @@ import pytest
 
 from testifier_audit.config import ColumnsConfig
 from testifier_audit.io import submissions_postgres as submissions_module
+from testifier_audit.io.import_tracking import ImportTrackingRecord
 from testifier_audit.io.submissions_postgres import (
     _detect_csv_encoding,
     _iter_submission_chunks,
@@ -73,6 +74,14 @@ class _FakeCursor:
         if not self._fetchall_batches:
             return []
         return self._fetchall_batches.pop(0)
+
+    def fetchone(self) -> tuple[Any, ...] | None:
+        if not self._fetchall_batches:
+            return None
+        batch = self._fetchall_batches.pop(0)
+        if not batch:
+            return None
+        return batch[0]
 
     def __enter__(self) -> "_FakeCursor":
         return self
@@ -328,6 +337,13 @@ def test_import_submission_csv_to_postgres_aggregates_metrics(
         "ensure_submission_schema",
         lambda conn, table_name: None,
     )
+    monkeypatch.setattr(submissions_module, "ensure_import_tracking_schema", lambda conn: None)
+    monkeypatch.setattr(submissions_module, "find_completed_import", lambda **kwargs: None)
+    monkeypatch.setattr(
+        submissions_module,
+        "record_import_result",
+        lambda **kwargs: 1,
+    )
 
     chunk_one = pd.DataFrame({"a": ["1", "2"]})
     chunk_two = pd.DataFrame({"a": ["3"]})
@@ -381,9 +397,138 @@ def test_import_submission_csv_to_postgres_aggregates_metrics(
     assert result.rows_upserted == 2
     assert result.rows_blank_organization == 1
     assert result.rows_invalid_timestamp == 1
-    assert conn.commit_count == 2
+    assert result.file_hash
+    assert conn.commit_count == 3
     assert calls == [0, 2]
     assert psycopg.connect_calls == ["postgresql://example"]
+
+
+def test_import_submission_csv_to_postgres_skips_when_checksum_seen(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    csv_path = tmp_path / "sample.csv"
+    csv_path.write_text("unused", encoding="utf-8")
+
+    psycopg, fake_sql, conn, _cursor = _fake_psycopg_bundle()
+    monkeypatch.setattr(submissions_module, "_load_psycopg", lambda: (psycopg, fake_sql))
+    monkeypatch.setattr(
+        submissions_module,
+        "ensure_submission_schema",
+        lambda conn, table_name: None,
+    )
+    monkeypatch.setattr(submissions_module, "ensure_import_tracking_schema", lambda conn: None)
+    monkeypatch.setattr(
+        submissions_module,
+        "find_completed_import",
+        lambda **kwargs: ImportTrackingRecord(
+            import_id=7,
+            import_kind="submissions_csv",
+            target_table="public_submissions",
+            source_file="sample.csv",
+            file_hash="abc",
+            importer_version="submissions_csv_v1",
+            status="completed",
+            rows_processed=10,
+            rows_upserted=10,
+        ),
+    )
+    record_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        submissions_module,
+        "record_import_result",
+        lambda **kwargs: (record_calls.append(kwargs) or 8),
+    )
+    monkeypatch.setattr(
+        submissions_module,
+        "_iter_submission_chunks",
+        lambda path, chunk_size: pytest.fail("memoized import should skip chunk iteration"),
+    )
+
+    result = import_submission_csv_to_postgres(
+        csv_path=csv_path,
+        db_url="postgresql://example",
+        columns=_columns(),
+        timezone="America/Los_Angeles",
+        table_name="public_submissions",
+        chunk_size=1000,
+        source_file="sample.csv",
+    )
+
+    assert result.import_skipped is True
+    assert result.rows_processed == 0
+    assert result.rows_upserted == 0
+    assert result.previous_import_id == 7
+    assert record_calls and record_calls[0]["status"] == "skipped"
+
+
+def test_import_submission_csv_to_postgres_force_bypasses_checksum_skip(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    csv_path = tmp_path / "sample.csv"
+    csv_path.write_text("unused", encoding="utf-8")
+
+    psycopg, fake_sql, conn, _cursor = _fake_psycopg_bundle()
+    monkeypatch.setattr(submissions_module, "_load_psycopg", lambda: (psycopg, fake_sql))
+    monkeypatch.setattr(
+        submissions_module,
+        "ensure_submission_schema",
+        lambda conn, table_name: None,
+    )
+    monkeypatch.setattr(submissions_module, "ensure_import_tracking_schema", lambda conn: None)
+    monkeypatch.setattr(
+        submissions_module,
+        "find_completed_import",
+        lambda **kwargs: ImportTrackingRecord(
+            import_id=9,
+            import_kind="submissions_csv",
+            target_table="public_submissions",
+            source_file="sample.csv",
+            file_hash="abc",
+            importer_version="submissions_csv_v1",
+            status="completed",
+            rows_processed=10,
+            rows_upserted=10,
+        ),
+    )
+    monkeypatch.setattr(
+        submissions_module,
+        "_iter_submission_chunks",
+        lambda path, chunk_size: [pd.DataFrame({"a": ["1"]})],
+    )
+    monkeypatch.setattr(
+        submissions_module,
+        "normalize_submission_chunk",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "organization_is_blank": [False],
+                "signed_at": [pd.Timestamp("2026-02-03 17:07:00", tz="America/Los_Angeles")],
+            }
+        ),
+    )
+    monkeypatch.setattr(submissions_module, "_upsert_submission_rows", lambda **kwargs: 1)
+    statuses: list[str] = []
+    monkeypatch.setattr(
+        submissions_module,
+        "record_import_result",
+        lambda **kwargs: (statuses.append(str(kwargs["status"])) or 10),
+    )
+
+    result = import_submission_csv_to_postgres(
+        csv_path=csv_path,
+        db_url="postgresql://example",
+        columns=_columns(),
+        timezone="America/Los_Angeles",
+        table_name="public_submissions",
+        chunk_size=1000,
+        source_file="sample.csv",
+        force=True,
+    )
+
+    assert result.import_skipped is False
+    assert result.rows_upserted == 1
+    assert statuses == ["completed"]
 
 
 def test_load_submission_records_from_postgres_with_and_without_filter(

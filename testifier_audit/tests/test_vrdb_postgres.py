@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from testifier_audit.io import vrdb_postgres as vrdb_module
+from testifier_audit.io.import_tracking import ImportTrackingRecord
 from testifier_audit.io.vrdb_postgres import (
     _chunk_values,
     _detect_vrdb_encoding,
@@ -300,6 +301,9 @@ def test_import_vrdb_extract_to_postgres_aggregates_metrics(
     psycopg, fake_sql, conn, _cursor = _fake_psycopg_bundle()
     monkeypatch.setattr(vrdb_module, "_load_psycopg", lambda: (psycopg, fake_sql))
     monkeypatch.setattr(vrdb_module, "ensure_voter_registry_schema", lambda conn, table_name: None)
+    monkeypatch.setattr(vrdb_module, "ensure_import_tracking_schema", lambda conn: None)
+    monkeypatch.setattr(vrdb_module, "find_completed_import", lambda **kwargs: None)
+    monkeypatch.setattr(vrdb_module, "record_import_result", lambda **kwargs: 1)
 
     chunk_one = pd.DataFrame({"row": ["1", "2"]})
     chunk_two = pd.DataFrame({"row": ["3"]})
@@ -337,7 +341,8 @@ def test_import_vrdb_extract_to_postgres_aggregates_metrics(
     assert result.rows_upserted == 2
     assert result.rows_with_state_voter_id == 1
     assert result.rows_with_canonical_name == 2
-    assert conn.commit_count == 2
+    assert result.file_hash
+    assert conn.commit_count == 3
     assert calls == [2, 1]
     assert psycopg.connect_calls == ["postgresql://example"]
 
@@ -349,6 +354,58 @@ def test_import_vrdb_extract_rejects_too_small_chunk_size() -> None:
             db_url="postgresql://unused",
             chunk_size=999,
         )
+
+
+def test_import_vrdb_extract_to_postgres_skips_when_checksum_seen(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    extract_path = tmp_path / "extract.txt"
+    extract_path.write_text("unused", encoding="utf-8")
+
+    psycopg, fake_sql, conn, _cursor = _fake_psycopg_bundle()
+    monkeypatch.setattr(vrdb_module, "_load_psycopg", lambda: (psycopg, fake_sql))
+    monkeypatch.setattr(vrdb_module, "ensure_voter_registry_schema", lambda conn, table_name: None)
+    monkeypatch.setattr(vrdb_module, "ensure_import_tracking_schema", lambda conn: None)
+    monkeypatch.setattr(
+        vrdb_module,
+        "find_completed_import",
+        lambda **kwargs: ImportTrackingRecord(
+            import_id=11,
+            import_kind="vrdb_extract",
+            target_table="voter_registry",
+            source_file="extract.txt",
+            file_hash="abc",
+            importer_version="vrdb_extract_v1",
+            status="completed",
+            rows_processed=50,
+            rows_upserted=50,
+        ),
+    )
+    record_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        vrdb_module,
+        "record_import_result",
+        lambda **kwargs: (record_calls.append(kwargs) or 12),
+    )
+    monkeypatch.setattr(
+        vrdb_module,
+        "_iter_vrdb_chunks",
+        lambda path, chunk_size: pytest.fail("memoized import should skip chunk iteration"),
+    )
+
+    result = import_vrdb_extract_to_postgres(
+        extract_path=extract_path,
+        db_url="postgresql://example",
+        table_name="voter_registry",
+        chunk_size=1000,
+    )
+
+    assert result.import_skipped is True
+    assert result.rows_processed == 0
+    assert result.rows_upserted == 0
+    assert result.previous_import_id == 11
+    assert record_calls and record_calls[0]["status"] == "skipped"
 
 
 def test_fetch_matching_voter_names_empty_input_short_circuit() -> None:

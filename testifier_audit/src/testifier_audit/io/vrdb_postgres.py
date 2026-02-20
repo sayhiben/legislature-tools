@@ -9,6 +9,12 @@ from typing import Iterable
 import pandas as pd
 
 from testifier_audit.features.rarity import normalize_name_token
+from testifier_audit.io.import_tracking import (
+    compute_file_sha256,
+    ensure_import_tracking_schema,
+    find_completed_import,
+    record_import_result,
+)
 
 ID_COLUMN_CANDIDATES = (
     "StateVoterID",
@@ -22,6 +28,8 @@ LAST_COLUMN_CANDIDATES = ("LName", "LastName", "last_name", "Last")
 SUFFIX_COLUMN_CANDIDATES = ("NameSuffix", "Suffix", "name_suffix")
 BIRTH_YEAR_COLUMN_CANDIDATES = ("Birthyear", "BirthYear", "birth_year")
 STATUS_COLUMN_CANDIDATES = ("StatusCode", "status_code", "Status")
+IMPORT_KIND_VRDB = "vrdb_extract"
+VRDB_IMPORTER_VERSION = "vrdb_extract_v1"
 
 
 @dataclass(frozen=True)
@@ -33,6 +41,10 @@ class VRDBImportResult:
     rows_with_state_voter_id: int
     rows_with_canonical_name: int
     chunk_size: int
+    file_hash: str = ""
+    import_skipped: bool = False
+    skip_reason: str | None = None
+    previous_import_id: int | None = None
 
 
 def _resolve_column(columns: list[str], candidates: tuple[str, ...]) -> str | None:
@@ -279,12 +291,15 @@ def import_vrdb_extract_to_postgres(
     db_url: str,
     table_name: str = "voter_registry",
     chunk_size: int = 50_000,
+    force: bool = False,
 ) -> VRDBImportResult:
     if chunk_size < 1_000:
         raise ValueError("chunk_size must be >= 1000")
 
     psycopg, _sql = _load_psycopg()
     source_file = extract_path.name
+    file_hash = compute_file_sha256(extract_path)
+    file_size_bytes = int(extract_path.stat().st_size)
 
     rows_processed = 0
     rows_upserted = 0
@@ -293,7 +308,49 @@ def import_vrdb_extract_to_postgres(
 
     with psycopg.connect(db_url) as conn:
         ensure_voter_registry_schema(conn=conn, table_name=table_name)
+        ensure_import_tracking_schema(conn=conn)
         conn.commit()
+
+        prior = find_completed_import(
+            conn=conn,
+            import_kind=IMPORT_KIND_VRDB,
+            target_table=table_name,
+            file_hash=file_hash,
+            importer_version=VRDB_IMPORTER_VERSION,
+        )
+        if prior is not None and not force:
+            skip_reason = (
+                "checksum already imported "
+                f"(import_id={prior.import_id}, rows_upserted={prior.rows_upserted})"
+            )
+            record_import_result(
+                conn=conn,
+                import_kind=IMPORT_KIND_VRDB,
+                target_table=table_name,
+                source_file=source_file,
+                file_hash=file_hash,
+                file_size_bytes=file_size_bytes,
+                importer_version=VRDB_IMPORTER_VERSION,
+                status="skipped",
+                rows_processed=0,
+                rows_upserted=0,
+                message=skip_reason,
+                metadata={"previous_import_id": prior.import_id},
+            )
+            conn.commit()
+            return VRDBImportResult(
+                source_file=source_file,
+                table_name=table_name,
+                rows_processed=0,
+                rows_upserted=0,
+                rows_with_state_voter_id=0,
+                rows_with_canonical_name=0,
+                chunk_size=chunk_size,
+                file_hash=file_hash,
+                import_skipped=True,
+                skip_reason=skip_reason,
+                previous_import_id=prior.import_id,
+            )
 
         for chunk in _iter_vrdb_chunks(extract_path, chunk_size=chunk_size):
             rows_processed += len(chunk)
@@ -306,6 +363,21 @@ def import_vrdb_extract_to_postgres(
             rows_upserted += _upsert_vrdb_rows(conn=conn, table_name=table_name, rows=normalized)
             conn.commit()
 
+        record_import_result(
+            conn=conn,
+            import_kind=IMPORT_KIND_VRDB,
+            target_table=table_name,
+            source_file=source_file,
+            file_hash=file_hash,
+            file_size_bytes=file_size_bytes,
+            importer_version=VRDB_IMPORTER_VERSION,
+            status="completed",
+            rows_processed=rows_processed,
+            rows_upserted=rows_upserted,
+            metadata={"force": bool(force)},
+        )
+        conn.commit()
+
     return VRDBImportResult(
         source_file=source_file,
         table_name=table_name,
@@ -314,6 +386,7 @@ def import_vrdb_extract_to_postgres(
         rows_with_state_voter_id=rows_with_state_voter_id,
         rows_with_canonical_name=rows_with_canonical_name,
         chunk_size=chunk_size,
+        file_hash=file_hash,
     )
 
 

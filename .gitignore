@@ -211,3 +211,6 @@ data/raw/
 
 # Local screenshot artifacts
 output/playwright/
+
+# Local runtime/output artifacts
+output/

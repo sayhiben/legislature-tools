@@ -209,6 +209,10 @@ def import_submissions(
         help="Logical source file label stored in Postgres. Defaults to CSV file name.",
     ),
     chunk_size: int = typer.Option(50_000, min=1000),
+    force: bool = typer.Option(
+        False,
+        help="Re-import even when an identical file checksum was already imported.",
+    ),
 ) -> None:
     """Import legislature submissions CSV into PostgreSQL with normalized columns."""
     configure_logging()
@@ -230,15 +234,21 @@ def import_submissions(
         table_name=effective_table_name,
         chunk_size=int(chunk_size),
         source_file=source_file,
+        force=force,
     )
     typer.echo("Submission import complete")
     typer.echo(f"- source_file: {result.source_file}")
+    if result.file_hash:
+        typer.echo(f"- file_hash: {result.file_hash}")
     typer.echo(f"- table_name: {result.table_name}")
     typer.echo(f"- rows_processed: {result.rows_processed}")
     typer.echo(f"- rows_upserted: {result.rows_upserted}")
     typer.echo(f"- rows_blank_organization: {result.rows_blank_organization}")
     typer.echo(f"- rows_invalid_timestamp: {result.rows_invalid_timestamp}")
     typer.echo(f"- chunk_size: {result.chunk_size}")
+    typer.echo(f"- import_skipped: {str(result.import_skipped).lower()}")
+    if result.skip_reason:
+        typer.echo(f"- skip_reason: {result.skip_reason}")
 
 
 @app.command("import-vrdb")
@@ -255,6 +265,10 @@ def import_vrdb(
         help="Destination table name. Falls back to config.voter_registry.table_name.",
     ),
     chunk_size: int = typer.Option(50_000, min=1000),
+    force: bool = typer.Option(
+        False,
+        help="Re-import even when an identical file checksum was already imported.",
+    ),
 ) -> None:
     """Import a VRDB extract into PostgreSQL with upsert semantics."""
     configure_logging()
@@ -273,16 +287,22 @@ def import_vrdb(
         db_url=effective_db_url,
         table_name=effective_table_name,
         chunk_size=int(chunk_size),
+        force=force,
     )
 
     typer.echo("VRDB import complete")
     typer.echo(f"- source_file: {result.source_file}")
+    if result.file_hash:
+        typer.echo(f"- file_hash: {result.file_hash}")
     typer.echo(f"- table_name: {result.table_name}")
     typer.echo(f"- rows_processed: {result.rows_processed}")
     typer.echo(f"- rows_upserted: {result.rows_upserted}")
     typer.echo(f"- rows_with_state_voter_id: {result.rows_with_state_voter_id}")
     typer.echo(f"- rows_with_canonical_name: {result.rows_with_canonical_name}")
     typer.echo(f"- chunk_size: {result.chunk_size}")
+    typer.echo(f"- import_skipped: {str(result.import_skipped).lower()}")
+    if result.skip_reason:
+        typer.echo(f"- skip_reason: {result.skip_reason}")
 
 
 if __name__ == "__main__":

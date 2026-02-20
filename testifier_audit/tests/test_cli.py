@@ -44,11 +44,13 @@ def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Pa
         db_url: str,
         table_name: str,
         chunk_size: int,
+        force: bool,
     ) -> VRDBImportResult:
         captured["extract_path"] = extract_path
         captured["db_url"] = db_url
         captured["table_name"] = table_name
         captured["chunk_size"] = chunk_size
+        captured["force"] = force
         return VRDBImportResult(
             source_file=extract_path.name,
             table_name=table_name,
@@ -57,6 +59,7 @@ def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Pa
             rows_with_state_voter_id=1,
             rows_with_canonical_name=1,
             chunk_size=chunk_size,
+            file_hash="abc123",
         )
 
     monkeypatch.setattr("testifier_audit.cli.import_vrdb_extract_to_postgres", _fake_import)
@@ -79,6 +82,7 @@ def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Pa
     assert captured["extract_path"] == extract_path
     assert captured["table_name"] == "voter_registry"
     assert captured["chunk_size"] == 2000
+    assert captured["force"] is False
     assert "rows_upserted: 1" in result.stdout
 
 
@@ -166,6 +170,7 @@ def test_import_submissions_command_runs_with_config_defaults(
             rows_blank_organization=1,
             rows_invalid_timestamp=0,
             chunk_size=int(kwargs["chunk_size"]),
+            file_hash="def456",
         )
 
     monkeypatch.setattr("testifier_audit.cli.import_submission_csv_to_postgres", _fake_import)
@@ -185,6 +190,7 @@ def test_import_submissions_command_runs_with_config_defaults(
     assert result.exit_code == 0, result.stdout
     assert captured["csv_path"] == csv_path
     assert captured["table_name"] == "public_submissions"
+    assert captured["force"] is False
     assert "rows_upserted: 1" in result.stdout
 
 

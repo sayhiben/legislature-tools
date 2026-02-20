@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pandas as pd
 
-
 POSITION_MAP = {
     "PRO": "Pro",
     "CON": "Con",

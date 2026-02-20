@@ -6,7 +6,11 @@ import pandas as pd
 
 from testifier_audit.config import load_config
 from testifier_audit.detectors.registry import default_detectors
-from testifier_audit.features.aggregates import build_counts_per_hour, build_counts_per_minute, build_name_frequency
+from testifier_audit.features.aggregates import (
+    build_counts_per_hour,
+    build_counts_per_minute,
+    build_name_frequency,
+)
 from testifier_audit.features.text_features import build_name_text_features
 
 

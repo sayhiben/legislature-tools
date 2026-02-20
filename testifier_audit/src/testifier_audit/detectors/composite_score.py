@@ -61,7 +61,9 @@ def _window_min_metric(
         metric_value = float(getattr(row, metric_col))
         mask = (minute_values >= start) & (minute_values <= end)
         existing = metric[mask]
-        metric[mask] = np.where(np.isnan(existing), metric_value, np.minimum(existing, metric_value))
+        metric[mask] = np.where(
+            np.isnan(existing), metric_value, np.minimum(existing, metric_value)
+        )
     return pd.Series(metric, index=base_minutes.index)
 
 
@@ -88,6 +90,9 @@ class CompositeScoreDetector(Detector):
         rare_rarity_windows = features.get("rare_names.rarity_high_windows", pd.DataFrame())
         volume_changepoints = features.get("changepoints.volume_changepoints", pd.DataFrame())
         pro_rate_changepoints = features.get("changepoints.pro_rate_changepoints", pd.DataFrame())
+        multivariate_scores = features.get(
+            "multivariate_anomalies.bucket_anomaly_scores", pd.DataFrame()
+        )
 
         ranked["burst_signal"] = _flag_minutes_from_windows(
             ranked["minute_bucket"],
@@ -142,33 +147,100 @@ class CompositeScoreDetector(Detector):
             ),
         )
 
+        ranked["ml_anomaly_signal"] = 0.0
+        ranked["ml_anomaly_score_pct"] = 0.0
+        if not multivariate_scores.empty and {"bucket_start", "anomaly_score"}.issubset(
+            set(multivariate_scores.columns)
+        ):
+            bucketed_scores = multivariate_scores.copy()
+            bucketed_scores["bucket_start"] = pd.to_datetime(
+                bucketed_scores["bucket_start"], errors="coerce"
+            )
+            bucketed_scores["anomaly_score"] = pd.to_numeric(
+                bucketed_scores["anomaly_score"],
+                errors="coerce",
+            )
+            bucketed_scores = bucketed_scores.dropna(subset=["bucket_start", "anomaly_score"])
+
+            if not bucketed_scores.empty:
+                score_rank = (
+                    bucketed_scores["anomaly_score"]
+                    .rank(method="average", pct=True)
+                    .astype(float)
+                    .to_numpy(dtype=float)
+                )
+                bucketed_scores["anomaly_score_pct"] = score_rank
+
+                if "is_anomaly" in bucketed_scores.columns:
+                    bucketed_scores["is_anomaly"] = (
+                        bucketed_scores["is_anomaly"].fillna(False).astype(bool)
+                    )
+                else:
+                    bucketed_scores["is_anomaly"] = False
+
+                bucket_minutes = 1
+                if (
+                    "bucket_minutes" in bucketed_scores.columns
+                    and bucketed_scores["bucket_minutes"].notna().any()
+                ):
+                    bucket_minutes = max(1, int(bucketed_scores["bucket_minutes"].dropna().iloc[0]))
+
+                score_map = dict(
+                    zip(
+                        bucketed_scores["bucket_start"].tolist(),
+                        bucketed_scores["anomaly_score_pct"].tolist(),
+                    )
+                )
+                flag_map = dict(
+                    zip(
+                        bucketed_scores["bucket_start"].tolist(),
+                        bucketed_scores["is_anomaly"].tolist(),
+                    )
+                )
+
+                minute_floor = pd.to_datetime(ranked["minute_bucket"], errors="coerce").dt.floor(
+                    f"{bucket_minutes}min"
+                )
+                ranked["ml_anomaly_score_pct"] = (
+                    minute_floor.map(score_map).fillna(0.0).astype(float)
+                )
+                ranked["ml_anomaly_signal"] = (
+                    minute_floor.map(flag_map).fillna(False).astype(bool).astype(float)
+                )
+
         ranked["composite_score"] = (
-            0.30 * ranked["volume_score"]
-            + 0.20 * ranked["duplicate_score"]
-            + 0.15 * ranked["burst_signal"]
-            + 0.15 * ranked["swing_signal"]
-            + 0.10 * ranked["changepoint_signal"]
+            0.26 * ranked["volume_score"]
+            + 0.18 * ranked["duplicate_score"]
+            + 0.14 * ranked["burst_signal"]
+            + 0.14 * ranked["swing_signal"]
+            + 0.09 * ranked["changepoint_signal"]
             + 0.05 * ranked["unique_signal"]
             + 0.05 * ranked["rarity_signal"]
+            + 0.09 * ranked["ml_anomaly_score_pct"]
         )
 
         ranked = ranked.sort_values("composite_score", ascending=False)
         high_priority = ranked[ranked["composite_score"] >= 0.85]
         evidence_bundle = (
-            ranked.loc[:, [
-                "minute_bucket",
-                "n_total",
-                "pro_rate",
-                "dup_name_fraction",
-                "composite_score",
-                "burst_signal",
-                "burst_q_value_min",
-                "swing_signal",
-                "swing_q_value_min",
-                "changepoint_signal",
-                "unique_signal",
-                "rarity_signal",
-            ]]
+            ranked.loc[
+                :,
+                [
+                    "minute_bucket",
+                    "n_total",
+                    "pro_rate",
+                    "dup_name_fraction",
+                    "composite_score",
+                    "burst_signal",
+                    "burst_q_value_min",
+                    "swing_signal",
+                    "swing_q_value_min",
+                    "changepoint_signal",
+                    "unique_signal",
+                    "rarity_signal",
+                    "ml_anomaly_signal",
+                    "ml_anomaly_score_pct",
+                ],
+            ]
             .assign(
                 evidence_count=lambda frame: (
                     frame["burst_signal"]
@@ -176,6 +248,7 @@ class CompositeScoreDetector(Detector):
                     + frame["changepoint_signal"]
                     + frame["unique_signal"]
                     + frame["rarity_signal"]
+                    + frame["ml_anomaly_signal"]
                 ).astype(int),
                 evidence_flags=lambda frame: frame.apply(
                     lambda row: ",".join(
@@ -186,6 +259,7 @@ class CompositeScoreDetector(Detector):
                             ("changepoint", row["changepoint_signal"]),
                             ("unique_spike", row["unique_signal"]),
                             ("rarity_spike", row["rarity_signal"]),
+                            ("multivariate", row["ml_anomaly_signal"]),
                         )
                         if float(signal) > 0.0
                     ),
@@ -201,7 +275,9 @@ class CompositeScoreDetector(Detector):
             "n_ranked_windows": int(len(ranked)),
             "n_high_priority_windows": int(len(high_priority)),
             "n_evidence_bundle_windows": int(len(evidence_bundle)),
-            "max_composite_score": float(ranked["composite_score"].max()) if not ranked.empty else 0.0,
+            "max_composite_score": float(ranked["composite_score"].max())
+            if not ranked.empty
+            else 0.0,
         }
 
         return DetectorResult(

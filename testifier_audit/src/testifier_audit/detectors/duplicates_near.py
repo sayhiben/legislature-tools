@@ -8,6 +8,7 @@ import pandas as pd
 try:
     from rapidfuzz import fuzz
 except ImportError:  # pragma: no cover
+
     class _FallbackFuzz:
         @staticmethod
         def token_set_ratio(left: str, right: str) -> float:
@@ -53,7 +54,9 @@ class DuplicatesNearDetector(Detector):
         required = ["canonical_name", "name_display", "last", "first", "first_canonical"]
         missing = [column for column in required if column not in df.columns]
         if missing:
-            raise ValueError(f"Missing required columns for near-duplicate detection: {', '.join(missing)}")
+            raise ValueError(
+                f"Missing required columns for near-duplicate detection: {', '.join(missing)}"
+            )
 
         name_nodes = df[required].drop_duplicates(subset=["canonical_name"]).copy()
         name_nodes["block_key"] = build_blocking_key(name_nodes)
@@ -133,7 +136,9 @@ class DuplicatesNearDetector(Detector):
             uf.union(str(row.left_canonical_name), str(row.right_canonical_name))
 
         components: dict[str, set[str]] = {}
-        for name in pd.unique(edges[["left_canonical_name", "right_canonical_name"]].values.ravel("K")):
+        for name in pd.unique(
+            edges[["left_canonical_name", "right_canonical_name"]].values.ravel("K")
+        ):
             root = uf.find(str(name))
             components.setdefault(root, set()).add(str(name))
 
@@ -179,7 +184,9 @@ class DuplicatesNearDetector(Detector):
                 ),
             )
             .reset_index()
-            .sort_values(["cluster_size", "n_records", "cluster_id"], ascending=[False, False, True])
+            .sort_values(
+                ["cluster_size", "n_records", "cluster_id"], ascending=[False, False, True]
+            )
         )
         cluster_summary["time_span_minutes"] = (
             (cluster_summary["last_seen"] - cluster_summary["first_seen"]).dt.total_seconds() / 60.0
@@ -189,7 +196,9 @@ class DuplicatesNearDetector(Detector):
             "candidate_blocks": int(len(candidate_blocks)),
             "n_similarity_edges": int(len(edges)),
             "n_clusters": int(cluster_summary["cluster_id"].nunique()),
-            "max_cluster_size": int(cluster_summary["cluster_size"].max()) if not cluster_summary.empty else 0,
+            "max_cluster_size": int(cluster_summary["cluster_size"].max())
+            if not cluster_summary.empty
+            else 0,
             "n_skipped_blocks": int(len(skipped)),
         }
 

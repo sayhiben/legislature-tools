@@ -214,8 +214,12 @@ class BurstsDetector(Detector):
 
                 empirical_p = empirical_tail_p_values(observed, null_maxima)
                 tests.loc[window_mask, "permutation_p_value"] = empirical_p
-                tests.loc[window_mask, "is_significant_permutation_raw"] = empirical_p <= self.fdr_alpha
-                tests.loc[window_mask, "is_calibration_supported"] = empirical_p <= calibration_alpha
+                tests.loc[window_mask, "is_significant_permutation_raw"] = (
+                    empirical_p <= self.fdr_alpha
+                )
+                tests.loc[window_mask, "is_calibration_supported"] = (
+                    empirical_p <= calibration_alpha
+                )
 
                 null_distribution_frames.append(
                     pd.DataFrame(
@@ -249,7 +253,9 @@ class BurstsDetector(Detector):
         else:
             tests["is_significant"] = tests["is_significant_poisson_fdr"]
 
-        tests = tests.sort_values(["is_significant", "q_value", "rate_ratio"], ascending=[False, True, False])
+        tests = tests.sort_values(
+            ["is_significant", "q_value", "rate_ratio"], ascending=[False, True, False]
+        )
         significant = tests[tests["is_significant"]].copy()
         null_distribution = (
             pd.concat(null_distribution_frames, ignore_index=True)
@@ -261,10 +267,14 @@ class BurstsDetector(Detector):
             "n_tests": int(len(tests)),
             "n_significant_windows": int(len(significant)),
             "n_poisson_fdr_significant_windows": int(tests["is_significant_poisson_fdr"].sum()),
-            "n_permutation_raw_significant_windows": int(tests["is_significant_permutation_raw"].sum())
+            "n_permutation_raw_significant_windows": int(
+                tests["is_significant_permutation_raw"].sum()
+            )
             if calibration_active
             else int(len(tests)),
-            "n_permutation_fdr_significant_windows": int(tests["is_significant_permutation_fdr"].sum())
+            "n_permutation_fdr_significant_windows": int(
+                tests["is_significant_permutation_fdr"].sum()
+            )
             if calibration_active
             else int(len(tests)),
             "n_permutation_significant_windows": int(tests["is_significant_permutation"].sum())
@@ -274,7 +284,9 @@ class BurstsDetector(Detector):
             if calibration_active
             else int(len(tests)),
             "baseline_rate_per_minute": baseline_rate,
-            "max_observed_window_count": float(tests["observed_count"].max()) if not tests.empty else 0.0,
+            "max_observed_window_count": float(tests["observed_count"].max())
+            if not tests.empty
+            else 0.0,
             "min_q_value": float(tests["q_value"].min()) if not tests.empty else 1.0,
             "calibration_enabled": calibration_active,
             "calibration_mode": self.calibration_mode if calibration_active else "disabled",

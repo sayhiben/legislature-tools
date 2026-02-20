@@ -23,6 +23,13 @@ def build_output_paths(out_dir: Path) -> OutputPaths:
         flags=out_dir / "flags",
         artifacts=out_dir / "artifacts",
     )
-    for path in (paths.root, paths.tables, paths.figures, paths.summary, paths.flags, paths.artifacts):
+    for path in (
+        paths.root,
+        paths.tables,
+        paths.figures,
+        paths.summary,
+        paths.flags,
+        paths.artifacts,
+    ):
         path.mkdir(parents=True, exist_ok=True)
     return paths

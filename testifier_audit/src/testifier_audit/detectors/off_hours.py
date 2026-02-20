@@ -5,6 +5,12 @@ import pandas as pd
 from scipy.stats import chi2_contingency
 
 from testifier_audit.detectors.base import Detector, DetectorResult
+from testifier_audit.proportion_stats import (
+    DEFAULT_LOW_POWER_MIN_TOTAL,
+    low_power_mask,
+    wilson_half_width,
+    wilson_interval,
+)
 
 
 class OffHoursDetector(Detector):
@@ -34,10 +40,17 @@ class OffHoursDetector(Detector):
         off_con = int(off_hours["is_con"].sum())
         on_pro = int(on_hours["is_pro"].sum())
         on_con = int(on_hours["is_con"].sum())
+        off_known_total = int(off_pro + off_con)
+        on_known_total = int(on_pro + on_con)
+        low_power_min_total = DEFAULT_LOW_POWER_MIN_TOTAL
 
         p_value = 1.0
         contingency = np.array([[off_pro, off_con], [on_pro, on_con]], dtype=float)
-        if contingency.sum() > 0 and contingency.shape == (2, 2) and (contingency.sum(axis=1) > 0).all():
+        if (
+            contingency.sum() > 0
+            and contingency.shape == (2, 2)
+            and (contingency.sum(axis=1) > 0).all()
+        ):
             _chi2, p_value, _dof, _expected = chi2_contingency(contingency, correction=False)
 
         summary_table = pd.DataFrame(
@@ -47,11 +60,49 @@ class OffHoursDetector(Detector):
                     "off_hours": off_count,
                     "on_hours": on_count,
                     "off_hours_ratio": (off_count / total) if total else 0.0,
-                    "off_hours_pro_rate": (off_pro / (off_pro + off_con)) if (off_pro + off_con) else np.nan,
-                    "on_hours_pro_rate": (on_pro / (on_pro + on_con)) if (on_pro + on_con) else np.nan,
+                    "off_hours_pro_rate": (off_pro / off_known_total)
+                    if off_known_total
+                    else np.nan,
+                    "on_hours_pro_rate": (on_pro / on_known_total) if on_known_total else np.nan,
                     "chi_square_p_value": p_value,
                 }
             ]
+        )
+        off_low, off_high = wilson_interval(
+            successes=pd.Series([off_pro]),
+            totals=pd.Series([off_known_total]),
+        )
+        on_low, on_high = wilson_interval(
+            successes=pd.Series([on_pro]),
+            totals=pd.Series([on_known_total]),
+        )
+        summary_table["off_hours_pro_rate_wilson_low"] = float(off_low[0])
+        summary_table["off_hours_pro_rate_wilson_high"] = float(off_high[0])
+        summary_table["off_hours_pro_rate_wilson_half_width"] = float(
+            wilson_half_width(
+                successes=pd.Series([off_pro]),
+                totals=pd.Series([off_known_total]),
+            )[0]
+        )
+        summary_table["on_hours_pro_rate_wilson_low"] = float(on_low[0])
+        summary_table["on_hours_pro_rate_wilson_high"] = float(on_high[0])
+        summary_table["on_hours_pro_rate_wilson_half_width"] = float(
+            wilson_half_width(
+                successes=pd.Series([on_pro]),
+                totals=pd.Series([on_known_total]),
+            )[0]
+        )
+        summary_table["off_hours_is_low_power"] = bool(
+            low_power_mask(
+                totals=pd.Series([off_known_total]),
+                min_total=low_power_min_total,
+            )[0]
+        )
+        summary_table["on_hours_is_low_power"] = bool(
+            low_power_mask(
+                totals=pd.Series([on_known_total]),
+                min_total=low_power_min_total,
+            )[0]
         )
 
         hourly_distribution = (
@@ -65,14 +116,32 @@ class OffHoursDetector(Detector):
             .sort_values("hour")
         )
         hourly_distribution["pro_rate"] = (
-            hourly_distribution["n_pro"] / (hourly_distribution["n_pro"] + hourly_distribution["n_con"])
+            hourly_distribution["n_pro"]
+            / (hourly_distribution["n_pro"] + hourly_distribution["n_con"])
         ).where((hourly_distribution["n_pro"] + hourly_distribution["n_con"]) > 0)
+        hourly_distribution["pro_rate_wilson_low"], hourly_distribution["pro_rate_wilson_high"] = (
+            wilson_interval(
+                successes=hourly_distribution["n_pro"],
+                totals=hourly_distribution["n_pro"] + hourly_distribution["n_con"],
+            )
+        )
+        hourly_distribution["pro_rate_wilson_half_width"] = wilson_half_width(
+            successes=hourly_distribution["n_pro"],
+            totals=hourly_distribution["n_pro"] + hourly_distribution["n_con"],
+        )
+        hourly_distribution["is_low_power"] = low_power_mask(
+            totals=hourly_distribution["n_pro"] + hourly_distribution["n_con"],
+            min_total=low_power_min_total,
+        )
 
         return DetectorResult(
             detector=self.name,
             summary={
                 "off_hours_ratio": float(summary_table.loc[0, "off_hours_ratio"]),
                 "chi_square_p_value": float(p_value),
+                "low_power_min_total": int(low_power_min_total),
+                "off_hours_is_low_power": bool(summary_table.loc[0, "off_hours_is_low_power"]),
+                "on_hours_is_low_power": bool(summary_table.loc[0, "on_hours_is_low_power"]),
             },
             tables={
                 "off_hours_summary": summary_table,

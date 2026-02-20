@@ -9,6 +9,13 @@ from testifier_audit.features.rarity import (
     normalize_name_token,
     score_name_rarity,
 )
+from testifier_audit.proportion_stats import (
+    DEFAULT_LOW_POWER_MIN_TOTAL,
+    low_power_mask,
+    wilson_interval,
+)
+
+DEFAULT_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
 
 
 class RareNamesDetector(Detector):
@@ -21,12 +28,19 @@ class RareNamesDetector(Detector):
         first_name_frequency_path: str | None = None,
         last_name_frequency_path: str | None = None,
         rarity_epsilon: float = 1e-9,
+        bucket_minutes: list[int] | tuple[int, ...] | None = None,
+        low_power_min_total: int = DEFAULT_LOW_POWER_MIN_TOTAL,
     ) -> None:
         self.min_window_total = min_window_total
         self.rarity_enabled = rarity_enabled
         self.first_name_frequency_path = first_name_frequency_path
         self.last_name_frequency_path = last_name_frequency_path
         self.rarity_epsilon = rarity_epsilon
+        buckets = bucket_minutes or DEFAULT_BUCKET_MINUTES
+        self.bucket_minutes = sorted({int(value) for value in buckets if int(value) > 0})
+        if not self.bucket_minutes:
+            self.bucket_minutes = list(DEFAULT_BUCKET_MINUTES)
+        self.low_power_min_total = max(1, int(low_power_min_total))
 
     @staticmethod
     def _empty_rarity_tables() -> dict[str, pd.DataFrame]:
@@ -39,10 +53,70 @@ class RareNamesDetector(Detector):
             "rarity_unmatched_last_tokens": pd.DataFrame(),
         }
 
+    def _build_bucketed_name_windows(self, df: pd.DataFrame) -> pd.DataFrame:
+        required = {"minute_bucket", "canonical_name", "position_normalized"}
+        if not required.issubset(set(df.columns)):
+            return pd.DataFrame()
+
+        working = df.copy()
+        id_column = "id"
+        if id_column not in working.columns:
+            id_column = "__row_id"
+            working[id_column] = np.arange(len(working), dtype=int)
+        working["minute_bucket"] = pd.to_datetime(working["minute_bucket"], errors="coerce")
+        working = working.dropna(subset=["minute_bucket"])
+        if working.empty:
+            return pd.DataFrame()
+
+        frames: list[pd.DataFrame] = []
+        for bucket_minutes in self.bucket_minutes:
+            grouped = (
+                working.assign(
+                    bucket_start=working["minute_bucket"].dt.floor(f"{int(bucket_minutes)}min")
+                )
+                .groupby("bucket_start", dropna=True)
+                .agg(
+                    n_total=(id_column, "count"),
+                    n_unique_names=("canonical_name", "nunique"),
+                    n_pro=("position_normalized", lambda s: int((s == "Pro").sum())),
+                    n_con=("position_normalized", lambda s: int((s == "Con").sum())),
+                )
+                .reset_index()
+                .rename(columns={"bucket_start": "minute_bucket"})
+                .sort_values("minute_bucket")
+            )
+            if grouped.empty:
+                continue
+
+            grouped["bucket_minutes"] = int(bucket_minutes)
+            grouped["unique_ratio"] = (grouped["n_unique_names"] / grouped["n_total"]).where(
+                grouped["n_total"] > 0
+            )
+            grouped["pro_rate"] = (grouped["n_pro"] / grouped["n_total"]).where(
+                grouped["n_total"] > 0
+            )
+            grouped["pro_rate_wilson_low"], grouped["pro_rate_wilson_high"] = wilson_interval(
+                successes=grouped["n_pro"],
+                totals=grouped["n_total"],
+            )
+            grouped["is_low_power"] = low_power_mask(
+                totals=grouped["n_total"],
+                min_total=self.low_power_min_total,
+            )
+            frames.append(grouped)
+
+        if not frames:
+            return pd.DataFrame()
+        return (
+            pd.concat(frames, ignore_index=True)
+            .sort_values(["bucket_minutes", "minute_bucket"])
+            .reset_index(drop=True)
+        )
+
     def _build_rarity_tables(
         self,
         df: pd.DataFrame,
-        counts_per_minute: pd.DataFrame,
+        bucketed_name_windows: pd.DataFrame,
     ) -> tuple[dict[str, pd.DataFrame], dict[str, float | int | bool]]:
         summary = {
             "rarity_enrichment_enabled": bool(self.rarity_enabled),
@@ -107,39 +181,94 @@ class RareNamesDetector(Detector):
 
         top_columns = [
             column
-            for column in ["minute_bucket", "canonical_name", "name_display", "position_normalized", "rarity_score"]
+            for column in [
+                "minute_bucket",
+                "canonical_name",
+                "name_display",
+                "position_normalized",
+                "rarity_score",
+            ]
             if column in rarity_records.columns
         ]
-        rarity_top_records = rarity_records[top_columns].sort_values("rarity_score", ascending=False).head(200)
-
-        rarity_by_minute = (
-            rarity_records.groupby("minute_bucket", dropna=True)
-            .agg(
-                n_records=("rarity_score", "count"),
-                rarity_mean=("rarity_score", "mean"),
-                rarity_median=("rarity_score", "median"),
-                rarity_p90=("rarity_score", lambda s: float(np.quantile(s, 0.90))),
-            )
-            .reset_index()
-            .sort_values("minute_bucket")
+        rarity_top_records = (
+            rarity_records[top_columns].sort_values("rarity_score", ascending=False).head(200)
         )
 
-        if not counts_per_minute.empty and "minute_bucket" in counts_per_minute.columns:
-            rarity_by_minute = rarity_by_minute.merge(
-                counts_per_minute[["minute_bucket", "n_total"]],
-                on="minute_bucket",
-                how="left",
+        rarity_frames: list[pd.DataFrame] = []
+        rarity_high_frames: list[pd.DataFrame] = []
+        for bucket_minutes in self.bucket_minutes:
+            bucket_frame = rarity_records.copy()
+            bucket_frame["minute_bucket"] = pd.to_datetime(
+                bucket_frame["minute_bucket"], errors="coerce"
             )
-        else:
-            rarity_by_minute["n_total"] = rarity_by_minute["n_records"]
+            bucket_frame = bucket_frame.dropna(subset=["minute_bucket"])
+            if bucket_frame.empty:
+                continue
+            bucket_frame["bucket_start"] = bucket_frame["minute_bucket"].dt.floor(
+                f"{int(bucket_minutes)}min"
+            )
 
-        candidate_windows = rarity_by_minute[rarity_by_minute["n_total"] >= self.min_window_total].copy()
-        if not candidate_windows.empty:
+            rarity_by_bucket = (
+                bucket_frame.groupby("bucket_start", dropna=True)
+                .agg(
+                    n_records=("rarity_score", "count"),
+                    rarity_mean=("rarity_score", "mean"),
+                    rarity_median=("rarity_score", "median"),
+                    rarity_p90=("rarity_score", lambda s: float(np.quantile(s, 0.90))),
+                    rarity_p95=("rarity_score", lambda s: float(np.quantile(s, 0.95))),
+                )
+                .reset_index()
+                .rename(columns={"bucket_start": "minute_bucket"})
+                .sort_values("minute_bucket")
+            )
+            if rarity_by_bucket.empty:
+                continue
+
+            rarity_by_bucket["bucket_minutes"] = int(bucket_minutes)
+            if not bucketed_name_windows.empty:
+                totals = bucketed_name_windows[
+                    bucketed_name_windows["bucket_minutes"] == int(bucket_minutes)
+                ][["minute_bucket", "n_total"]]
+                rarity_by_bucket = rarity_by_bucket.merge(
+                    totals,
+                    on="minute_bucket",
+                    how="left",
+                )
+            if "n_total" not in rarity_by_bucket.columns:
+                rarity_by_bucket["n_total"] = rarity_by_bucket["n_records"]
+            rarity_by_bucket["n_total"] = pd.to_numeric(
+                rarity_by_bucket["n_total"], errors="coerce"
+            ).fillna(rarity_by_bucket["n_records"])
+            rarity_by_bucket["is_low_power"] = low_power_mask(
+                totals=rarity_by_bucket["n_total"],
+                min_total=self.low_power_min_total,
+            )
+            rarity_frames.append(rarity_by_bucket)
+
+            candidate_windows = rarity_by_bucket[
+                rarity_by_bucket["n_total"] >= self.min_window_total
+            ].copy()
+            if candidate_windows.empty:
+                continue
             threshold = float(candidate_windows["rarity_median"].quantile(0.99))
-            rarity_high_windows = candidate_windows[candidate_windows["rarity_median"] >= threshold].copy()
-            rarity_high_windows["threshold_rarity_median"] = threshold
-        else:
-            rarity_high_windows = pd.DataFrame()
+            candidate_windows["threshold_rarity_median"] = threshold
+            candidate_windows["is_flagged"] = candidate_windows["rarity_median"] >= threshold
+            rarity_high_frames.append(candidate_windows[candidate_windows["is_flagged"]].copy())
+
+        rarity_by_minute = (
+            pd.concat(rarity_frames, ignore_index=True)
+            .sort_values(["bucket_minutes", "minute_bucket"])
+            .reset_index(drop=True)
+            if rarity_frames
+            else pd.DataFrame()
+        )
+        rarity_high_windows = (
+            pd.concat(rarity_high_frames, ignore_index=True)
+            .sort_values(["bucket_minutes", "minute_bucket"])
+            .reset_index(drop=True)
+            if rarity_high_frames
+            else pd.DataFrame()
+        )
 
         unmatched_first = pd.DataFrame(columns=["first_token", "n_records"])
         unmatched_last = pd.DataFrame(columns=["last_token", "n_records"])
@@ -165,9 +294,15 @@ class RareNamesDetector(Detector):
             )
 
         n_rarity_records = int(len(rarity_records))
-        first_lookup_match_rate = float(rarity_records["first_lookup_match"].mean()) if n_rarity_records else 0.0
-        last_lookup_match_rate = float(rarity_records["last_lookup_match"].mean()) if n_rarity_records else 0.0
-        both_lookup_match_rate = float(rarity_records["both_lookup_match"].mean()) if n_rarity_records else 0.0
+        first_lookup_match_rate = (
+            float(rarity_records["first_lookup_match"].mean()) if n_rarity_records else 0.0
+        )
+        last_lookup_match_rate = (
+            float(rarity_records["last_lookup_match"].mean()) if n_rarity_records else 0.0
+        )
+        both_lookup_match_rate = (
+            float(rarity_records["both_lookup_match"].mean()) if n_rarity_records else 0.0
+        )
         coverage_table = pd.DataFrame(
             [
                 {
@@ -206,8 +341,8 @@ class RareNamesDetector(Detector):
 
     def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
         name_frequency = features.get("name_frequency", pd.DataFrame())
-        counts_per_minute = features.get("counts_per_minute", pd.DataFrame())
         text_features = features.get("name_text_features", pd.DataFrame())
+        bucketed_name_windows = self._build_bucketed_name_windows(df=df)
 
         if name_frequency.empty:
             empty = pd.DataFrame()
@@ -237,15 +372,36 @@ class RareNamesDetector(Detector):
             )
 
         singleton = name_frequency[name_frequency["n"] == 1].copy()
-        singleton_ratio = float(len(singleton) / len(name_frequency)) if len(name_frequency) else 0.0
+        singleton_ratio = (
+            float(len(singleton) / len(name_frequency)) if len(name_frequency) else 0.0
+        )
 
         unique_windows = pd.DataFrame()
-        if not counts_per_minute.empty:
-            window_candidates = counts_per_minute[counts_per_minute["n_total"] >= self.min_window_total].copy()
-            if not window_candidates.empty:
-                threshold = float(window_candidates["unique_ratio"].quantile(0.99))
-                unique_windows = window_candidates[window_candidates["unique_ratio"] >= threshold].copy()
-                unique_windows["threshold_unique_ratio"] = threshold
+        if not bucketed_name_windows.empty:
+            bucket_frames: list[pd.DataFrame] = []
+            for bucket_minutes in sorted(
+                pd.to_numeric(bucketed_name_windows["bucket_minutes"], errors="coerce")
+                .dropna()
+                .astype(int)
+                .unique()
+                .tolist()
+            ):
+                candidate = bucketed_name_windows[
+                    (bucketed_name_windows["bucket_minutes"] == int(bucket_minutes))
+                    & (bucketed_name_windows["n_total"] >= self.min_window_total)
+                ].copy()
+                if candidate.empty:
+                    continue
+                threshold = float(candidate["unique_ratio"].quantile(0.99))
+                candidate["threshold_unique_ratio"] = threshold
+                candidate["is_flagged_unique_ratio"] = candidate["unique_ratio"] >= threshold
+                bucket_frames.append(candidate)
+            if bucket_frames:
+                unique_windows = (
+                    pd.concat(bucket_frames, ignore_index=True)
+                    .sort_values(["bucket_minutes", "minute_bucket"])
+                    .reset_index(drop=True)
+                )
 
         weird_names = pd.DataFrame()
         if not text_features.empty:
@@ -263,13 +419,22 @@ class RareNamesDetector(Detector):
                 .head(200)
             )
 
-        rarity_tables, rarity_summary = self._build_rarity_tables(df=df, counts_per_minute=counts_per_minute)
+        rarity_tables, rarity_summary = self._build_rarity_tables(
+            df=df,
+            bucketed_name_windows=bucketed_name_windows,
+        )
 
         summary = {
             "n_singletons": int(len(singleton)),
             "singleton_ratio": singleton_ratio,
-            "n_flagged_unique_windows": int(len(unique_windows)),
-            "max_unique_ratio": float(unique_windows["unique_ratio"].max()) if not unique_windows.empty else 0.0,
+            "n_flagged_unique_windows": (
+                int(unique_windows["is_flagged_unique_ratio"].sum())
+                if not unique_windows.empty and "is_flagged_unique_ratio" in unique_windows.columns
+                else int(len(unique_windows))
+            ),
+            "max_unique_ratio": float(unique_windows["unique_ratio"].max())
+            if not unique_windows.empty
+            else 0.0,
             **rarity_summary,
         }
 

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import yaml
 from typer.testing import CliRunner
 
 from testifier_audit.cli import app
+from testifier_audit.report.render import _default_analysis_definitions
 
 
 def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
@@ -136,8 +138,25 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert (out_dir / "summary" / "bursts.json").exists()
     assert (out_dir / "summary" / "procon_swings.json").exists()
     assert (out_dir / "summary" / "changepoints.json").exists()
+    assert (out_dir / "summary" / "voter_registry_match.json").exists()
+    assert (out_dir / "summary" / "multivariate_anomalies.json").exists()
     assert (out_dir / "tables" / "bursts__burst_window_tests.csv").exists()
     assert (out_dir / "tables" / "procon_swings__swing_window_tests.csv").exists()
+    assert (out_dir / "tables" / "duplicates_exact__repeated_same_bucket.csv").exists()
+    assert (out_dir / "tables" / "duplicates_exact__repeated_same_bucket_summary.csv").exists()
+    assert (out_dir / "tables" / "sortedness__bucket_ordering.csv").exists()
+    assert (out_dir / "tables" / "sortedness__bucket_ordering_summary.csv").exists()
+    assert (out_dir / "tables" / "procon_swings__time_bucket_profiles.csv").exists()
+    assert (out_dir / "tables" / "procon_swings__time_of_day_bucket_profiles.csv").exists()
+    assert (out_dir / "tables" / "procon_swings__day_bucket_profiles.csv").exists()
+    assert (out_dir / "tables" / "org_anomalies__organization_blank_rate_by_bucket.csv").exists()
+    assert (
+        out_dir / "tables" / "org_anomalies__organization_blank_rate_by_bucket_position.csv"
+    ).exists()
+    assert (out_dir / "tables" / "org_anomalies__organization_blank_rate_summary.csv").exists()
+    assert (out_dir / "tables" / "voter_registry_match__match_overview.csv").exists()
+    assert (out_dir / "tables" / "multivariate_anomalies__bucket_anomaly_scores.csv").exists()
+    assert (out_dir / "tables" / "multivariate_anomalies__top_bucket_anomalies.csv").exists()
     assert (out_dir / "tables" / "changepoints__all_changepoints.csv").exists()
     assert (out_dir / "tables" / "rare_names__rarity_by_minute.csv").exists()
     assert (out_dir / "tables" / "rare_names__rarity_top_records.csv").exists()
@@ -145,15 +164,50 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert (out_dir / "tables" / "composite_score__evidence_bundle_windows.csv").exists()
     assert (out_dir / "figures" / "counts_with_anomalies.png").exists()
     assert (out_dir / "figures" / "pro_rate_with_anomalies.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_1m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_5m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_15m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_30m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_60m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_120m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_240m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_shift_heatmap_1m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_shift_heatmap_5m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_shift_heatmap_15m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_shift_heatmap_30m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_shift_heatmap_60m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_shift_heatmap_120m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_shift_heatmap_240m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends_1m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends_5m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends_15m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends_30m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends_60m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends_120m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_bucket_trends_240m.png").exists()
+    assert (out_dir / "figures" / "pro_rate_time_of_day_profiles.png").exists()
+    assert (out_dir / "figures" / "organization_blank_rates.png").exists()
     assert (out_dir / "figures" / "bursts_null_distribution.png").exists()
     assert (out_dir / "figures" / "swing_null_distribution.png").exists()
     assert (out_dir / "figures" / "periodicity_autocorr.png").exists()
     assert (out_dir / "figures" / "periodicity_spectrum.png").exists()
     assert (out_dir / "figures" / "periodicity_clockface.png").exists()
+    assert (out_dir / "figures" / "multivariate_anomaly_scores.png").exists()
     report_text = (out_dir / "report.html").read_text(encoding="utf-8")
-    assert "Evidence Bundle Windows" in report_text
-    assert "Rarity Coverage" in report_text
-    assert "Clock-face Timing" in report_text
+    assert "Composite Evidence Score" in report_text
+    assert "Rare / Unique Names" in report_text
+    assert "Periodicity" in report_text
+    assert "Static Figure Exports" not in report_text
+    expected_analyses = {entry["id"] for entry in _default_analysis_definitions()}
+    expected_hero_ids = {entry["hero_chart_id"] for entry in _default_analysis_definitions()}
+    rendered_analysis_ids = set(re.findall(r'data-analysis-id="([^"]+)"', report_text))
+    rendered_hero_ids = set(
+        re.findall(r'data-chart-id="([^"]+)"\s+data-chart-role="hero"', report_text)
+    )
+    assert rendered_analysis_ids == expected_analyses
+    assert rendered_hero_ids == expected_hero_ids
 
     report_result = runner.invoke(
         app,
@@ -167,5 +221,12 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     )
     assert report_result.exit_code == 0, report_result.stdout
     reloaded_report_text = (out_dir / "report.html").read_text(encoding="utf-8")
-    assert "Evidence Bundle Windows" in reloaded_report_text
-    assert "Clock-face Timing" in reloaded_report_text
+    assert "Composite Evidence Score" in reloaded_report_text
+    assert "Periodicity" in reloaded_report_text
+    assert "Static Figure Exports" not in reloaded_report_text
+    reloaded_analysis_ids = set(re.findall(r'data-analysis-id="([^"]+)"', reloaded_report_text))
+    reloaded_hero_ids = set(
+        re.findall(r'data-chart-id="([^"]+)"\s+data-chart-role="hero"', reloaded_report_text)
+    )
+    assert reloaded_analysis_ids == expected_analyses
+    assert reloaded_hero_ids == expected_hero_ids

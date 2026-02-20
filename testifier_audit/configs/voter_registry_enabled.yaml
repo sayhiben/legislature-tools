@@ -1,0 +1,79 @@
+columns:
+  id: "Count"
+  name: "Name"
+  organization: "Organization"
+  position: "Position"
+  time_signed_in: "Time Signed In"
+
+time:
+  timezone: "America/Los_Angeles"
+  floor: "minute"
+  off_hours_start: 0
+  off_hours_end: 5
+
+windows:
+  minute_series_smooth: 15
+  swing_window_minutes: 60
+  scan_window_minutes: [5, 15, 60, 240]
+  analysis_bucket_minutes: [1, 5, 15, 30, 60, 120]
+
+thresholds:
+  top_duplicate_names: 200
+  burst_fdr_alpha: 0.01
+  procon_swing_fdr_alpha: 0.01
+  near_dup_max_candidates_per_block: 5000
+  near_dup_similarity_threshold: 92
+  swing_min_window_total: 25
+
+calibration:
+  enabled: true
+  mode: "hour_of_day"
+  significance_policy: "parametric_fdr"
+  iterations: 50
+  random_seed: 42
+  support_alpha: 0.1
+
+changepoints:
+  enabled: true
+  min_segment_minutes: 30
+  penalty_scale: 3.0
+
+periodicity:
+  enabled: true
+  max_lag_minutes: 180
+  min_period_minutes: 5.0
+  max_period_minutes: 720.0
+  top_n_periods: 20
+  calibration_iterations: 100
+  random_seed: 42
+  fdr_alpha: 0.05
+
+names:
+  strip_punctuation: true
+  normalize_unicode: true
+  nickname_map_path: "configs/nicknames.csv"
+  phonetic: "double_metaphone"
+
+rarity:
+  enabled: false
+  first_name_frequency_path:
+  last_name_frequency_path:
+  epsilon: 1.0e-9
+
+input:
+  mode: "postgres"
+  db_url:
+  submissions_table: "public_submissions"
+  source_file:
+
+voter_registry:
+  enabled: true
+  db_url:
+  table_name: "voter_registry"
+  active_only: true
+  match_bucket_minutes: 30
+
+outputs:
+  tables_format: "parquet"
+  figures_format: "png"
+  interactive_plotly: false

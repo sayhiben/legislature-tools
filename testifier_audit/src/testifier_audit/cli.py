@@ -8,6 +8,8 @@ import yaml
 
 from testifier_audit.config import DEFAULT_CONFIG_PATH, AppConfig, load_config
 from testifier_audit.io.rarity_baselines import BaselineProfileName, build_frequency_baseline_file
+from testifier_audit.io.submissions_postgres import import_submission_csv_to_postgres
+from testifier_audit.io.vrdb_postgres import import_vrdb_extract_to_postgres
 from testifier_audit.logging import configure_logging
 from testifier_audit.paths import build_output_paths
 from testifier_audit.pipeline.pass1_profile import build_profile_artifacts, load_profile_artifacts
@@ -22,15 +24,26 @@ def _load_app_config(config_path: Path) -> AppConfig:
     return load_config(config_path)
 
 
+def _require_csv_for_csv_mode(csv: Path | None, cfg: AppConfig) -> Path | None:
+    if cfg.input.mode == "csv" and csv is None:
+        raise typer.BadParameter(
+            "Missing --csv. Required when input.mode='csv'. "
+            "Set input.mode='postgres' and configure "
+            "input.db_url/input.submissions_table to hydrate from Postgres."
+        )
+    return csv
+
+
 @app.command()
 def profile(
-    csv: Path = typer.Option(..., exists=True, readable=True, resolve_path=True),
+    csv: Path | None = typer.Option(None, exists=True, readable=True, resolve_path=True),
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
 ) -> None:
-    """Build pass-1 profile artifacts from input CSV."""
+    """Build pass-1 profile artifacts from CSV or PostgreSQL input."""
     configure_logging()
     cfg = _load_app_config(config)
+    csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
     paths = build_output_paths(out)
     artifacts = build_profile_artifacts(csv_path=csv, out_dir=paths.root, config=cfg)
     typer.echo(f"Profile complete. Artifacts: {', '.join(sorted(artifacts.keys()))}")
@@ -38,14 +51,17 @@ def profile(
 
 @app.command()
 def detect(
-    csv: Path = typer.Option(..., exists=True, readable=True, resolve_path=True),
+    csv: Path | None = typer.Option(None, exists=True, readable=True, resolve_path=True),
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
-    rebuild_profile: bool = typer.Option(False, help="Recompute profile artifacts before detection."),
+    rebuild_profile: bool = typer.Option(
+        False, help="Recompute profile artifacts before detection."
+    ),
 ) -> None:
-    """Run detector pass using CSV and profile artifacts."""
+    """Run detector pass using configured input source and profile artifacts."""
     configure_logging()
     cfg = _load_app_config(config)
+    csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
     paths = build_output_paths(out)
 
     artifacts = load_profile_artifacts(out_dir=paths.root, config=cfg)
@@ -71,13 +87,14 @@ def report(
 
 @app.command("run-all")
 def run_all_command(
-    csv: Path = typer.Option(..., exists=True, readable=True, resolve_path=True),
+    csv: Path | None = typer.Option(None, exists=True, readable=True, resolve_path=True),
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
 ) -> None:
     """Execute profile, detect, and report in one command."""
     configure_logging()
     cfg = _load_app_config(config)
+    csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
     report_path = run_all(csv_path=csv, out_dir=out, config=cfg)
     typer.echo(f"Run complete. Report: {report_path}")
 
@@ -172,6 +189,100 @@ def prepare_rarity_baselines(
     typer.echo("Prepared rarity baselines")
     for line in output_messages:
         typer.echo(f"- {line}")
+
+
+@app.command("import-submissions")
+def import_submissions(
+    csv: Path = typer.Option(..., exists=True, readable=True, resolve_path=True),
+    config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    db_url: str | None = typer.Option(
+        None,
+        envvar=["TESTIFIER_AUDIT_DB_URL", "DATABASE_URL"],
+        help="PostgreSQL connection string. Falls back to config.input.db_url.",
+    ),
+    table_name: str | None = typer.Option(
+        None,
+        help="Destination table name. Falls back to config.input.submissions_table.",
+    ),
+    source_file: str | None = typer.Option(
+        None,
+        help="Logical source file label stored in Postgres. Defaults to CSV file name.",
+    ),
+    chunk_size: int = typer.Option(50_000, min=1000),
+) -> None:
+    """Import legislature submissions CSV into PostgreSQL with normalized columns."""
+    configure_logging()
+    cfg = _load_app_config(config)
+
+    effective_db_url = db_url or cfg.input.db_url
+    if not effective_db_url:
+        raise typer.BadParameter(
+            "Missing database URL. "
+            "Set --db-url or TESTIFIER_AUDIT_DB_URL or input.db_url in config."
+        )
+
+    effective_table_name = table_name or cfg.input.submissions_table
+    result = import_submission_csv_to_postgres(
+        csv_path=csv,
+        db_url=effective_db_url,
+        columns=cfg.columns,
+        timezone=cfg.time.timezone,
+        table_name=effective_table_name,
+        chunk_size=int(chunk_size),
+        source_file=source_file,
+    )
+    typer.echo("Submission import complete")
+    typer.echo(f"- source_file: {result.source_file}")
+    typer.echo(f"- table_name: {result.table_name}")
+    typer.echo(f"- rows_processed: {result.rows_processed}")
+    typer.echo(f"- rows_upserted: {result.rows_upserted}")
+    typer.echo(f"- rows_blank_organization: {result.rows_blank_organization}")
+    typer.echo(f"- rows_invalid_timestamp: {result.rows_invalid_timestamp}")
+    typer.echo(f"- chunk_size: {result.chunk_size}")
+
+
+@app.command("import-vrdb")
+def import_vrdb(
+    extract: Path = typer.Option(..., exists=True, readable=True, resolve_path=True),
+    config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    db_url: str | None = typer.Option(
+        None,
+        envvar=["TESTIFIER_AUDIT_DB_URL", "DATABASE_URL"],
+        help="PostgreSQL connection string. Falls back to config.voter_registry.db_url.",
+    ),
+    table_name: str | None = typer.Option(
+        None,
+        help="Destination table name. Falls back to config.voter_registry.table_name.",
+    ),
+    chunk_size: int = typer.Option(50_000, min=1000),
+) -> None:
+    """Import a VRDB extract into PostgreSQL with upsert semantics."""
+    configure_logging()
+    cfg = _load_app_config(config)
+
+    effective_db_url = db_url or cfg.voter_registry.db_url
+    if not effective_db_url:
+        raise typer.BadParameter(
+            "Missing database URL. Set --db-url or TESTIFIER_AUDIT_DB_URL "
+            "or voter_registry.db_url in config."
+        )
+
+    effective_table_name = table_name or cfg.voter_registry.table_name
+    result = import_vrdb_extract_to_postgres(
+        extract_path=extract,
+        db_url=effective_db_url,
+        table_name=effective_table_name,
+        chunk_size=int(chunk_size),
+    )
+
+    typer.echo("VRDB import complete")
+    typer.echo(f"- source_file: {result.source_file}")
+    typer.echo(f"- table_name: {result.table_name}")
+    typer.echo(f"- rows_processed: {result.rows_processed}")
+    typer.echo(f"- rows_upserted: {result.rows_upserted}")
+    typer.echo(f"- rows_with_state_voter_id: {result.rows_with_state_voter_id}")
+    typer.echo(f"- rows_with_canonical_name: {result.rows_with_canonical_name}")
+    typer.echo(f"- chunk_size: {result.chunk_size}")
 
 
 if __name__ == "__main__":

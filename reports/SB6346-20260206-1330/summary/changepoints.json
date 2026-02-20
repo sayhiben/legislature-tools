@@ -1,0 +1,7 @@
+{
+  "max_pro_rate_abs_delta": 0.19169309196584067,
+  "max_volume_abs_delta": 45.73333333333334,
+  "method": "ruptures+fallback",
+  "n_pro_rate_changepoints": 12,
+  "n_volume_changepoints": 12
+}

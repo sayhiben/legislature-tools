@@ -80,7 +80,9 @@ class PeriodicityDetector(Detector):
             }
         ).sort_values("power", ascending=False)
 
-    def _build_clockface_distribution(self, counts: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, float, float]:
+    def _build_clockface_distribution(
+        self, counts: pd.DataFrame
+    ) -> tuple[pd.DataFrame, pd.DataFrame, float, float]:
         minute_bucket = pd.to_datetime(counts["minute_bucket"])
         n_total = counts["n_total"].astype(float).fillna(0.0).to_numpy()
         minute_of_hour = minute_bucket.dt.minute.to_numpy(dtype=int)
@@ -104,16 +106,10 @@ class PeriodicityDetector(Detector):
         expected = total_events / 60.0 if total_events > 0.0 else 0.0
         observed["expected_n_events_uniform"] = expected
         observed["deviation_from_uniform"] = observed["n_events"] - expected
-        observed["share"] = (
-            observed["n_events"] / total_events
-            if total_events > 0.0
-            else 0.0
-        )
+        observed["share"] = observed["n_events"] / total_events if total_events > 0.0 else 0.0
         if expected > 0.0:
             observed["z_score_uniform"] = observed["deviation_from_uniform"] / np.sqrt(expected)
-            chi_square_stat = float(
-                ((observed["deviation_from_uniform"] ** 2) / expected).sum()
-            )
+            chi_square_stat = float(((observed["deviation_from_uniform"] ** 2) / expected).sum())
             chi_square_p_value = float(chi2.sf(chi_square_stat, df=59))
         else:
             observed["z_score_uniform"] = 0.0
@@ -133,7 +129,9 @@ class PeriodicityDetector(Detector):
         rng: np.random.Generator,
     ) -> pd.DataFrame:
         if self.calibration_iterations <= 0:
-            return pd.DataFrame(columns=["iteration", "clockface_chi_square", "clockface_max_share"])
+            return pd.DataFrame(
+                columns=["iteration", "clockface_chi_square", "clockface_max_share"]
+            )
 
         minute_bucket = pd.to_datetime(counts["minute_bucket"])
         hour_totals = (
@@ -149,7 +147,9 @@ class PeriodicityDetector(Detector):
         hour_counts = hour_totals["n_total"].round().astype(int).to_numpy()
         hour_counts = hour_counts[hour_counts > 0]
         if hour_counts.size == 0:
-            return pd.DataFrame(columns=["iteration", "clockface_chi_square", "clockface_max_share"])
+            return pd.DataFrame(
+                columns=["iteration", "clockface_chi_square", "clockface_max_share"]
+            )
 
         probs = np.full(60, 1.0 / 60.0, dtype=float)
         total_events = float(hour_counts.sum())
@@ -205,11 +205,16 @@ class PeriodicityDetector(Detector):
         autocorr = self._build_autocorr(values)
         spectrum = self._build_spectrum(values)
         spectrum_top = spectrum.head(self.top_n_periods).copy()
-        clockface_distribution, clockface_top_minutes, clockface_chi_square, clockface_chi_square_p_value = (
-            self._build_clockface_distribution(counts)
-        )
+        (
+            clockface_distribution,
+            clockface_top_minutes,
+            clockface_chi_square,
+            clockface_chi_square_p_value,
+        ) = self._build_clockface_distribution(counts)
         clockface_max_share = (
-            float(clockface_distribution["share"].max()) if not clockface_distribution.empty else 0.0
+            float(clockface_distribution["share"].max())
+            if not clockface_distribution.empty
+            else 0.0
         )
 
         autocorr["p_value"] = np.nan
@@ -267,7 +272,9 @@ class PeriodicityDetector(Detector):
                         np.array([observed], dtype=float),
                         null_abs_autocorr[:, lag_idx],
                     )[0]
-                    for lag_idx, observed in enumerate(autocorr["abs_autocorr"].to_numpy(dtype=float))
+                    for lag_idx, observed in enumerate(
+                        autocorr["abs_autocorr"].to_numpy(dtype=float)
+                    )
                 ],
                 dtype=float,
             )
@@ -285,7 +292,9 @@ class PeriodicityDetector(Detector):
                         np.array([observed], dtype=float),
                         null_period_power[:, period_idx],
                     )[0]
-                    for period_idx, observed in enumerate(spectrum_top["power"].to_numpy(dtype=float))
+                    for period_idx, observed in enumerate(
+                        spectrum_top["power"].to_numpy(dtype=float)
+                    )
                 ],
                 dtype=float,
             )
@@ -305,7 +314,9 @@ class PeriodicityDetector(Detector):
                 }
             )
 
-            clockface_null_distribution = self._build_clockface_null_distribution(counts=counts, rng=rng)
+            clockface_null_distribution = self._build_clockface_null_distribution(
+                counts=counts, rng=rng
+            )
             if not clockface_null_distribution.empty:
                 clockface_chi_square_empirical_p_value = float(
                     empirical_tail_p_values(

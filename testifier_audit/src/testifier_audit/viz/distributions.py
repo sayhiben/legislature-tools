@@ -32,7 +32,9 @@ def _plot_windowed_null_histograms(
     if "window_minutes" not in null_distribution.columns:
         return None
 
-    window_values = sorted(null_distribution["window_minutes"].dropna().astype(int).unique().tolist())
+    window_values = sorted(
+        null_distribution["window_minutes"].dropna().astype(int).unique().tolist()
+    )
     if not window_values:
         return None
 
@@ -42,7 +44,11 @@ def _plot_windowed_null_histograms(
         axes = [axes]
 
     observed_max: dict[int, float] = {}
-    if not observed_tests.empty and "window_minutes" in observed_tests.columns and observed_column in observed_tests.columns:
+    if (
+        not observed_tests.empty
+        and "window_minutes" in observed_tests.columns
+        and observed_column in observed_tests.columns
+    ):
         grouped = (
             observed_tests.groupby("window_minutes", dropna=False)[observed_column]
             .max()
@@ -57,7 +63,9 @@ def _plot_windowed_null_histograms(
         axis.hist(values, bins=min(40, max(len(values) // 5, 10)), color="#3b82f6", alpha=0.75)
         expected = observed_max.get(int(window))
         if expected is not None:
-            axis.axvline(expected, color="#dc2626", linewidth=1.5, linestyle="--", label="Observed max")
+            axis.axvline(
+                expected, color="#dc2626", linewidth=1.5, linestyle="--", label="Observed max"
+            )
             axis.legend(loc="upper right")
         axis.set_title(f"{title_prefix} ({window} minute window)")
         axis.set_xlabel(x_label)
@@ -100,7 +108,11 @@ def plot_swing_null_distribution(
 
 
 def plot_periodicity_autocorrelation(autocorr: pd.DataFrame, output_path: Path) -> Path | None:
-    if autocorr.empty or "lag_minutes" not in autocorr.columns or "autocorr" not in autocorr.columns:
+    if (
+        autocorr.empty
+        or "lag_minutes" not in autocorr.columns
+        or "autocorr" not in autocorr.columns
+    ):
         return None
     plt.figure(figsize=(10, 4))
     plt.plot(autocorr["lag_minutes"], autocorr["autocorr"], linewidth=1.2, color="#0f766e")
@@ -112,7 +124,11 @@ def plot_periodicity_autocorrelation(autocorr: pd.DataFrame, output_path: Path) 
 
 
 def plot_periodicity_spectrum(spectrum_top: pd.DataFrame, output_path: Path) -> Path | None:
-    if spectrum_top.empty or "period_minutes" not in spectrum_top.columns or "power" not in spectrum_top.columns:
+    if (
+        spectrum_top.empty
+        or "period_minutes" not in spectrum_top.columns
+        or "power" not in spectrum_top.columns
+    ):
         return None
     ranked = spectrum_top.sort_values("power", ascending=False).head(20).copy()
     labels = ranked["period_minutes"].round(1).astype(str).tolist()
@@ -127,7 +143,9 @@ def plot_periodicity_spectrum(spectrum_top: pd.DataFrame, output_path: Path) -> 
     return save_figure(output_path)
 
 
-def plot_periodicity_clockface(clockface_distribution: pd.DataFrame, output_path: Path) -> Path | None:
+def plot_periodicity_clockface(
+    clockface_distribution: pd.DataFrame, output_path: Path
+) -> Path | None:
     required = {"minute_of_hour", "share"}
     if clockface_distribution.empty or not required.issubset(set(clockface_distribution.columns)):
         return None
@@ -139,7 +157,9 @@ def plot_periodicity_clockface(clockface_distribution: pd.DataFrame, output_path
 
     plt.figure(figsize=(11, 4.2))
     plt.bar(x, y, color="#0284c7", alpha=0.85, width=0.85)
-    plt.axhline(expected_share, color="#dc2626", linewidth=1.1, linestyle="--", label="Uniform baseline")
+    plt.axhline(
+        expected_share, color="#dc2626", linewidth=1.1, linestyle="--", label="Uniform baseline"
+    )
     plt.title("Clock-face minute-of-hour concentration")
     plt.xlabel("Minute of hour")
     plt.ylabel("Share of submissions")

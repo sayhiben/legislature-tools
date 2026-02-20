@@ -66,8 +66,20 @@ def test_rare_names_detector_rarity_enrichment(tmp_path: Path) -> None:
     df = pd.DataFrame(
         {
             "minute_bucket": minute_bucket,
-            "canonical_name": ["DOE|JANE", "SMITH|JOHN", "DOE|JANE", "SMITH|JOHN", "RARELAST|X AE A-12"],
-            "name_display": ["DOE, JANE", "SMITH, JOHN", "DOE, JANE", "SMITH, JOHN", "RARELAST, X AE A-12"],
+            "canonical_name": [
+                "DOE|JANE",
+                "SMITH|JOHN",
+                "DOE|JANE",
+                "SMITH|JOHN",
+                "RARELAST|X AE A-12",
+            ],
+            "name_display": [
+                "DOE, JANE",
+                "SMITH, JOHN",
+                "DOE, JANE",
+                "SMITH, JOHN",
+                "RARELAST, X AE A-12",
+            ],
             "position_normalized": ["Pro", "Con", "Pro", "Con", "Pro"],
             "first": ["JANE", "JOHN", "JANE", "JOHN", "X AE A-12"],
             "first_canonical": ["JANE", "JOHN", "JANE", "JOHN", "X AE A-12"],
@@ -117,3 +129,13 @@ def test_rare_names_detector_rarity_enrichment(tmp_path: Path) -> None:
     assert not result.tables["rarity_by_minute"].empty
     assert not result.tables["rarity_top_records"].empty
     assert not result.tables["rarity_lookup_coverage"].empty
+    assert not result.tables["unique_ratio_windows"].empty
+    assert {
+        1,
+        5,
+        15,
+        30,
+        60,
+        120,
+        240,
+    }.issubset(set(result.tables["unique_ratio_windows"]["bucket_minutes"].astype(int).unique()))

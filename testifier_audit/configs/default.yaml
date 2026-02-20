@@ -14,7 +14,8 @@ time:
 windows:
   minute_series_smooth: 15
   swing_window_minutes: 60
-  scan_window_minutes: [5, 15, 60, 240]
+  scan_window_minutes: [1, 5, 15, 30, 60, 120, 240]
+  analysis_bucket_minutes: [1, 5, 15, 30, 60, 120, 240]
 
 thresholds:
   top_duplicate_names: 200
@@ -58,6 +59,27 @@ rarity:
   first_name_frequency_path:
   last_name_frequency_path:
   epsilon: 1.0e-9
+
+input:
+  mode: "csv"
+  db_url:
+  submissions_table: "public_submissions"
+  source_file:
+
+voter_registry:
+  enabled: false
+  db_url:
+  table_name: "voter_registry"
+  active_only: true
+  match_bucket_minutes: 30
+
+multivariate_anomaly:
+  enabled: true
+  bucket_minutes: 15
+  contamination: 0.03
+  min_bucket_total: 25
+  top_n: 50
+  random_seed: 42
 
 outputs:
   tables_format: "parquet"

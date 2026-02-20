@@ -64,7 +64,9 @@ def add_name_features(df: pd.DataFrame, config: NamesConfig) -> pd.DataFrame:
     working = df.copy()
     raw_name = working["name"].fillna("").astype(str)
     normalized = raw_name.map(lambda item: _normalize_name(item, config))
-    normalized_for_split = raw_name.map(lambda item: _normalize_name(item, config, preserve_commas=True))
+    normalized_for_split = raw_name.map(
+        lambda item: _normalize_name(item, config, preserve_commas=True)
+    )
     nickname_map = _load_nickname_map(config.nickname_map_path)
 
     split_values = normalized_for_split.map(_split_name)

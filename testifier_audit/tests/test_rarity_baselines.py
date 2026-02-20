@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
-from typer.testing import CliRunner
 import yaml
+from typer.testing import CliRunner
 
 from testifier_audit.cli import app
 from testifier_audit.io.rarity_baselines import normalize_frequency_baseline

@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local raw data extracts
+data/raw/
+
+# Local screenshot artifacts
+output/playwright/

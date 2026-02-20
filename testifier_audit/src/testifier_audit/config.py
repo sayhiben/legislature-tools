@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
+
+STANDARD_ANALYSIS_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
 
 
 class ColumnsConfig(BaseModel):
@@ -25,7 +28,12 @@ class TimeConfig(BaseModel):
 class WindowsConfig(BaseModel):
     minute_series_smooth: int = Field(default=15, ge=1)
     swing_window_minutes: int = Field(default=60, ge=1)
-    scan_window_minutes: list[int] = Field(default_factory=lambda: [5, 15, 60, 240])
+    scan_window_minutes: list[int] = Field(
+        default_factory=lambda: list(STANDARD_ANALYSIS_BUCKET_MINUTES)
+    )
+    analysis_bucket_minutes: list[int] = Field(
+        default_factory=lambda: list(STANDARD_ANALYSIS_BUCKET_MINUTES)
+    )
 
 
 class ThresholdsConfig(BaseModel):
@@ -40,7 +48,9 @@ class ThresholdsConfig(BaseModel):
 class CalibrationConfig(BaseModel):
     enabled: bool = True
     mode: Literal["global", "hour_of_day", "day_of_week_hour"] = "hour_of_day"
-    significance_policy: Literal["parametric_fdr", "permutation_fdr", "either_fdr"] = "parametric_fdr"
+    significance_policy: Literal["parametric_fdr", "permutation_fdr", "either_fdr"] = (
+        "parametric_fdr"
+    )
     iterations: int = Field(default=50, ge=0)
     random_seed: int = Field(default=42, ge=0)
     support_alpha: float = Field(default=0.1, gt=0, lt=1)
@@ -77,6 +87,30 @@ class RarityConfig(BaseModel):
     epsilon: float = Field(default=1e-9, gt=0.0, lt=1.0)
 
 
+class InputConfig(BaseModel):
+    mode: Literal["csv", "postgres"] = "csv"
+    db_url: str | None = None
+    submissions_table: str = "public_submissions"
+    source_file: str | None = None
+
+
+class VoterRegistryConfig(BaseModel):
+    enabled: bool = False
+    db_url: str | None = None
+    table_name: str = "voter_registry"
+    active_only: bool = True
+    match_bucket_minutes: int = Field(default=30, ge=1)
+
+
+class MultivariateAnomalyConfig(BaseModel):
+    enabled: bool = True
+    bucket_minutes: int = Field(default=15, ge=1)
+    contamination: float = Field(default=0.03, gt=0.0, le=0.5)
+    min_bucket_total: int = Field(default=25, ge=1)
+    top_n: int = Field(default=50, ge=1)
+    random_seed: int = Field(default=42, ge=0)
+
+
 class OutputsConfig(BaseModel):
     tables_format: str = "parquet"
     figures_format: str = "png"
@@ -95,6 +129,11 @@ class AppConfig(BaseModel):
     periodicity: PeriodicityConfig = Field(default_factory=PeriodicityConfig)
     names: NamesConfig = Field(default_factory=NamesConfig)
     rarity: RarityConfig = Field(default_factory=RarityConfig)
+    input: InputConfig = Field(default_factory=InputConfig)
+    voter_registry: VoterRegistryConfig = Field(default_factory=VoterRegistryConfig)
+    multivariate_anomaly: MultivariateAnomalyConfig = Field(
+        default_factory=MultivariateAnomalyConfig
+    )
     outputs: OutputsConfig = Field(default_factory=OutputsConfig)
 
 
@@ -117,7 +156,9 @@ def load_config(path: Path) -> AppConfig:
     config = AppConfig.model_validate(data)
     base_dir = path.resolve().parent
 
-    config.names.nickname_map_path = _resolve_optional_path(config.names.nickname_map_path, base_dir) or ""
+    config.names.nickname_map_path = (
+        _resolve_optional_path(config.names.nickname_map_path, base_dir) or ""
+    )
     config.rarity.first_name_frequency_path = _resolve_optional_path(
         config.rarity.first_name_frequency_path,
         base_dir,
@@ -125,5 +166,13 @@ def load_config(path: Path) -> AppConfig:
     config.rarity.last_name_frequency_path = _resolve_optional_path(
         config.rarity.last_name_frequency_path,
         base_dir,
+    )
+    config.input.db_url = (
+        config.input.db_url or os.getenv("TESTIFIER_AUDIT_DB_URL") or os.getenv("DATABASE_URL")
+    )
+    config.voter_registry.db_url = (
+        config.voter_registry.db_url
+        or os.getenv("TESTIFIER_AUDIT_DB_URL")
+        or os.getenv("DATABASE_URL")
     )
     return config

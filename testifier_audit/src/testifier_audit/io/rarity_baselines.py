@@ -70,7 +70,9 @@ def _resolve_column(
 ) -> str:
     if explicit:
         if explicit not in columns:
-            raise ValueError(f"Column '{explicit}' was not found. Available columns: {', '.join(columns)}")
+            raise ValueError(
+                f"Column '{explicit}' was not found. Available columns: {', '.join(columns)}"
+            )
         return explicit
 
     lowered = {column.lower(): column for column in columns}
@@ -92,7 +94,9 @@ def _resolve_value_column(
     columns = list(table.columns)
     if explicit:
         if explicit not in columns:
-            raise ValueError(f"Column '{explicit}' was not found. Available columns: {', '.join(columns)}")
+            raise ValueError(
+                f"Column '{explicit}' was not found. Available columns: {', '.join(columns)}"
+            )
         return explicit
 
     lowered = {column.lower(): column for column in columns}

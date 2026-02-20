@@ -24,8 +24,10 @@ dependencies = [
   "pyarrow>=19.0.1,<20.0.0",
   "pydantic>=2.10.6,<3.0.0",
   "pyyaml>=6.0.2,<7.0.0",
+  "psycopg[binary]>=3.2.9,<4.0.0",
   "rapidfuzz>=3.12.1,<4.0.0",
   "ruptures>=1.1.9,<2.0.0",
+  "scikit-learn>=1.6.1,<2.0.0",
   "scipy>=1.15.2,<2.0.0",
   "statsmodels>=0.14.4,<0.15.0",
   "typer>=0.15.2,<1.0.0"
@@ -71,5 +73,5 @@ warn_unused_configs = true
 plugins = []
 
 [[tool.mypy.overrides]]
-module = ["pandas", "scipy", "statsmodels", "ruptures", "plotly", "matplotlib", "duckdb", "polars", "jellyfish", "datasketch"]
+ module = ["pandas", "scipy", "statsmodels", "ruptures", "plotly", "matplotlib", "duckdb", "polars", "jellyfish", "datasketch", "sklearn"]
 ignore_missing_imports = true

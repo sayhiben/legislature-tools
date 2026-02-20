@@ -4,7 +4,6 @@ import pandas as pd
 
 from testifier_audit.config import TimeConfig
 
-
 FREQ_MAP = {
     "minute": "min",
     "hour": "h",
@@ -13,7 +12,8 @@ FREQ_MAP = {
 
 def add_time_features(df: pd.DataFrame, config: TimeConfig) -> pd.DataFrame:
     working = df.copy()
-    # WA legislature exports commonly use `m/d/YYYY h:mm AM/PM`; parse this first for speed and consistency.
+    # WA legislature exports commonly use `m/d/YYYY h:mm AM/PM`;
+    # parse this first for speed and consistency.
     timestamps = pd.to_datetime(
         working["time_signed_in"],
         format="%m/%d/%Y %I:%M %p",

@@ -157,13 +157,17 @@ class ChangePointsDetector(Detector):
 
         all_changes = pd.concat([volume_table, pro_table], ignore_index=True)
         if not all_changes.empty:
-            all_changes = all_changes.sort_values(["change_minute", "metric"]) 
+            all_changes = all_changes.sort_values(["change_minute", "metric"])
 
         summary = {
             "n_volume_changepoints": int(len(volume_table)),
             "n_pro_rate_changepoints": int(len(pro_table)),
-            "max_volume_abs_delta": float(volume_table["abs_delta"].max()) if not volume_table.empty else 0.0,
-            "max_pro_rate_abs_delta": float(pro_table["abs_delta"].max()) if not pro_table.empty else 0.0,
+            "max_volume_abs_delta": float(volume_table["abs_delta"].max())
+            if not volume_table.empty
+            else 0.0,
+            "max_pro_rate_abs_delta": float(pro_table["abs_delta"].max())
+            if not pro_table.empty
+            else 0.0,
             "method": method,
         }
 

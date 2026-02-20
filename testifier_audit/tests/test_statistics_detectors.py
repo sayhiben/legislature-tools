@@ -174,6 +174,26 @@ def test_procon_swings_detector_flags_large_shift() -> None:
 
     assert result.summary["n_significant_windows"] > 0
     assert not result.tables["swing_significant_windows"].empty
+    assert not result.tables["time_bucket_profiles"].empty
+    assert not result.tables["time_of_day_bucket_profiles"].empty
+    assert not result.tables["day_bucket_profiles"].empty
+    assert "pro_rate_wilson_low" in result.tables["swing_window_tests"].columns
+    assert "pro_rate_wilson_high" in result.tables["swing_window_tests"].columns
+    assert "is_low_power" in result.tables["swing_window_tests"].columns
+    assert "pro_rate_wilson_low" in result.tables["time_bucket_profiles"].columns
+    assert "pro_rate_wilson_high" in result.tables["time_bucket_profiles"].columns
+    assert "is_low_power" in result.tables["time_bucket_profiles"].columns
+    assert "is_low_power" in result.tables["time_of_day_bucket_profiles"].columns
+    assert "is_low_power" in result.tables["day_bucket_profiles"].columns
+    assert set(
+        result.tables["time_of_day_bucket_profiles"]["bucket_minutes"].astype(int).unique()
+    ) >= {
+        15,
+        30,
+        60,
+        120,
+        240,
+    }
 
 
 def test_procon_swings_calibration_outputs_empirical_columns() -> None:
@@ -201,7 +221,9 @@ def test_procon_swings_calibration_outputs_empirical_columns() -> None:
     rows: list[dict[str, object]] = []
     for minute, total, pro in zip(minute_bucket, n_total, n_pro):
         rows.extend({"minute_bucket": minute, "position_normalized": "Pro"} for _ in range(pro))
-        rows.extend({"minute_bucket": minute, "position_normalized": "Con"} for _ in range(total - pro))
+        rows.extend(
+            {"minute_bucket": minute, "position_normalized": "Con"} for _ in range(total - pro)
+        )
     df = pd.DataFrame(rows)
 
     detector = ProConSwingsDetector(
@@ -222,6 +244,11 @@ def test_procon_swings_calibration_outputs_empirical_columns() -> None:
     assert "permutation_q_value" in result.tables["swing_window_tests"].columns
     assert "is_significant_permutation_fdr" in result.tables["swing_window_tests"].columns
     assert "is_calibration_supported" in result.tables["swing_window_tests"].columns
+    assert "is_flagged" in result.tables["time_bucket_profiles"].columns
+    assert "is_flagged" in result.tables["time_of_day_bucket_profiles"].columns
+    assert "is_slot_outlier" in result.tables["day_bucket_profiles"].columns
+    assert "pro_rate_wilson_half_width" in result.tables["time_bucket_profiles"].columns
+    assert "is_low_power" in result.tables["time_bucket_profiles"].columns
 
 
 def test_procon_swings_supports_day_of_week_hour_calibration() -> None:

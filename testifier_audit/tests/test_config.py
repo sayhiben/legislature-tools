@@ -37,3 +37,27 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
     assert Path(cfg.names.nickname_map_path).is_absolute()
     assert Path(cfg.rarity.first_name_frequency_path or "").is_absolute()
     assert Path(cfg.rarity.last_name_frequency_path or "").is_absolute()
+
+
+def test_load_config_uses_env_db_url_for_input(monkeypatch, tmp_path: Path) -> None:
+    config_data = {
+        "columns": {
+            "id": "id",
+            "name": "name",
+            "organization": "organization",
+            "position": "position",
+            "time_signed_in": "time_signed_in",
+        },
+        "input": {
+            "mode": "postgres",
+            "db_url": None,
+        },
+    }
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
+
+    monkeypatch.setenv(
+        "TESTIFIER_AUDIT_DB_URL", "postgresql://env-user:env-pass@localhost:55432/legislature"
+    )
+    cfg = load_config(config_path)
+    assert cfg.input.db_url == "postgresql://env-user:env-pass@localhost:55432/legislature"

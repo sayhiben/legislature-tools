@@ -66,14 +66,17 @@ def test_binomial_simulation_utilities_cover_edge_and_success_paths() -> None:
     rng = np.random.default_rng(17)
 
     totals = np.array([2, 3, 1, 4, 2], dtype=int)
-    assert simulate_binomial_max_abs_delta(
-        totals_per_minute=totals,
-        baseline_probability=0.6,
-        window=3,
-        min_window_total=999,
-        iterations=5,
-        rng=rng,
-    ).size == 0
+    assert (
+        simulate_binomial_max_abs_delta(
+            totals_per_minute=totals,
+            baseline_probability=0.6,
+            window=3,
+            min_window_total=999,
+            iterations=5,
+            rng=rng,
+        ).size
+        == 0
+    )
 
     maxima, expected = simulate_binomial_max_abs_delta_probability_series(
         totals_per_minute=np.array([10, 12, 8, 9, 11, 10]),

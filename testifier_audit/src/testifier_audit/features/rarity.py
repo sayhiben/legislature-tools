@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-
 NAME_COLUMN_CANDIDATES = (
     "name",
     "first",
@@ -113,7 +112,9 @@ def score_name_rarity(
     last_missing_probability: float | None = None,
 ) -> pd.Series:
     """Return additive rarity score -log(P(first) * P(last))."""
-    first_default = epsilon if first_missing_probability is None else float(first_missing_probability)
+    first_default = (
+        epsilon if first_missing_probability is None else float(first_missing_probability)
+    )
     last_default = epsilon if last_missing_probability is None else float(last_missing_probability)
     first_prob = first_tokens.map(first_lookup).fillna(first_default).astype(float)
     last_prob = last_tokens.map(last_lookup).fillna(last_default).astype(float)

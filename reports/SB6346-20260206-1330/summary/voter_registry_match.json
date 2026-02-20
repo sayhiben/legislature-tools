@@ -1,0 +1,23 @@
+{
+  "active": true,
+  "active_only": true,
+  "bucket_minutes": [
+    1,
+    5,
+    15,
+    30,
+    60,
+    120
+  ],
+  "enabled": true,
+  "low_power_min_total": 30,
+  "match_rate": 0.869140915629185,
+  "n_low_power_match_buckets": 2992,
+  "n_matches": 70091,
+  "n_records": 80644,
+  "n_unique_matches": 59944,
+  "n_unique_names": 69319,
+  "n_unmatched": 10553,
+  "registry_row_count": 5088115,
+  "unique_match_rate": 0.8647556946868824
+}

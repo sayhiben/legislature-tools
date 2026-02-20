@@ -1,0 +1,31 @@
+{
+  "active": true,
+  "active_bucket_count": 6,
+  "bucket_minutes": [
+    1,
+    5,
+    15,
+    30,
+    60,
+    120
+  ],
+  "contamination": 0.03,
+  "enabled": true,
+  "feature_columns": [
+    "log_n_total",
+    "pro_rate",
+    "dup_name_fraction_weighted",
+    "delta_log_n_total",
+    "abs_delta_pro_rate",
+    "blank_org_rate"
+  ],
+  "inactive_bucket_reasons": [],
+  "max_anomaly_score": 0.14271378065030305,
+  "min_bucket_total": 25,
+  "model": "isolation_forest",
+  "n_anomaly_buckets": 81,
+  "n_buckets_model_eligible": 2599,
+  "n_buckets_total": 5364,
+  "n_low_power_buckets": 3108,
+  "reason": ""
+}

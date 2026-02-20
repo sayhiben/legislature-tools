@@ -1,11 +1,33 @@
-version: "3.9"
-
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: legislature
+      POSTGRES_USER: legislature
+      POSTGRES_PASSWORD: legislature
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legislature -d legislature"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    ports:
+      - "55432:5432"
+    volumes:
+      - testifier-audit-postgres:/var/lib/postgresql/data
+
   testifier-audit:
     build:
       context: .
     image: testifier-audit:dev
     working_dir: /work
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TESTIFIER_AUDIT_DB_URL: postgresql://legislature:legislature@postgres:5432/legislature
     volumes:
       - .:/work
     command: ["testifier-audit", "--help"]
+
+volumes:
+  testifier-audit-postgres:

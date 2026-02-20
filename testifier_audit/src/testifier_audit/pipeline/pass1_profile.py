@@ -27,7 +27,7 @@ from testifier_audit.viz.time_series import plot_counts_per_minute
 LOGGER = logging.getLogger(__name__)
 
 
-def prepare_base_dataframe(csv_path: Path, config: AppConfig) -> pd.DataFrame:
+def prepare_base_dataframe(csv_path: Path | None, config: AppConfig) -> pd.DataFrame:
     df = load_records(csv_path=csv_path, config=config)
     df = add_name_features(df=df, config=config.names)
     df = normalize_position(df=df)
@@ -75,7 +75,9 @@ def _render_profile_figures(
         LOGGER.exception("Failed rendering one or more profile figures")
 
 
-def build_profile_artifacts(csv_path: Path, out_dir: Path, config: AppConfig) -> dict[str, pd.DataFrame]:
+def build_profile_artifacts(
+    csv_path: Path | None, out_dir: Path, config: AppConfig
+) -> dict[str, pd.DataFrame]:
     paths = build_output_paths(out_dir)
     df = prepare_base_dataframe(csv_path=csv_path, config=config)
 

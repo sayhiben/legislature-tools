@@ -2,6 +2,13 @@ from __future__ import annotations
 
 import pandas as pd
 
+from testifier_audit.proportion_stats import (
+    DEFAULT_LOW_POWER_MIN_TOTAL,
+    low_power_mask,
+    wilson_half_width,
+    wilson_interval,
+)
+
 
 def build_counts_per_minute(df: pd.DataFrame) -> pd.DataFrame:
     grouped = (
@@ -30,13 +37,25 @@ def build_counts_per_minute(df: pd.DataFrame) -> pd.DataFrame:
     grouped = grouped.reset_index()
     grouped["dup_name_fraction"] = 0.0
     nonzero_total = grouped["n_total"] > 0
-    grouped.loc[nonzero_total, "dup_name_fraction"] = (
-        1 - (grouped.loc[nonzero_total, "n_unique_names"] / grouped.loc[nonzero_total, "n_total"])
+    grouped.loc[nonzero_total, "dup_name_fraction"] = 1 - (
+        grouped.loc[nonzero_total, "n_unique_names"] / grouped.loc[nonzero_total, "n_total"]
     )
 
     grouped["pro_rate"] = (grouped["n_pro"] / grouped["n_total"]).where(nonzero_total)
     grouped["con_rate"] = (grouped["n_con"] / grouped["n_total"]).where(nonzero_total)
     grouped["unique_ratio"] = (grouped["n_unique_names"] / grouped["n_total"]).where(nonzero_total)
+    grouped["pro_rate_wilson_low"], grouped["pro_rate_wilson_high"] = wilson_interval(
+        successes=grouped["n_pro"],
+        totals=grouped["n_total"],
+    )
+    grouped["pro_rate_wilson_half_width"] = wilson_half_width(
+        successes=grouped["n_pro"],
+        totals=grouped["n_total"],
+    )
+    grouped["is_low_power"] = low_power_mask(
+        totals=grouped["n_total"],
+        min_total=DEFAULT_LOW_POWER_MIN_TOTAL,
+    )
     return grouped
 
 
@@ -61,7 +80,11 @@ def build_name_frequency(df: pd.DataFrame) -> pd.DataFrame:
     aggregated["positions"] = aggregated.apply(
         lambda row: ",".join(
             label
-            for label, count in (("Con", row["n_con"]), ("Pro", row["n_pro"]), ("Unknown", row["n_unknown"]))
+            for label, count in (
+                ("Con", row["n_con"]),
+                ("Pro", row["n_pro"]),
+                ("Unknown", row["n_unknown"]),
+            )
             if int(count) > 0
         ),
         axis=1,
@@ -82,16 +105,34 @@ def build_counts_per_hour(df: pd.DataFrame) -> pd.DataFrame:
         .sort_values(["day_of_week", "hour"])
     )
     grouped["pro_rate"] = (grouped["n_pro"] / grouped["n_total"]).where(grouped["n_total"] > 0)
+    grouped["pro_rate_wilson_low"], grouped["pro_rate_wilson_high"] = wilson_interval(
+        successes=grouped["n_pro"],
+        totals=grouped["n_total"],
+    )
+    grouped["pro_rate_wilson_half_width"] = wilson_half_width(
+        successes=grouped["n_pro"],
+        totals=grouped["n_total"],
+    )
+    grouped["is_low_power"] = low_power_mask(
+        totals=grouped["n_total"],
+        min_total=DEFAULT_LOW_POWER_MIN_TOTAL,
+    )
     return grouped
 
 
 def build_basic_quality(df: pd.DataFrame) -> pd.DataFrame:
     metrics = [
         ("rows_total", int(len(df))),
-        ("missing_name", int(df["name"].isna().sum() + (df["name"].astype(str).str.strip() == "").sum())),
+        (
+            "missing_name",
+            int(df["name"].isna().sum() + (df["name"].astype(str).str.strip() == "").sum()),
+        ),
         (
             "missing_organization",
-            int(df["organization"].isna().sum() + (df["organization"].astype(str).str.strip() == "").sum()),
+            int(
+                df["organization"].isna().sum()
+                + (df["organization"].astype(str).str.strip() == "").sum()
+            ),
         ),
         ("unknown_position", int((df["position_normalized"] == "Unknown").sum())),
         ("invalid_timestamp", int(df["timestamp"].isna().sum())),

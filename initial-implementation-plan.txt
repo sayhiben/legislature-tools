@@ -1,0 +1,626 @@
+Below is a full-featured, SOLID-ish Python “audit suite” design for your testifier CSV, aimed at surfacing automation/coordinated-submission artifacts from only these fields:
+	•	id (auto-inc)
+	•	name ("Last, First")
+	•	organization (mostly blank)
+	•	position (Pro/Con)
+	•	time_signed_in (minute-resolution submission time)
+
+Because you don’t have IP/device/email, this suite is about forensic indicators and statistical improbability, not proof. The architecture emphasizes:
+	•	repeatable, configuration-driven runs
+	•	scalable “two-pass” processing for large CSVs
+	•	modular detectors + standardized outputs (tables + charts + record flags)
+	•	an HTML report that’s easy to share/review
+
+⸻
+
+1) Proposed repository / package layout
+
+testifier_audit/
+  pyproject.toml
+  README.md
+  configs/
+    default.yaml
+  src/testifier_audit/
+    __init__.py
+
+    cli.py                      # Typer CLI entrypoint
+
+    config.py                   # Pydantic config models
+    logging.py                  # structured logging setup
+    paths.py                    # output folder conventions
+
+    io/
+      read.py                   # CSV ingest (pandas / polars / duckdb)
+      schema.py                 # column normalization + validation
+      write.py                  # write tables/figures/artifacts
+
+    preprocess/
+      names.py                  # parse + normalize name, nickname mapping, phonetics
+      time.py                   # parse timestamps, derive minute/hour/day features
+      position.py               # normalize Pro/Con, handle missing
+
+    features/
+      aggregates.py             # streaming aggregates (per minute/hour/name)
+      text_features.py          # char stats, entropy, weird tokens
+      similarity.py             # blocking keys, MinHash/LSH helpers
+
+    detectors/
+      base.py                   # Detector interfaces and result types
+      registry.py               # plugin registry (optional)
+
+      duplicates_exact.py       # exact duplicates, repeat submissions
+      duplicates_near.py        # fuzzy/phonetic duplicates w/ blocking
+      bursts.py                 # burst detection on counts/minute
+      periodicity.py            # regular interval / spectral artifacts
+      procon_swings.py          # time-local ratio anomalies + changepoints
+      off_hours.py              # out-of-pattern volume by hour
+      sortedness.py             # ordering artifacts (id/time/name rank correlations)
+      rare_names.py             # rare/unique-name prevalence spikes
+      org_anomalies.py          # organization nonblank patterns (even if sparse)
+      composite_score.py        # combine signals into ranked suspicion list
+
+    viz/
+      common.py                 # consistent matplotlib/plotly styling + helpers
+      time_series.py            # counts/minute, pro-ratio/minute, changepoint overlays
+      heatmaps.py               # hour-of-day x day heatmaps
+      names.py                  # top repeated names, cluster graphs
+      distributions.py          # histograms, QQ plots, etc.
+
+    report/
+      render.py                 # Jinja2 HTML report
+      templates/
+        report.html.j2
+
+    pipeline/
+      pass1_profile.py          # cheap streaming profile + aggregates
+      pass2_deep_dive.py        # heavy detectors on candidate subsets
+      run_all.py                # orchestrates end-to-end
+
+  tests/
+    test_names.py
+    test_time.py
+    test_detectors_smoke.py
+
+Why this structure works
+	•	SRP: parsing names isn’t mixed with burst detection; detectors don’t render reports.
+	•	OCP: new detectors drop into detectors/ without changing orchestration.
+	•	DIP: detectors depend on abstract “feature tables” produced by the pipeline, not on raw CSV specifics.
+
+⸻
+
+2) Dependencies (recommended)
+
+Core:
+	•	pandas, numpy
+	•	pyarrow (write/read parquet)
+	•	pydantic (config validation)
+	•	typer (CLI)
+	•	matplotlib (static charts)
+	•	plotly (optional interactive HTML charts)
+
+Stats/time-series:
+	•	scipy
+	•	statsmodels (e.g., proportion tests, multiple testing)
+	•	ruptures (changepoint detection)
+	•	astropy (optional: Bayesian blocks for rate changes)
+
+String/name similarity:
+	•	rapidfuzz (fast fuzzy matching)
+	•	jellyfish (Soundex / metaphone / Jaro-Winkler)
+	•	datasketch (MinHash + LSH for scalable near-dup detection)
+
+Big CSV performance options:
+	•	polars (fast CSV scanning)
+	•	duckdb (SQL aggregation over CSV without full load)
+
+Reporting:
+	•	jinja2
+	•	python-slugify (safe filenames)
+
+⸻
+
+3) Config-driven CLI UX
+
+CLI commands
+	•	testifier-audit profile --csv data.csv --config configs/default.yaml --out out/
+	•	testifier-audit detect --out out/ (uses artifacts from profile)
+	•	testifier-audit report --out out/
+	•	testifier-audit run-all --csv data.csv --out out/
+
+Example configs/default.yaml
+
+columns:
+  id: "id"
+  name: "name"
+  organization: "Organization"
+  position: "Position"
+  time_signed_in: "Time signed in"
+
+time:
+  timezone: "America/Los_Angeles"
+  floor: "minute"
+
+windows:
+  minute_series_smooth: 15
+  swing_window_minutes: 60
+  scan_window_minutes: [5, 15, 60, 240]
+
+thresholds:
+  top_duplicate_names: 200
+  burst_fdr_alpha: 0.01
+  procon_swing_fdr_alpha: 0.01
+  near_dup_max_candidates_per_block: 5000
+
+names:
+  strip_punctuation: true
+  normalize_unicode: true
+  nickname_map_path: "configs/nicknames.csv"   # optional
+  phonetic: "double_metaphone"                 # or "soundex"
+outputs:
+  tables_format: "parquet"
+  figures_format: "png"
+  interactive_plotly: true
+
+
+⸻
+
+4) Pipeline design: two-pass for “large CSV”
+
+Pass 1: streaming profile (cheap)
+
+Goal: compute global aggregates without O(n) memory.
+
+Artifacts produced:
+	•	counts_per_minute (minute, n_total, n_pro, n_con, n_unique_names, dup_name_fraction, etc.)
+	•	counts_per_hour (hour-of-week heatmaps)
+	•	name_frequency (canonical_name → count, positions mix, first/last tokens)
+	•	basic_quality (missingness, weird chars, etc.)
+
+Implementation options:
+	•	DuckDB (fast, minimal RAM) for time series and group-bys
+	•	Polars scan_csv (lazy) if you prefer dataframe APIs
+	•	Pandas chunksize fallback
+
+Pass 2: targeted deep-dive (heavy)
+
+Use pass-1 artifacts to create candidate sets:
+	•	minutes/hours flagged as bursts
+	•	top repeated names
+	•	windows with extreme pro/con swings
+	•	“rare-name spikes” windows
+
+Then run heavier algorithms only on those subsets:
+	•	fuzzy/phonetic near-duplicate clustering
+	•	MinHash/LSH similarity search
+	•	periodicity analysis
+
+This avoids “compare all names to all names” failure modes.
+
+⸻
+
+5) Standard detector interface and outputs
+
+Base types (example)
+
+# src/testifier_audit/detectors/base.py
+from __future__ import annotations
+from dataclasses import dataclass
+from typing import Any, Optional
+import pandas as pd
+
+@dataclass(frozen=True)
+class DetectorResult:
+    detector: str
+    summary: dict[str, Any]
+    tables: dict[str, pd.DataFrame]          # named tables
+    record_scores: Optional[pd.Series] = None # index aligned to df if applicable
+    record_flags: Optional[pd.Series] = None
+
+class Detector:
+    name: str
+
+    def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
+        raise NotImplementedError
+
+Output convention
+
+Each detector writes:
+	•	out/tables/<detector>__*.parquet|csv
+	•	out/figures/<detector>__*.png
+	•	out/summary/<detector>.json
+
+And optionally:
+	•	out/flags/<detector>__flagged_records.parquet
+
+This makes it easy to rerun report rendering without recomputing.
+
+⸻
+
+6) Detectors and what each script should do
+
+Below is a thorough suite aligned to your suspected manipulation vectors.
+
+A) Exact duplicates and repeat-submit patterns
+
+Module: detectors/duplicates_exact.py
+
+Analyses:
+	•	exact duplicate canonical full name counts
+	•	duplicates by minute (same name appears multiple times in same minute)
+	•	duplicates that switch Pro/Con (same canonical name submitting both)
+
+Tables:
+	•	top repeated names
+	•	repeated-in-same-minute names
+	•	names with both positions
+
+Charts:
+	•	bar chart of top repeated names (log scale option)
+	•	time series of duplicate fraction per minute
+
+Key features:
+	•	canonical_name (normalized)
+	•	minute_bucket
+
+⸻
+
+B) Near-duplicates: nicknames, typos, phonetic similarity
+
+Module: detectors/duplicates_near.py
+
+Approach (scalable):
+	1.	Normalize and enrich names
+	•	parse “Last, First”
+	•	normalize unicode, punctuation, whitespace
+	•	map nicknames (optional)
+	•	generate phonetic codes: Soundex / Double Metaphone
+	2.	Blocking
+	•	block key like (last_phonetic, first_initial) or (last_first_letter, last_phonetic)
+	3.	Within-block matching
+	•	rapidfuzz.process.cdist or pairwise comparisons if block size small
+	•	similarity metrics: token_set_ratio, Jaro-Winkler
+	4.	Cluster construction
+	•	build graph edges when similarity >= threshold; extract connected components
+
+Tables:
+	•	clusters with member names + counts + time span
+	•	suspicious clusters concentrated in short windows
+
+Charts:
+	•	cluster size distribution
+	•	“cluster timeline” (cluster activity over time)
+
+Example blocking + fuzzy matching skeleton:
+
+from rapidfuzz import fuzz
+import pandas as pd
+
+def blocking_key(df: pd.DataFrame) -> pd.Series:
+    return df["last_phonetic"].fillna("") + "|" + df["first"].str[:1].fillna("")
+
+def find_near_dups_in_block(block: pd.DataFrame, threshold: int = 92):
+    names = block["canonical_name"].tolist()
+    pairs = []
+    for i in range(len(names)):
+        for j in range(i+1, len(names)):
+            score = fuzz.token_set_ratio(names[i], names[j])
+            if score >= threshold:
+                pairs.append((block.index[i], block.index[j], score))
+    return pairs
+
+For very large blocks, switch to MinHash/LSH (datasketch) on character 3-grams.
+
+⸻
+
+C) Timestamp burst detection on submissions/minute
+
+Module: detectors/bursts.py
+
+Input: counts_per_minute
+
+Methods (implement multiple):
+	1.	Poisson scan test over multiple window sizes
+	•	baseline rate: rolling median or global mean excluding current window
+	•	compute Poisson tail p-value for observed count
+	•	correct for multiple comparisons (Benjamini–Hochberg FDR)
+	2.	Changepoint detection on count series
+	•	ruptures or Bayesian blocks
+	3.	Burstiness metrics
+	•	coefficient of variation, Fano factor over windows
+
+Tables:
+	•	flagged windows with p-values/q-values, observed vs expected
+	•	changepoint indices/timestamps
+
+Charts:
+	•	counts per minute with flagged windows overlay
+	•	rolling mean/median vs observed
+	•	histogram of counts per minute
+
+Poisson scan sketch:
+
+import numpy as np
+from scipy.stats import poisson
+from statsmodels.stats.multitest import multipletests
+
+def poisson_scan(counts: np.ndarray, window: int, baseline_rate: float):
+    # counts: per-minute counts
+    # baseline_rate: expected per-minute mean
+    pvals = []
+    for t in range(len(counts) - window + 1):
+        k = counts[t:t+window].sum()
+        lam = baseline_rate * window
+        p = poisson.sf(k - 1, lam)  # P(X >= k)
+        pvals.append(p)
+    pvals = np.array(pvals)
+    qvals = multipletests(pvals, method="fdr_bh")[1]
+    return pvals, qvals
+
+
+⸻
+
+D) Pro/Con ratio swings (especially off-hours)
+
+Module: detectors/procon_swings.py
+
+Input: counts_per_minute with pro, con, total.
+
+Core idea: treat each window as a binomial draw:
+	•	pro ~ Binomial(n=total, p=p0) where p0 is baseline pro-rate
+	•	compute p-values for extreme deviations
+	•	do rolling windows and changepoints on the logit(pro_rate)
+
+Also compute:
+	•	pro_rate by hour-of-day / day-of-week
+	•	compare off-hours pro_rate to on-hours using proportion tests
+
+Tables:
+	•	windows with extreme pro_rate and enough n
+	•	hour-of-day table with pro_rate + confidence intervals
+
+Charts:
+	•	pro_rate time series with confidence band
+	•	hour-of-day heatmap of pro_rate (or hour vs day)
+
+Implementation note: use Wilson intervals or beta posterior intervals to avoid nonsense at low n.
+
+⸻
+
+E) Off-hours volume anomalies
+
+Module: detectors/off_hours.py
+
+Detect:
+	•	unusually high submission volumes between e.g. 00:00–05:00 local time
+	•	compare observed hourly distribution to a smoothed baseline (or typical diurnal curve inferred from data)
+
+Stats:
+	•	chi-square goodness-of-fit (hour bins)
+	•	KL divergence between hour distribution in flagged windows vs overall
+
+Charts:
+	•	hour-of-day histogram
+	•	day x hour heatmap (counts)
+
+⸻
+
+F) Periodicity / “script-like regular intervals”
+
+Module: detectors/periodicity.py
+
+With minute-resolution, you can still detect:
+	•	repeated patterns like “exactly 1 submission every minute for 4 hours”
+	•	strong autocorrelation peaks
+	•	spectral peaks on counts-per-minute
+
+Methods:
+	•	autocorrelation function (ACF) on counts series
+	•	FFT on demeaned counts series
+	•	detect “low-variance inter-arrival” in event series (if you can reconstruct events)
+
+Charts:
+	•	ACF plot
+	•	power spectrum plot
+	•	counts series annotated with detected periodic regimes
+
+⸻
+
+G) Sortedness / ordering artifacts
+
+Module: detectors/sortedness.py
+
+Goal: detect whether data ordering looks “mechanically produced” (or just exported oddly).
+
+Tests:
+	•	Is id monotonic with timestamp? (should be if true submission order)
+	•	Is name unusually correlated with id?
+	•	Spearman correlation between id rank and canonical_last rank
+	•	Within each minute: are names sorted alphabetically more than expected?
+
+Outputs:
+	•	correlations + p-values
+	•	fraction of minutes with within-minute alphabetical ordering
+
+Charts:
+	•	scatter (id vs timestamp)
+	•	rank correlation visuals
+
+Interpretation: This is a weak signal—often just an export sort. Treat as “data handling artifact” unless it co-occurs with other anomalies.
+
+⸻
+
+H) Rare/unique name prevalence spikes + “name weirdness”
+
+Module: detectors/rare_names.py
+
+Signals:
+	•	fraction of unique names per minute/hour window spikes upward
+	•	spike in “unusual character patterns” (high entropy, many digits, punctuation)
+	•	spike in “very long names” or “single-letter first names”, etc.
+
+Features:
+	•	name_length, token_count
+	•	ascii_fraction, non_alpha_fraction
+	•	Shannon entropy estimate of name string
+	•	“vowel ratio” / “consonant streaks” (simple heuristics)
+
+Tables:
+	•	windows with unusually high unique fraction
+	•	top weird names by heuristic score
+
+Charts:
+	•	unique-name fraction time series
+	•	distributions of name weirdness in flagged vs normal windows
+
+⸻
+
+I) Organization anomalies (even if mostly blank)
+
+Module: detectors/org_anomalies.py
+
+Detect:
+	•	bursts of nonblank organizations
+	•	same org repeated unusually often in short windows
+	•	org text patterns (templated orgs, random strings)
+
+⸻
+
+J) Composite scoring and ranked review queue
+
+Module: detectors/composite_score.py
+
+Goal: produce a prioritized list for manual review.
+
+Strategy:
+	•	each detector outputs either record-level scores or window-level flags
+	•	normalize scores (e.g., rank-based / quantile)
+	•	compute composite score with transparent weights
+	•	output top N records/windows and “why flagged” explanations
+
+Output table:
+	•	record id, time, name, position
+	•	composite_score
+	•	contributing detectors + key metrics
+
+⸻
+
+7) Visual output plan (high signal-to-noise)
+
+Produce a consistent set of figures in out/figures/:
+	1.	counts_per_minute.png with burst overlays
+	2.	counts_heatmap_day_hour.png
+	3.	pro_rate_per_minute.png with swing overlays
+	4.	pro_rate_heatmap_day_hour.png
+	5.	top_duplicate_names.png
+	6.	duplicate_fraction_over_time.png
+	7.	acf_counts.png and spectrum_counts.png
+	8.	near_dup_cluster_sizes.png
+	9.	name_weirdness_distribution.png
+
+Optional interactive:
+	•	counts_per_minute.html (Plotly)
+	•	cluster_graph.html (network visualization for name clusters)
+
+⸻
+
+8) Example orchestration: end-to-end pipeline skeleton
+
+# src/testifier_audit/pipeline/run_all.py
+from pathlib import Path
+import pandas as pd
+
+from testifier_audit.io.read import load_records
+from testifier_audit.pipeline.pass1_profile import build_profile_artifacts
+from testifier_audit.pipeline.pass2_deep_dive import run_detectors
+from testifier_audit.report.render import render_report
+
+def run_all(csv_path: Path, out_dir: Path, config):
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Pass 1: streaming profile + aggregates
+    artifacts = build_profile_artifacts(csv_path, out_dir, config)
+
+    # Pass 2: load needed subsets / or full df if feasible
+    df = load_records(csv_path, config)  # may load full, or candidate-only
+    results = run_detectors(df, artifacts, out_dir, config)
+
+    # Report
+    render_report(results, artifacts, out_dir, config)
+
+
+⸻
+
+9) Implementation details that matter in practice
+
+Name normalization (you’ll want this “right”)
+
+In preprocess/names.py:
+	•	unicode normalize (NFKC)
+	•	trim, collapse whitespace
+	•	drop punctuation except hyphen/apostrophe (configurable)
+	•	parse "Last, First" robustly (handle missing comma)
+	•	optional suffix stripping: Jr, Sr, II, III
+	•	create:
+	•	first, last
+	•	canonical_name (e.g., LAST|FIRST|MIDDLE_INITIAL)
+	•	first_norm using nickname mapping
+	•	first_phonetic, last_phonetic
+
+Time parsing
+
+In preprocess/time.py:
+	•	parse as timezone-aware local time (America/Los_Angeles)
+	•	derive:
+	•	minute_bucket (floor)
+	•	hour, day_of_week, date
+	•	is_off_hours boolean by config
+
+Scaling for “large CSV”
+
+Recommended pattern:
+	•	Use DuckDB for all group-bys and time series aggregation (fast + minimal RAM)
+	•	Only load full dataframe when needed, and even then:
+	•	load only required columns
+	•	optionally restrict to candidate windows for heavy detectors
+
+⸻
+
+10) What “good output” looks like for analysts
+
+Your report should start with a Summary Dashboard:
+	•	total submissions
+	•	overall pro_rate
+	•	top 20 burst windows (time ranges, counts, q-values)
+	•	top 20 ratio swing windows (time ranges, pro_rate, n, q-values)
+	•	top 50 repeated names
+	•	top near-dup clusters (size, active span, concentration)
+	•	off-hours volume + off-hours pro_rate vs baseline
+
+Then sections per detector with:
+	•	“What this detects”
+	•	top findings
+	•	charts
+	•	links to tables
+
+This makes it defensible: you can show your methodology without overstating certainty.
+
+⸻
+
+11) Next step: minimal “MVP” you can implement quickly
+
+If you want an order-of-operations that yields value fast:
+	1.	Pass 1 aggregates (counts_per_minute, name_frequency, hour heatmaps)
+	2.	Burst detector (Poisson scan + FDR)
+	3.	Pro/Con swing detector (binomial window tests + FDR)
+	4.	Exact duplicates (top repeated names, duplicates-in-minute)
+	5.	Near duplicates (blocked fuzzy) on top repeated names + flagged windows
+	6.	Composite scoring + HTML report
+
+That sequence usually surfaces the clearest anomalies early.
+
+⸻
+
+If you want, I can also provide:
+	•	a concrete pyproject.toml with pinned deps,
+	•	a more complete DetectorResult schema (including figure metadata),
+	•	and one fully fleshed detector implementation (e.g., bursts + plots + tables) to serve as the template for the rest.

@@ -14,6 +14,11 @@ Repository-specific guidance for AI/code agents.
 - Do not spend effort on backward compatibility shims, migration compatibility layers, or preserving old internal contracts by default.
 - Optimize for rapid iteration toward the first publishable version; the user will explicitly indicate when production-readiness constraints should be introduced.
 
+## Roadmap Source of Truth
+- The current implementation roadmap is:
+  - `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
+- When proposing or executing substantial changes, align with this plan unless the user explicitly overrides it.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`
@@ -182,6 +187,8 @@ After major report/template changes, perform this checklist:
   - `brew install playwright-cli` (preferred)
 - Do not rely on Chromium full-page screenshot for long reports; it can repeat content at
   ~16,384px intervals on very tall pages.
+- Note: repeated fixed sidebar visuals in stitched screenshots can be a capture artifact from tiled
+  viewport stitching and do not necessarily indicate duplicated report content.
 - Use the chunked capture script:
   - `/Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/capture_report_screenshot.py`
 - Script behavior:

@@ -9,6 +9,14 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - `output/`: local working artifacts/screenshots (not committed).
 - `anomaly-detection-guidance.md`: detector and statistical guidance.
 - `initial-implementation-plan.txt`: implementation plan notes.
+- `IMPLEMENTATION-PLAN-v2.md`: current comprehensive implementation roadmap.
+- `AGENTS.md`: repository-specific operating guidance for agents and contributors.
+
+## Current Development Posture
+- The project is intentionally pre-production and iterating toward a first publishable version.
+- During this pre-production phase, prioritize correctness, usability, and iteration speed over
+  feature flags or backward-compatibility scaffolding.
+- The current roadmap source of truth is `IMPLEMENTATION-PLAN-v2.md`.
 
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:

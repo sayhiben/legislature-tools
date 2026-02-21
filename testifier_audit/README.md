@@ -3,6 +3,13 @@
 `testifier_audit` analyzes WA Legislature sign-in/testifier exports and generates a detector-first
 HTML report for anomaly review.
 
+## Current Development Posture
+- This project is in pre-production and is expected to remain in pre-production while we iterate.
+- Prioritize rapid, test-backed improvements to accuracy, interpretability, and UX.
+- Do not treat feature-flagging or backward-compatibility scaffolding as default work during this phase.
+- The current end-to-end roadmap is documented in:
+  - `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.

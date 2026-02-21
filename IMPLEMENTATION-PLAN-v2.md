@@ -258,6 +258,80 @@ Tests:
 - `test_drilldown_exports.py`
 - `test_report_layout_contract.py`
 
+Status (2026-02-21): Complete
+- Completed in this iteration:
+  - Implemented investigation-first IA blocks in `report/templates/report.html.j2`:
+    - Added workflow tabs/anchors for `Triage`, `Window Drilldown`, `Name/Cluster Forensics`,
+      and `Methodology`.
+    - Added queue tables and investigation summary KPI cards in `Triage`.
+    - Added drilldown tables and linked row-click behavior in `Window Drilldown`.
+    - Added export actions:
+      - `download selected window rows`
+      - `download top evidence windows`
+      - `download top evidence records`
+  - Implemented Phase 2 triage contracts in `report/triage_builder.py`:
+    - Added `build_investigation_view(...)` to derive:
+      - `triage_summary`
+      - `window_evidence_queue`
+      - `record_evidence_queue`
+      - `cluster_evidence_queue`
+    - Window queue now emits required fields:
+      `window_id`, `start_time`, `end_time`, `count`, `expected`, `z`, `q_value`,
+      `pro_rate`, `delta_pro_rate`, `dup_fraction`, `near_dup_fraction`,
+      `name_weirdness_mean`, `support_n`, `evidence_tier`, `primary_explanation`.
+  - Integrated Phase 2 payload/runtime contracts in `report/render.py`:
+    - Added triage payload keys to interactive payload.
+    - Added `controls.evidence_taxonomy` and `controls.dedup_modes`.
+    - Added `analysis_catalog[*].group` and `analysis_catalog[*].priority`.
+  - Added/updated output artifacts written during report render:
+    - `summary/investigation_summary.json`
+    - `summary/feature_vector.json`
+    - `tables/triage__window_evidence_queue.(csv|parquet)`
+    - `tables/triage__record_evidence_queue.(csv|parquet)`
+    - `tables/triage__cluster_evidence_queue.(csv|parquet)`
+  - Added Phase 2 test coverage:
+    - `tests/test_triage_summary_contract.py`
+    - `tests/test_window_queue_schema.py`
+    - `tests/test_drilldown_exports.py`
+    - `tests/test_report_layout_contract.py`
+    - plus payload/integration updates in:
+      - `tests/test_report_chart_payload.py`
+      - `tests/test_pipeline_integration.py`
+      - `tests/test_analysis_registry.py`
+  - Hardened drilldown row-click behavior in fallback table mode (`mountTable(...)`):
+    - When Tabulator is unavailable, HTML table rows now honor `rowClick` callbacks.
+    - Added keyboard activation (`Enter`/`Space`) and focusability for clickable fallback rows.
+  - Completed end-to-end UX QA pass on real report output (`reports/SB6346-20260206-1330/report.html`):
+    - Verified section/hash navigation (`#window-drilldown`) and triage row-click -> drilldown selection sync.
+    - Verified linked bucket selector propagation (example: `15m` applied across mounted bucket-aware charts).
+    - Verified browser console cleanliness in Playwright (`0` errors/warnings).
+    - Captured QA screenshots in `reports/SB6346-20260206-1330/screenshots/`:
+      - `report-fullpage-desktop-20260221.png`
+      - `report-viewport-top-desktop-20260221.png`
+      - `report-viewport-middle-desktop-20260221.png`
+      - `report-viewport-bottom-desktop-20260221.png`
+      - `report-viewport-top-mobile-20260221.png`
+      - `report-viewport-middle-mobile-20260221.png`
+      - `report-viewport-bottom-mobile-20260221.png`
+
+Scope refinement applied (to avoid Phase 3/4 creep):
+- Drilldown currently uses causative timeline rows available in current payload/artifacts
+  (`baseline_volume_pro_rate`) rather than introducing a new raw submission row contract in this phase.
+  Exact duplicate rows, near-dup clusters, runs-style summary, and rarity/weirdness comparison are included
+  without adding new detector families.
+- Keep per-submission “causative raw rows” as a deferred enhancement; do not add a larger payload contract
+  until we explicitly prioritize it and accept payload-size/runtime tradeoffs in a later phase.
+
+Carry-forward lessons from Phase 2:
+- Keep investigation-first navigation explicit and stable:
+  `Triage` -> `Window Drilldown` -> `Name/Cluster Forensics` -> `Methodology`.
+- Treat triage queues/summary and drilldown behavior as cross-module contracts:
+  update builder, payload wiring, template runtime, and tests together.
+- Preserve drilldown row-click parity across table runtimes; fallback HTML tables must support both
+  mouse click and keyboard activation.
+- Close report IA changes with real-dataset QA artifacts (desktop/mobile screenshots + console checks)
+  in addition to contract/integration tests.
+
 ## Phase 3: Analysis Pack A (All Named Additions)
 1. Burst composition detector.
 2. Regularity detector (rolling Fano + autocorrelation + FFT peaks).

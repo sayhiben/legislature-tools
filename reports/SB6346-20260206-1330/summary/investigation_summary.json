@@ -1,0 +1,197 @@
+{
+  "total_submissions": 80644,
+  "date_range_start": "2026-02-03T17:07:00-08:00",
+  "date_range_end": "2026-02-06T12:30:00-08:00",
+  "overall_pro_rate": 0.23670700858092356,
+  "overall_con_rate": 0.7593869351718665,
+  "top_burst_windows": [
+    {
+      "start_time": "2026-02-06T12:30:00-08:00",
+      "end_time": "2026-02-06T12:30:00-08:00",
+      "observed_count": 80644.0,
+      "expected_count": 19.94164193867458,
+      "rate_ratio": 4044.0,
+      "q_value": 0.0
+    },
+    {
+      "start_time": "2026-02-06T12:29:00-08:00",
+      "end_time": "2026-02-06T12:29:00-08:00",
+      "observed_count": 80642.0,
+      "expected_count": 19.94164193867458,
+      "rate_ratio": 4043.899707355786,
+      "q_value": 0.0
+    },
+    {
+      "start_time": "2026-02-06T12:28:00-08:00",
+      "end_time": "2026-02-06T12:28:00-08:00",
+      "observed_count": 80600.0,
+      "expected_count": 19.94164193867458,
+      "rate_ratio": 4041.7935618272904,
+      "q_value": 0.0
+    },
+    {
+      "start_time": "2026-02-06T12:27:00-08:00",
+      "end_time": "2026-02-06T12:27:00-08:00",
+      "observed_count": 80564.0,
+      "expected_count": 19.94164193867458,
+      "rate_ratio": 4039.988294231437,
+      "q_value": 0.0
+    },
+    {
+      "start_time": "2026-02-06T12:26:00-08:00",
+      "end_time": "2026-02-06T12:26:00-08:00",
+      "observed_count": 80538.0,
+      "expected_count": 19.94164193867458,
+      "rate_ratio": 4038.684489856654,
+      "q_value": 0.0
+    }
+  ],
+  "top_swing_windows": [
+    {
+      "start_time": "2026-02-03T17:13:00-08:00",
+      "end_time": "2026-02-03T18:12:00-08:00",
+      "n_total": 657.0,
+      "pro_rate": 0.7823439878234398,
+      "delta_pro_rate": 0.5456369792425163,
+      "z_score": 32.90298389169686,
+      "q_value": 2.0808539764052722e-233
+    },
+    {
+      "start_time": "2026-02-03T17:15:00-08:00",
+      "end_time": "2026-02-03T18:14:00-08:00",
+      "n_total": 671.0,
+      "pro_rate": 0.7764530551415797,
+      "delta_pro_rate": 0.5397460465606562,
+      "z_score": 32.89270076976396,
+      "q_value": 2.0808539764052722e-233
+    },
+    {
+      "start_time": "2026-02-03T17:12:00-08:00",
+      "end_time": "2026-02-03T18:11:00-08:00",
+      "n_total": 650.0,
+      "pro_rate": 0.7846153846153846,
+      "delta_pro_rate": 0.5479083760344611,
+      "z_score": 32.86347031633243,
+      "q_value": 3.6300340696951142e-233
+    },
+    {
+      "start_time": "2026-02-03T17:14:00-08:00",
+      "end_time": "2026-02-03T18:13:00-08:00",
+      "n_total": 664.0,
+      "pro_rate": 0.7786144578313253,
+      "delta_pro_rate": 0.5419074492504018,
+      "z_score": 32.85170882267082,
+      "q_value": 4.0083175368680686e-233
+    },
+    {
+      "start_time": "2026-02-03T17:16:00-08:00",
+      "end_time": "2026-02-03T18:15:00-08:00",
+      "n_total": 679.0,
+      "pro_rate": 0.7717231222385862,
+      "delta_pro_rate": 0.5350161136576627,
+      "z_score": 32.79824106825137,
+      "q_value": 1.5029542010229772e-232
+    }
+  ],
+  "top_repeated_names": [
+    {
+      "display_name": "HARSHAW, NORM",
+      "canonical_name": "HARSHAW|NORM",
+      "n_records": 40,
+      "n_pro": 0,
+      "n_con": 40
+    },
+    {
+      "display_name": "HUFFMAN, TRACY",
+      "canonical_name": "HUFFMAN|TRACY",
+      "n_records": 34,
+      "n_pro": 0,
+      "n_con": 34
+    },
+    {
+      "display_name": "BACKOUS, KATHLEEN",
+      "canonical_name": "BACKOUS|KATHLEEN",
+      "n_records": 29,
+      "n_pro": 0,
+      "n_con": 29
+    },
+    {
+      "display_name": "YONKMAN, MIKE",
+      "canonical_name": "YONKMAN|MIKE",
+      "n_records": 20,
+      "n_pro": 0,
+      "n_con": 20
+    },
+    {
+      "display_name": "DURHAM, RHONDA",
+      "canonical_name": "DURHAM|RHONDA",
+      "n_records": 17,
+      "n_pro": 0,
+      "n_con": 17
+    }
+  ],
+  "top_near_dup_clusters": [
+    {
+      "cluster_id": "cluster_0001",
+      "cluster_size": 13,
+      "n_records": 15,
+      "first_seen": "2026-02-03T18:55:00-08:00",
+      "last_seen": "2026-02-06T10:59:00-08:00"
+    },
+    {
+      "cluster_id": "cluster_0002",
+      "cluster_size": 9,
+      "n_records": 14,
+      "first_seen": "2026-02-03T19:34:00-08:00",
+      "last_seen": "2026-02-06T12:02:00-08:00"
+    },
+    {
+      "cluster_id": "cluster_0003",
+      "cluster_size": 8,
+      "n_records": 17,
+      "first_seen": "2026-02-03T19:40:00-08:00",
+      "last_seen": "2026-02-06T08:09:00-08:00"
+    },
+    {
+      "cluster_id": "cluster_0004",
+      "cluster_size": 7,
+      "n_records": 8,
+      "first_seen": "2026-02-04T20:48:00-08:00",
+      "last_seen": "2026-02-06T11:50:00-08:00"
+    },
+    {
+      "cluster_id": "cluster_0007",
+      "cluster_size": 6,
+      "n_records": 16,
+      "first_seen": "2026-02-03T20:52:00-08:00",
+      "last_seen": "2026-02-06T11:15:00-08:00"
+    }
+  ],
+  "off_hours_summary": {
+    "total": 80644.0,
+    "off_hours": 5255.0,
+    "on_hours": 75389.0,
+    "off_hours_ratio": 0.06516293834631219,
+    "off_hours_pro_rate": 0.1215828713439113,
+    "on_hours_pro_rate": 0.24571892726836933,
+    "chi_square_p_value": 1.838365127855444e-92,
+    "off_hours_pro_rate_wilson_low": 0.11300321038517841,
+    "off_hours_pro_rate_wilson_high": 0.13071793678382093,
+    "off_hours_pro_rate_wilson_half_width": 0.008857363199321261,
+    "on_hours_pro_rate_wilson_low": 0.24265285712478415,
+    "on_hours_pro_rate_wilson_high": 0.24881101131915553,
+    "on_hours_pro_rate_wilson_half_width": 0.0030790770971856896,
+    "off_hours_is_low_power": false,
+    "on_hours_is_low_power": false
+  },
+  "queue_counts": {
+    "window": 250,
+    "record": 250,
+    "cluster": 250
+  },
+  "window_tier_counts": {
+    "high": 250,
+    "medium": 0,
+    "watch": 0
+  }
+}

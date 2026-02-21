@@ -14,6 +14,8 @@ class AnalysisDefinition:
     how_to_read: str
     what_to_look_for: str
     common_benign_causes: str
+    group: str = "detector_analysis"
+    priority: int = 50
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -25,6 +27,8 @@ class AnalysisDefinition:
             "how_to_read": self.how_to_read,
             "what_to_look_for": self.what_to_look_for,
             "common_benign_causes": self.common_benign_causes,
+            "group": self.group,
+            "priority": self.priority,
         }
 
 
@@ -299,8 +303,34 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
 )
 
 
+_ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
+    "baseline_profile": ("baseline", 100),
+    "bursts": ("window_signals", 95),
+    "procon_swings": ("window_signals", 94),
+    "changepoints": ("window_signals", 90),
+    "off_hours": ("window_signals", 86),
+    "duplicates_exact": ("identity_forensics", 88),
+    "duplicates_near": ("identity_forensics", 87),
+    "sortedness": ("process_signals", 80),
+    "rare_names": ("identity_forensics", 82),
+    "org_anomalies": ("field_quality", 78),
+    "voter_registry_match": ("external_enrichment", 65),
+    "periodicity": ("temporal_structure", 70),
+    "multivariate_anomalies": ("multisignal", 92),
+    "composite_score": ("triage", 99),
+}
+
+
 def default_analysis_definitions() -> list[dict[str, Any]]:
-    return [definition.to_dict() for definition in _ANALYSIS_DEFINITIONS]
+    definitions: list[dict[str, Any]] = []
+    for definition in _ANALYSIS_DEFINITIONS:
+        payload = definition.to_dict()
+        group_priority = _ANALYSIS_GROUP_PRIORITY.get(definition.id)
+        if group_priority:
+            payload["group"] = group_priority[0]
+            payload["priority"] = int(group_priority[1])
+        definitions.append(payload)
+    return definitions
 
 
 def analysis_status(

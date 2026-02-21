@@ -38,6 +38,19 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - Keep shared controls contract-driven: global zoom reset/range and timezone labels should be backed
   by payload controls rather than ad-hoc template assumptions.
 
+## Lessons Learned (Phase 2 Investigation IA)
+- Keep the report workflow explicit and investigation-first: `Triage` ->
+  `Window Drilldown` -> `Name/Cluster Forensics` -> `Methodology`.
+- Treat triage queues and summary fields as payload contracts; update renderer, template, and
+  contract tests together whenever queue schema changes.
+- Preserve drilldown click behavior across both table runtimes:
+  Tabulator mode and fallback HTML table mode (including keyboard activation).
+- Keep Phase 2 drilldown data lightweight by reusing existing timeline artifacts; defer
+  per-submission raw-row payload expansion until explicitly prioritized with payload-size/runtime
+  tradeoff acceptance.
+- Close report UX changes with a real-dataset QA pass (desktop/mobile screenshots + browser console
+  checks), not only unit tests.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 

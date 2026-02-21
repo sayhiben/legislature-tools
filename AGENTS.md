@@ -43,6 +43,19 @@ Repository-specific guidance for AI/code agents.
   `controls.timezone_label`); use deterministic defaults (`UTC`) until hearing-metadata timezone
   integration is implemented.
 
+## Lessons Learned (Phase 2 Investigation IA)
+- Keep the top-level report workflow anchored on four sections:
+  `Triage`, `Window Drilldown`, `Name/Cluster Forensics`, and `Methodology`.
+- Keep `triage_summary`, `window_evidence_queue`, `record_evidence_queue`, and
+  `cluster_evidence_queue` synchronized across:
+  `report/triage_builder.py`, `report/render.py`, `report/templates/report.html.j2`, and contract tests.
+- In `mountTable(...)`, fallback HTML mode must honor `options.rowClick` and keyboard activation
+  (`Enter`/`Space`) so drilldown works when Tabulator is unavailable.
+- Treat per-submission causative-row payloads as out of scope for Phase 2 unless explicitly
+  requested; current Phase 2 contract uses causative timeline rows to control payload size.
+- For report UX changes, always perform a real-dataset QA pass that includes screenshot artifacts
+  and browser console verification in addition to automated tests.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`

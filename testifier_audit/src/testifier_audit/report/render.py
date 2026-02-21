@@ -23,6 +23,7 @@ from testifier_audit.report.analysis_registry import (
 from testifier_audit.report.analysis_registry import (
     default_analysis_definitions as registry_analysis_definitions,
 )
+from testifier_audit.report.triage_builder import build_investigation_view
 
 try:
     import pyarrow.parquet as pq
@@ -3341,6 +3342,8 @@ def _build_interactive_chart_payload_v2(
                 "hero_chart_id": definition["hero_chart_id"],
                 "detail_chart_ids": definition["detail_chart_ids"],
                 "bucket_options": bucket_map.get(definition["id"], []),
+                "group": definition.get("group", "detector_analysis"),
+                "priority": int(definition.get("priority", 50)),
                 "how_to_read": definition["how_to_read"],
                 "what_to_look_for": definition["what_to_look_for"],
                 "what_to_look_for_details": look_for_details.get(str(definition["id"]), []),
@@ -3383,18 +3386,56 @@ def _build_interactive_chart_payload_v2(
         chart_id for chart_id in absolute_time_chart_ids if charts.get(chart_id)
     ]
 
+    investigation = build_investigation_view(table_map=table_map)
+    triage_summary = investigation.get("triage_summary", {})
+    window_evidence_queue = investigation.get("window_evidence_queue", [])
+    record_evidence_queue = investigation.get("record_evidence_queue", [])
+    cluster_evidence_queue = investigation.get("cluster_evidence_queue", [])
+
     payload = {
         "version": 2,
         "analysis_catalog": analysis_catalog,
         "charts": charts,
         "chart_legend_docs": chart_legend_docs,
         "chart_help_docs": chart_help_docs,
+        "triage_summary": triage_summary,
+        "window_evidence_queue": window_evidence_queue,
+        "record_evidence_queue": record_evidence_queue,
+        "cluster_evidence_queue": cluster_evidence_queue,
+        "data_quality_panel": {
+            "status": "pending_phase4",
+            "warnings": [],
+            "summary": "Data-quality triage warnings are planned for Phase 4.",
+        },
+        "hearing_context_panel": {
+            "status": "pending_phase5",
+            "available": False,
+            "reason": "Hearing-relative metadata overlays are planned for Phase 5.",
+        },
         "controls": {
             "default_bucket_minutes": 30
             if 30 in global_bucket_options
             else (global_bucket_options[0] if global_bucket_options else None),
             "global_bucket_options": global_bucket_options,
             "zoom_sync_groups": {"absolute_time": absolute_time_chart_ids},
+            "evidence_taxonomy": [
+                {
+                    "kind": "stat_fdr",
+                    "label": "Statistical (FDR-controlled)",
+                    "description": "Hypothesis-tested signal with multiple-testing control.",
+                },
+                {
+                    "kind": "calibrated_empirical",
+                    "label": "Calibrated empirical",
+                    "description": "Simulation/permutation calibrated evidence.",
+                },
+                {
+                    "kind": "heuristic",
+                    "label": "Heuristic",
+                    "description": "Structured indicator without formal significance control.",
+                },
+            ],
+            "dedup_modes": ["raw", "exact_row_dedup", "side_by_side"],
             "timezone": "UTC",
             "timezone_label": "UTC",
         },
@@ -3461,6 +3502,85 @@ def _interactive_chart_payload_from_disk(out_dir: Path) -> dict[str, Any]:
         table_map=table_map,
         detector_summaries=detector_summaries,
     )
+
+
+def _rows_to_frame(rows: Any) -> pd.DataFrame:
+    if not isinstance(rows, list) or not rows:
+        return pd.DataFrame()
+    normalized_rows: list[dict[str, Any]] = []
+    for row in rows:
+        if isinstance(row, dict):
+            normalized_rows.append(_json_safe(row))
+    if not normalized_rows:
+        return pd.DataFrame()
+    frame = pd.DataFrame(normalized_rows)
+    for column in frame.columns:
+        if frame[column].map(lambda value: isinstance(value, (list, dict))).any():
+            frame[column] = frame[column].map(
+                lambda value: (
+                    json.dumps(_json_safe(value), ensure_ascii=False)
+                    if isinstance(value, (list, dict))
+                    else value
+                )
+            )
+    return frame
+
+
+def _write_investigation_artifacts(
+    out_dir: Path,
+    triage_summary: dict[str, Any],
+    window_evidence_queue: Any,
+    record_evidence_queue: Any,
+    cluster_evidence_queue: Any,
+) -> None:
+    summary_dir = out_dir / "summary"
+    tables_dir = out_dir / "tables"
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir.mkdir(parents=True, exist_ok=True)
+
+    summary_payload = _json_safe(triage_summary if isinstance(triage_summary, dict) else {})
+    (summary_dir / "investigation_summary.json").write_text(
+        json.dumps(summary_payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    window_rows = window_evidence_queue if isinstance(window_evidence_queue, list) else []
+    record_rows = record_evidence_queue if isinstance(record_evidence_queue, list) else []
+    cluster_rows = cluster_evidence_queue if isinstance(cluster_evidence_queue, list) else []
+
+    feature_vector = {
+        "total_submissions": int(summary_payload.get("total_submissions") or 0),
+        "overall_pro_rate": summary_payload.get("overall_pro_rate"),
+        "overall_con_rate": summary_payload.get("overall_con_rate"),
+        "window_queue_size": int(len(window_rows)),
+        "record_queue_size": int(len(record_rows)),
+        "cluster_queue_size": int(len(cluster_rows)),
+        "window_high_count": int(
+            sum(1 for row in window_rows if str(row.get("evidence_tier")) == "high")
+        ),
+        "window_medium_count": int(
+            sum(1 for row in window_rows if str(row.get("evidence_tier")) == "medium")
+        ),
+        "window_watch_count": int(
+            sum(1 for row in window_rows if str(row.get("evidence_tier")) == "watch")
+        ),
+    }
+    (summary_dir / "feature_vector.json").write_text(
+        json.dumps(_json_safe(feature_vector), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    queue_tables = {
+        "triage__window_evidence_queue": _rows_to_frame(window_rows),
+        "triage__record_evidence_queue": _rows_to_frame(record_rows),
+        "triage__cluster_evidence_queue": _rows_to_frame(cluster_rows),
+    }
+    for table_name, frame in queue_tables.items():
+        csv_path = tables_dir / f"{table_name}.csv"
+        frame.to_csv(csv_path, index=False)
+        if pq is not None:
+            parquet_path = tables_dir / f"{table_name}.parquet"
+            frame.to_parquet(parquet_path, index=False)
 
 
 def render_report(
@@ -3552,6 +3672,14 @@ def render_report(
             runtime_metrics = {}
         runtime_metrics["interactive_payload_build_ms"] = interactive_build_ms
         interactive_charts["controls"]["runtime"] = runtime_metrics
+
+    _write_investigation_artifacts(
+        out_dir=out_dir,
+        triage_summary=interactive_charts.get("triage_summary", {}),
+        window_evidence_queue=interactive_charts.get("window_evidence_queue", []),
+        record_evidence_queue=interactive_charts.get("record_evidence_queue", []),
+        cluster_evidence_queue=interactive_charts.get("cluster_evidence_queue", []),
+    )
 
     template_started = perf_counter()
     rendered = template.render(

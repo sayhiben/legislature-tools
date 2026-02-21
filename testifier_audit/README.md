@@ -31,6 +31,18 @@ HTML report for anomaly review.
 - Treat timezone and bucket labels as payload-backed UI contracts; current default is explicit
   `UTC` controls in payload until hearing-metadata timezone wiring is added in a later phase.
 
+## Lessons Learned (Phase 2 Investigation IA)
+- Keep the report flow investigation-first with explicit sections:
+  `Triage`, `Window Drilldown`, `Name/Cluster Forensics`, and `Methodology`.
+- Keep queue/summary schema changes contract-backed:
+  update builders, payload wiring, template rendering, and tests in one change set.
+- Preserve drilldown selection behavior in both table runtimes:
+  Tabulator and fallback HTML table (with keyboard activation support).
+- Use existing timeline artifacts for Phase 2 causative context to avoid avoidable payload growth;
+  defer per-submission raw-row drilldown contracts until explicitly prioritized.
+- Validate major report IA changes on a real dataset using desktop/mobile screenshot captures and
+  browser console checks, then back with targeted contract + integration tests.
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.

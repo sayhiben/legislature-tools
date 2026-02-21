@@ -1,0 +1,11 @@
+{
+  "total_submissions": 80644,
+  "overall_pro_rate": 0.23670700858092356,
+  "overall_con_rate": 0.7593869351718665,
+  "window_queue_size": 250,
+  "record_queue_size": 250,
+  "cluster_queue_size": 250,
+  "window_high_count": 250,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

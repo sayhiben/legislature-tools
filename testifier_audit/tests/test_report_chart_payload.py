@@ -114,6 +114,10 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(payload["charts"], dict)
     assert isinstance(payload["controls"], dict)
     assert isinstance(payload["chart_legend_docs"], dict)
+    assert isinstance(payload["triage_summary"], dict)
+    assert isinstance(payload["window_evidence_queue"], list)
+    assert isinstance(payload["record_evidence_queue"], list)
+    assert isinstance(payload["cluster_evidence_queue"], list)
 
     ids = {entry["id"] for entry in payload["analysis_catalog"]}
     assert EXPECTED_ANALYSES.issubset(ids)
@@ -123,6 +127,8 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
         assert hero_chart_id in payload["charts"]
         assert isinstance(hero_chart_id, str) and hero_chart_id
         assert entry["bucket_options"] == EXPECTED_BASELINE_BUCKETS
+        assert isinstance(entry["group"], str) and entry["group"]
+        assert isinstance(entry["priority"], int)
         assert isinstance(entry["what_to_look_for_details"], list)
         assert entry["what_to_look_for_details"]
         assert hero_chart_id in payload["chart_legend_docs"]
@@ -135,6 +141,8 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert "zoom_sync_groups" in controls
     assert controls["timezone"] == "UTC"
     assert controls["timezone_label"] == "UTC"
+    assert isinstance(controls["evidence_taxonomy"], list)
+    assert controls["dedup_modes"] == ["raw", "exact_row_dedup", "side_by_side"]
     assert "absolute_time" in controls["zoom_sync_groups"]
     assert isinstance(controls["zoom_sync_groups"]["absolute_time"], list)
     assert 30 in controls["global_bucket_options"]

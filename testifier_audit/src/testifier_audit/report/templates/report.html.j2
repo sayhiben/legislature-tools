@@ -249,6 +249,38 @@
         margin-top: 1.15rem;
       }
 
+      .workflow-tabs {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.52rem;
+      }
+
+      .workflow-tab {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        background: #ffffff;
+        color: #0f172a;
+        font-size: 0.84rem;
+        font-weight: 600;
+        padding: 0.34rem 0.68rem;
+        text-decoration: none;
+      }
+
+      .workflow-tab:hover {
+        background: #eff6ff;
+        border-color: #93c5fd;
+      }
+
+      .triage-actions {
+        margin-top: 0.8rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.48rem;
+      }
+
       .definition-callout {
         margin-top: 0.75rem;
         border: 1px solid #bfdbfe;
@@ -868,11 +900,19 @@
             </p>
           </header>
 
+          <nav class="workflow-tabs panel" aria-label="Investigation tabs">
+            <a class="workflow-tab" href="#triage">Triage</a>
+            <a class="workflow-tab" href="#window-drilldown">Window Drilldown</a>
+            <a class="workflow-tab" href="#name-cluster-forensics">Name/Cluster Forensics</a>
+            <a class="workflow-tab" href="#methodology">Methodology</a>
+          </nav>
+
           <section id="section-overview" class="report-section panel">
             <h2 id="overview" class="toc-heading">How To Use This Report</h2>
             <p>
-              This report is organized detector-first. Start each section with the hero chart to establish the primary signal,
-              then use detail charts and tables to validate whether the pattern is sustained, high-power, and corroborated.
+              This report is investigation-first. Start in <strong>Triage</strong> to rank windows/records/clusters, then move to
+              <strong>Window Drilldown</strong> for linked chart context and supporting evidence, and use
+              <strong>Name/Cluster Forensics</strong> before final interpretation.
             </p>
             <aside class="definition-callout">
               <p>
@@ -902,6 +942,97 @@
                 <div class="kpi-value" id="kpi-low-power">0</div>
               </article>
             </section>
+          </section>
+
+          <section id="section-triage" class="report-section panel">
+            <h2 id="triage" class="toc-heading">Triage</h2>
+            <p class="tiny-note">
+              Prioritize windows first, then record and cluster evidence. Click a window row to sync drilldown context.
+            </p>
+            <section class="kpi-grid">
+              <article class="kpi-card">
+                <div class="kpi-label">Total submissions</div>
+                <div class="kpi-value" id="triage-total-submissions">0</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Date range</div>
+                <div class="kpi-value" id="triage-date-range">-</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Overall Pro / Con</div>
+                <div class="kpi-value" id="triage-overall-procon">-</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Top-tier windows</div>
+                <div class="kpi-value" id="triage-top-tier-count">0</div>
+              </article>
+            </section>
+            <div class="triage-actions">
+              <button id="download-selected-window-rows" class="control-button" type="button">
+                download selected window rows
+              </button>
+              <button id="download-top-evidence-windows" class="control-button" type="button">
+                download top evidence windows
+              </button>
+              <button id="download-top-evidence-records" class="control-button" type="button">
+                download top evidence records
+              </button>
+            </div>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">window_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-window-queue-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">record_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-record-queue-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">cluster_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-cluster-queue-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="section-window-drilldown" class="report-section panel">
+            <h2 id="window-drilldown" class="toc-heading">Window Drilldown</h2>
+            <p class="tiny-note">
+              Click a queue row to focus linked charts and inspect causative rows, duplicate names, near-dup clusters, and
+              rarity-context comparison.
+            </p>
+            <p id="window-drilldown-selection" class="tiny-note"></p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Causative Rows</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-causative-rows-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Exact Dup Names (Window)</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-dup-names-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Near-Dup Clusters (Window)</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-clusters-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Runs + Weirdness Comparison</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-runs-weirdness-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
           </section>
 
           <section id="analysis-root" class="report-section">
@@ -1035,6 +1166,53 @@
               </section>
             {% endfor %}
           </section>
+
+          <section id="section-name-cluster-forensics" class="report-section panel">
+            <h2 id="name-cluster-forensics" class="toc-heading">Name/Cluster Forensics</h2>
+            <p class="tiny-note">
+              High-frequency names and compressed near-duplicate clusters are shown here for rapid adjudication.
+            </p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Top Repeated Names</h3>
+                <div class="table-wrap">
+                  <div id="forensics-top-names-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Top Near-Dup Clusters</h3>
+                <div class="table-wrap">
+                  <div id="forensics-top-clusters-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="section-methodology" class="report-section panel">
+            <h2 id="methodology" class="toc-heading">Methodology</h2>
+            <p>
+              Queue tiers combine statistically controlled contributors (when available) with heuristic contributors.
+              Low-support items are explicitly caveated and cannot be promoted to high tier.
+            </p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Evidence Taxonomy</h3>
+                <div class="table-wrap">
+                  <div id="methodology-evidence-taxonomy-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Interpretation Guardrails</h3>
+                <p class="tiny-note">
+                  Signals indicate statistical irregularity and warrant review; they are not direct attribution of intent.
+                </p>
+                <p class="tiny-note">
+                  Stronger confidence comes from persistent, corroborated, adequately powered signals across multiple
+                  independent indicators.
+                </p>
+              </article>
+            </div>
+          </section>
         </main>
       </div>
     </div>
@@ -1071,6 +1249,16 @@
         const analysisCatalog = Array.isArray(interactive.analysis_catalog) ? interactive.analysis_catalog : [];
         const analysisById = new Map(analysisCatalog.map((analysis) => [String(analysis.id || ""), analysis]));
         const chartRowsMap = interactive.charts || {};
+        const triageSummary = interactive.triage_summary || {};
+        const windowEvidenceQueue = Array.isArray(interactive.window_evidence_queue)
+          ? interactive.window_evidence_queue
+          : [];
+        const recordEvidenceQueue = Array.isArray(interactive.record_evidence_queue)
+          ? interactive.record_evidence_queue
+          : [];
+        const clusterEvidenceQueue = Array.isArray(interactive.cluster_evidence_queue)
+          ? interactive.cluster_evidence_queue
+          : [];
         const controls = interactive.controls || {};
         const tableColumnDocs = reportData.table_column_docs || {};
         const tableHelpDocs = reportData.table_help_docs || {};
@@ -1089,11 +1277,17 @@
         const chartInstances = [];
         const mountedSections = new Set();
         const chartMounts = new Map();
+        const drilldownState = {
+          activeWindow: null,
+          windowTable: null,
+          selectedWindowIds: [],
+        };
 
         const state = {
           activeBucket: null,
           cursorX: null,
           activeTocHeading: null,
+          selectedWindowRange: null,
           zoom: {
             minTime: null,
             maxTime: null,
@@ -1155,6 +1349,71 @@
           }
           const parsed = Date.parse(value);
           return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function formatPercent(value, digits) {
+          const parsed = toFiniteNumberOrNull(value);
+          if (parsed === null) {
+            return "-";
+          }
+          const precision = Number.isFinite(digits) ? digits : 1;
+          return (parsed * 100).toFixed(precision) + "%";
+        }
+
+        function formatDateRange(startIso, endIso) {
+          const start = toEpochMillis(startIso);
+          const end = toEpochMillis(endIso);
+          if (start === null || end === null) {
+            return "-";
+          }
+          return formatEpochMillis(start) + " to " + formatEpochMillis(end);
+        }
+
+        function rowsToCsv(rows) {
+          const dataset = Array.isArray(rows) ? rows : [];
+          if (!dataset.length) {
+            return "";
+          }
+          const columns = Array.from(new Set(dataset.flatMap((row) => Object.keys(row || {}))));
+          const encode = (value) => {
+            if (value === null || value === undefined) {
+              return "";
+            }
+            if (Array.isArray(value) || (value && typeof value === "object")) {
+              return JSON.stringify(value);
+            }
+            return String(value);
+          };
+          const header = columns.join(",");
+          const body = dataset
+            .map((row) =>
+              columns
+                .map((column) => {
+                  const raw = encode(row ? row[column] : "");
+                  const escaped = raw.replace(/"/g, '""');
+                  return '"' + escaped + '"';
+                })
+                .join(",")
+            )
+            .join("\n");
+          return header + "\n" + body + "\n";
+        }
+
+        function downloadCsv(filename, rows) {
+          const csv = rowsToCsv(rows);
+          if (!csv) {
+            return false;
+          }
+          const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          return true;
         }
 
         function buildDateTimeFormatter(timezoneName) {
@@ -2806,7 +3065,7 @@
             if (container) {
               container.innerHTML = "";
             }
-            return false;
+            return null;
           }
 
           const columns = Array.from(
@@ -2819,8 +3078,7 @@
 
           if (hasTabulator) {
             container.innerHTML = "";
-            // eslint-disable-next-line no-new
-            new window.Tabulator(
+            const table = new window.Tabulator(
               container,
               Object.assign(
                 {
@@ -2838,7 +3096,11 @@
                 options || {}
               )
             );
-            return true;
+            return {
+              kind: "tabulator",
+              table: table,
+              data: dataset,
+            };
           }
 
           const table = document.createElement("table");
@@ -2859,6 +3121,8 @@
           table.appendChild(thead);
 
           const tbody = document.createElement("tbody");
+          const rowClickHandler =
+            options && typeof options.rowClick === "function" ? options.rowClick : null;
           dataset.forEach((row) => {
             const tr = document.createElement("tr");
             columns.forEach((column) => {
@@ -2869,13 +3133,396 @@
               td.style.padding = "0.3rem 0.45rem";
               tr.appendChild(td);
             });
+            if (rowClickHandler) {
+              tr.style.cursor = "pointer";
+              tr.tabIndex = 0;
+              tr.addEventListener("click", (event) => {
+                rowClickHandler(event, {
+                  getData: () => row,
+                  getElement: () => tr,
+                });
+              });
+              tr.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  rowClickHandler(event, {
+                    getData: () => row,
+                    getElement: () => tr,
+                  });
+                }
+              });
+            }
             tbody.appendChild(tr);
           });
           table.appendChild(tbody);
 
           container.innerHTML = "";
           container.appendChild(table);
-          return true;
+          return {
+            kind: "html",
+            table: null,
+            data: dataset,
+          };
+        }
+
+        function withinWindow(timestamp, start, end) {
+          return timestamp !== null && start !== null && end !== null && timestamp >= start && timestamp <= end;
+        }
+
+        function overlapsWindow(startA, endA, startB, endB) {
+          return startA !== null && endA !== null && startB !== null && endB !== null && startA <= endB && endA >= startB;
+        }
+
+        function getWindowSpanRows(windowRow) {
+          const start = toEpochMillis(windowRow ? windowRow.start_time : null);
+          const end = toEpochMillis(windowRow ? windowRow.end_time : null);
+          if (start === null || end === null) {
+            return [];
+          }
+
+          const baselineRows = getChartRows("baseline_volume_pro_rate")
+            .filter((row) => withinWindow(toEpochMillis(row.minute_bucket), start, end))
+            .map((row) =>
+              Object.assign({ source: "baseline_volume_pro_rate", source_time: row.minute_bucket }, row)
+            );
+          const burstRows = getChartRows("bursts_hero_timeline")
+            .filter((row) =>
+              overlapsWindow(
+                toEpochMillis(row.start_minute),
+                toEpochMillis(row.end_minute),
+                start,
+                end
+              )
+            )
+            .map((row) =>
+              Object.assign({ source: "bursts_hero_timeline", source_time: row.start_minute }, row)
+            );
+          const swingRows = getChartRows("procon_swings_hero_bucket_trend")
+            .filter((row) => withinWindow(toEpochMillis(row.bucket_start), start, end))
+            .map((row) =>
+              Object.assign(
+                { source: "procon_swings_hero_bucket_trend", source_time: row.bucket_start },
+                row
+              )
+            );
+          const duplicateRows = getChartRows("duplicates_exact_bucket_concentration")
+            .filter((row) => withinWindow(toEpochMillis(row.bucket_start), start, end))
+            .map((row) =>
+              Object.assign(
+                { source: "duplicates_exact_bucket_concentration", source_time: row.bucket_start },
+                row
+              )
+            );
+          const rarityRows = getChartRows("rare_names_rarity_timeline")
+            .filter((row) => withinWindow(toEpochMillis(row.minute_bucket), start, end))
+            .map((row) =>
+              Object.assign({ source: "rare_names_rarity_timeline", source_time: row.minute_bucket }, row)
+            );
+
+          return baselineRows
+            .concat(burstRows, swingRows, duplicateRows, rarityRows)
+            .sort((left, right) => {
+              const leftTime = toEpochMillis(left.source_time);
+              const rightTime = toEpochMillis(right.source_time);
+              if (leftTime === null && rightTime === null) {
+                return 0;
+              }
+              if (leftTime === null) {
+                return 1;
+              }
+              if (rightTime === null) {
+                return -1;
+              }
+              return leftTime - rightTime;
+            });
+        }
+
+        function getWindowDupRows(windowRow) {
+          const start = toEpochMillis(windowRow ? windowRow.start_time : null);
+          const end = toEpochMillis(windowRow ? windowRow.end_time : null);
+          if (start === null || end === null) {
+            return [];
+          }
+          const rows = getChartRows("duplicates_exact_bucket_concentration");
+          return rows.filter((row) => {
+            const timestamp = toEpochMillis(row.bucket_start);
+            return withinWindow(timestamp, start, end);
+          });
+        }
+
+        function getWindowClusterRows(windowRow) {
+          const start = toEpochMillis(windowRow ? windowRow.start_time : null);
+          const end = toEpochMillis(windowRow ? windowRow.end_time : null);
+          if (start === null || end === null) {
+            return [];
+          }
+          const rows = getChartRows("duplicates_near_cluster_timeline");
+          return rows.filter((row) => {
+            const firstSeen = toEpochMillis(row.first_seen);
+            const lastSeen = toEpochMillis(row.last_seen);
+            if (firstSeen === null || lastSeen === null) {
+              return false;
+            }
+            return overlapsWindow(firstSeen, lastSeen, start, end);
+          });
+        }
+
+        function getRunsAndWeirdnessRows(windowRow, causativeRows) {
+          const series = Array.isArray(causativeRows) ? causativeRows : [];
+          let longestProHeavy = 0;
+          let longestConHeavy = 0;
+          let currentPro = 0;
+          let currentCon = 0;
+          series.forEach((row) => {
+            const proRate = toFiniteNumberOrNull(row.pro_rate);
+            if (proRate === null) {
+              currentPro = 0;
+              currentCon = 0;
+              return;
+            }
+            if (proRate >= 0.5) {
+              currentPro += 1;
+              currentCon = 0;
+            } else {
+              currentCon += 1;
+              currentPro = 0;
+            }
+            longestProHeavy = Math.max(longestProHeavy, currentPro);
+            longestConHeavy = Math.max(longestConHeavy, currentCon);
+          });
+
+          const start = toEpochMillis(windowRow ? windowRow.start_time : null);
+          const end = toEpochMillis(windowRow ? windowRow.end_time : null);
+          const rarityRows = getChartRows("rare_names_rarity_timeline");
+          const inWindow = rarityRows.filter((row) => {
+            const timestamp = toEpochMillis(row.minute_bucket);
+            return withinWindow(timestamp, start, end);
+          });
+          const outWindow = rarityRows.filter((row) => {
+            const timestamp = toEpochMillis(row.minute_bucket);
+            return (
+              timestamp !== null &&
+              start !== null &&
+              end !== null &&
+              !withinWindow(timestamp, start, end)
+            );
+          });
+          const mean = (rows) => {
+            const values = rows
+              .map((row) => toFiniteNumberOrNull(row.rarity_mean))
+              .filter((value) => value !== null);
+            if (!values.length) {
+              return null;
+            }
+            return values.reduce((acc, value) => acc + value, 0) / values.length;
+          };
+          const weirdnessIn = mean(inWindow);
+          const weirdnessOut = mean(outWindow);
+          const weirdnessDelta =
+            weirdnessIn !== null && weirdnessOut !== null ? weirdnessIn - weirdnessOut : null;
+
+          return [
+            {
+              metric: "longest_pro_heavy_run_buckets",
+              value: longestProHeavy,
+            },
+            {
+              metric: "longest_con_heavy_run_buckets",
+              value: longestConHeavy,
+            },
+            {
+              metric: "rarity_mean_in_window",
+              value: weirdnessIn,
+            },
+            {
+              metric: "rarity_mean_outside_window",
+              value: weirdnessOut,
+            },
+            {
+              metric: "rarity_mean_delta_window_minus_outside",
+              value: weirdnessDelta,
+            },
+          ];
+        }
+
+        function focusWindowSpan(windowRow) {
+          const start = toEpochMillis(windowRow ? windowRow.start_time : null);
+          const end = toEpochMillis(windowRow ? windowRow.end_time : null);
+          if (start === null || end === null) {
+            state.selectedWindowRange = null;
+            return;
+          }
+          state.selectedWindowRange = { start: start, end: end };
+          state.cursorX = start;
+          updateCursorAcrossTimeCharts();
+          scheduleZoomSync(start, end, null, false);
+        }
+
+        function renderWindowDrilldown(windowRow) {
+          drilldownState.activeWindow = windowRow || null;
+          const selectionLabel = document.getElementById("window-drilldown-selection");
+          if (selectionLabel) {
+            selectionLabel.textContent = windowRow
+              ? "Selected window: " + String(windowRow.window_id || "") + " (" + formatDateRange(windowRow.start_time, windowRow.end_time) + ")"
+              : "No window selected.";
+          }
+
+          const causativeRows = windowRow ? getWindowSpanRows(windowRow) : [];
+          const dupRows = windowRow ? getWindowDupRows(windowRow) : [];
+          const clusterRows = windowRow ? getWindowClusterRows(windowRow) : [];
+          const runsWeirdnessRows = windowRow ? getRunsAndWeirdnessRows(windowRow, causativeRows) : [];
+
+          const causativeHost = document.getElementById("drilldown-causative-rows-host");
+          const dupHost = document.getElementById("drilldown-dup-names-host");
+          const clusterHost = document.getElementById("drilldown-clusters-host");
+          const runsHost = document.getElementById("drilldown-runs-weirdness-host");
+          mountTable(causativeHost, causativeRows, { paginationSize: 12, maxHeight: "330px" });
+          mountTable(dupHost, dupRows, { paginationSize: 12, maxHeight: "330px" });
+          mountTable(clusterHost, clusterRows, { paginationSize: 12, maxHeight: "330px" });
+          mountTable(runsHost, runsWeirdnessRows, { pagination: false, maxHeight: "330px" });
+          if (windowRow) {
+            focusWindowSpan(windowRow);
+          }
+        }
+
+        function renderTriageSummary() {
+          const setText = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+              element.textContent = String(value);
+            }
+          };
+          setText("triage-total-submissions", Number(toNumber(triageSummary.total_submissions || 0)).toLocaleString());
+          setText(
+            "triage-date-range",
+            formatDateRange(triageSummary.date_range_start, triageSummary.date_range_end)
+          );
+          setText(
+            "triage-overall-procon",
+            formatPercent(triageSummary.overall_pro_rate) + " / " + formatPercent(triageSummary.overall_con_rate)
+          );
+          const tierCounts = triageSummary.window_tier_counts || {};
+          setText(
+            "triage-top-tier-count",
+            Number(toNumber(tierCounts.high || 0)).toLocaleString()
+          );
+        }
+
+        function renderInvestigationTables() {
+          const windowHost = document.getElementById("triage-window-queue-host");
+          const recordHost = document.getElementById("triage-record-queue-host");
+          const clusterHost = document.getElementById("triage-cluster-queue-host");
+          const forensicsNamesHost = document.getElementById("forensics-top-names-host");
+          const forensicsClustersHost = document.getElementById("forensics-top-clusters-host");
+          const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
+
+          const windowMount = mountTable(windowHost, windowEvidenceQueue, {
+            paginationSize: 12,
+            maxHeight: "420px",
+            selectableRows: true,
+            rowClick: (_event, row) => {
+              const data = row && typeof row.getData === "function" ? row.getData() : null;
+              if (data) {
+                renderWindowDrilldown(data);
+              }
+            },
+          });
+          if (windowMount && windowMount.kind === "tabulator") {
+            drilldownState.windowTable = windowMount.table;
+            if (
+              drilldownState.windowTable &&
+              typeof drilldownState.windowTable.on === "function"
+            ) {
+              drilldownState.windowTable.on("rowClick", (_event, row) => {
+                const data = row && typeof row.getData === "function" ? row.getData() : null;
+                if (data) {
+                  renderWindowDrilldown(data);
+                }
+              });
+            }
+          }
+
+          mountTable(recordHost, recordEvidenceQueue, {
+            paginationSize: 10,
+            maxHeight: "380px",
+          });
+          mountTable(clusterHost, clusterEvidenceQueue, {
+            paginationSize: 10,
+            maxHeight: "380px",
+          });
+
+          const topNames = Array.isArray(triageSummary.top_repeated_names) && triageSummary.top_repeated_names.length
+            ? triageSummary.top_repeated_names
+            : recordEvidenceQueue.slice(0, 10);
+          const topClusters =
+            Array.isArray(triageSummary.top_near_dup_clusters) &&
+            triageSummary.top_near_dup_clusters.length
+              ? triageSummary.top_near_dup_clusters
+              : clusterEvidenceQueue.slice(0, 10);
+          mountTable(forensicsNamesHost, topNames, {
+            paginationSize: 8,
+            maxHeight: "340px",
+          });
+          mountTable(forensicsClustersHost, topClusters, {
+            paginationSize: 8,
+            maxHeight: "340px",
+          });
+
+          const taxonomyRows = Array.isArray(controls.evidence_taxonomy)
+            ? controls.evidence_taxonomy
+            : [];
+          mountTable(taxonomyHost, taxonomyRows, {
+            pagination: false,
+            maxHeight: "280px",
+          });
+
+          if (windowEvidenceQueue.length) {
+            renderWindowDrilldown(windowEvidenceQueue[0]);
+          } else {
+            renderWindowDrilldown(null);
+          }
+
+          const selectedButton = document.getElementById("download-selected-window-rows");
+          if (selectedButton) {
+            selectedButton.addEventListener("click", () => {
+              let selectedWindows = [];
+              if (
+                drilldownState.windowTable &&
+                typeof drilldownState.windowTable.getSelectedData === "function"
+              ) {
+                selectedWindows = drilldownState.windowTable.getSelectedData() || [];
+              }
+              if (!selectedWindows.length && drilldownState.activeWindow) {
+                selectedWindows = [drilldownState.activeWindow];
+              }
+              const rows = selectedWindows.flatMap((windowRow) =>
+                getWindowSpanRows(windowRow).map((row) =>
+                  Object.assign({ window_id: windowRow.window_id || "" }, row)
+                )
+              );
+              if (!downloadCsv("selected_window_rows.csv", rows)) {
+                window.alert("No selected window rows available to export.");
+              }
+            });
+          }
+
+          const topWindowsButton = document.getElementById("download-top-evidence-windows");
+          if (topWindowsButton) {
+            topWindowsButton.addEventListener("click", () => {
+              if (!downloadCsv("top_evidence_windows.csv", windowEvidenceQueue)) {
+                window.alert("No window evidence rows available to export.");
+              }
+            });
+          }
+
+          const topRecordsButton = document.getElementById("download-top-evidence-records");
+          if (topRecordsButton) {
+            topRecordsButton.addEventListener("click", () => {
+              if (!downloadCsv("top_evidence_records.csv", recordEvidenceQueue)) {
+                window.alert("No record evidence rows available to export.");
+              }
+            });
+          }
         }
 
         function renderTablesForAnalysis(section, analysis) {
@@ -3477,6 +4124,8 @@
         }
 
         buildKpis();
+        renderTriageSummary();
+        renderInvestigationTables();
         initSidebarToggle();
         initBucketTabs();
         initZoomControls();

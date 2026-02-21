@@ -12,6 +12,8 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     assert len(hero_ids) == len(set(hero_ids))
     assert "baseline_profile" in ids
     assert "composite_score" in ids
+    assert all("group" in entry for entry in definitions)
+    assert all("priority" in entry for entry in definitions)
 
 
 def test_analysis_status_reports_ready_when_any_chart_has_rows() -> None:

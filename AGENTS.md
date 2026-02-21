@@ -8,6 +8,12 @@ Repository-specific guidance for AI/code agents.
   and multi-detector evidence.
 - Publish a single detector-first interactive report per dataset run.
 
+## Pre-Production Policy
+- This project is currently pre-production and expected to remain pre-production for an extended period.
+- Do not implement feature flagging, rollout gates, or legacy renderer paths unless explicitly requested.
+- Do not spend effort on backward compatibility shims, migration compatibility layers, or preserving old internal contracts by default.
+- Optimize for rapid iteration toward the first publishable version; the user will explicitly indicate when production-readiness constraints should be introduced.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`
@@ -119,9 +125,10 @@ python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/buil
   - global bucket selector in sidebar
 - Chart behavior:
   - eager mount (`mountAllSections()`), not lazy mount
-  - synchronized bucket switching across compatible charts
-  - synchronized vertical cursor across time-series charts
-  - synchronized zoom for absolute-time charts only
+  - all time-series charts and time-bucketed tables support bucketing/rollups via the global bucket selector
+  - synchronized zoom range across all time-series charts
+  - synchronized vertical cursor across time-series charts that follows mouse X position
+  - synchronized click marker across time-series charts; clicking any chart moves/places the shared X marker
 - Static image gallery / PhotoSwipe UI is intentionally not used in report page.
 - Every analysis section should render at least one chart.
 - Empty/disabled analyses must remain visible with explicit reason.
@@ -158,9 +165,10 @@ After major report/template changes, perform this checklist:
    - mobile around `390x844`
 4. Verify interaction quality:
    - sidebar navigation and active section highlighting
-   - bucket selection updates all compatible charts
-   - cursor linking across shared x-axis charts
-   - zooming one absolute-time chart syncs to others
+   - global bucket selection updates all time-series charts and time-bucketed tables
+   - cursor linking follows shared x-axis position across time-series charts
+   - clicking any time-series chart moves/places the shared X marker across time-series charts
+   - zooming one time-series chart syncs global zoom range to all time-series charts
 5. Confirm no visual overlap:
    - hero charts are readable and not vertically clipped
    - tables are full-width and not squished

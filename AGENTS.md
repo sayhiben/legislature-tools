@@ -40,8 +40,8 @@ Repository-specific guidance for AI/code agents.
 - Keep shared zoom controls and range labels visible and synchronized (`updateZoomRangeLabel`) when
   absolute-time chart linking is enabled.
 - Maintain timezone labeling as an explicit payload contract (`controls.timezone`,
-  `controls.timezone_label`); use deterministic defaults (`UTC`) until hearing-metadata timezone
-  integration is implemented.
+  `controls.timezone_label`); default to deterministic `UTC` when metadata is absent and override
+  from hearing metadata timezone when sidecar context is present.
 
 ## Lessons Learned (Phase 2 Investigation IA)
 - Keep the top-level report workflow anchored on four sections:
@@ -87,6 +87,18 @@ Repository-specific guidance for AI/code agents.
 - For dual-lens scope control, keep side-by-side delta columns focused on window prioritization;
   record/cluster queues can remain lens-switchable without duplicate side-by-side delta schemas
   unless explicitly requested.
+
+## Lessons Learned (Phase 5 Hearing-Relative Context)
+- Keep hearing sidecar ingestion strict and explicit:
+  validate schema version, timezone, required process timestamps, and timestamp ordering in
+  `io/hearing_metadata.py`.
+- Parse sidecar timestamps robustly across authoring styles:
+  support both ISO timestamp strings and YAML-native datetime values.
+- Do not infer hearing schedule markers from VRDB extract filenames:
+  extract timestamps represent voter-registry export timing, not hearing timing.
+- Reuse existing minute-level artifacts for hearing-context summaries:
+  implement deadline-ramp and stance-by-deadline contracts in `hearing_context_panel` rather than
+  adding a parallel detector family.
 
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
@@ -140,6 +152,12 @@ Run from `/Users/sayhiben/dev/legislature-tools/testifier_audit` unless noted.
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt
 
+# Optional: include hearing metadata sidecar for process markers and hearing-relative context
+./scripts/report/run_unified_report.sh \
+  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
+  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
+  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+
 # Local CI parity
 ./scripts/ci/lint.sh
 ./scripts/ci/test.sh
@@ -160,6 +178,8 @@ python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/buil
   - `/Users/sayhiben/dev/legislature-tools/testifier_audit/configs/default.yaml`
 - Voter-enabled config:
   - `/Users/sayhiben/dev/legislature-tools/testifier_audit/configs/voter_registry_enabled.yaml`
+- Optional hearing metadata sidecar path:
+  - `input.hearing_metadata_path`
 - Keep bucket windows consistent across detectors, payload, and UI:
   - `1, 5, 15, 30, 60, 120, 240`
 - If bucket options change, update:

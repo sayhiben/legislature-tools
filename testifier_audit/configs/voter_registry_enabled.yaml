@@ -65,6 +65,7 @@ input:
   db_url:
   submissions_table: "public_submissions"
   source_file:
+  hearing_metadata_path:
 
 voter_registry:
   enabled: true

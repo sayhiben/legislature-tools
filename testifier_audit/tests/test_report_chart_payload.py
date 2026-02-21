@@ -4,6 +4,7 @@ from typing import Any
 
 import pandas as pd
 
+from testifier_audit.io.hearing_metadata import parse_hearing_metadata
 from testifier_audit.report.render import _build_interactive_chart_payload_v2
 
 EXPECTED_ANALYSES = {
@@ -120,6 +121,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(payload["record_evidence_queue"], list)
     assert isinstance(payload["cluster_evidence_queue"], list)
     assert isinstance(payload["data_quality_panel"], dict)
+    assert isinstance(payload["hearing_context_panel"], dict)
 
     ids = {entry["id"] for entry in payload["analysis_catalog"]}
     assert EXPECTED_ANALYSES.issubset(ids)
@@ -143,6 +145,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert "zoom_sync_groups" in controls
     assert controls["timezone"] == "UTC"
     assert controls["timezone_label"] == "UTC"
+    assert controls["process_markers"] == []
     assert isinstance(controls["evidence_taxonomy"], list)
     assert controls["dedup_modes"] == ["raw", "exact_row_dedup", "side_by_side"]
     assert controls["default_dedup_mode"] in controls["dedup_modes"]
@@ -158,6 +161,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert {"raw", "exact_row_dedup", "side_by_side"}.issubset(set(triage_views.keys()))
     assert payload["data_quality_panel"]["status"] in {"ok", "warning"}
     assert isinstance(payload["data_quality_panel"]["triage_raw_vs_dedup_metrics"], list)
+    assert payload["hearing_context_panel"]["available"] is False
 
 
 def test_empty_and_disabled_analyses_are_still_in_catalog() -> None:
@@ -206,3 +210,49 @@ def test_payload_values_are_json_safe_scalars() -> None:
         if isinstance(scalar, float):
             assert scalar == scalar  # not NaN
             assert scalar not in {float("inf"), float("-inf")}
+
+
+def test_payload_includes_hearing_context_and_process_markers_when_metadata_present() -> None:
+    metadata = parse_hearing_metadata(
+        {
+            "schema_version": 1,
+            "hearing_id": "SB6346",
+            "timezone": "America/Los_Angeles",
+            "meeting_start": "2026-02-06T13:30:00-08:00",
+            "sign_in_open": "2026-02-03T09:00:00-08:00",
+            "sign_in_cutoff": "2026-02-06T12:30:00-08:00",
+        }
+    )
+
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(
+                        [
+                            "2026-02-06T20:00:00Z",
+                            "2026-02-06T20:45:00Z",
+                            "2026-02-06T21:10:00Z",
+                        ]
+                    ),
+                    "n_total": [4, 9, 3],
+                    "n_pro": [2, 7, 1],
+                    "n_con": [2, 2, 2],
+                }
+            )
+        },
+        detector_summaries={},
+        hearing_metadata=metadata,
+    )
+
+    panel = payload["hearing_context_panel"]
+    assert panel["available"] is True
+    assert panel["hearing_id"] == "SB6346"
+    assert panel["timezone"] == "America/Los_Angeles"
+    assert len(panel["process_markers"]) >= 3
+    assert isinstance(panel["deadline_ramp_metrics"], dict)
+    assert isinstance(panel["stance_by_deadline"], list)
+
+    controls = payload["controls"]
+    assert controls["timezone"] == "America/Los_Angeles"
+    assert len(controls["process_markers"]) >= 3

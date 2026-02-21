@@ -8,6 +8,7 @@ import typer
 import yaml
 
 from testifier_audit.config import DEFAULT_CONFIG_PATH, AppConfig, load_config
+from testifier_audit.io.hearing_metadata import load_hearing_metadata
 from testifier_audit.io.rarity_baselines import BaselineProfileName, build_frequency_baseline_file
 from testifier_audit.io.submissions_postgres import import_submission_csv_to_postgres
 from testifier_audit.io.vrdb_postgres import import_vrdb_extract_to_postgres
@@ -35,15 +36,39 @@ def _require_csv_for_csv_mode(csv: Path | None, cfg: AppConfig) -> Path | None:
     return csv
 
 
+def _apply_hearing_metadata_override(
+    cfg: AppConfig,
+    hearing_metadata: Path | None,
+) -> None:
+    if hearing_metadata is None:
+        return
+    cfg.input.hearing_metadata_path = str(hearing_metadata)
+    # Fail fast with a clear CLI error if sidecar contents are invalid.
+    load_hearing_metadata(cfg.input.hearing_metadata_path)
+
+
+def _config_hearing_metadata_path(cfg: object) -> str | None:
+    input_cfg = getattr(cfg, "input", None)
+    return getattr(input_cfg, "hearing_metadata_path", None)
+
+
 @app.command()
 def profile(
     csv: Path | None = typer.Option(None, exists=True, readable=True, resolve_path=True),
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    hearing_metadata: Path | None = typer.Option(
+        None,
+        exists=True,
+        readable=True,
+        resolve_path=True,
+        help="Optional hearing metadata sidecar for hearing-relative timing features.",
+    ),
 ) -> None:
     """Build pass-1 profile artifacts from CSV or PostgreSQL input."""
     configure_logging()
     cfg = _load_app_config(config)
+    _apply_hearing_metadata_override(cfg, hearing_metadata)
     csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
     paths = build_output_paths(out)
     artifacts = build_profile_artifacts(csv_path=csv, out_dir=paths.root, config=cfg)
@@ -55,6 +80,13 @@ def detect(
     csv: Path | None = typer.Option(None, exists=True, readable=True, resolve_path=True),
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    hearing_metadata: Path | None = typer.Option(
+        None,
+        exists=True,
+        readable=True,
+        resolve_path=True,
+        help="Optional hearing metadata sidecar for hearing-relative timing features.",
+    ),
     rebuild_profile: bool = typer.Option(
         False, help="Recompute profile artifacts before detection."
     ),
@@ -62,6 +94,7 @@ def detect(
     """Run detector pass using configured input source and profile artifacts."""
     configure_logging()
     cfg = _load_app_config(config)
+    _apply_hearing_metadata_override(cfg, hearing_metadata)
     csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
     paths = build_output_paths(out)
 
@@ -77,6 +110,13 @@ def detect(
 def report(
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    hearing_metadata: Path | None = typer.Option(
+        None,
+        exists=True,
+        readable=True,
+        resolve_path=True,
+        help="Optional hearing metadata sidecar for hearing-relative context overlays.",
+    ),
     dedup_mode: Literal["raw", "exact_row_dedup", "side_by_side"] | None = typer.Option(
         None,
         help="Override report dedup lens mode for triage views.",
@@ -85,6 +125,8 @@ def report(
     """Render HTML report from existing outputs in out/."""
     configure_logging()
     cfg = _load_app_config(config)
+    _apply_hearing_metadata_override(cfg, hearing_metadata)
+    resolved_hearing_metadata = load_hearing_metadata(_config_hearing_metadata_path(cfg))
     build_output_paths(out)
     report_path = render_report(
         results={},
@@ -92,6 +134,7 @@ def report(
         out_dir=out,
         default_dedup_mode=dedup_mode or cfg.report.default_dedup_mode,
         min_cell_n_for_rates=int(cfg.report.min_cell_n_for_rates),
+        hearing_metadata=resolved_hearing_metadata,
     )
     typer.echo(f"Report written to: {report_path}")
 
@@ -101,6 +144,13 @@ def run_all_command(
     csv: Path | None = typer.Option(None, exists=True, readable=True, resolve_path=True),
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    hearing_metadata: Path | None = typer.Option(
+        None,
+        exists=True,
+        readable=True,
+        resolve_path=True,
+        help="Optional hearing metadata sidecar for hearing-relative timing/context.",
+    ),
     dedup_mode: Literal["raw", "exact_row_dedup", "side_by_side"] | None = typer.Option(
         None,
         help="Override report dedup lens mode for triage views.",
@@ -109,6 +159,7 @@ def run_all_command(
     """Execute profile, detect, and report in one command."""
     configure_logging()
     cfg = _load_app_config(config)
+    _apply_hearing_metadata_override(cfg, hearing_metadata)
     csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
     if dedup_mode is None:
         report_path = run_all(csv_path=csv, out_dir=out, config=cfg)

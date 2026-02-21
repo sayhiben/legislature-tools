@@ -92,6 +92,7 @@ class InputConfig(BaseModel):
     db_url: str | None = None
     submissions_table: str = "public_submissions"
     source_file: str | None = None
+    hearing_metadata_path: str | None = None
 
 
 class VoterRegistryConfig(BaseModel):
@@ -171,6 +172,10 @@ def load_config(path: Path) -> AppConfig:
     )
     config.rarity.last_name_frequency_path = _resolve_optional_path(
         config.rarity.last_name_frequency_path,
+        base_dir,
+    )
+    config.input.hearing_metadata_path = _resolve_optional_path(
+        config.input.hearing_metadata_path,
         base_dir,
     )
     config.input.db_url = (

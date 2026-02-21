@@ -28,8 +28,8 @@ HTML report for anomaly review.
   single resize call) to prevent clipped/distorted canvases.
 - During global bucket changes, show a visible loading/progress indicator while charts rerender.
 - Keep linked zoom UX explicit: provide a reset action and a visible shared range label.
-- Treat timezone and bucket labels as payload-backed UI contracts; current default is explicit
-  `UTC` controls in payload until hearing-metadata timezone wiring is added in a later phase.
+- Treat timezone and bucket labels as payload-backed UI contracts; default to explicit `UTC` when
+  no hearing metadata is provided, and override with sidecar timezone when present.
 
 ## Lessons Learned (Phase 2 Investigation IA)
 - Keep the report flow investigation-first with explicit sections:
@@ -66,6 +66,17 @@ HTML report for anomaly review.
 - Scope side-by-side deltas to the window queue unless explicitly requested for deeper queue levels,
   to avoid payload/schema bloat during pre-production iteration.
 
+## Lessons Learned (Phase 5 Hearing-Relative Context)
+- Keep hearing metadata sidecar parsing strict and early:
+  validate schema version, timezone, and process timestamp ordering before pipeline/report stages.
+- Support sidecar timestamps authored as either ISO strings or YAML-native datetimes to avoid
+  brittle ingestion failures.
+- Treat VRDB extract timestamps as import/export metadata, not hearing schedule metadata.
+  Hearing-relative markers belong to the hearing sidecar and submissions timeline context.
+- Keep Phase 5 implementation scope detector-light:
+  derive deadline-ramp and stance-by-deadline context from existing minute artifacts instead of
+  introducing duplicate detector families.
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.
@@ -90,6 +101,12 @@ cd /Users/sayhiben/dev/legislature-tools/testifier_audit
 ./scripts/report/run_unified_report.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt
+
+# Optional: include hearing metadata sidecar for hearing-relative context and marker overlays
+./scripts/report/run_unified_report.sh \
+  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
+  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
+  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
 ```
 
 Result:
@@ -122,6 +139,7 @@ python -m testifier_audit.cli import-vrdb \
 # Full pipeline (profile + detect + report)
 python -m testifier_audit.cli run-all \
   --config /Users/sayhiben/dev/legislature-tools/testifier_audit/configs/voter_registry_enabled.yaml \
+  --hearing-metadata /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml \
   --out /Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330
 ```
 
@@ -134,6 +152,7 @@ python -m testifier_audit.cli run-all \
 - Input hydration:
   - `input.mode: csv | postgres`
   - `input.db_url`, `input.submissions_table`, `input.source_file`
+  - `input.hearing_metadata_path` (optional sidecar for hearing-relative context)
 - Voter matching:
   - `voter_registry.enabled`, `voter_registry.db_url`, `voter_registry.table_name`,
     `voter_registry.active_only`, `voter_registry.match_bucket_minutes`

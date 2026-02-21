@@ -340,3 +340,119 @@ def test_report_uses_configured_report_settings(monkeypatch, tmp_path: Path) -> 
     )
     assert result_override.exit_code == 0, result_override.stdout
     assert captured["default_dedup_mode"] == "side_by_side"
+
+
+def test_run_all_applies_hearing_metadata_override(monkeypatch, tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+    hearing_path = tmp_path / "hearing.yaml"
+    hearing_path.write_text(
+        "schema_version: 1\nhearing_id: TEST\ntimezone: UTC\nmeeting_start: 2026-02-06T13:30:00Z\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            input=SimpleNamespace(mode="postgres", hearing_metadata_path=None),
+            report=SimpleNamespace(default_dedup_mode="side_by_side", min_cell_n_for_rates=25),
+        ),
+    )
+
+    captured: dict[str, object] = {}
+
+    def _fake_run_all(
+        csv_path: Path | None,
+        out_dir: Path,
+        config: object,
+        *,
+        dedup_mode: str | None = None,
+    ) -> Path:
+        captured["csv_path"] = csv_path
+        captured["config"] = config
+        captured["dedup_mode"] = dedup_mode
+        report_path = out_dir / "report.html"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text("<html></html>", encoding="utf-8")
+        return report_path
+
+    monkeypatch.setattr("testifier_audit.cli.run_all", _fake_run_all)
+    monkeypatch.setattr(
+        "testifier_audit.cli.load_hearing_metadata",
+        lambda path: SimpleNamespace(path=path),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run-all",
+            "--out",
+            str(out_dir),
+            "--config",
+            str(config_path),
+            "--hearing-metadata",
+            str(hearing_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    cfg = captured["config"]
+    assert getattr(cfg.input, "hearing_metadata_path") == str(hearing_path)
+
+
+def test_report_forwards_hearing_metadata_to_render(monkeypatch, tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+    hearing_path = tmp_path / "hearing.yaml"
+    hearing_path.write_text(
+        "schema_version: 1\nhearing_id: TEST\ntimezone: UTC\nmeeting_start: 2026-02-06T13:30:00Z\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            report=SimpleNamespace(default_dedup_mode="raw", min_cell_n_for_rates=25),
+            input=SimpleNamespace(hearing_metadata_path=None),
+        ),
+    )
+
+    sentinel_metadata = object()
+    captured: dict[str, object] = {}
+
+    def _fake_load(path: str | None) -> object | None:
+        captured["metadata_path"] = path
+        if path:
+            return sentinel_metadata
+        return None
+
+    def _fake_render_report(**kwargs: object) -> Path:
+        captured.update(kwargs)
+        path = Path(str(kwargs["out_dir"])) / "report.html"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("<html></html>", encoding="utf-8")
+        return path
+
+    monkeypatch.setattr("testifier_audit.cli.load_hearing_metadata", _fake_load)
+    monkeypatch.setattr("testifier_audit.cli.render_report", _fake_render_report)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            "--out",
+            str(out_dir),
+            "--config",
+            str(config_path),
+            "--hearing-metadata",
+            str(hearing_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert captured["metadata_path"] == str(hearing_path)
+    assert captured["hearing_metadata"] is sentinel_metadata

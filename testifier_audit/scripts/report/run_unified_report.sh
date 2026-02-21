@@ -12,6 +12,7 @@ DEFAULT_VRDB_EXTRACT="${REPO_ROOT}/data/raw/20260202_VRDB_Extract.txt"
 
 SUBMISSIONS_CSV="${1:-${SUBMISSIONS_CSV:-${DEFAULT_SUBMISSIONS_CSV}}}"
 VRDB_EXTRACT="${2:-${VRDB_EXTRACT:-${DEFAULT_VRDB_EXTRACT}}}"
+HEARING_METADATA_PATH="${3:-${HEARING_METADATA_PATH:-}}"
 REPORTS_ROOT="${REPORTS_ROOT:-${REPO_ROOT}/reports}"
 CSV_BASENAME="$(basename "${SUBMISSIONS_CSV}")"
 CSV_STEM="${CSV_BASENAME%.*}"
@@ -36,6 +37,11 @@ if [[ ! -f "${CONFIG_PATH}" ]]; then
   exit 1
 fi
 
+if [[ -n "${HEARING_METADATA_PATH}" ]] && [[ ! -f "${HEARING_METADATA_PATH}" ]]; then
+  echo "Hearing metadata sidecar not found: ${HEARING_METADATA_PATH}" >&2
+  exit 1
+fi
+
 mkdir -p "${OUT_DIR}"
 
 export TESTIFIER_AUDIT_DB_URL="${DB_URL}"
@@ -47,6 +53,9 @@ echo "Using config: ${CONFIG_PATH}"
 echo "Output directory: ${OUT_DIR}"
 if [[ -n "${DEDUP_MODE}" ]]; then
   echo "Using dedup mode override: ${DEDUP_MODE}"
+fi
+if [[ -n "${HEARING_METADATA_PATH}" ]]; then
+  echo "Using hearing metadata sidecar: ${HEARING_METADATA_PATH}"
 fi
 
 docker compose up -d postgres
@@ -61,6 +70,9 @@ CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/vrdb/import_vrdb.sh" "${VRDB_EXTRACT}
 CLI_ARGS=(run-all --out "${OUT_DIR}" --config "${CONFIG_PATH}")
 if [[ -n "${DEDUP_MODE}" ]]; then
   CLI_ARGS+=(--dedup-mode "${DEDUP_MODE}")
+fi
+if [[ -n "${HEARING_METADATA_PATH}" ]]; then
+  CLI_ARGS+=(--hearing-metadata "${HEARING_METADATA_PATH}")
 fi
 python -m testifier_audit.cli "${CLI_ARGS[@]}"
 

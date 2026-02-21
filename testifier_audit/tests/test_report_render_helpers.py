@@ -281,9 +281,14 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert 'id="triage-dedup-mode"' in rendered
     assert 'id="data-quality-warning-host"' in rendered
     assert 'id="data-quality-dedup-metrics-host"' in rendered
+    assert 'id="hearing-context-metadata-host"' in rendered
+    assert 'id="hearing-deadline-ramp-host"' in rendered
+    assert 'id="hearing-stance-by-deadline-host"' in rendered
     assert 'id="methodology-artifact-rows-host"' in rendered
     assert "initDedupModeControl()" in rendered
     assert "renderDataQualityPanel()" in rendered
+    assert "renderHearingContextPanel()" in rendered
+    assert "buildProcessMarkerLines()" in rendered
     assert 'summary.textContent = "artifact_rows"' not in rendered
 
 

@@ -13,6 +13,7 @@ from testifier_audit.features.aggregates import (
     build_name_frequency,
 )
 from testifier_audit.features.text_features import build_name_text_features
+from testifier_audit.io.hearing_metadata import load_hearing_metadata
 from testifier_audit.io.read import load_records, load_table
 from testifier_audit.io.write import write_table
 from testifier_audit.paths import build_output_paths
@@ -31,7 +32,8 @@ def prepare_base_dataframe(csv_path: Path | None, config: AppConfig) -> pd.DataF
     df = load_records(csv_path=csv_path, config=config)
     df = add_name_features(df=df, config=config.names)
     df = normalize_position(df=df)
-    df = add_time_features(df=df, config=config.time)
+    hearing_metadata = load_hearing_metadata(config.input.hearing_metadata_path)
+    df = add_time_features(df=df, config=config.time, hearing_metadata=hearing_metadata)
     return df
 
 

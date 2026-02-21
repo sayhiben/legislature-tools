@@ -6,7 +6,11 @@
   "clockface_max_share": 0.018699469272357522,
   "clockface_max_share_empirical_p_value": 0.009900990099009901,
   "fdr_alpha": 0.05,
+  "high_fano_threshold": 1.5,
   "max_abs_autocorr": 0.9134086526696983,
+  "max_rolling_fano_factor": 15.295488721804508,
+  "median_rolling_fano_factor": 1.2102564102561946,
+  "n_high_fano_windows": 7122,
   "n_significant_autocorr_lags": 180,
   "n_significant_periods": 20,
   "strongest_period_minutes": 674.0

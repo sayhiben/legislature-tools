@@ -575,16 +575,111 @@ Lessons learned to carry into later phases:
 3. Add process markers/overlays on charts (open, cutoff, meeting start).
 4. Add deadline-ramp metrics and stance-by-deadline behaviors.
 
-Where:
+Status (2026-02-21): Complete
+- Completed in this tranche:
+  - Implemented metadata sidecar ingestion + validation:
+    - new module `io/hearing_metadata.py` with typed parsing for schema version, timezone,
+      process timestamps, and ordering checks (`sign_in_open <= sign_in_cutoff`).
+  - Implemented hearing-relative preprocessing features in `preprocess/time.py`:
+    - `minutes_to_cutoff`
+    - `minutes_since_sign_in_open`
+    - `minutes_since_meeting_start`
+    - metadata timezone now drives timestamp localization/conversion when sidecar is present.
+  - Wired sidecar path through config and entry points:
+    - added `input.hearing_metadata_path` in `config.py` + YAML defaults.
+    - added `--hearing-metadata` CLI option to `profile`, `detect`, `run-all`, and `report`.
+    - updated `scripts/report/run_unified_report.sh` to accept optional arg3 sidecar path and pass it
+      through to CLI.
+  - Implemented Phase 5 report payload + UI contracts:
+    - replaced placeholder `hearing_context_panel` with computed context in `report/render.py`.
+    - added process marker control contract:
+      `controls.process_markers`.
+    - timezone contract is now metadata-aware when sidecar is present:
+      `controls.timezone` / `controls.timezone_label`.
+    - added deadline ramp summary metrics and stance-by-deadline table contracts in
+      `hearing_context_panel`.
+    - updated `report/templates/report.html.j2` to render:
+      - Hearing context metadata panel
+      - Deadline ramp metrics
+      - Stance-by-deadline table
+    - added process marker overlays (markLine) on linked absolute-time charts.
+
+Where (implemented in this tranche):
 - `.../io/hearing_metadata.py`
+- `.../config.py`
+- `.../configs/default.yaml`
+- `.../configs/voter_registry_enabled.yaml`
 - `.../preprocess/time.py`
+- `.../pipeline/pass1_profile.py`
+- `.../pipeline/run_all.py`
 - `.../cli.py`
 - `.../scripts/report/run_unified_report.sh`
 - `.../report/render.py`
+- `.../report/templates/report.html.j2`
 
-Tests:
-- `test_hearing_metadata.py`
-- updates to `test_time.py`, `test_cli.py`, and payload/render tests.
+Tests (added/updated):
+- Added:
+  - `tests/test_hearing_metadata.py`
+- Updated:
+  - `tests/test_time.py`
+  - `tests/test_config.py`
+  - `tests/test_cli.py`
+  - `tests/test_report_chart_payload.py`
+  - `tests/test_report_render_helpers.py`
+- Validation run:
+  - `python -m ruff check ...` on all touched Phase 5 modules/tests (passed)
+  - `python -m pytest tests/test_hearing_metadata.py tests/test_time.py tests/test_config.py tests/test_cli.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_pipeline_integration.py` (32 passed)
+  - `./scripts/ci/lint.sh` (passed)
+  - `./scripts/ci/test.sh` (147 passed)
+
+Scope refinement decisions:
+- Avoided adding a new detector family for deadline behavior; implemented deadline-ramp and
+  stance-by-deadline as hearing-context contracts derived from existing minute artifacts to keep
+  Phase 5 DRY/YAGNI and avoid unnecessary detector/registry churn.
+- Extended CLI to include `report --hearing-metadata` in addition to plan-specified
+  `profile`/`detect`/`run-all` so disk-only render workflows can still populate Phase 5 context
+  without re-running the full pipeline.
+
+QA completion evidence (real dataset):
+- Executed metadata-enabled unified run:
+  - `./scripts/report/run_unified_report.sh /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml`
+  - Report regenerated at:
+    `/Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330/report.html`
+- Verified metadata-aware payload contracts in rendered report:
+  - `hearing_context_panel.available = true`
+  - `controls.timezone = America/Los_Angeles`
+  - `controls.process_markers` populated (4 markers)
+  - `deadline_ramp_metrics.status = ok`
+  - `stance_by_deadline` populated (5 rows)
+- Browser QA (Playwright CLI):
+  - Console review: no JS/runtime payload errors; only expected static asset warning
+    (`/favicon.ico` 404).
+  - Captured updated screenshots in:
+    `/Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330/screenshots/`
+    - `report-fullpage-desktop-20260221-phase5-metadata.png`
+    - `report-viewport-top-desktop-20260221-phase5-metadata.png`
+    - `report-viewport-middle-desktop-20260221-phase5-metadata.png`
+    - `report-viewport-bottom-desktop-20260221-phase5-metadata.png`
+    - `report-viewport-top-mobile-20260221-phase5-metadata.png`
+    - `report-viewport-middle-mobile-20260221-phase5-metadata.png`
+    - `report-viewport-bottom-mobile-20260221-phase5-metadata.png`
+
+Gap discovered during QA (tracked, no Phase 5 scope expansion):
+- The chunked stitched capture script
+  (`scripts/report/capture_report_screenshot.py`) intermittently stalls in this environment during
+  Playwright CLI tile capture. For Phase 5 QA completion we captured an equivalent full-page desktop
+  artifact via Playwright fullPage screenshot plus required viewport shots.
+- Keep deeper stitched-capture reliability hardening scoped to Phase 8 screenshot UX improvements;
+  do not expand Phase 5 further.
+
+Lessons learned to carry into later phases:
+- Keep hearing metadata validation at ingress boundaries (CLI/config load path), not deep in render
+  code, so user-facing failures happen early and deterministically.
+- Preserve dual-mode timestamp parsing for sidecars (ISO strings + YAML-native datetimes) to avoid
+  brittle behavior across authoring/editing tools.
+- Treat file-name timestamps conservatively:
+  hearing timing markers should come from the hearing dataset + sidecar contract, while VRDB extract
+  timestamps should be treated as registry export metadata.
 
 Example sidecar schema:
 ```yaml

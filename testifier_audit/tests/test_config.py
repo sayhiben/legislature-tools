@@ -11,6 +11,10 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
     (tmp_path / "nicknames.csv").write_text("alias,canonical\nBOB,ROBERT\n", encoding="utf-8")
     (tmp_path / "first.csv").write_text("name,count\nJANE,10\n", encoding="utf-8")
     (tmp_path / "last.csv").write_text("name,count\nDOE,10\n", encoding="utf-8")
+    (tmp_path / "hearing.yaml").write_text(
+        "schema_version: 1\nhearing_id: TEST\ntimezone: UTC\nmeeting_start: 2026-02-06T13:30:00Z\n",
+        encoding="utf-8",
+    )
 
     config_data = {
         "columns": {
@@ -28,6 +32,9 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
             "first_name_frequency_path": "first.csv",
             "last_name_frequency_path": "last.csv",
         },
+        "input": {
+            "hearing_metadata_path": "hearing.yaml",
+        },
     }
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
@@ -37,6 +44,7 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
     assert Path(cfg.names.nickname_map_path).is_absolute()
     assert Path(cfg.rarity.first_name_frequency_path or "").is_absolute()
     assert Path(cfg.rarity.last_name_frequency_path or "").is_absolute()
+    assert Path(cfg.input.hearing_metadata_path or "").is_absolute()
 
 
 def test_load_config_uses_env_db_url_for_input(monkeypatch, tmp_path: Path) -> None:

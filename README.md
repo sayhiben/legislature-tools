@@ -76,6 +76,20 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - Limit Phase 4 side-by-side expansion to the primary prioritization surface (window queue deltas)
   unless there is an explicit need to mirror side-by-side deltas for record/cluster queues.
 
+## Lessons Learned (Phase 5 Hearing-Relative Context)
+- Keep hearing metadata optional but fail fast when provided:
+  parse/validate sidecars at CLI boundaries so invalid timezone/timestamp/schema issues are
+  surfaced before long pipeline runs.
+- Preserve robust timestamp parsing for sidecars:
+  accept both ISO strings and YAML-native datetime values so metadata remains portable across
+  authoring tools.
+- Treat hearing timing as an explicit contract:
+  infer process markers from the hearing submissions dataset + metadata sidecar, not VRDB extract
+  filenames (extract timestamps represent export timing, not hearing timing).
+- Reuse existing minute-level artifacts for deadline context:
+  implement deadline-ramp and stance-by-deadline summaries in `hearing_context_panel` without
+  introducing a parallel detector family.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 
@@ -83,6 +97,12 @@ From `testifier_audit/`, the recommended end-to-end run is:
 ./scripts/report/run_unified_report.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt
+
+# Optional: include hearing metadata sidecar for process markers + hearing-relative context
+./scripts/report/run_unified_report.sh \
+  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
+  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
+  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
 ```
 
 This imports submissions + voter registry data into Postgres, runs all detectors, and writes a

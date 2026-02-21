@@ -8,11 +8,13 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from testifier_audit.detectors.base import DetectorResult
 from testifier_audit.features.dedup import DEDUP_MODES, DEFAULT_DEDUP_MODE, normalize_dedup_mode
+from testifier_audit.io.hearing_metadata import HearingMetadata
 from testifier_audit.proportion_stats import (
     DEFAULT_LOW_POWER_MIN_TOTAL,
     low_power_mask,
@@ -2195,6 +2197,277 @@ def _build_bucketed_day_hour_profiles(
     return _with_expected_columns(grouped, expected)
 
 
+def _scalar_interval_bounds(successes: float, totals: float) -> tuple[float | None, float | None]:
+    lower, upper = wilson_interval(
+        successes=pd.Series([successes], dtype=float),
+        totals=pd.Series([totals], dtype=float),
+    )
+    low = float(lower[0]) if len(lower) and np.isfinite(lower[0]) else None
+    high = float(upper[0]) if len(upper) and np.isfinite(upper[0]) else None
+    return low, high
+
+
+def _build_stance_by_deadline(
+    counts_per_minute: pd.DataFrame,
+    *,
+    cutoff_time: datetime,
+    min_cell_n_for_rates: int,
+) -> list[dict[str, Any]]:
+    if counts_per_minute.empty:
+        return []
+
+    working = _with_expected_columns(
+        counts_per_minute,
+        ["minute_bucket", "n_total", "n_pro", "n_con"],
+    ).copy()
+    working["minute_bucket"] = pd.to_datetime(working["minute_bucket"], errors="coerce")
+    working = working.dropna(subset=["minute_bucket"])
+    if working.empty:
+        return []
+    for column in ["n_total", "n_pro", "n_con"]:
+        working[column] = pd.to_numeric(working[column], errors="coerce").fillna(0.0)
+
+    cutoff = pd.Timestamp(cutoff_time)
+    working["minutes_to_cutoff"] = (
+        (cutoff - working["minute_bucket"]).dt.total_seconds() / 60.0
+    )
+
+    buckets: list[tuple[str, str, pd.Series]] = [
+        (
+            "after_cutoff",
+            "After cutoff",
+            working["minutes_to_cutoff"] <= 0.0,
+        ),
+        (
+            "0_30m_before_cutoff",
+            "0-30m before cutoff",
+            (working["minutes_to_cutoff"] > 0.0) & (working["minutes_to_cutoff"] <= 30.0),
+        ),
+        (
+            "30_120m_before_cutoff",
+            "30-120m before cutoff",
+            (working["minutes_to_cutoff"] > 30.0) & (working["minutes_to_cutoff"] <= 120.0),
+        ),
+        (
+            "2h_24h_before_cutoff",
+            "2h-24h before cutoff",
+            (working["minutes_to_cutoff"] > 120.0) & (working["minutes_to_cutoff"] <= 1440.0),
+        ),
+        (
+            "over_24h_before_cutoff",
+            ">24h before cutoff",
+            working["minutes_to_cutoff"] > 1440.0,
+        ),
+    ]
+
+    rows: list[dict[str, Any]] = []
+    for key, label, mask in buckets:
+        subset = working.loc[mask]
+        n_total = float(subset["n_total"].sum())
+        n_pro = float(subset["n_pro"].sum())
+        n_con = float(subset["n_con"].sum())
+        if n_total <= 0:
+            pro_rate = None
+            con_rate = None
+            low, high = (None, None)
+        else:
+            pro_rate = float(n_pro / n_total)
+            con_rate = float(n_con / n_total)
+            low, high = _scalar_interval_bounds(n_pro, n_total)
+        rows.append(
+            {
+                "deadline_window": label,
+                "deadline_window_key": key,
+                "n_total": int(round(n_total)),
+                "n_pro": int(round(n_pro)),
+                "n_con": int(round(n_con)),
+                "pro_rate": pro_rate,
+                "con_rate": con_rate,
+                "pro_rate_wilson_low": low,
+                "pro_rate_wilson_high": high,
+                "is_low_power": bool(n_total < float(max(1, min_cell_n_for_rates))),
+            }
+        )
+    return rows
+
+
+def _build_deadline_ramp_metrics(
+    counts_per_minute: pd.DataFrame,
+    *,
+    cutoff_time: datetime,
+    min_cell_n_for_rates: int,
+) -> dict[str, Any]:
+    if counts_per_minute.empty:
+        return {
+            "status": "unavailable",
+            "reason": "Counts-per-minute artifact is empty.",
+        }
+
+    working = _with_expected_columns(
+        counts_per_minute,
+        ["minute_bucket", "n_total", "n_pro", "n_con"],
+    ).copy()
+    working["minute_bucket"] = pd.to_datetime(working["minute_bucket"], errors="coerce")
+    working = working.dropna(subset=["minute_bucket"])
+    if working.empty:
+        return {
+            "status": "unavailable",
+            "reason": "No valid minute-bucket timestamps available for deadline ramp metrics.",
+        }
+    for column in ["n_total", "n_pro", "n_con"]:
+        working[column] = pd.to_numeric(working[column], errors="coerce").fillna(0.0)
+
+    cutoff = pd.Timestamp(cutoff_time)
+    recent_mask = (working["minute_bucket"] > (cutoff - pd.Timedelta(minutes=60))) & (
+        working["minute_bucket"] <= cutoff
+    )
+    prior_mask = (
+        working["minute_bucket"] > (cutoff - pd.Timedelta(minutes=120))
+    ) & (working["minute_bucket"] <= (cutoff - pd.Timedelta(minutes=60)))
+
+    recent = working.loc[recent_mask]
+    prior = working.loc[prior_mask]
+    recent_total = float(recent["n_total"].sum())
+    prior_total = float(prior["n_total"].sum())
+    recent_pro = float(recent["n_pro"].sum())
+    prior_pro = float(prior["n_pro"].sum())
+    recent_con = float(recent["n_con"].sum())
+    prior_con = float(prior["n_con"].sum())
+
+    recent_pro_rate = recent_pro / recent_total if recent_total > 0 else None
+    prior_pro_rate = prior_pro / prior_total if prior_total > 0 else None
+    recent_con_rate = recent_con / recent_total if recent_total > 0 else None
+    prior_con_rate = prior_con / prior_total if prior_total > 0 else None
+
+    return {
+        "status": "ok",
+        "window_minutes": 60,
+        "recent_window_start": (cutoff - pd.Timedelta(minutes=60)).isoformat(),
+        "recent_window_end": cutoff.isoformat(),
+        "prior_window_start": (cutoff - pd.Timedelta(minutes=120)).isoformat(),
+        "prior_window_end": (cutoff - pd.Timedelta(minutes=60)).isoformat(),
+        "recent_n_total": int(round(recent_total)),
+        "prior_n_total": int(round(prior_total)),
+        "recent_pro_rate": float(recent_pro_rate) if recent_pro_rate is not None else None,
+        "prior_pro_rate": float(prior_pro_rate) if prior_pro_rate is not None else None,
+        "recent_con_rate": float(recent_con_rate) if recent_con_rate is not None else None,
+        "prior_con_rate": float(prior_con_rate) if prior_con_rate is not None else None,
+        "recent_is_low_power": bool(recent_total < float(max(1, min_cell_n_for_rates))),
+        "prior_is_low_power": bool(prior_total < float(max(1, min_cell_n_for_rates))),
+        "ramp_ratio_recent_vs_prior": (
+            float(recent_total / prior_total) if prior_total > 0 else None
+        ),
+        "pro_rate_delta_recent_minus_prior": (
+            float(recent_pro_rate - prior_pro_rate)
+            if recent_pro_rate is not None and prior_pro_rate is not None
+            else None
+        ),
+    }
+
+
+def _build_hearing_context_panel(
+    counts_per_minute: pd.DataFrame,
+    *,
+    hearing_metadata: HearingMetadata | None,
+    min_cell_n_for_rates: int,
+) -> dict[str, Any]:
+    if hearing_metadata is None:
+        return {
+            "status": "unavailable",
+            "available": False,
+            "reason": "No hearing metadata sidecar provided.",
+            "process_markers": [],
+            "deadline_ramp_metrics": {
+                "status": "unavailable",
+                "reason": "No sign_in_cutoff provided in hearing metadata.",
+            },
+            "stance_by_deadline": [],
+        }
+
+    process_markers = [
+        {
+            "key": key,
+            "label": key.replace("_", " "),
+            "time_iso": value.isoformat(),
+        }
+        for key, value in hearing_metadata.marker_times().items()
+    ]
+    process_markers = sorted(process_markers, key=lambda item: item["time_iso"])
+
+    metadata_rows = [
+        {
+            "field": "hearing_id",
+            "value": hearing_metadata.hearing_id,
+        },
+        {
+            "field": "timezone",
+            "value": hearing_metadata.timezone,
+        },
+        {
+            "field": "meeting_start",
+            "value": (
+                hearing_metadata.meeting_start.isoformat()
+                if hearing_metadata.meeting_start is not None
+                else None
+            ),
+        },
+        {
+            "field": "sign_in_open",
+            "value": (
+                hearing_metadata.sign_in_open.isoformat()
+                if hearing_metadata.sign_in_open is not None
+                else None
+            ),
+        },
+        {
+            "field": "sign_in_cutoff",
+            "value": (
+                hearing_metadata.sign_in_cutoff.isoformat()
+                if hearing_metadata.sign_in_cutoff is not None
+                else None
+            ),
+        },
+        {
+            "field": "written_testimony_deadline",
+            "value": (
+                hearing_metadata.written_testimony_deadline.isoformat()
+                if hearing_metadata.written_testimony_deadline is not None
+                else None
+            ),
+        },
+    ]
+
+    if hearing_metadata.sign_in_cutoff is None:
+        deadline_ramp_metrics = {
+            "status": "unavailable",
+            "reason": "No sign_in_cutoff provided in hearing metadata.",
+        }
+        stance_by_deadline: list[dict[str, Any]] = []
+    else:
+        deadline_ramp_metrics = _build_deadline_ramp_metrics(
+            counts_per_minute,
+            cutoff_time=hearing_metadata.sign_in_cutoff,
+            min_cell_n_for_rates=min_cell_n_for_rates,
+        )
+        stance_by_deadline = _build_stance_by_deadline(
+            counts_per_minute,
+            cutoff_time=hearing_metadata.sign_in_cutoff,
+            min_cell_n_for_rates=min_cell_n_for_rates,
+        )
+
+    return {
+        "status": "ok",
+        "available": True,
+        "hearing_id": hearing_metadata.hearing_id,
+        "timezone": hearing_metadata.timezone,
+        "source_path": hearing_metadata.source_path,
+        "process_markers": process_markers,
+        "metadata_rows": metadata_rows,
+        "deadline_ramp_metrics": deadline_ramp_metrics,
+        "stance_by_deadline": stance_by_deadline,
+    }
+
+
 def _load_table_map_from_results(
     results: dict[str, DetectorResult],
     artifacts: dict[str, pd.DataFrame],
@@ -2250,6 +2523,7 @@ def _build_interactive_chart_payload_v2(
     *,
     default_dedup_mode: str | None = None,
     min_cell_n_for_rates: int = 25,
+    hearing_metadata: HearingMetadata | None = None,
 ) -> dict[str, Any]:
     payload_started = perf_counter()
     counts_per_minute = _with_expected_columns(
@@ -3757,6 +4031,14 @@ def _build_interactive_chart_payload_v2(
         triage_views=triage_views,
         min_cell_n_for_rates=min_cell_n_for_rates,
     )
+    hearing_context_panel = _build_hearing_context_panel(
+        counts_per_minute,
+        hearing_metadata=hearing_metadata,
+        min_cell_n_for_rates=min_cell_n_for_rates,
+    )
+
+    timezone_name = hearing_metadata.timezone if hearing_metadata else "UTC"
+    process_markers = hearing_context_panel.get("process_markers", [])
 
     payload = {
         "version": 2,
@@ -3770,11 +4052,7 @@ def _build_interactive_chart_payload_v2(
         "record_evidence_queue": record_evidence_queue,
         "cluster_evidence_queue": cluster_evidence_queue,
         "data_quality_panel": data_quality_panel,
-        "hearing_context_panel": {
-            "status": "pending_phase5",
-            "available": False,
-            "reason": "Hearing-relative metadata overlays are planned for Phase 5.",
-        },
+        "hearing_context_panel": hearing_context_panel,
         "controls": {
             "default_bucket_minutes": 30
             if 30 in global_bucket_options
@@ -3800,8 +4078,9 @@ def _build_interactive_chart_payload_v2(
             ],
             "dedup_modes": list(DEDUP_MODES),
             "default_dedup_mode": resolved_default_dedup_mode,
-            "timezone": "UTC",
-            "timezone_label": "UTC",
+            "timezone": timezone_name,
+            "timezone_label": timezone_name,
+            "process_markers": process_markers,
         },
     }
     payload = _json_safe(payload)
@@ -3853,6 +4132,7 @@ def _interactive_chart_payload_from_results(
     *,
     default_dedup_mode: str | None = None,
     min_cell_n_for_rates: int = 25,
+    hearing_metadata: HearingMetadata | None = None,
 ) -> dict[str, Any]:
     table_map = _load_table_map_from_results(results=results, artifacts=artifacts)
     detector_summaries = {name: result.summary for name, result in sorted(results.items())}
@@ -3861,6 +4141,7 @@ def _interactive_chart_payload_from_results(
         detector_summaries=detector_summaries,
         default_dedup_mode=default_dedup_mode,
         min_cell_n_for_rates=min_cell_n_for_rates,
+        hearing_metadata=hearing_metadata,
     )
 
 
@@ -3869,6 +4150,7 @@ def _interactive_chart_payload_from_disk(
     *,
     default_dedup_mode: str | None = None,
     min_cell_n_for_rates: int = 25,
+    hearing_metadata: HearingMetadata | None = None,
 ) -> dict[str, Any]:
     table_map = _load_table_map_from_disk(out_dir=out_dir)
     detector_summaries = _load_summaries_from_disk(out_dir)
@@ -3877,6 +4159,7 @@ def _interactive_chart_payload_from_disk(
         detector_summaries=detector_summaries,
         default_dedup_mode=default_dedup_mode,
         min_cell_n_for_rates=min_cell_n_for_rates,
+        hearing_metadata=hearing_metadata,
     )
 
 
@@ -3973,6 +4256,7 @@ def render_report(
     *,
     default_dedup_mode: str = DEFAULT_DEDUP_MODE,
     min_cell_n_for_rates: int = 25,
+    hearing_metadata: HearingMetadata | None = None,
 ) -> Path:
     report_started = perf_counter()
     generated_at = datetime.now(timezone.utc).isoformat()
@@ -4052,12 +4336,14 @@ def render_report(
             artifacts=artifacts,
             default_dedup_mode=default_dedup_mode,
             min_cell_n_for_rates=min_cell_n_for_rates,
+            hearing_metadata=hearing_metadata,
         )
         if results
         else _interactive_chart_payload_from_disk(
             out_dir=out_dir,
             default_dedup_mode=default_dedup_mode,
             min_cell_n_for_rates=min_cell_n_for_rates,
+            hearing_metadata=hearing_metadata,
         )
     )
     interactive_build_ms = round((perf_counter() - interactive_started) * 1000.0, 3)

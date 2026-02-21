@@ -1028,6 +1028,25 @@
                   <div id="data-quality-dedup-metrics-host" class="table-host"></div>
                 </div>
               </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Hearing Context Metadata</h3>
+                <p id="hearing-context-summary" class="tiny-note"></p>
+                <div class="table-wrap">
+                  <div id="hearing-context-metadata-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Deadline Ramp Metrics</h3>
+                <div class="table-wrap">
+                  <div id="hearing-deadline-ramp-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Stance By Deadline Window</h3>
+                <div class="table-wrap">
+                  <div id="hearing-stance-by-deadline-host" class="table-host"></div>
+                </div>
+              </article>
             </div>
             <div class="triage-actions">
               <button id="download-selected-window-rows" class="control-button" type="button">
@@ -1332,6 +1351,7 @@
           ? interactive.cluster_evidence_queue
           : [];
         const dataQualityPanel = interactive.data_quality_panel || {};
+        const hearingContextPanel = interactive.hearing_context_panel || {};
         const controls = interactive.controls || {};
         const tableColumnDocs = reportData.table_column_docs || {};
         const tableHelpDocs = reportData.table_help_docs || {};
@@ -1345,6 +1365,9 @@
             : reportTimezone;
         const dedupModes = Array.isArray(controls.dedup_modes)
           ? controls.dedup_modes.map((mode) => String(mode || "").trim()).filter((mode) => !!mode)
+          : [];
+        const processMarkers = Array.isArray(controls.process_markers)
+          ? controls.process_markers
           : [];
         const defaultDedupMode =
           typeof controls.default_dedup_mode === "string" && dedupModes.includes(controls.default_dedup_mode)
@@ -1453,6 +1476,67 @@
             return "-";
           }
           return formatEpochMillis(start) + " to " + formatEpochMillis(end);
+        }
+
+        function processMarkerDisplayLabel(marker) {
+          const explicit = marker && typeof marker.label === "string" ? marker.label.trim() : "";
+          if (explicit) {
+            return explicit;
+          }
+          const key = marker && typeof marker.key === "string" ? marker.key : "";
+          if (!key) {
+            return "Process marker";
+          }
+          return key
+            .replace(/_/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        }
+
+        function processMarkerColor(markerKey) {
+          if (markerKey === "meeting_start") {
+            return "#1d4ed8";
+          }
+          if (markerKey === "sign_in_open") {
+            return "#0f766e";
+          }
+          if (markerKey === "sign_in_cutoff") {
+            return "#b45309";
+          }
+          if (markerKey === "written_testimony_deadline") {
+            return "#b91c1c";
+          }
+          return "#475569";
+        }
+
+        function buildProcessMarkerLines() {
+          return processMarkers
+            .map((marker) => {
+              const markerTime = toEpochMillis(
+                marker && (marker.time_iso || marker.timestamp || marker.time)
+              );
+              if (markerTime === null) {
+                return null;
+              }
+              const markerKey = marker && typeof marker.key === "string" ? marker.key : "";
+              return {
+                xAxis: markerTime,
+                lineStyle: {
+                  color: processMarkerColor(markerKey),
+                  width: 1.2,
+                  opacity: 0.88,
+                  type: "dashed",
+                },
+                label: {
+                  show: true,
+                  formatter: processMarkerDisplayLabel(marker),
+                  position: "insideEndTop",
+                  color: "#334155",
+                  fontSize: 10,
+                },
+              };
+            })
+            .filter((entry) => !!entry);
         }
 
         function dedupModeLabel(mode) {
@@ -1856,8 +1940,6 @@
           return {
             silent: true,
             symbol: ["none", "none"],
-            lineStyle: { color: "#7c3aed", width: 1, opacity: 0.55, type: "dashed" },
-            label: { show: false },
             data: lines,
           };
         }
@@ -3642,6 +3724,67 @@
           }
         }
 
+        function renderHearingContextPanel() {
+          const summaryHost = document.getElementById("hearing-context-summary");
+          const metadataHost = document.getElementById("hearing-context-metadata-host");
+          const rampHost = document.getElementById("hearing-deadline-ramp-host");
+          const stanceHost = document.getElementById("hearing-stance-by-deadline-host");
+
+          const isAvailable = !!(hearingContextPanel && hearingContextPanel.available);
+          const metadataRows = Array.isArray(hearingContextPanel.metadata_rows)
+            ? hearingContextPanel.metadata_rows
+            : [];
+          const stanceRows = Array.isArray(hearingContextPanel.stance_by_deadline)
+            ? hearingContextPanel.stance_by_deadline
+            : [];
+          const ramp = hearingContextPanel.deadline_ramp_metrics || {};
+
+          if (summaryHost) {
+            if (!isAvailable) {
+              const reason =
+                typeof hearingContextPanel.reason === "string" && hearingContextPanel.reason.trim()
+                  ? hearingContextPanel.reason
+                  : "No hearing metadata sidecar was provided for this run.";
+              summaryHost.textContent = reason;
+            } else {
+              const hearingId =
+                typeof hearingContextPanel.hearing_id === "string" &&
+                hearingContextPanel.hearing_id.trim()
+                  ? hearingContextPanel.hearing_id.trim()
+                  : "unknown";
+              summaryHost.textContent =
+                "Hearing " +
+                hearingId +
+                " (" +
+                reportTimezoneLabel +
+                "). Process markers are overlaid on linked absolute-time charts.";
+            }
+          }
+
+          if (metadataHost) {
+            mountTable(metadataHost, metadataRows, { pagination: false, maxHeight: "280px" });
+          }
+
+          const rampRows = [];
+          if (ramp && typeof ramp === "object") {
+            Object.keys(ramp)
+              .filter((key) => key !== "status")
+              .forEach((key) => {
+                rampRows.push({
+                  metric: key.replace(/_/g, " "),
+                  value: ramp[key],
+                });
+              });
+          }
+          if (rampHost) {
+            mountTable(rampHost, rampRows, { pagination: false, maxHeight: "280px" });
+          }
+
+          if (stanceHost) {
+            mountTable(stanceHost, stanceRows, { pagination: false, maxHeight: "320px" });
+          }
+        }
+
         function renderInvestigationTables() {
           const view = getActiveTriageView();
           const summary = view.triage_summary || {};
@@ -4027,7 +4170,7 @@
             isTimeSeries: false,
             isAbsoluteTime: false,
             seriesId: null,
-            baseMarkLines: [],
+            baseMarkLines: state.absoluteTimeSet.has(chartId) ? buildProcessMarkerLines() : [],
             timeExtent: null,
             activeBucket: null,
           };
@@ -4429,6 +4572,7 @@
         buildKpis();
         initDedupModeControl();
         renderDataQualityPanel();
+        renderHearingContextPanel();
         renderTriageSummary();
         renderInvestigationTables();
         initSidebarToggle();

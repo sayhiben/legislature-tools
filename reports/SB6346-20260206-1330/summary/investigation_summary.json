@@ -193,5 +193,16 @@
     "high": 250,
     "medium": 0,
     "watch": 0
-  }
+  },
+  "lens": "side_by_side",
+  "total_submissions_raw": 80644,
+  "total_submissions_exact_row_dedup": 80284,
+  "total_submissions_delta": -360.0,
+  "total_submissions_relative_delta": -0.004464064282525668,
+  "overall_pro_rate_raw": 0.23670700858092356,
+  "overall_pro_rate_exact_row_dedup": 0.23720791191270987,
+  "overall_pro_rate_delta": 0.0005009033317863176,
+  "overall_con_rate_raw": 0.7593869351718665,
+  "overall_con_rate_exact_row_dedup": 0.7588809725474566,
+  "overall_con_rate_delta": -0.0005059626244099391
 }

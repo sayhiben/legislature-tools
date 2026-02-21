@@ -71,8 +71,15 @@ def test_duplicates_near_builds_clusters_and_membership() -> None:
     assert result.summary["n_similarity_edges"] > 0
     assert result.summary["n_clusters"] >= 1
     assert result.summary["max_cluster_size"] >= 2
+    assert result.summary["max_peak_bucket_fraction"] >= 0.0
+    assert result.summary["max_concentration_hhi"] >= 0.0
     assert not result.tables["similarity_edges"].empty
     assert not result.tables["cluster_summary"].empty
     assert not result.tables["cluster_members"].empty
+    assert not result.tables["cluster_time_concentration"].empty
+    assert not result.tables["cluster_time_concentration_summary"].empty
     assert "cluster_id" in result.tables["cluster_members"].columns
     assert "time_span_minutes" in result.tables["cluster_summary"].columns
+    assert "peak_bucket_fraction" in result.tables["cluster_summary"].columns
+    assert "concentration_hhi" in result.tables["cluster_summary"].columns
+    assert "bucket_fraction" in result.tables["cluster_time_concentration"].columns

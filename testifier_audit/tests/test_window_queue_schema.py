@@ -110,3 +110,6 @@ def test_window_queue_schema_contains_required_fields_and_valid_tiers() -> None:
         assert row["window_id"]
         assert row["start_time"]
         assert row["end_time"]
+        assert "score_primary_driver" in row
+        assert "score_detector_breakdown" in row
+        assert "score_signal_breakdown" in row

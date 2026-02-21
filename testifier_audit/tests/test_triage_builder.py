@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from testifier_audit.report.contracts import EvidenceSignal, TriageTierThresholds
 from testifier_audit.report.triage_builder import (
+    _score_breakdown_strings,
     aggregate_signal_score,
     build_evidence_item,
     choose_explanations,
@@ -81,3 +82,29 @@ def test_build_evidence_item_applies_scoring_explanations_and_caveats() -> None:
     assert secondary in {"data_quality_artifact", "potential_manipulation"}
     assert item.is_low_power is True
     assert item.evidence_tier == "medium"
+
+
+def test_score_breakdown_strings_ranks_primary_driver() -> None:
+    signals = (
+        EvidenceSignal(
+            signal_id="bursts.window_15m",
+            detector="bursts",
+            evidence_kind="stat_fdr",
+            signal_score=0.80,
+            support_n=40,
+        ),
+        EvidenceSignal(
+            signal_id="dup.cluster_001",
+            detector="duplicates_near",
+            evidence_kind="heuristic",
+            signal_score=0.60,
+            support_n=22,
+        ),
+    )
+
+    primary_driver, detector_breakdown, signal_breakdown = _score_breakdown_strings(signals)
+
+    assert primary_driver == "bursts"
+    assert "bursts" in detector_breakdown
+    assert "duplicates_near" in detector_breakdown
+    assert "bursts.window_15m" in signal_breakdown

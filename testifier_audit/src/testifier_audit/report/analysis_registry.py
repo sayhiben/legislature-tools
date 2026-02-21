@@ -61,11 +61,15 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         title="Burst Windows",
         detector="bursts",
         hero_chart_id="bursts_hero_timeline",
-        detail_chart_ids=("bursts_significance_by_window", "bursts_null_distribution"),
+        detail_chart_ids=(
+            "bursts_significance_by_window",
+            "bursts_composition_shift",
+            "bursts_null_distribution",
+        ),
         how_to_read="Burst windows compare observed local volume to expected background volume.",
         what_to_look_for=(
-            "Repeated high-rate-ratio windows at multiple window sizes rather than "
-            "isolated spikes."
+            "Repeated high-rate-ratio windows with composition shifts at multiple "
+            "window sizes rather than isolated spikes."
         ),
         common_benign_causes=(
             "Agenda release timing and outbound campaign alerts can generate short-lived "
@@ -81,6 +85,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "procon_swings_shift_heatmap",
             "procon_swings_day_hour_heatmap",
             "procon_swings_time_of_day_profile",
+            "procon_swings_direction_runs",
             "procon_swings_null_distribution",
         ),
         how_to_read=(
@@ -89,7 +94,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         ),
         what_to_look_for=(
             "Sustained directional ratio changes across neighboring buckets and repeated "
-            "dayparts."
+            "dayparts, especially when contiguous same-direction runs lengthen."
         ),
         common_benign_causes=(
             "Daypart participation mix and event-response waves can move ratios without "
@@ -120,7 +125,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         title="Off-Hours Profile",
         detector="off_hours",
         hero_chart_id="off_hours_hourly_profile",
-        detail_chart_ids=("off_hours_summary_compare",),
+        detail_chart_ids=("off_hours_summary_compare", "off_hours_day_hour_heatmap"),
         how_to_read=(
             "Compare hourly volume and pro-rate with Wilson uncertainty and low-power "
             "flags."
@@ -157,7 +162,11 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         title="Near-Duplicate Clusters",
         detector="duplicates_near",
         hero_chart_id="duplicates_near_cluster_timeline",
-        detail_chart_ids=("duplicates_near_cluster_size", "duplicates_near_similarity"),
+        detail_chart_ids=(
+            "duplicates_near_cluster_size",
+            "duplicates_near_time_concentration",
+            "duplicates_near_similarity",
+        ),
         how_to_read=(
             "Near-duplicate clusters group highly similar names that appear in related "
             "windows."
@@ -173,7 +182,11 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         title="Ordering / Sortedness",
         detector="sortedness",
         hero_chart_id="sortedness_bucket_ratio",
-        detail_chart_ids=("sortedness_bucket_summary", "sortedness_minute_spikes"),
+        detail_chart_ids=(
+            "sortedness_bucket_summary",
+            "sortedness_kendall_tau_summary",
+            "sortedness_minute_spikes",
+        ),
         how_to_read=(
             "Ordering metrics test whether names arrive in unusually sorted or monotonic "
             "patterns."
@@ -254,13 +267,18 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         title="Periodicity",
         detector="periodicity",
         hero_chart_id="periodicity_clockface",
-        detail_chart_ids=("periodicity_autocorr", "periodicity_spectrum"),
+        detail_chart_ids=(
+            "periodicity_autocorr",
+            "periodicity_spectrum",
+            "periodicity_rolling_fano",
+        ),
         how_to_read=(
             "Clock-face, autocorrelation, and spectrum views test for recurring timing "
             "patterns."
         ),
         what_to_look_for=(
-            "Narrow periodic peaks that recur over long spans and align across methods."
+            "Narrow periodic peaks and elevated rolling overdispersion that recur over "
+            "long spans and align across methods."
         ),
         common_benign_causes=(
             "Calendar reminders and regular campaign sends can produce expected periodic "

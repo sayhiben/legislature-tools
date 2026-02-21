@@ -22,7 +22,11 @@ class OffHoursDetector(Detector):
             return DetectorResult(
                 detector=self.name,
                 summary={"off_hours_ratio": 0.0, "chi_square_p_value": 1.0},
-                tables={"off_hours_summary": empty, "hourly_distribution": empty},
+                tables={
+                    "off_hours_summary": empty,
+                    "hourly_distribution": empty,
+                    "hour_of_week_distribution": empty,
+                },
             )
 
         working = df.copy()
@@ -134,6 +138,84 @@ class OffHoursDetector(Detector):
             min_total=low_power_min_total,
         )
 
+        day_name_lookup = {
+            0: "Monday",
+            1: "Tuesday",
+            2: "Wednesday",
+            3: "Thursday",
+            4: "Friday",
+            5: "Saturday",
+            6: "Sunday",
+        }
+        day_index_lookup = {value: key for key, value in day_name_lookup.items()}
+
+        day_labels = pd.Series(["Unknown"] * len(working), index=working.index, dtype="string")
+        day_indices = pd.Series([-1] * len(working), index=working.index, dtype="int64")
+        timestamps = (
+            pd.to_datetime(working["timestamp"], errors="coerce")
+            if "timestamp" in working.columns
+            else pd.Series(pd.NaT, index=working.index)
+        )
+        has_valid_timestamps = bool(timestamps.notna().any())
+        if has_valid_timestamps:
+            day_labels = timestamps.dt.day_name().fillna("Unknown")
+            day_indices = timestamps.dt.dayofweek.fillna(-1).astype(int)
+        elif "day_of_week" in working.columns:
+            day_values = working["day_of_week"]
+            numeric_days = pd.to_numeric(day_values, errors="coerce")
+            numeric_mask = numeric_days.notna()
+            if numeric_mask.any():
+                day_labels = numeric_days.astype("Int64").map(day_name_lookup).fillna("Unknown")
+                day_indices = numeric_days.fillna(-1).astype(int)
+            else:
+                text_days = day_values.astype("string").fillna("Unknown")
+                normalized_days = text_days.str.strip().str.title()
+                day_labels = normalized_days.where(normalized_days != "", "Unknown")
+                day_indices = (
+                    day_labels.map(day_index_lookup)
+                    .fillna(-1)
+                    .astype(int)
+                )
+
+        record_counter = "id" if "id" in working.columns else "hour"
+        hour_of_week_distribution = (
+            working.assign(
+                day_of_week=day_labels,
+                day_of_week_index=day_indices,
+            )
+            .groupby(["day_of_week", "day_of_week_index", "hour"], dropna=False)
+            .agg(
+                n_total=(record_counter, "count"),
+                n_pro=("is_pro", "sum"),
+                n_con=("is_con", "sum"),
+                n_off_hours=("is_off_hours", "sum"),
+            )
+            .reset_index()
+            .sort_values(["day_of_week_index", "hour", "day_of_week"])
+        )
+        hour_of_week_distribution["off_hours_fraction"] = (
+            hour_of_week_distribution["n_off_hours"]
+            / hour_of_week_distribution["n_total"].replace(0, np.nan)
+        ).fillna(0.0)
+        hour_of_week_distribution["pro_rate"] = (
+            hour_of_week_distribution["n_pro"]
+            / (hour_of_week_distribution["n_pro"] + hour_of_week_distribution["n_con"])
+        ).where((hour_of_week_distribution["n_pro"] + hour_of_week_distribution["n_con"]) > 0)
+        (
+            hour_of_week_distribution["pro_rate_wilson_low"],
+            hour_of_week_distribution["pro_rate_wilson_high"],
+        ) = wilson_interval(
+            successes=hour_of_week_distribution["n_pro"],
+            totals=hour_of_week_distribution["n_pro"] + hour_of_week_distribution["n_con"],
+        )
+        hour_of_week_distribution["is_low_power"] = low_power_mask(
+            totals=hour_of_week_distribution["n_pro"] + hour_of_week_distribution["n_con"],
+            min_total=low_power_min_total,
+        )
+        hour_of_week_distribution = hour_of_week_distribution[
+            hour_of_week_distribution["day_of_week"] != "Unknown"
+        ].copy()
+
         return DetectorResult(
             detector=self.name,
             summary={
@@ -142,9 +224,18 @@ class OffHoursDetector(Detector):
                 "low_power_min_total": int(low_power_min_total),
                 "off_hours_is_low_power": bool(summary_table.loc[0, "off_hours_is_low_power"]),
                 "on_hours_is_low_power": bool(summary_table.loc[0, "on_hours_is_low_power"]),
+                "hour_of_week_cells": int(len(hour_of_week_distribution)),
+                "max_hour_of_week_pro_rate": float(
+                    pd.to_numeric(hour_of_week_distribution["pro_rate"], errors="coerce")
+                    .fillna(0.0)
+                    .max()
+                )
+                if not hour_of_week_distribution.empty
+                else 0.0,
             },
             tables={
                 "off_hours_summary": summary_table,
                 "hourly_distribution": hourly_distribution,
+                "hour_of_week_distribution": hour_of_week_distribution,
             },
         )

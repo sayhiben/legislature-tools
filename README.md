@@ -51,6 +51,19 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - Close report UX changes with a real-dataset QA pass (desktop/mobile screenshots + browser console
   checks), not only unit tests.
 
+## Lessons Learned (Phase 3 Analysis Pack A)
+- Favor extending mature detector families instead of creating parallel modules when intent is
+  additive:
+  - burst composition on top of `bursts`
+  - rolling-Fano regularity on top of `periodicity`
+  - directional runs on top of `procon_swings`
+- Keep composition/rate outputs inference-safe by carrying Wilson intervals and low-power flags in
+  detector tables and chart payloads.
+- Treat name-improbability-over-time as covered by the external-frequency rarity pipeline in
+  `rare_names` unless a new methodology is explicitly required.
+- For every new analysis chart, update registry definitions, payload wiring, template rendering, and
+  contract tests together to prevent contract drift.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 

@@ -58,6 +58,27 @@ class DuplicatesNearDetector(Detector):
                 f"Missing required columns for near-duplicate detection: {', '.join(missing)}"
             )
 
+        empty_concentration = pd.DataFrame(
+            columns=[
+                "cluster_id",
+                "minute_bucket",
+                "n_records",
+                "n_pro",
+                "n_con",
+                "bucket_fraction",
+            ]
+        )
+        empty_concentration_summary = pd.DataFrame(
+            columns=[
+                "cluster_id",
+                "n_active_buckets",
+                "peak_bucket_start",
+                "peak_bucket_records",
+                "peak_bucket_fraction",
+                "concentration_hhi",
+            ]
+        )
+
         name_nodes = df[required].drop_duplicates(subset=["canonical_name"]).copy()
         name_nodes["block_key"] = build_blocking_key(name_nodes)
 
@@ -118,6 +139,9 @@ class DuplicatesNearDetector(Detector):
                 "n_clusters": 0,
                 "max_cluster_size": 0,
                 "n_skipped_blocks": int(len(skipped)),
+                "max_peak_bucket_fraction": 0.0,
+                "max_concentration_hhi": 0.0,
+                "n_high_concentration_clusters": 0,
             }
             return DetectorResult(
                 detector=self.name,
@@ -127,6 +151,8 @@ class DuplicatesNearDetector(Detector):
                     "similarity_edges": edges,
                     "cluster_summary": pd.DataFrame(),
                     "cluster_members": pd.DataFrame(),
+                    "cluster_time_concentration": empty_concentration,
+                    "cluster_time_concentration_summary": empty_concentration_summary,
                     "skipped_blocks": skipped,
                 },
             )
@@ -192,6 +218,121 @@ class DuplicatesNearDetector(Detector):
             (cluster_summary["last_seen"] - cluster_summary["first_seen"]).dt.total_seconds() / 60.0
         ).fillna(0.0)
 
+        cluster_time_concentration = empty_concentration.copy()
+        cluster_time_concentration_summary = empty_concentration_summary.copy()
+        cluster_records = df[df["canonical_name"].isin(cluster_lookup.keys())].copy()
+        cluster_records["cluster_id"] = cluster_records["canonical_name"].map(cluster_lookup)
+        if "minute_bucket" in cluster_records.columns:
+            cluster_records["minute_bucket"] = pd.to_datetime(
+                cluster_records["minute_bucket"],
+                errors="coerce",
+            )
+        elif "timestamp" in cluster_records.columns:
+            cluster_records["minute_bucket"] = pd.to_datetime(
+                cluster_records["timestamp"],
+                errors="coerce",
+            ).dt.floor("min")
+        else:
+            cluster_records["minute_bucket"] = pd.NaT
+        cluster_records = cluster_records.dropna(subset=["cluster_id", "minute_bucket"])
+
+        if not cluster_records.empty:
+            if "position_normalized" in cluster_records.columns:
+                cluster_records["is_pro"] = cluster_records["position_normalized"] == "Pro"
+                cluster_records["is_con"] = cluster_records["position_normalized"] == "Con"
+            else:
+                cluster_records["is_pro"] = False
+                cluster_records["is_con"] = False
+            record_counter = "id" if "id" in cluster_records.columns else "canonical_name"
+            cluster_time_concentration = (
+                cluster_records.groupby(["cluster_id", "minute_bucket"], dropna=True)
+                .agg(
+                    n_records=(record_counter, "count"),
+                    n_pro=("is_pro", "sum"),
+                    n_con=("is_con", "sum"),
+                )
+                .reset_index()
+                .sort_values(["cluster_id", "minute_bucket"])
+            )
+            totals = (
+                cluster_time_concentration.groupby("cluster_id", dropna=True)["n_records"]
+                .transform("sum")
+                .astype(float)
+            )
+            cluster_time_concentration["bucket_fraction"] = (
+                cluster_time_concentration["n_records"].astype(float) / totals.replace(0.0, pd.NA)
+            ).fillna(0.0)
+
+            peak_rows = (
+                cluster_time_concentration.sort_values(
+                    ["cluster_id", "bucket_fraction", "n_records", "minute_bucket"],
+                    ascending=[True, False, False, True],
+                )
+                .groupby("cluster_id", as_index=False)
+                .head(1)
+                .loc[
+                    :,
+                    ["cluster_id", "minute_bucket", "n_records", "bucket_fraction"],
+                ]
+                .rename(
+                    columns={
+                        "minute_bucket": "peak_bucket_start",
+                        "n_records": "peak_bucket_records",
+                        "bucket_fraction": "peak_bucket_fraction",
+                    }
+                )
+            )
+            cluster_time_concentration_summary = (
+                cluster_time_concentration.groupby("cluster_id", dropna=True)
+                .agg(
+                    n_active_buckets=("minute_bucket", "nunique"),
+                    concentration_hhi=(
+                        "bucket_fraction",
+                        lambda series: float(
+                            (
+                                pd.to_numeric(series, errors="coerce").fillna(0.0) ** 2
+                            ).sum()
+                        ),
+                    ),
+                )
+                .reset_index()
+                .merge(peak_rows, on="cluster_id", how="left")
+                .sort_values("peak_bucket_fraction", ascending=False)
+            )
+
+        concentration_columns = [
+            "n_active_buckets",
+            "peak_bucket_start",
+            "peak_bucket_records",
+            "peak_bucket_fraction",
+            "concentration_hhi",
+        ]
+        cluster_summary = cluster_summary.merge(
+            cluster_time_concentration_summary[["cluster_id", *concentration_columns]],
+            on="cluster_id",
+            how="left",
+        )
+        cluster_summary["n_active_buckets"] = (
+            pd.to_numeric(cluster_summary["n_active_buckets"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        cluster_summary["peak_bucket_records"] = (
+            pd.to_numeric(cluster_summary["peak_bucket_records"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        cluster_summary["peak_bucket_fraction"] = (
+            pd.to_numeric(cluster_summary["peak_bucket_fraction"], errors="coerce")
+            .fillna(0.0)
+            .astype(float)
+        )
+        cluster_summary["concentration_hhi"] = (
+            pd.to_numeric(cluster_summary["concentration_hhi"], errors="coerce")
+            .fillna(0.0)
+            .astype(float)
+        )
+
         summary = {
             "candidate_blocks": int(len(candidate_blocks)),
             "n_similarity_edges": int(len(edges)),
@@ -200,6 +341,17 @@ class DuplicatesNearDetector(Detector):
             if not cluster_summary.empty
             else 0,
             "n_skipped_blocks": int(len(skipped)),
+            "max_peak_bucket_fraction": float(cluster_summary["peak_bucket_fraction"].max())
+            if not cluster_summary.empty
+            else 0.0,
+            "max_concentration_hhi": float(cluster_summary["concentration_hhi"].max())
+            if not cluster_summary.empty
+            else 0.0,
+            "n_high_concentration_clusters": int(
+                (cluster_summary["peak_bucket_fraction"] >= 0.5).sum()
+            )
+            if not cluster_summary.empty
+            else 0,
         }
 
         return DetectorResult(
@@ -210,6 +362,8 @@ class DuplicatesNearDetector(Detector):
                 "similarity_edges": edges.sort_values("similarity", ascending=False),
                 "cluster_summary": cluster_summary,
                 "cluster_members": cluster_members.sort_values(["cluster_id", "name_display"]),
+                "cluster_time_concentration": cluster_time_concentration,
+                "cluster_time_concentration_summary": cluster_time_concentration_summary,
                 "skipped_blocks": skipped,
             },
         )

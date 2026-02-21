@@ -99,6 +99,9 @@ def default_detectors(config: AppConfig) -> list[Detector]:
                 calibration_iterations=config.periodicity.calibration_iterations,
                 calibration_seed=config.periodicity.random_seed,
                 fdr_alpha=config.periodicity.fdr_alpha,
+                rolling_fano_windows=sorted(
+                    set(bucket_minutes + list(PeriodicityDetector.DEFAULT_ROLLING_FANO_WINDOWS))
+                ),
             ),
         )
     if config.changepoints.enabled:

@@ -273,6 +273,53 @@ def _weighted_mean(
     return numerator / denominator
 
 
+def _score_breakdown_strings(
+    contributors: Sequence[EvidenceSignal],
+    *,
+    top_n_detectors: int = 5,
+    top_n_signals: int = 5,
+) -> tuple[str, str, str]:
+    if not contributors:
+        return ("none", "", "")
+
+    weighted_signals: list[tuple[EvidenceSignal, float]] = []
+    for signal in contributors:
+        kind_weight = max(0.0, float(EVIDENCE_KIND_WEIGHTS.get(signal.evidence_kind, 0.0)))
+        effective_weight = kind_weight if kind_weight > 0.0 else 1.0
+        weighted_signals.append((signal, float(signal.signal_score) * effective_weight))
+
+    total = float(sum(value for _signal, value in weighted_signals))
+    if total <= 0.0:
+        weighted_signals = [(signal, 1.0) for signal, _value in weighted_signals]
+        total = float(len(weighted_signals))
+
+    by_detector: dict[str, float] = {}
+    for signal, contribution in weighted_signals:
+        detector = str(signal.detector or "unknown")
+        by_detector[detector] = by_detector.get(detector, 0.0) + float(contribution)
+
+    ranked_detectors = sorted(by_detector.items(), key=lambda item: (-item[1], item[0]))
+    detector_breakdown = "; ".join(
+        f"{detector} ({(value / total) * 100.0:.1f}%)"
+        for detector, value in ranked_detectors[:top_n_detectors]
+    )
+
+    ranked_signals = sorted(
+        weighted_signals,
+        key=lambda item: (-item[1], str(item[0].signal_id)),
+    )
+    signal_breakdown = "; ".join(
+        (
+            f"{signal.signal_id}:{signal.evidence_kind}"
+            f" ({(contribution / total) * 100.0:.1f}%)"
+        )
+        for signal, contribution in ranked_signals[:top_n_signals]
+    )
+
+    primary_driver = ranked_detectors[0][0] if ranked_detectors else "unknown"
+    return primary_driver, detector_breakdown, signal_breakdown
+
+
 def _window_overlap_mask(
     frame: pd.DataFrame,
     *,
@@ -719,6 +766,11 @@ def build_investigation_view(
             ),
             thresholds=resolved_thresholds,
         )
+        (
+            score_primary_driver,
+            score_detector_breakdown,
+            score_signal_breakdown,
+        ) = _score_breakdown_strings(evidence_item.contributors)
 
         window_row = {
             "window_id": evidence_item.queue_id,
@@ -748,6 +800,9 @@ def build_investigation_view(
                     if signal.detector is not None
                 }
             ),
+            "score_primary_driver": score_primary_driver,
+            "score_detector_breakdown": score_detector_breakdown,
+            "score_signal_breakdown": score_signal_breakdown,
         }
         for field in WINDOW_QUEUE_REQUIRED_COLUMNS:
             window_row.setdefault(field, None)
@@ -859,6 +914,11 @@ def build_investigation_view(
             ),
             thresholds=resolved_thresholds,
         )
+        (
+            score_primary_driver,
+            score_detector_breakdown,
+            score_signal_breakdown,
+        ) = _score_breakdown_strings(evidence_item.contributors)
         record_rows.append(
             {
                 "record_id": evidence_item.queue_id,
@@ -877,6 +937,9 @@ def build_investigation_view(
                 "is_low_power": bool(evidence_item.is_low_power),
                 "caveat_flags": list(evidence_item.caveat_flags),
                 "evidence_kinds": list(evidence_item.evidence_kinds),
+                "score_primary_driver": score_primary_driver,
+                "score_detector_breakdown": score_detector_breakdown,
+                "score_signal_breakdown": score_signal_breakdown,
             }
         )
 
@@ -931,6 +994,11 @@ def build_investigation_view(
             support_n=n_records,
             thresholds=resolved_thresholds,
         )
+        (
+            score_primary_driver,
+            score_detector_breakdown,
+            score_signal_breakdown,
+        ) = _score_breakdown_strings(evidence_item.contributors)
         cluster_rows.append(
             {
                 "cluster_id": cluster_id,
@@ -949,6 +1017,9 @@ def build_investigation_view(
                 "is_low_power": bool(evidence_item.is_low_power),
                 "caveat_flags": list(evidence_item.caveat_flags),
                 "evidence_kinds": list(evidence_item.evidence_kinds),
+                "score_primary_driver": score_primary_driver,
+                "score_detector_breakdown": score_detector_breakdown,
+                "score_signal_breakdown": score_signal_breakdown,
             }
         )
 

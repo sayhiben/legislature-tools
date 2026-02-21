@@ -2600,6 +2600,9 @@
           if (mount.chartId === "baseline_day_hour_volume") {
             return renderDayHourHeatmap(mount, rows, "n_total");
           }
+          if (mount.chartId === "off_hours_day_hour_heatmap") {
+            return renderDayHourHeatmap(mount, rows, "pro_rate");
+          }
 
           const timeOverrides = {
             baseline_volume_pro_rate: {
@@ -2680,6 +2683,13 @@
               lowPowerField: "is_low_power",
               lineAxisName: "Anomaly score",
             },
+            procon_swings_direction_runs: {
+              timeField: "start_bucket",
+              barField: "run_length_buckets",
+              lineField: "mean_abs_delta_pro_rate",
+              lineAxisName: "Mean abs delta",
+              barAxisName: "Run length",
+            },
             composite_score_timeline: {
               timeField: "minute_bucket",
               barField: "n_total",
@@ -2752,6 +2762,15 @@
               lineAxisName: "Rate ratio",
               barAxisName: "Observed count",
             },
+            bursts_composition_shift: {
+              timeField: "start_minute",
+              barField: "observed_count",
+              lineField: "abs_delta_pro_rate",
+              lowPowerField: "is_low_power",
+              lineAxisName: "Abs pro-rate delta",
+              barAxisName: "Observed count",
+              lineMin: 0,
+            },
           };
 
           if (Object.prototype.hasOwnProperty.call(timeOverrides, mount.chartId)) {
@@ -2785,6 +2804,15 @@
           if (mount.chartId === "periodicity_spectrum") {
             return renderSimpleBar(mount, rows, "period_minutes", "power", "power");
           }
+          if (mount.chartId === "periodicity_rolling_fano") {
+            return renderSimpleBar(
+              mount,
+              rows,
+              "window_minutes",
+              "median_fano_factor",
+              "median fano factor"
+            );
+          }
           if (mount.chartId === "baseline_top_names") {
             return renderSimpleBar(mount, rows, "display_name", "n", "count");
           }
@@ -2815,8 +2843,26 @@
           if (mount.chartId === "duplicates_near_cluster_size") {
             return renderSimpleBar(mount, rows, "cluster_size", "n_clusters", "clusters");
           }
+          if (mount.chartId === "duplicates_near_time_concentration") {
+            return renderSimpleBar(
+              mount,
+              rows,
+              "cluster_id",
+              "peak_bucket_fraction",
+              "peak bucket fraction"
+            );
+          }
           if (mount.chartId === "sortedness_bucket_summary") {
             return renderSimpleBar(mount, rows, "bucket_minutes", "alphabetical_ratio", "alphabetical ratio");
+          }
+          if (mount.chartId === "sortedness_kendall_tau_summary") {
+            return renderSimpleBar(
+              mount,
+              rows,
+              "bucket_minutes",
+              "mean_abs_kendall_tau",
+              "mean abs kendall tau"
+            );
           }
           if (mount.chartId === "sortedness_minute_spikes") {
             return renderSimpleBar(mount, rows, "minute_bucket", "n_records", "records");

@@ -114,11 +114,16 @@ def test_sortedness_emits_bucket_ordering_across_multiple_window_sizes() -> None
     bucket_ordering = result.tables["bucket_ordering"]
     assert not bucket_ordering.empty
     assert {1, 5}.issubset(set(bucket_ordering["bucket_minutes"].astype(int).unique()))
+    assert "kendall_tau" in bucket_ordering.columns
+    assert "abs_kendall_tau" in bucket_ordering.columns
 
     minute_ordering = result.tables["minute_ordering"]
     assert not minute_ordering.empty
     assert "minute_bucket" in minute_ordering.columns
+    assert "kendall_tau" in minute_ordering.columns
 
     bucket_summary = result.tables["bucket_ordering_summary"]
     assert not bucket_summary.empty
     assert {1, 5}.issubset(set(bucket_summary["bucket_minutes"].astype(int).unique()))
+    assert "mean_abs_kendall_tau" in bucket_summary.columns
+    assert "strong_ordering_ratio" in bucket_summary.columns

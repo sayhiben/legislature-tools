@@ -24,6 +24,7 @@ from testifier_audit.proportion_stats import (
 class ProConSwingsDetector(Detector):
     name = "procon_swings"
     DEFAULT_PROFILE_BUCKET_MINUTES = [15, 30, 60, 120, 240]
+    LONG_DIRECTION_RUN_MIN_BUCKETS = 3
 
     def __init__(
         self,
@@ -180,6 +181,43 @@ class ProConSwingsDetector(Detector):
         )
 
     @staticmethod
+    def _empty_direction_runs() -> pd.DataFrame:
+        return pd.DataFrame(
+            columns=[
+                "bucket_minutes",
+                "run_id",
+                "run_direction",
+                "start_bucket",
+                "end_bucket",
+                "run_length_buckets",
+                "total_n",
+                "support_n",
+                "mean_abs_delta_pro_rate",
+                "max_abs_delta_pro_rate",
+                "n_flagged_buckets",
+                "n_low_power_buckets",
+                "flagged_ratio",
+                "low_power_ratio",
+                "is_long_run",
+            ]
+        )
+
+    @staticmethod
+    def _empty_direction_runs_summary() -> pd.DataFrame:
+        return pd.DataFrame(
+            columns=[
+                "bucket_minutes",
+                "n_runs",
+                "n_long_runs",
+                "max_run_length_buckets",
+                "max_run_mean_abs_delta",
+                "max_run_total_n",
+                "pro_heavy_run_ratio",
+                "flagged_run_ratio",
+            ]
+        )
+
+    @staticmethod
     def _stable_band(
         pro_rates: pd.Series, min_half_width: float = 0.05
     ) -> tuple[float, float, float, float]:
@@ -275,6 +313,124 @@ class ProConSwingsDetector(Detector):
         minute = int(slot_start_minute % 60)
         return f"{hour:02d}:{minute:02d}"
 
+    def _build_direction_runs(
+        self, time_bucket_profiles: pd.DataFrame
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        required = {"bucket_minutes", "bucket_start", "delta_pro_rate", "n_total"}
+        if time_bucket_profiles.empty or not required.issubset(set(time_bucket_profiles.columns)):
+            return self._empty_direction_runs(), self._empty_direction_runs_summary()
+
+        working = time_bucket_profiles.copy()
+        working["bucket_start"] = pd.to_datetime(working["bucket_start"], errors="coerce")
+        working["bucket_minutes"] = pd.to_numeric(working["bucket_minutes"], errors="coerce")
+        working["delta_pro_rate"] = pd.to_numeric(
+            working["delta_pro_rate"], errors="coerce"
+        ).fillna(0.0)
+        working["abs_delta_pro_rate"] = pd.to_numeric(
+            working.get("abs_delta_pro_rate", working["delta_pro_rate"].abs()),
+            errors="coerce",
+        ).fillna(0.0)
+        working["n_total"] = pd.to_numeric(working["n_total"], errors="coerce").fillna(0.0)
+        if "is_low_power" in working.columns:
+            working["is_low_power"] = working["is_low_power"].astype(bool)
+        else:
+            working["is_low_power"] = False
+        if "is_flagged" in working.columns:
+            working["is_flagged"] = working["is_flagged"].astype(bool)
+        else:
+            working["is_flagged"] = False
+        working = working.dropna(subset=["bucket_start", "bucket_minutes"]).copy()
+        if working.empty:
+            return self._empty_direction_runs(), self._empty_direction_runs_summary()
+
+        working["run_direction"] = np.where(
+            working["abs_delta_pro_rate"] <= 1e-9,
+            "neutral",
+            np.where(working["delta_pro_rate"] >= 0.0, "pro_heavy", "con_heavy"),
+        )
+
+        run_frames: list[pd.DataFrame] = []
+        summary_rows: list[dict[str, float]] = []
+        for bucket_minutes in sorted(
+            working["bucket_minutes"].dropna().astype(int).unique().tolist()
+        ):
+            bucket_frame = (
+                working[working["bucket_minutes"] == int(bucket_minutes)]
+                .sort_values("bucket_start")
+                .reset_index(drop=True)
+            )
+            if bucket_frame.empty:
+                continue
+
+            bucket_frame["run_group"] = (
+                bucket_frame["run_direction"] != bucket_frame["run_direction"].shift(1)
+            ).cumsum()
+            runs = (
+                bucket_frame.groupby("run_group", dropna=False)
+                .agg(
+                    run_direction=("run_direction", "first"),
+                    start_bucket=("bucket_start", "min"),
+                    end_bucket=("bucket_start", "max"),
+                    run_length_buckets=("bucket_start", "size"),
+                    total_n=("n_total", "sum"),
+                    mean_abs_delta_pro_rate=("abs_delta_pro_rate", "mean"),
+                    max_abs_delta_pro_rate=("abs_delta_pro_rate", "max"),
+                    n_flagged_buckets=("is_flagged", "sum"),
+                    n_low_power_buckets=("is_low_power", "sum"),
+                )
+                .reset_index(drop=True)
+            )
+            runs = runs[runs["run_direction"] != "neutral"].copy()
+            if runs.empty:
+                continue
+
+            runs["bucket_minutes"] = int(bucket_minutes)
+            runs["run_id"] = [
+                f"{int(bucket_minutes)}m-r{index + 1}" for index in range(len(runs))
+            ]
+            runs["support_n"] = runs["total_n"]
+            runs["flagged_ratio"] = (
+                pd.to_numeric(runs["n_flagged_buckets"], errors="coerce").fillna(0.0)
+                / pd.to_numeric(runs["run_length_buckets"], errors="coerce").replace(0, np.nan)
+            ).fillna(0.0)
+            runs["low_power_ratio"] = (
+                pd.to_numeric(runs["n_low_power_buckets"], errors="coerce").fillna(0.0)
+                / pd.to_numeric(runs["run_length_buckets"], errors="coerce").replace(0, np.nan)
+            ).fillna(0.0)
+            runs["is_long_run"] = (
+                pd.to_numeric(runs["run_length_buckets"], errors="coerce").fillna(0).astype(int)
+                >= int(self.LONG_DIRECTION_RUN_MIN_BUCKETS)
+            )
+            run_frames.append(runs)
+
+            summary_rows.append(
+                {
+                    "bucket_minutes": int(bucket_minutes),
+                    "n_runs": int(len(runs)),
+                    "n_long_runs": int(runs["is_long_run"].sum()),
+                    "max_run_length_buckets": int(runs["run_length_buckets"].max()),
+                    "max_run_mean_abs_delta": float(runs["mean_abs_delta_pro_rate"].max()),
+                    "max_run_total_n": int(runs["total_n"].max()),
+                    "pro_heavy_run_ratio": float((runs["run_direction"] == "pro_heavy").mean()),
+                    "flagged_run_ratio": float((runs["n_flagged_buckets"] > 0).mean()),
+                }
+            )
+
+        if not run_frames:
+            return self._empty_direction_runs(), self._empty_direction_runs_summary()
+
+        direction_runs = (
+            pd.concat(run_frames, ignore_index=True)
+            .sort_values(["bucket_minutes", "start_bucket"])
+            .reset_index(drop=True)
+        )
+        direction_runs_summary = (
+            pd.DataFrame(summary_rows).sort_values("bucket_minutes").reset_index(drop=True)
+            if summary_rows
+            else self._empty_direction_runs_summary()
+        )
+        return direction_runs, direction_runs_summary
+
     def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
         counts = features.get("counts_per_minute", pd.DataFrame())
         if counts.empty:
@@ -282,6 +438,8 @@ class ProConSwingsDetector(Detector):
             empty_bucket_profiles = self._empty_bucket_profiles()
             empty_time_of_day_profiles = self._empty_time_of_day_profiles()
             empty_day_bucket_profiles = self._empty_day_bucket_profiles()
+            empty_direction_runs = self._empty_direction_runs()
+            empty_direction_runs_summary = self._empty_direction_runs_summary()
             return DetectorResult(
                 detector=self.name,
                 summary={
@@ -292,6 +450,10 @@ class ProConSwingsDetector(Detector):
                     "n_time_bucket_flags": 0,
                     "n_time_of_day_flags": 0,
                     "n_day_slot_outliers": 0,
+                    "n_direction_runs": 0,
+                    "n_long_direction_runs": 0,
+                    "max_direction_run_length": 0,
+                    "max_direction_run_mean_abs_delta": 0.0,
                 },
                 tables={
                     "swing_window_tests": empty,
@@ -301,6 +463,8 @@ class ProConSwingsDetector(Detector):
                     "time_bucket_profiles": empty_bucket_profiles,
                     "time_of_day_bucket_profiles": empty_time_of_day_profiles,
                     "day_bucket_profiles": empty_day_bucket_profiles,
+                    "direction_runs": empty_direction_runs,
+                    "direction_runs_summary": empty_direction_runs_summary,
                 },
             )
 
@@ -310,6 +474,8 @@ class ProConSwingsDetector(Detector):
             empty_bucket_profiles = self._empty_bucket_profiles()
             empty_time_of_day_profiles = self._empty_time_of_day_profiles()
             empty_day_bucket_profiles = self._empty_day_bucket_profiles()
+            empty_direction_runs = self._empty_direction_runs()
+            empty_direction_runs_summary = self._empty_direction_runs_summary()
             return DetectorResult(
                 detector=self.name,
                 summary={
@@ -320,6 +486,10 @@ class ProConSwingsDetector(Detector):
                     "n_time_bucket_flags": 0,
                     "n_time_of_day_flags": 0,
                     "n_day_slot_outliers": 0,
+                    "n_direction_runs": 0,
+                    "n_long_direction_runs": 0,
+                    "max_direction_run_length": 0,
+                    "max_direction_run_mean_abs_delta": 0.0,
                 },
                 tables={
                     "swing_window_tests": empty,
@@ -329,6 +499,8 @@ class ProConSwingsDetector(Detector):
                     "time_bucket_profiles": empty_bucket_profiles,
                     "time_of_day_bucket_profiles": empty_time_of_day_profiles,
                     "day_bucket_profiles": empty_day_bucket_profiles,
+                    "direction_runs": empty_direction_runs,
+                    "direction_runs_summary": empty_direction_runs_summary,
                 },
             )
 
@@ -393,6 +565,8 @@ class ProConSwingsDetector(Detector):
             empty_bucket_profiles = self._empty_bucket_profiles()
             empty_time_of_day_profiles = self._empty_time_of_day_profiles()
             empty_day_bucket_profiles = self._empty_day_bucket_profiles()
+            empty_direction_runs = self._empty_direction_runs()
+            empty_direction_runs_summary = self._empty_direction_runs_summary()
             return DetectorResult(
                 detector=self.name,
                 summary={
@@ -403,6 +577,10 @@ class ProConSwingsDetector(Detector):
                     "n_time_bucket_flags": 0,
                     "n_time_of_day_flags": 0,
                     "n_day_slot_outliers": 0,
+                    "n_direction_runs": 0,
+                    "n_long_direction_runs": 0,
+                    "max_direction_run_length": 0,
+                    "max_direction_run_mean_abs_delta": 0.0,
                 },
                 tables={
                     "swing_window_tests": empty,
@@ -412,6 +590,8 @@ class ProConSwingsDetector(Detector):
                     "time_bucket_profiles": empty_bucket_profiles,
                     "time_of_day_bucket_profiles": empty_time_of_day_profiles,
                     "day_bucket_profiles": empty_day_bucket_profiles,
+                    "direction_runs": empty_direction_runs,
+                    "direction_runs_summary": empty_direction_runs_summary,
                 },
             )
 
@@ -724,6 +904,7 @@ class ProConSwingsDetector(Detector):
             if day_bucket_frames
             else self._empty_day_bucket_profiles()
         )
+        direction_runs, direction_runs_summary = self._build_direction_runs(time_bucket_profiles)
 
         summary = {
             "n_tests": int(len(tests)),
@@ -797,6 +978,18 @@ class ProConSwingsDetector(Detector):
                 if not day_bucket_profiles.empty
                 else 0.0
             ),
+            "n_direction_runs": int(len(direction_runs)),
+            "n_long_direction_runs": int(direction_runs["is_long_run"].sum())
+            if not direction_runs.empty
+            else 0,
+            "max_direction_run_length": int(direction_runs["run_length_buckets"].max())
+            if not direction_runs.empty
+            else 0,
+            "max_direction_run_mean_abs_delta": (
+                float(direction_runs["mean_abs_delta_pro_rate"].max())
+                if not direction_runs.empty
+                else 0.0
+            ),
         }
 
         return DetectorResult(
@@ -810,5 +1003,7 @@ class ProConSwingsDetector(Detector):
                 "time_bucket_profiles": time_bucket_profiles,
                 "time_of_day_bucket_profiles": time_of_day_bucket_profiles,
                 "day_bucket_profiles": day_bucket_profiles,
+                "direction_runs": direction_runs,
+                "direction_runs_summary": direction_runs_summary,
             },
         )

@@ -333,32 +333,145 @@ Carry-forward lessons from Phase 2:
   in addition to contract/integration tests.
 
 ## Phase 3: Analysis Pack A (All Named Additions)
-1. Burst composition detector.
-2. Regularity detector (rolling Fano + autocorrelation + FFT peaks).
-3. Pro/Con runs detector.
-4. Name improbability detector over time using external frequencies.
-5. Near-dup time concentration metrics.
-6. Sortedness enhancement with Kendall tau.
-7. Off-hours composition package with hour-of-week heatmaps.
-8. Explainable suspicion scoring for window and record/cluster queues.
+1. Burst composition detector. (completed in this tranche)
+2. Regularity detector (rolling Fano + autocorrelation + FFT peaks). (completed in this tranche)
+3. Pro/Con runs detector. (completed in this tranche)
+4. Name improbability detector over time using external frequencies. (completed; existing `rare_names` contract validated)
+5. Near-dup time concentration metrics. (completed in this tranche)
+6. Sortedness enhancement with Kendall tau. (completed in this tranche)
+7. Off-hours composition package with hour-of-week heatmaps. (completed in this tranche)
+8. Explainable suspicion scoring for window and record/cluster queues. (completed in this tranche)
 
-Where:
-- `.../detectors/burst_composition.py`
-- `.../detectors/regularity.py`
-- `.../detectors/runs.py`
-- `.../detectors/name_improbability.py`
+Status (2026-02-21): Complete
+- Completed detector/report tranche:
+  - `bursts`: completed burst-composition contract by extending burst-window outputs:
+    - burst window composition fields:
+      `n_pro`, `n_con`, `pro_rate`, `baseline_pro_rate`,
+      `delta_pro_rate`, `abs_delta_pro_rate`, Wilson bounds, and low-power flags.
+    - summary metrics:
+      `max_abs_delta_pro_rate`, `max_significant_abs_delta_pro_rate`,
+      `n_significant_composition_shifts`.
+  - `duplicates_near`: added time-concentration contracts:
+    - `cluster_time_concentration`
+    - `cluster_time_concentration_summary`
+    - cluster-level fields in `cluster_summary`:
+      `n_active_buckets`, `peak_bucket_start`, `peak_bucket_records`, `peak_bucket_fraction`,
+      `concentration_hhi`.
+  - `sortedness`: added Kendall tau ordering strength metrics to bucket/minute outputs and summary:
+    - per-bucket `kendall_tau`, `kendall_p_value`, `abs_kendall_tau`
+    - per-bucket-size summary `mean_kendall_tau`, `mean_abs_kendall_tau`,
+      `max_abs_kendall_tau`, `strong_ordering_ratio`.
+  - `off_hours`: added weekday/hour composition table:
+    - `hour_of_week_distribution` with `day_of_week`, `day_of_week_index`, `hour`,
+      `n_total`, `n_pro`, `n_con`, `n_off_hours`, `off_hours_fraction`,
+      `pro_rate`, Wilson bounds, and low-power flags.
+  - `periodicity`: completed regularity contract by adding rolling Fano outputs while
+    reusing existing autocorrelation + FFT outputs:
+    - `rolling_fano`
+    - `rolling_fano_summary`
+    - summary metrics:
+      `max_rolling_fano_factor`, `median_rolling_fano_factor`,
+      `n_high_fano_windows`, `high_fano_threshold`.
+  - `procon_swings`: added contiguous directional runs contracts:
+    - `direction_runs`
+    - `direction_runs_summary`
+    - summary metrics:
+      `n_direction_runs`, `n_long_direction_runs`,
+      `max_direction_run_length`, `max_direction_run_mean_abs_delta`.
+  - `rare_names`: validated existing external-frequency improbability timeline contract:
+    - external frequency lookups (`first_name_frequency_path`/`last_name_frequency_path`)
+    - over-time rarity table (`rarity_by_minute`)
+    - report chart wiring (`rare_names_rarity_timeline`).
+  - Explainable queue scoring:
+    - `triage_builder` now emits queue-level scoring explanation fields for
+      window/record/cluster queues:
+      `score_primary_driver`, `score_detector_breakdown`, `score_signal_breakdown`.
+  - Report wiring completed for new Phase 3 contracts:
+    - Added new chart hosts + metadata + render routing:
+      - `bursts_composition_shift`
+      - `off_hours_day_hour_heatmap`
+      - `duplicates_near_time_concentration`
+      - `sortedness_kendall_tau_summary`
+      - `periodicity_rolling_fano`
+      - `procon_swings_direction_runs`
+    - Updated analysis registry detail chart sets for `bursts`, `off_hours`,
+      `duplicates_near`, and `sortedness`; extended `periodicity` and `procon_swings`
+      detail charts for regularity/runs coverage.
+    - Added column glossary docs for new detector and triage fields.
+
+Scope refinement applied (to avoid Phase 3 overreach):
+- Reused and extended existing detector modules (`duplicates_near`, `sortedness`, `off_hours`)
+  instead of introducing parallel new detector families for these capabilities.
+  This keeps Phase 3 DRY/YAGNI and avoids unnecessary registry/template churn.
+- Implemented burst composition as a `bursts` extension (volume + composition in the same
+  burst-window contract) rather than adding a standalone burst-composition detector module.
+- Implemented regularity as a `periodicity` extension (rolling Fano + existing autocorr/FFT)
+  instead of adding a parallel detector family. This preserves existing detector governance,
+  avoids duplicate chart wiring, and keeps Phase 3 focused on contract completion.
+- Implemented runs as a `procon_swings` extension (directional run segmentation over existing
+  bucket profiles) rather than adding a standalone runs detector module.
+- Removed duplicate-work expectation for a standalone name-improbability detector module:
+  existing `rare_names` external-frequency rarity timeline already fulfills this Phase 3 intent.
+
+Where (implemented in this tranche):
+- `.../detectors/bursts.py`
 - `.../detectors/duplicates_near.py`
 - `.../detectors/sortedness.py`
-- `.../detectors/composite_score.py`
-- `.../detectors/registry.py`
+- `.../detectors/off_hours.py`
+- `.../detectors/periodicity.py`
+- `.../detectors/procon_swings.py`
+- `.../report/triage_builder.py`
+- `.../report/analysis_registry.py`
 - `.../report/render.py`
+- `.../report/templates/report.html.j2`
+- `.../detectors/registry.py`
 
-Tests:
-- `test_burst_composition.py`
-- `test_regularity_detector.py`
-- `test_runs_detector.py`
-- `test_name_improbability.py`
-- updates to `test_duplicates_near.py`, `test_statistics_detectors.py`, `test_composite_score.py`, `test_pipeline_integration.py`.
+Tests (implemented/updated in this tranche):
+- `tests/test_duplicates_near.py`
+- `tests/test_bucketed_detectors.py`
+- `tests/test_off_hours_detector.py`
+- `tests/test_statistics_detectors.py`
+- `tests/test_triage_builder.py`
+- `tests/test_window_queue_schema.py`
+- plus validation against:
+  - `tests/test_analysis_registry.py`
+  - `tests/test_rarity.py`
+  - `tests/test_rarity_baselines.py`
+  - `tests/test_report_chart_payload.py`
+  - `tests/test_report_render_helpers.py`
+  - `tests/test_pipeline_integration.py`
+
+Validation run:
+- `python -m ruff check src/testifier_audit/detectors/duplicates_near.py src/testifier_audit/detectors/sortedness.py src/testifier_audit/detectors/off_hours.py src/testifier_audit/report/analysis_registry.py src/testifier_audit/report/triage_builder.py src/testifier_audit/report/render.py tests/test_duplicates_near.py tests/test_bucketed_detectors.py tests/test_off_hours_detector.py tests/test_window_queue_schema.py tests/test_triage_builder.py`
+- `python -m pytest tests/test_duplicates_near.py tests/test_bucketed_detectors.py tests/test_off_hours_detector.py tests/test_window_queue_schema.py tests/test_triage_builder.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_pipeline_integration.py` (24 passed)
+- `./scripts/ci/lint.sh` (passed)
+- `./scripts/ci/test.sh` (127 passed)
+- Additional validation for regularity tranche:
+  - `python -m ruff check src/testifier_audit/detectors/periodicity.py src/testifier_audit/detectors/registry.py src/testifier_audit/report/analysis_registry.py src/testifier_audit/report/render.py tests/test_statistics_detectors.py`
+  - `python -m pytest tests/test_statistics_detectors.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_analysis_registry.py` (25 passed)
+- Additional validation for runs + improbability verification tranche:
+  - `python -m ruff check src/testifier_audit/detectors/procon_swings.py src/testifier_audit/report/analysis_registry.py src/testifier_audit/report/render.py tests/test_statistics_detectors.py`
+  - `python -m pytest tests/test_statistics_detectors.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_analysis_registry.py` (26 passed)
+  - `python -m pytest tests/test_rarity.py tests/test_rarity_baselines.py` (6 passed)
+  - `python -m pytest tests/test_pipeline_integration.py` (1 passed)
+- Additional validation for burst composition tranche:
+  - `python -m ruff check src/testifier_audit/detectors/bursts.py src/testifier_audit/report/analysis_registry.py src/testifier_audit/report/render.py tests/test_statistics_detectors.py`
+  - `python -m pytest tests/test_statistics_detectors.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_analysis_registry.py tests/test_pipeline_integration.py` (28 passed)
+
+Remaining Phase 3 implementation focus:
+- None. Phase 3 implementation is complete.
+
+Lessons learned to carry into later phases:
+- Extend existing detector families before introducing new detector modules; only add standalone
+  modules when methodology is materially different from current contracts.
+- Keep rate/composition anomaly outputs defensible by preserving low-power gating and interval
+  context in detector outputs and chart payloads.
+- Treat chart additions as cross-module contract work:
+  update `analysis_registry.py`, `render.py`, `report.html.j2`, and payload tests in one change.
+- Resolve roadmap duplication early (for example, name-improbability overlap with rarity pipeline)
+  to avoid spending effort on parallel implementations that do not improve signal quality.
+- Keep completion criteria explicit in phase docs (`pending` vs `completed`) so multi-tranche work
+  remains auditable and avoids hidden carry-over scope.
 
 ## Phase 4: Data Quality and Dual-Lens Reporting
 1. Add explicit raw vs dedup mode support in triage and panels.

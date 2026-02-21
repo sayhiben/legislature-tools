@@ -43,6 +43,16 @@ HTML report for anomaly review.
 - Validate major report IA changes on a real dataset using desktop/mobile screenshot captures and
   browser console checks, then back with targeted contract + integration tests.
 
+## Lessons Learned (Phase 3 Analysis Pack A)
+- Extend existing detector contracts when possible instead of creating duplicate detector families:
+  burst composition (`bursts`), regularity (`periodicity`), and directional runs (`procon_swings`).
+- Keep burst/swing composition metrics proportion-safe by emitting Wilson bounds and low-power
+  markers in detector outputs and report payloads.
+- Treat external-frequency name improbability as an extension of rarity contracts already provided by
+  `rare_names` (`rarity_by_minute`, lookup coverage, unmatched-token diagnostics).
+- For each new detail chart, enforce 4-way parity updates:
+  `analysis_registry.py`, `render.py`, `report.html.j2`, and chart payload/contract tests.
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.

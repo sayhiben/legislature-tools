@@ -10,6 +10,7 @@ from testifier_audit.detectors.stats import benjamini_hochberg, empirical_tail_p
 
 class PeriodicityDetector(Detector):
     name = "periodicity"
+    DEFAULT_ROLLING_FANO_WINDOWS = (15, 30, 60, 120, 240)
 
     def __init__(
         self,
@@ -20,6 +21,8 @@ class PeriodicityDetector(Detector):
         calibration_iterations: int = 100,
         calibration_seed: int = 42,
         fdr_alpha: float = 0.05,
+        rolling_fano_windows: list[int] | None = None,
+        high_fano_threshold: float = 1.5,
     ) -> None:
         self.max_lag_minutes = max_lag_minutes
         self.min_period_minutes = min_period_minutes
@@ -28,6 +31,9 @@ class PeriodicityDetector(Detector):
         self.calibration_iterations = calibration_iterations
         self.calibration_seed = calibration_seed
         self.fdr_alpha = fdr_alpha
+        windows = rolling_fano_windows or list(self.DEFAULT_ROLLING_FANO_WINDOWS)
+        self.rolling_fano_windows = sorted({int(value) for value in windows if int(value) > 1})
+        self.high_fano_threshold = float(max(0.0, high_fano_threshold))
 
     @staticmethod
     def _lag_autocorr(values: np.ndarray, lag: int) -> float:
@@ -172,6 +178,102 @@ class PeriodicityDetector(Detector):
             )
         return pd.DataFrame(rows)
 
+    def _build_rolling_fano(self, counts: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+        empty = pd.DataFrame(
+            columns=[
+                "window_minutes",
+                "start_minute",
+                "end_minute",
+                "n_points",
+                "mean_count",
+                "variance_count",
+                "fano_factor",
+                "is_high_fano",
+            ]
+        )
+        empty_summary = pd.DataFrame(
+            columns=[
+                "window_minutes",
+                "n_windows",
+                "median_fano_factor",
+                "p95_fano_factor",
+                "max_fano_factor",
+                "high_fano_ratio",
+            ]
+        )
+        if counts.empty:
+            return empty, empty_summary
+
+        minute_bucket = pd.to_datetime(counts["minute_bucket"], errors="coerce").to_numpy()
+        values = pd.to_numeric(counts["n_total"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+        if values.size < 2:
+            return empty, empty_summary
+
+        rolling_frames: list[pd.DataFrame] = []
+        summary_rows: list[dict[str, float]] = []
+        series = pd.Series(values, dtype=float)
+        for window in self.rolling_fano_windows:
+            if window < 2 or window > values.size:
+                continue
+
+            rolling_mean = series.rolling(window=window, min_periods=window).mean().to_numpy(
+                dtype=float
+            )
+            rolling_var = series.rolling(window=window, min_periods=window).var(ddof=0).to_numpy(
+                dtype=float
+            )
+            end_idx = np.arange(window - 1, values.size, dtype=int)
+            start_idx = end_idx - (window - 1)
+            mean_values = rolling_mean[end_idx]
+            var_values = rolling_var[end_idx]
+            fano_values = np.divide(
+                var_values,
+                mean_values,
+                out=np.zeros_like(var_values, dtype=float),
+                where=mean_values > 0.0,
+            )
+            fano_values = np.nan_to_num(fano_values, nan=0.0, posinf=0.0, neginf=0.0)
+            is_high = fano_values >= self.high_fano_threshold
+
+            frame = pd.DataFrame(
+                {
+                    "window_minutes": int(window),
+                    "start_minute": minute_bucket[start_idx],
+                    "end_minute": minute_bucket[end_idx],
+                    "n_points": int(window),
+                    "mean_count": mean_values.astype(float),
+                    "variance_count": var_values.astype(float),
+                    "fano_factor": fano_values.astype(float),
+                    "is_high_fano": is_high.astype(bool),
+                }
+            )
+            rolling_frames.append(frame)
+
+            summary_rows.append(
+                {
+                    "window_minutes": int(window),
+                    "n_windows": int(len(frame)),
+                    "median_fano_factor": (
+                        float(np.median(fano_values)) if len(fano_values) else 0.0
+                    ),
+                    "p95_fano_factor": (
+                        float(np.quantile(fano_values, 0.95)) if len(fano_values) else 0.0
+                    ),
+                    "max_fano_factor": float(np.max(fano_values)) if len(fano_values) else 0.0,
+                    "high_fano_ratio": float(is_high.mean()) if len(is_high) else 0.0,
+                }
+            )
+
+        if not rolling_frames:
+            return empty, empty_summary
+
+        return (
+            pd.concat(rolling_frames, ignore_index=True).sort_values(
+                ["window_minutes", "end_minute"]
+            ),
+            pd.DataFrame(summary_rows).sort_values("window_minutes"),
+        )
+
     def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
         counts = features.get("counts_per_minute", pd.DataFrame())
         if counts.empty or len(counts) < 3:
@@ -183,6 +285,10 @@ class PeriodicityDetector(Detector):
                     "strongest_period_minutes": None,
                     "n_significant_autocorr_lags": 0,
                     "n_significant_periods": 0,
+                    "max_rolling_fano_factor": 0.0,
+                    "median_rolling_fano_factor": 0.0,
+                    "n_high_fano_windows": 0,
+                    "high_fano_threshold": float(self.high_fano_threshold),
                     "clockface_chi_square": 0.0,
                     "clockface_chi_square_p_value": 1.0,
                     "clockface_chi_square_empirical_p_value": 1.0,
@@ -198,6 +304,8 @@ class PeriodicityDetector(Detector):
                     "clockface_distribution": empty,
                     "clockface_top_minutes": empty,
                     "clockface_null_distribution": empty,
+                    "rolling_fano": empty,
+                    "rolling_fano_summary": empty,
                 },
             )
 
@@ -216,6 +324,7 @@ class PeriodicityDetector(Detector):
             if not clockface_distribution.empty
             else 0.0
         )
+        rolling_fano, rolling_fano_summary = self._build_rolling_fano(counts)
 
         autocorr["p_value"] = np.nan
         autocorr["q_value"] = np.nan
@@ -337,6 +446,15 @@ class PeriodicityDetector(Detector):
             float(spectrum_top.iloc[0]["period_minutes"]) if not spectrum_top.empty else None
         )
         max_abs_autocorr = float(autocorr["abs_autocorr"].max()) if not autocorr.empty else 0.0
+        max_rolling_fano_factor = (
+            float(rolling_fano["fano_factor"].max()) if not rolling_fano.empty else 0.0
+        )
+        median_rolling_fano_factor = (
+            float(rolling_fano["fano_factor"].median()) if not rolling_fano.empty else 0.0
+        )
+        n_high_fano_windows = (
+            int(rolling_fano["is_high_fano"].sum()) if not rolling_fano.empty else 0
+        )
 
         return DetectorResult(
             detector=self.name,
@@ -345,6 +463,10 @@ class PeriodicityDetector(Detector):
                 "strongest_period_minutes": strongest_period,
                 "n_significant_autocorr_lags": int(len(autocorr_significant)),
                 "n_significant_periods": int(len(spectrum_significant)),
+                "max_rolling_fano_factor": max_rolling_fano_factor,
+                "median_rolling_fano_factor": median_rolling_fano_factor,
+                "n_high_fano_windows": n_high_fano_windows,
+                "high_fano_threshold": float(self.high_fano_threshold),
                 "calibration_iterations": int(self.calibration_iterations),
                 "fdr_alpha": float(self.fdr_alpha),
                 "clockface_chi_square": float(clockface_chi_square),
@@ -370,5 +492,7 @@ class PeriodicityDetector(Detector):
                 "clockface_distribution": clockface_distribution,
                 "clockface_top_minutes": clockface_top_minutes,
                 "clockface_null_distribution": clockface_null_distribution,
+                "rolling_fano": rolling_fano,
+                "rolling_fano_summary": rolling_fano_summary,
             },
         )

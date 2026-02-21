@@ -48,10 +48,16 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "change_hour": "Hour of day (0-23) for changepoint timing summaries.",
     "change_index": "Sequential changepoint identifier in detector output order.",
     "day_of_week": "Weekday label derived from the event timestamp.",
+    "day_of_week_index": "Numeric weekday index (Monday=0 .. Sunday=6).",
     "date": "Calendar date (UTC) associated with the aggregated slot.",
     "hour": "Hour of day (0-23) used for hour-level aggregation.",
     "slot_start_minute": "Minute offset from midnight for the day/time slot.",
     "minute_of_hour": "Minute within the hour (0-59) used in clock-face tests.",
+    "run_id": "Stable identifier for a contiguous directional run segment.",
+    "run_direction": "Dominant direction of the run (`pro_heavy` or `con_heavy`).",
+    "start_bucket": "UTC timestamp where the directional run starts.",
+    "end_bucket": "UTC timestamp where the directional run ends.",
+    "run_length_buckets": "Number of contiguous buckets in the directional run.",
     "position_normalized": "Normalized testimony position label (for example pro/con/other).",
     "display_name": "Raw name string as it appeared in submitted data.",
     "canonical_name": "Normalized name used for duplicate and match analysis.",
@@ -73,8 +79,11 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "n_unique_names": "Count of distinct canonical names in the bucket/group.",
     "n_matches": "Count of records whose name matched the voter registry reference.",
     "n_unmatched": "Count of records with no voter-registry name match.",
+    "support_n": "Total contributing records supporting the run or signal.",
     "n_windows": "Number of windows evaluated for that parameter setting.",
     "n_significant": "Number of windows passing the detector's significance threshold.",
+    "n_runs": "Number of directional runs identified for the grouping.",
+    "n_long_runs": "Number of directional runs meeting the long-run threshold.",
     "n_changes": "Number of changepoints detected in that summarized bucket.",
     "n_clusters": "Number of near-duplicate clusters with that size.",
     "n_events": "Observed event count for the periodicity slot.",
@@ -92,6 +101,8 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "on_hours_pro_rate_wilson_high": "Upper Wilson bound for on-hours pro share.",
     "off_hours_is_low_power": "True when off-hours sample size is too small for stable inference.",
     "on_hours_is_low_power": "True when on-hours sample size is too small for stable inference.",
+    "n_off_hours": "Count of records in the day/hour cell that fall in off-hours.",
+    "off_hours_fraction": "Share of day/hour cell records that fall in off-hours.",
     "pro_rate": "Share of records that are pro in this row (0 to 1).",
     "baseline_pro_rate": "Reference pro share expected for this day/time context.",
     "stable_lower": "Lower bound of the expected stable pro-share band.",
@@ -110,10 +121,18 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "unique_ratio": "Distinct-name ratio: unique names divided by total records.",
     "threshold_unique_ratio": "Configured or modeled threshold used to flag unusual uniqueness.",
     "alphabetical_ratio": "Share of windows flagged as alphabetically ordered.",
+    "kendall_tau": "Kendall tau rank correlation between arrival order and alphabetical order.",
+    "kendall_p_value": "P-value for Kendall tau rank-correlation test.",
+    "abs_kendall_tau": "Absolute Kendall tau magnitude (ordering strength).",
+    "mean_kendall_tau": "Average Kendall tau value for buckets at this granularity.",
+    "mean_abs_kendall_tau": "Average absolute Kendall tau for buckets at this granularity.",
+    "max_abs_kendall_tau": "Maximum absolute Kendall tau observed at this granularity.",
+    "strong_ordering_ratio": "Share of buckets with strong ordering (|Kendall tau| >= 0.8).",
     "avg_records_per_bucket": "Average number of records per evaluated bucket.",
     "is_alphabetical": "1/true when local ordering is alphabetical under detector rules.",
     "is_significant": "True when the hypothesis test passes configured significance thresholds.",
     "is_flagged": "Detector-level flag for windows considered anomalous/elevated.",
+    "is_long_run": "True when a run spans at least the configured long-run bucket threshold.",
     "is_slot_outlier": "True when day/slot delta is an outlier versus peer slots.",
     "is_anomaly": "True when multivariate model scores this bucket as anomalous.",
     "is_model_eligible": "True when bucket has enough support/features for model scoring.",
@@ -139,6 +158,17 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "period_minutes": "Cycle length in minutes derived from spectral analysis.",
     "frequency_per_minute": "Equivalent cycle frequency in events per minute.",
     "power": "Spectral power (relative strength) at that detected frequency.",
+    "n_points": "Number of minute-level observations included in the rolling statistic.",
+    "mean_count": "Rolling-window mean submissions per minute.",
+    "variance_count": "Rolling-window variance of submissions per minute.",
+    "fano_factor": "Variance divided by mean for rolling window counts (Poisson baseline ~=1).",
+    "is_high_fano": (
+        "True when rolling Fano factor exceeds configured high-overdispersion threshold."
+    ),
+    "median_fano_factor": "Median rolling Fano factor for the evaluated window size.",
+    "p95_fano_factor": "95th percentile rolling Fano factor for the evaluated window size.",
+    "max_fano_factor": "Maximum rolling Fano factor observed for the evaluated window size.",
+    "high_fano_ratio": "Share of rolling windows above the high-Fano threshold.",
     "share": "Fraction of all events in the specified minute-of-hour bin.",
     "z_score_uniform": "Standardized deviation from uniform expectation.",
     "anomaly_score": "Model anomaly score; higher values indicate rarer feature combinations.",
@@ -171,7 +201,24 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "iteration": "Null-simulation iteration index.",
     "max_window_count": "Maximum simulated count observed in that iteration/window setup.",
     "max_abs_delta_pro_rate": "Maximum absolute pro-rate delta observed in null simulation.",
+    "max_run_length_buckets": "Maximum run length (in buckets) observed for the grouping.",
+    "max_run_mean_abs_delta": "Largest run-level mean absolute pro-rate delta in the grouping.",
+    "max_run_total_n": "Largest support volume observed among runs in the grouping.",
     "similarity": "String similarity score for near-duplicate candidate pair.",
+    "n_active_buckets": "Number of time buckets in which a near-duplicate cluster appears.",
+    "peak_bucket_start": "Timestamp of the highest-density bucket for a cluster.",
+    "peak_bucket_records": "Record count in the highest-density bucket for a cluster.",
+    "peak_bucket_fraction": "Share of cluster records contained in the highest-density bucket.",
+    "concentration_hhi": "Herfindahl index of cluster bucket concentration (higher = tighter).",
+    "score_primary_driver": "Detector family contributing the largest share of suspicion score.",
+    "score_detector_breakdown": "Detector-level contribution shares for suspicion score.",
+    "score_signal_breakdown": "Top signal-level contribution shares for suspicion score.",
+    "n_flagged_buckets": "Count of run buckets flagged by swing thresholds.",
+    "n_low_power_buckets": "Count of run buckets marked low-power.",
+    "flagged_ratio": "Share of run buckets flagged by swing thresholds.",
+    "low_power_ratio": "Share of run buckets marked low-power.",
+    "pro_heavy_run_ratio": "Share of directional runs that are pro-heavy.",
+    "flagged_run_ratio": "Share of directional runs with at least one flagged bucket.",
     "token": "Name token extracted during rarity/coverage diagnostics.",
     "value": "Detector-specific numeric value for the metric column.",
     "score": "Detector/model score for the row.",
@@ -1482,6 +1529,25 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {"label": "X-axis", "description": "Window size in minutes."},
             ],
         },
+        "bursts_composition_shift": timebar(
+            summary="Burst composition shift over time.",
+            primary_label="Absolute pro-rate shift",
+            primary_desc="Absolute deviation of burst-window pro rate from run baseline.",
+            include_wilson=False,
+            include_low_power=True,
+            volume_label="Observed count",
+            volume_desc="Observed submissions in each burst window.",
+            extra=[
+                {
+                    "label": "Baseline pro rate",
+                    "description": "Run-level baseline pro share for composition comparison.",
+                },
+                {
+                    "label": "Delta pro rate",
+                    "description": "Signed burst-window pro-rate shift from baseline.",
+                },
+            ],
+        ),
         "bursts_null_distribution": {
             "summary": "Burst null simulation output.",
             "items": [
@@ -1541,6 +1607,20 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {"label": "X-axis", "description": "Slot start minute from midnight."},
             ],
         },
+        "procon_swings_direction_runs": {
+            "summary": "Contiguous pro/con directional runs over time.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Number of contiguous buckets in each directional run.",
+                },
+                {
+                    "label": "Line",
+                    "description": "Mean absolute pro-rate shift magnitude across the run.",
+                },
+                {"label": "X-axis", "description": "Run start timestamp."},
+            ],
+        },
         "procon_swings_null_distribution": {
             "summary": "Null distribution for swing extremes.",
             "items": [
@@ -1594,6 +1674,19 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Off-hours pro-rate statistic for each summary row.",
                 },
                 {"label": "X-axis", "description": "Off-hours count/context grouping key."},
+            ],
+        },
+        "off_hours_day_hour_heatmap": {
+            "summary": "Off-hours composition by weekday/hour.",
+            "items": [
+                {
+                    "label": "Cell color",
+                    "description": (
+                        "Pro-rate for that weekday/hour cell "
+                        "(with low-power checks available in table data)."
+                    ),
+                },
+                {"label": "Axes", "description": "X-axis is hour of day; Y-axis is weekday."},
             ],
         },
         "duplicates_exact_bucket_concentration": timebar(
@@ -1657,6 +1750,19 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {"label": "X-axis", "description": "Left-hand name label from each pair sample."},
             ],
         },
+        "duplicates_near_time_concentration": {
+            "summary": "Near-duplicate cluster time concentration.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": (
+                        "Peak time-bucket share of records "
+                        "for each near-duplicate cluster."
+                    ),
+                },
+                {"label": "X-axis", "description": "Near-duplicate cluster identifier."},
+            ],
+        },
         "sortedness_bucket_ratio": timebar(
             summary="Ordering behavior across time buckets.",
             primary_label="Alphabetical indicator",
@@ -1672,6 +1778,16 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {
                     "label": "Bar height",
                     "description": "Alphabetical ordering ratio for each bucket size.",
+                },
+                {"label": "X-axis", "description": "Bucket size in minutes."},
+            ],
+        },
+        "sortedness_kendall_tau_summary": {
+            "summary": "Kendall tau ordering strength by bucket size.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Average absolute Kendall tau for each bucket size.",
                 },
                 {"label": "X-axis", "description": "Bucket size in minutes."},
             ],
@@ -1843,6 +1959,16 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             "items": [
                 {"label": "Bar height", "description": "Spectral power for each candidate period."},
                 {"label": "X-axis", "description": "Detected period in minutes."},
+            ],
+        },
+        "periodicity_rolling_fano": {
+            "summary": "Rolling Fano overdispersion by window size.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Median rolling Fano factor for each window size.",
+                },
+                {"label": "X-axis", "description": "Rolling window size in minutes."},
             ],
         },
         "multivariate_score_timeline": timebar(
@@ -2168,13 +2294,32 @@ def _build_interactive_chart_payload_v2(
             "observed_count",
             "expected_count",
             "rate_ratio",
+            "n_pro",
+            "n_con",
+            "pro_rate",
+            "baseline_pro_rate",
+            "delta_pro_rate",
+            "abs_delta_pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
             "q_value",
             "is_significant",
         ],
     )
     bursts_tests = _with_expected_columns(
         table_map.get(_table_key("bursts", "burst_window_tests"), pd.DataFrame()),
-        ["window_minutes", "bucket_minutes", "rate_ratio", "is_significant"],
+        [
+            "window_minutes",
+            "bucket_minutes",
+            "rate_ratio",
+            "pro_rate",
+            "baseline_pro_rate",
+            "delta_pro_rate",
+            "abs_delta_pro_rate",
+            "is_low_power",
+            "is_significant",
+        ],
     )
     bursts_null = _with_expected_columns(
         table_map.get(_table_key("bursts", "burst_null_distribution"), pd.DataFrame()),
@@ -2238,6 +2383,26 @@ def _build_interactive_chart_payload_v2(
             "is_low_power",
         ],
     )
+    procon_direction_runs = _with_expected_columns(
+        table_map.get(_table_key("procon_swings", "direction_runs"), pd.DataFrame()),
+        [
+            "bucket_minutes",
+            "run_id",
+            "run_direction",
+            "start_bucket",
+            "end_bucket",
+            "run_length_buckets",
+            "total_n",
+            "support_n",
+            "mean_abs_delta_pro_rate",
+            "max_abs_delta_pro_rate",
+            "n_flagged_buckets",
+            "n_low_power_buckets",
+            "flagged_ratio",
+            "low_power_ratio",
+            "is_long_run",
+        ],
+    )
     swing_null = _with_expected_columns(
         table_map.get(_table_key("procon_swings", "swing_null_distribution"), pd.DataFrame()),
         ["window_minutes", "iteration", "max_abs_delta_pro_rate"],
@@ -2271,6 +2436,23 @@ def _build_interactive_chart_payload_v2(
             "n_total",
             "n_pro",
             "n_con",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+        ],
+    )
+    off_hours_day_hour = _with_expected_columns(
+        table_map.get(_table_key("off_hours", "hour_of_week_distribution"), pd.DataFrame()),
+        [
+            "day_of_week",
+            "day_of_week_index",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_off_hours",
+            "off_hours_fraction",
             "pro_rate",
             "pro_rate_wilson_low",
             "pro_rate_wilson_high",
@@ -2334,18 +2516,55 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("duplicates_near", "similarity_edges"), pd.DataFrame()),
         ["similarity", "left_display_name", "right_display_name", "block_key"],
     )
+    dup_near_concentration = _with_expected_columns(
+        table_map.get(
+            _table_key("duplicates_near", "cluster_time_concentration_summary"), pd.DataFrame()
+        ),
+        [
+            "cluster_id",
+            "n_active_buckets",
+            "peak_bucket_start",
+            "peak_bucket_records",
+            "peak_bucket_fraction",
+            "concentration_hhi",
+        ],
+    )
 
     sorted_bucket = _with_expected_columns(
         table_map.get(_table_key("sortedness", "bucket_ordering"), pd.DataFrame()),
-        ["bucket_start", "bucket_minutes", "n_records", "is_alphabetical"],
+        [
+            "bucket_start",
+            "bucket_minutes",
+            "n_records",
+            "is_alphabetical",
+            "kendall_tau",
+            "kendall_p_value",
+            "abs_kendall_tau",
+        ],
     )
     sorted_summary = _with_expected_columns(
         table_map.get(_table_key("sortedness", "bucket_ordering_summary"), pd.DataFrame()),
-        ["bucket_minutes", "n_buckets", "avg_records_per_bucket", "alphabetical_ratio"],
+        [
+            "bucket_minutes",
+            "n_buckets",
+            "avg_records_per_bucket",
+            "alphabetical_ratio",
+            "mean_kendall_tau",
+            "mean_abs_kendall_tau",
+            "max_abs_kendall_tau",
+            "strong_ordering_ratio",
+        ],
     )
     sorted_minute = _with_expected_columns(
         table_map.get(_table_key("sortedness", "minute_ordering"), pd.DataFrame()),
-        ["minute_bucket", "n_records", "is_alphabetical"],
+        [
+            "minute_bucket",
+            "n_records",
+            "is_alphabetical",
+            "kendall_tau",
+            "kendall_p_value",
+            "abs_kendall_tau",
+        ],
     )
 
     rare_unique_ratio = _with_expected_columns(
@@ -2514,6 +2733,17 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("periodicity", "spectrum_top"), pd.DataFrame()),
         ["period_minutes", "frequency_per_minute", "power", "q_value", "is_significant"],
     )
+    periodic_fano_summary = _with_expected_columns(
+        table_map.get(_table_key("periodicity", "rolling_fano_summary"), pd.DataFrame()),
+        [
+            "window_minutes",
+            "n_windows",
+            "median_fano_factor",
+            "p95_fano_factor",
+            "max_fano_factor",
+            "high_fano_ratio",
+        ],
+    )
 
     multivariate_scores = _with_expected_columns(
         table_map.get(
@@ -2595,6 +2825,8 @@ def _build_interactive_chart_payload_v2(
         (bursts_significant, "start_minute"),
         (bursts_tests, "start_minute"),
         (time_bucket_profiles, "bucket_start"),
+        (procon_direction_runs, "start_bucket"),
+        (procon_direction_runs, "end_bucket"),
         (day_bucket_profiles, "date"),
         (all_changepoints, "change_minute"),
         (volume_changepoints, "change_minute"),
@@ -2741,6 +2973,25 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=100,
     )
+    charts["bursts_composition_shift"] = _records_from_frame(
+        bursts_significant.sort_values(["start_minute", "window_minutes"]),
+        columns=[
+            "start_minute",
+            "end_minute",
+            "window_minutes",
+            "bucket_minutes",
+            "observed_count",
+            "pro_rate",
+            "baseline_pro_rate",
+            "delta_pro_rate",
+            "abs_delta_pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+            "q_value",
+        ],
+        max_rows=25_000,
+    )
     charts["bursts_null_distribution"] = _records_from_frame(
         bursts_null.sort_values(["window_minutes", "iteration"]),
         columns=["window_minutes", "bucket_minutes", "iteration", "max_window_count"],
@@ -2804,6 +3055,26 @@ def _build_interactive_chart_payload_v2(
             "is_low_power",
         ],
         max_rows=25_000,
+    )
+    charts["procon_swings_direction_runs"] = _records_from_frame(
+        procon_direction_runs.sort_values(["bucket_minutes", "start_bucket"]),
+        columns=[
+            "bucket_minutes",
+            "run_id",
+            "run_direction",
+            "start_bucket",
+            "end_bucket",
+            "run_length_buckets",
+            "support_n",
+            "mean_abs_delta_pro_rate",
+            "max_abs_delta_pro_rate",
+            "n_flagged_buckets",
+            "n_low_power_buckets",
+            "flagged_ratio",
+            "low_power_ratio",
+            "is_long_run",
+        ],
+        max_rows=10_000,
     )
     charts["procon_swings_null_distribution"] = _records_from_frame(
         swing_null.sort_values(["window_minutes", "iteration"]),
@@ -2917,6 +3188,24 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=10,
     )
+    charts["off_hours_day_hour_heatmap"] = _records_from_frame(
+        off_hours_day_hour.sort_values(["day_of_week_index", "hour", "day_of_week"]),
+        columns=[
+            "day_of_week",
+            "day_of_week_index",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_off_hours",
+            "off_hours_fraction",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+        ],
+        max_rows=2_500,
+    )
 
     charts["duplicates_exact_bucket_concentration"] = _records_from_frame(
         dup_exact_bucket.sort_values(["bucket_minutes", "bucket_start"]),
@@ -2984,20 +3273,70 @@ def _build_interactive_chart_payload_v2(
         columns=["similarity", "left_display_name", "right_display_name", "block_key"],
         max_rows=5_000,
     )
+    charts["duplicates_near_time_concentration"] = _records_from_frame(
+        dup_near_concentration.sort_values(
+            ["peak_bucket_fraction", "peak_bucket_records"],
+            ascending=[False, False],
+        ),
+        columns=[
+            "cluster_id",
+            "n_active_buckets",
+            "peak_bucket_start",
+            "peak_bucket_records",
+            "peak_bucket_fraction",
+            "concentration_hhi",
+        ],
+        max_rows=2_000,
+    )
 
     charts["sortedness_bucket_ratio"] = _records_from_frame(
         sorted_bucket.sort_values(["bucket_minutes", "bucket_start"]),
-        columns=["bucket_start", "bucket_minutes", "n_records", "is_alphabetical"],
+        columns=[
+            "bucket_start",
+            "bucket_minutes",
+            "n_records",
+            "is_alphabetical",
+            "kendall_tau",
+            "kendall_p_value",
+            "abs_kendall_tau",
+        ],
         max_rows=25_000,
     )
     charts["sortedness_bucket_summary"] = _records_from_frame(
         sorted_summary.sort_values("bucket_minutes"),
-        columns=["bucket_minutes", "n_buckets", "avg_records_per_bucket", "alphabetical_ratio"],
+        columns=[
+            "bucket_minutes",
+            "n_buckets",
+            "avg_records_per_bucket",
+            "alphabetical_ratio",
+            "mean_kendall_tau",
+            "mean_abs_kendall_tau",
+            "max_abs_kendall_tau",
+            "strong_ordering_ratio",
+        ],
+        max_rows=500,
+    )
+    charts["sortedness_kendall_tau_summary"] = _records_from_frame(
+        sorted_summary.sort_values("bucket_minutes"),
+        columns=[
+            "bucket_minutes",
+            "mean_kendall_tau",
+            "mean_abs_kendall_tau",
+            "max_abs_kendall_tau",
+            "strong_ordering_ratio",
+        ],
         max_rows=500,
     )
     charts["sortedness_minute_spikes"] = _records_from_frame(
         sorted_minute.sort_values("minute_bucket"),
-        columns=["minute_bucket", "n_records", "is_alphabetical"],
+        columns=[
+            "minute_bucket",
+            "n_records",
+            "is_alphabetical",
+            "kendall_tau",
+            "kendall_p_value",
+            "abs_kendall_tau",
+        ],
         max_rows=25_000,
     )
 
@@ -3176,6 +3515,18 @@ def _build_interactive_chart_payload_v2(
         columns=["period_minutes", "frequency_per_minute", "power", "q_value", "is_significant"],
         max_rows=5_000,
     )
+    charts["periodicity_rolling_fano"] = _records_from_frame(
+        periodic_fano_summary.sort_values("window_minutes"),
+        columns=[
+            "window_minutes",
+            "n_windows",
+            "median_fano_factor",
+            "p95_fano_factor",
+            "max_fano_factor",
+            "high_fano_ratio",
+        ],
+        max_rows=500,
+    )
 
     charts["multivariate_score_timeline"] = _records_from_frame(
         multivariate_scores.sort_values("bucket_start"),
@@ -3304,7 +3655,7 @@ def _build_interactive_chart_payload_v2(
         ),
         "bursts": _extract_bucket_options(bursts_significant, bursts_tests),
         "procon_swings": _extract_bucket_options(
-            time_bucket_profiles, day_bucket_profiles, time_of_day_profiles
+            time_bucket_profiles, day_bucket_profiles, time_of_day_profiles, procon_direction_runs
         ),
         "changepoints": [],
         "off_hours": [],

@@ -56,6 +56,23 @@ Repository-specific guidance for AI/code agents.
 - For report UX changes, always perform a real-dataset QA pass that includes screenshot artifacts
   and browser console verification in addition to automated tests.
 
+## Lessons Learned (Phase 3 Analysis Pack A)
+- Prefer extending existing detector contracts over adding parallel detector families when the
+  statistical domain is already represented:
+  - burst composition in `detectors/bursts.py`
+  - regularity (rolling Fano) in `detectors/periodicity.py`
+  - directional runs in `detectors/procon_swings.py`
+- Treat external-frequency name improbability as satisfied by the existing rarity pipeline
+  (`detectors/rare_names.py`) unless a materially different methodology is explicitly requested.
+- Keep burst/swing composition outputs proportion-safe:
+  - include Wilson bounds where applicable, and
+  - retain low-power flags to prevent over-interpretation of sparse windows.
+- When adding detector detail charts, update all four surfaces together:
+  `report/analysis_registry.py`, `report/render.py`, `report/templates/report.html.j2`, and
+  payload/render contract tests.
+- For multi-tranche phase work, keep plan status explicit (completed vs pending) and trim duplicate
+  scope items once fulfilled to reduce roadmap drift.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`

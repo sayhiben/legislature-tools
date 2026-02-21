@@ -34,6 +34,44 @@ def test_bursts_detector_flags_obvious_burst_window() -> None:
 
     assert result.summary["n_significant_windows"] > 0
     assert not result.tables["burst_significant_windows"].empty
+    assert "pro_rate" in result.tables["burst_window_tests"].columns
+    assert "delta_pro_rate" in result.tables["burst_window_tests"].columns
+    assert "abs_delta_pro_rate" in result.tables["burst_window_tests"].columns
+    assert "pro_rate_wilson_low" in result.tables["burst_window_tests"].columns
+    assert "pro_rate_wilson_high" in result.tables["burst_window_tests"].columns
+    assert "is_low_power" in result.tables["burst_window_tests"].columns
+
+
+def test_bursts_detector_captures_composition_shift_metrics() -> None:
+    minute_bucket = pd.date_range("2026-02-01 00:00:00", periods=180, freq="min")
+    n_total = [4] * 180
+    n_pro = [2] * 180
+    for idx in range(80, 90):
+        n_total[idx] = 30
+        n_pro[idx] = 27
+
+    counts = pd.DataFrame(
+        {
+            "minute_bucket": minute_bucket,
+            "n_total": n_total,
+            "n_unique_names": n_total,
+            "n_pro": n_pro,
+            "n_con": [total - pro for total, pro in zip(n_total, n_pro)],
+            "n_unknown": [0] * 180,
+            "dup_name_fraction": [0.0] * 180,
+            "pro_rate": [pro / total for total, pro in zip(n_total, n_pro)],
+            "con_rate": [1.0 - (pro / total) for total, pro in zip(n_total, n_pro)],
+            "unique_ratio": [1.0] * 180,
+        }
+    )
+
+    detector = BurstsDetector(window_minutes=[5], fdr_alpha=0.05)
+    result = detector.run(df=pd.DataFrame(), features={"counts_per_minute": counts})
+
+    assert result.summary["n_significant_windows"] > 0
+    assert result.summary["max_abs_delta_pro_rate"] > 0.0
+    assert result.summary["max_significant_abs_delta_pro_rate"] > 0.0
+    assert result.summary["n_significant_composition_shifts"] > 0
 
 
 def test_bursts_detector_calibration_outputs_null_distribution() -> None:
@@ -177,6 +215,8 @@ def test_procon_swings_detector_flags_large_shift() -> None:
     assert not result.tables["time_bucket_profiles"].empty
     assert not result.tables["time_of_day_bucket_profiles"].empty
     assert not result.tables["day_bucket_profiles"].empty
+    assert not result.tables["direction_runs"].empty
+    assert not result.tables["direction_runs_summary"].empty
     assert "pro_rate_wilson_low" in result.tables["swing_window_tests"].columns
     assert "pro_rate_wilson_high" in result.tables["swing_window_tests"].columns
     assert "is_low_power" in result.tables["swing_window_tests"].columns
@@ -185,6 +225,11 @@ def test_procon_swings_detector_flags_large_shift() -> None:
     assert "is_low_power" in result.tables["time_bucket_profiles"].columns
     assert "is_low_power" in result.tables["time_of_day_bucket_profiles"].columns
     assert "is_low_power" in result.tables["day_bucket_profiles"].columns
+    assert "run_length_buckets" in result.tables["direction_runs"].columns
+    assert "is_long_run" in result.tables["direction_runs"].columns
+    assert "n_long_runs" in result.tables["direction_runs_summary"].columns
+    assert result.summary["n_direction_runs"] > 0
+    assert result.summary["max_direction_run_length"] >= 1
     assert set(
         result.tables["time_of_day_bucket_profiles"]["bucket_minutes"].astype(int).unique()
     ) >= {
@@ -247,8 +292,47 @@ def test_procon_swings_calibration_outputs_empirical_columns() -> None:
     assert "is_flagged" in result.tables["time_bucket_profiles"].columns
     assert "is_flagged" in result.tables["time_of_day_bucket_profiles"].columns
     assert "is_slot_outlier" in result.tables["day_bucket_profiles"].columns
+    assert "run_direction" in result.tables["direction_runs"].columns
+    assert "mean_abs_delta_pro_rate" in result.tables["direction_runs"].columns
     assert "pro_rate_wilson_half_width" in result.tables["time_bucket_profiles"].columns
     assert "is_low_power" in result.tables["time_bucket_profiles"].columns
+
+
+def test_procon_swings_direction_runs_capture_long_streaks() -> None:
+    minute_bucket = pd.date_range("2026-02-01 00:00:00", periods=180, freq="min")
+    n_total = [20] * 180
+    n_pro = [10] * 180
+    for idx in range(0, 60):
+        n_pro[idx] = 16
+    for idx in range(60, 120):
+        n_pro[idx] = 4
+    for idx in range(120, 180):
+        n_pro[idx] = 15
+
+    counts = pd.DataFrame(
+        {
+            "minute_bucket": minute_bucket,
+            "n_total": n_total,
+            "n_unique_names": n_total,
+            "n_pro": n_pro,
+            "n_con": [total - pro for total, pro in zip(n_total, n_pro)],
+            "n_unknown": [0] * 180,
+            "dup_name_fraction": [0.0] * 180,
+            "pro_rate": [pro / total for total, pro in zip(n_total, n_pro)],
+            "con_rate": [1.0 - (pro / total) for total, pro in zip(n_total, n_pro)],
+            "unique_ratio": [1.0] * 180,
+        }
+    )
+
+    detector = ProConSwingsDetector(window_minutes=[15], fdr_alpha=0.05, min_window_total=200)
+    result = detector.run(df=pd.DataFrame(), features={"counts_per_minute": counts})
+
+    runs = result.tables["direction_runs"]
+    assert not runs.empty
+    assert set(runs["run_direction"].astype(str).unique()) <= {"pro_heavy", "con_heavy"}
+    assert int(runs["run_length_buckets"].max()) >= 3
+    assert result.summary["n_long_direction_runs"] >= 1
+    assert result.summary["max_direction_run_mean_abs_delta"] > 0.0
 
 
 def test_procon_swings_supports_day_of_week_hour_calibration() -> None:
@@ -393,11 +477,21 @@ def test_periodicity_detector_calibration_outputs_significance_tables() -> None:
     assert not result.tables["clockface_distribution"].empty
     assert not result.tables["clockface_top_minutes"].empty
     assert not result.tables["clockface_null_distribution"].empty
+    assert not result.tables["rolling_fano"].empty
+    assert not result.tables["rolling_fano_summary"].empty
     assert len(result.tables["clockface_distribution"]) == 60
     assert "p_value" in result.tables["autocorr"].columns
     assert "q_value" in result.tables["autocorr"].columns
     assert "is_significant" in result.tables["spectrum_top"].columns
+    assert "fano_factor" in result.tables["rolling_fano"].columns
+    assert "is_high_fano" in result.tables["rolling_fano"].columns
+    assert "median_fano_factor" in result.tables["rolling_fano_summary"].columns
+    assert "max_fano_factor" in result.tables["rolling_fano_summary"].columns
     assert result.summary["strongest_period_minutes"] is not None
+    assert result.summary["max_rolling_fano_factor"] >= 0.0
+    assert result.summary["median_rolling_fano_factor"] >= 0.0
+    assert result.summary["n_high_fano_windows"] >= 0
+    assert result.summary["high_fano_threshold"] >= 0.0
     assert result.summary["clockface_chi_square"] >= 0.0
     assert 0.0 <= result.summary["clockface_chi_square_p_value"] <= 1.0
     assert result.summary["clockface_chi_square_empirical_p_value"] is not None

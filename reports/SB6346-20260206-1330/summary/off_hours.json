@@ -1,6 +1,8 @@
 {
   "chi_square_p_value": 1.838365127855444e-92,
+  "hour_of_week_cells": 68,
   "low_power_min_total": 30,
+  "max_hour_of_week_pro_rate": 0.7907869481765835,
   "off_hours_is_low_power": false,
   "off_hours_ratio": 0.06516293834631219,
   "on_hours_is_low_power": false

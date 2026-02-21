@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 
 import typer
 import yaml
@@ -76,12 +77,22 @@ def detect(
 def report(
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    dedup_mode: Literal["raw", "exact_row_dedup", "side_by_side"] | None = typer.Option(
+        None,
+        help="Override report dedup lens mode for triage views.",
+    ),
 ) -> None:
     """Render HTML report from existing outputs in out/."""
     configure_logging()
-    _ = _load_app_config(config)
+    cfg = _load_app_config(config)
     build_output_paths(out)
-    report_path = render_report(results={}, artifacts={}, out_dir=out)
+    report_path = render_report(
+        results={},
+        artifacts={},
+        out_dir=out,
+        default_dedup_mode=dedup_mode or cfg.report.default_dedup_mode,
+        min_cell_n_for_rates=int(cfg.report.min_cell_n_for_rates),
+    )
     typer.echo(f"Report written to: {report_path}")
 
 
@@ -90,12 +101,19 @@ def run_all_command(
     csv: Path | None = typer.Option(None, exists=True, readable=True, resolve_path=True),
     out: Path = typer.Option(Path("out"), resolve_path=True),
     config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    dedup_mode: Literal["raw", "exact_row_dedup", "side_by_side"] | None = typer.Option(
+        None,
+        help="Override report dedup lens mode for triage views.",
+    ),
 ) -> None:
     """Execute profile, detect, and report in one command."""
     configure_logging()
     cfg = _load_app_config(config)
     csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
-    report_path = run_all(csv_path=csv, out_dir=out, config=cfg)
+    if dedup_mode is None:
+        report_path = run_all(csv_path=csv, out_dir=out, config=cfg)
+    else:
+        report_path = run_all(csv_path=csv, out_dir=out, config=cfg, dedup_mode=dedup_mode)
     typer.echo(f"Run complete. Report: {report_path}")
 
 

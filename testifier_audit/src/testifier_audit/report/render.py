@@ -12,6 +12,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from testifier_audit.detectors.base import DetectorResult
+from testifier_audit.features.dedup import DEDUP_MODES, DEFAULT_DEDUP_MODE, normalize_dedup_mode
 from testifier_audit.proportion_stats import (
     DEFAULT_LOW_POWER_MIN_TOTAL,
     low_power_mask,
@@ -23,7 +24,8 @@ from testifier_audit.report.analysis_registry import (
 from testifier_audit.report.analysis_registry import (
     default_analysis_definitions as registry_analysis_definitions,
 )
-from testifier_audit.report.triage_builder import build_investigation_view
+from testifier_audit.report.quality_builder import build_data_quality_panel
+from testifier_audit.report.triage_builder import build_investigation_views
 
 try:
     import pyarrow.parquet as pq
@@ -2245,6 +2247,9 @@ def _load_table_map_from_disk(out_dir: Path) -> dict[str, pd.DataFrame]:
 def _build_interactive_chart_payload_v2(
     table_map: dict[str, pd.DataFrame],
     detector_summaries: dict[str, dict[str, Any]],
+    *,
+    default_dedup_mode: str | None = None,
+    min_cell_n_for_rates: int = 25,
 ) -> dict[str, Any]:
     payload_started = perf_counter()
     counts_per_minute = _with_expected_columns(
@@ -3737,11 +3742,21 @@ def _build_interactive_chart_payload_v2(
         chart_id for chart_id in absolute_time_chart_ids if charts.get(chart_id)
     ]
 
-    investigation = build_investigation_view(table_map=table_map)
+    resolved_default_dedup_mode = normalize_dedup_mode(
+        default_dedup_mode,
+        default=DEFAULT_DEDUP_MODE,
+    )
+    triage_views = build_investigation_views(table_map=table_map)
+    investigation = triage_views.get(resolved_default_dedup_mode, triage_views.get("raw", {}))
     triage_summary = investigation.get("triage_summary", {})
     window_evidence_queue = investigation.get("window_evidence_queue", [])
     record_evidence_queue = investigation.get("record_evidence_queue", [])
     cluster_evidence_queue = investigation.get("cluster_evidence_queue", [])
+    data_quality_panel = build_data_quality_panel(
+        table_map=table_map,
+        triage_views=triage_views,
+        min_cell_n_for_rates=min_cell_n_for_rates,
+    )
 
     payload = {
         "version": 2,
@@ -3749,15 +3764,12 @@ def _build_interactive_chart_payload_v2(
         "charts": charts,
         "chart_legend_docs": chart_legend_docs,
         "chart_help_docs": chart_help_docs,
+        "triage_views": triage_views,
         "triage_summary": triage_summary,
         "window_evidence_queue": window_evidence_queue,
         "record_evidence_queue": record_evidence_queue,
         "cluster_evidence_queue": cluster_evidence_queue,
-        "data_quality_panel": {
-            "status": "pending_phase4",
-            "warnings": [],
-            "summary": "Data-quality triage warnings are planned for Phase 4.",
-        },
+        "data_quality_panel": data_quality_panel,
         "hearing_context_panel": {
             "status": "pending_phase5",
             "available": False,
@@ -3786,7 +3798,8 @@ def _build_interactive_chart_payload_v2(
                     "description": "Structured indicator without formal significance control.",
                 },
             ],
-            "dedup_modes": ["raw", "exact_row_dedup", "side_by_side"],
+            "dedup_modes": list(DEDUP_MODES),
+            "default_dedup_mode": resolved_default_dedup_mode,
             "timezone": "UTC",
             "timezone_label": "UTC",
         },
@@ -3837,21 +3850,33 @@ def _build_interactive_chart_payload(
 def _interactive_chart_payload_from_results(
     results: dict[str, DetectorResult],
     artifacts: dict[str, pd.DataFrame],
+    *,
+    default_dedup_mode: str | None = None,
+    min_cell_n_for_rates: int = 25,
 ) -> dict[str, Any]:
     table_map = _load_table_map_from_results(results=results, artifacts=artifacts)
     detector_summaries = {name: result.summary for name, result in sorted(results.items())}
     return _build_interactive_chart_payload_v2(
         table_map=table_map,
         detector_summaries=detector_summaries,
+        default_dedup_mode=default_dedup_mode,
+        min_cell_n_for_rates=min_cell_n_for_rates,
     )
 
 
-def _interactive_chart_payload_from_disk(out_dir: Path) -> dict[str, Any]:
+def _interactive_chart_payload_from_disk(
+    out_dir: Path,
+    *,
+    default_dedup_mode: str | None = None,
+    min_cell_n_for_rates: int = 25,
+) -> dict[str, Any]:
     table_map = _load_table_map_from_disk(out_dir=out_dir)
     detector_summaries = _load_summaries_from_disk(out_dir)
     return _build_interactive_chart_payload_v2(
         table_map=table_map,
         detector_summaries=detector_summaries,
+        default_dedup_mode=default_dedup_mode,
+        min_cell_n_for_rates=min_cell_n_for_rates,
     )
 
 
@@ -3883,6 +3908,7 @@ def _write_investigation_artifacts(
     window_evidence_queue: Any,
     record_evidence_queue: Any,
     cluster_evidence_queue: Any,
+    data_quality_panel: Any,
 ) -> None:
     summary_dir = out_dir / "summary"
     tables_dir = out_dir / "tables"
@@ -3898,6 +3924,11 @@ def _write_investigation_artifacts(
     window_rows = window_evidence_queue if isinstance(window_evidence_queue, list) else []
     record_rows = record_evidence_queue if isinstance(record_evidence_queue, list) else []
     cluster_rows = cluster_evidence_queue if isinstance(cluster_evidence_queue, list) else []
+    raw_vs_dedup_rows = []
+    if isinstance(data_quality_panel, dict):
+        candidate_rows = data_quality_panel.get("raw_vs_dedup_metrics", [])
+        if isinstance(candidate_rows, list):
+            raw_vs_dedup_rows = candidate_rows
 
     feature_vector = {
         "total_submissions": int(summary_payload.get("total_submissions") or 0),
@@ -3925,6 +3956,7 @@ def _write_investigation_artifacts(
         "triage__window_evidence_queue": _rows_to_frame(window_rows),
         "triage__record_evidence_queue": _rows_to_frame(record_rows),
         "triage__cluster_evidence_queue": _rows_to_frame(cluster_rows),
+        "data_quality__raw_vs_dedup_metrics": _rows_to_frame(raw_vs_dedup_rows),
     }
     for table_name, frame in queue_tables.items():
         csv_path = tables_dir / f"{table_name}.csv"
@@ -3938,6 +3970,9 @@ def render_report(
     results: dict[str, DetectorResult],
     artifacts: dict[str, pd.DataFrame],
     out_dir: Path,
+    *,
+    default_dedup_mode: str = DEFAULT_DEDUP_MODE,
+    min_cell_n_for_rates: int = 25,
 ) -> Path:
     report_started = perf_counter()
     generated_at = datetime.now(timezone.utc).isoformat()
@@ -4012,9 +4047,18 @@ def render_report(
     table_help_docs = _build_table_help_docs(table_column_docs=table_column_docs)
     interactive_started = perf_counter()
     interactive_charts = (
-        _interactive_chart_payload_from_results(results=results, artifacts=artifacts)
+        _interactive_chart_payload_from_results(
+            results=results,
+            artifacts=artifacts,
+            default_dedup_mode=default_dedup_mode,
+            min_cell_n_for_rates=min_cell_n_for_rates,
+        )
         if results
-        else _interactive_chart_payload_from_disk(out_dir=out_dir)
+        else _interactive_chart_payload_from_disk(
+            out_dir=out_dir,
+            default_dedup_mode=default_dedup_mode,
+            min_cell_n_for_rates=min_cell_n_for_rates,
+        )
     )
     interactive_build_ms = round((perf_counter() - interactive_started) * 1000.0, 3)
     if isinstance(interactive_charts.get("controls"), dict):
@@ -4030,6 +4074,7 @@ def render_report(
         window_evidence_queue=interactive_charts.get("window_evidence_queue", []),
         record_evidence_queue=interactive_charts.get("record_evidence_queue", []),
         cluster_evidence_queue=interactive_charts.get("cluster_evidence_queue", []),
+        data_quality_panel=interactive_charts.get("data_quality_panel", {}),
     )
 
     template_started = perf_counter()

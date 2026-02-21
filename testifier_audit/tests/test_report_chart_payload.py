@@ -114,10 +114,12 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(payload["charts"], dict)
     assert isinstance(payload["controls"], dict)
     assert isinstance(payload["chart_legend_docs"], dict)
+    assert isinstance(payload["triage_views"], dict)
     assert isinstance(payload["triage_summary"], dict)
     assert isinstance(payload["window_evidence_queue"], list)
     assert isinstance(payload["record_evidence_queue"], list)
     assert isinstance(payload["cluster_evidence_queue"], list)
+    assert isinstance(payload["data_quality_panel"], dict)
 
     ids = {entry["id"] for entry in payload["analysis_catalog"]}
     assert EXPECTED_ANALYSES.issubset(ids)
@@ -143,6 +145,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert controls["timezone_label"] == "UTC"
     assert isinstance(controls["evidence_taxonomy"], list)
     assert controls["dedup_modes"] == ["raw", "exact_row_dedup", "side_by_side"]
+    assert controls["default_dedup_mode"] in controls["dedup_modes"]
     assert "absolute_time" in controls["zoom_sync_groups"]
     assert isinstance(controls["zoom_sync_groups"]["absolute_time"], list)
     assert 30 in controls["global_bucket_options"]
@@ -150,6 +153,11 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
 
     catalog_by_id = {entry["id"]: entry for entry in payload["analysis_catalog"]}
     assert catalog_by_id["baseline_profile"]["bucket_options"] == EXPECTED_BASELINE_BUCKETS
+
+    triage_views = payload["triage_views"]
+    assert {"raw", "exact_row_dedup", "side_by_side"}.issubset(set(triage_views.keys()))
+    assert payload["data_quality_panel"]["status"] in {"ok", "warning"}
+    assert isinstance(payload["data_quality_panel"]["triage_raw_vs_dedup_metrics"], list)
 
 
 def test_empty_and_disabled_analyses_are_still_in_catalog() -> None:

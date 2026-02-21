@@ -234,3 +234,109 @@ def test_run_all_allows_postgres_mode_without_csv(monkeypatch, tmp_path: Path) -
     assert result.exit_code == 0, result.stdout
     assert captured["csv_path"] is None
     assert "Run complete. Report:" in result.stdout
+
+
+def test_run_all_forwards_dedup_mode_override(monkeypatch, tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            input=SimpleNamespace(mode="postgres"),
+            report=SimpleNamespace(default_dedup_mode="side_by_side", min_cell_n_for_rates=25),
+        ),
+    )
+
+    captured: dict[str, object] = {}
+
+    def _fake_run_all(
+        csv_path: Path | None,
+        out_dir: Path,
+        config: object,
+        *,
+        dedup_mode: str | None = None,
+    ) -> Path:
+        captured["csv_path"] = csv_path
+        captured["out_dir"] = out_dir
+        captured["config"] = config
+        captured["dedup_mode"] = dedup_mode
+        out_dir.mkdir(parents=True, exist_ok=True)
+        report_path = out_dir / "report.html"
+        report_path.write_text("<html></html>", encoding="utf-8")
+        return report_path
+
+    monkeypatch.setattr("testifier_audit.cli.run_all", _fake_run_all)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run-all",
+            "--out",
+            str(out_dir),
+            "--config",
+            str(config_path),
+            "--dedup-mode",
+            "raw",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert captured["csv_path"] is None
+    assert captured["dedup_mode"] == "raw"
+
+
+def test_report_uses_configured_report_settings(monkeypatch, tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            report=SimpleNamespace(default_dedup_mode="exact_row_dedup", min_cell_n_for_rates=33)
+        ),
+    )
+
+    captured: dict[str, object] = {}
+
+    def _fake_render_report(**kwargs: object) -> Path:
+        captured.update(kwargs)
+        path = Path(str(kwargs["out_dir"])) / "report.html"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("<html></html>", encoding="utf-8")
+        return path
+
+    monkeypatch.setattr("testifier_audit.cli.render_report", _fake_render_report)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            "--out",
+            str(out_dir),
+            "--config",
+            str(config_path),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert captured["default_dedup_mode"] == "exact_row_dedup"
+    assert captured["min_cell_n_for_rates"] == 33
+
+    result_override = runner.invoke(
+        app,
+        [
+            "report",
+            "--out",
+            str(out_dir),
+            "--config",
+            str(config_path),
+            "--dedup-mode",
+            "side_by_side",
+        ],
+    )
+    assert result_override.exit_code == 0, result_override.stdout
+    assert captured["default_dedup_mode"] == "side_by_side"

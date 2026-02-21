@@ -278,6 +278,13 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert "runWithBusyIndicator(" in rendered
     assert "scheduleChartResizeSequence()" in rendered
     assert 'Time (" + reportTimezoneLabel + ")"' in rendered
+    assert 'id="triage-dedup-mode"' in rendered
+    assert 'id="data-quality-warning-host"' in rendered
+    assert 'id="data-quality-dedup-metrics-host"' in rendered
+    assert 'id="methodology-artifact-rows-host"' in rendered
+    assert "initDedupModeControl()" in rendered
+    assert "renderDataQualityPanel()" in rendered
+    assert 'summary.textContent = "artifact_rows"' not in rendered
 
 
 def test_render_report_template_contract_renders_analysis_hosts_and_placeholders(

@@ -117,6 +117,11 @@ class OutputsConfig(BaseModel):
     interactive_plotly: bool = False
 
 
+class ReportConfig(BaseModel):
+    min_cell_n_for_rates: int = Field(default=25, ge=1)
+    default_dedup_mode: Literal["raw", "exact_row_dedup", "side_by_side"] = "side_by_side"
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -134,6 +139,7 @@ class AppConfig(BaseModel):
     multivariate_anomaly: MultivariateAnomalyConfig = Field(
         default_factory=MultivariateAnomalyConfig
     )
+    report: ReportConfig = Field(default_factory=ReportConfig)
     outputs: OutputsConfig = Field(default_factory=OutputsConfig)
 
 

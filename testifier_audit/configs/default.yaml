@@ -81,6 +81,10 @@ multivariate_anomaly:
   top_n: 50
   random_seed: 42
 
+report:
+  min_cell_n_for_rates: 25
+  default_dedup_mode: "side_by_side"
+
 outputs:
   tables_format: "parquet"
   figures_format: "png"

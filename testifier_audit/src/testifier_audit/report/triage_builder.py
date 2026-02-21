@@ -5,6 +5,12 @@ from typing import Any, Mapping, Sequence
 
 import pandas as pd
 
+from testifier_audit.features.dedup import (
+    DEDUP_MODES,
+    counts_columns_for_mode,
+    ensure_dedup_count_columns,
+    normalize_dedup_mode,
+)
 from testifier_audit.report.contracts import (
     EvidenceKind,
     EvidenceSignal,
@@ -350,6 +356,98 @@ def _empty_summary() -> dict[str, Any]:
     }
 
 
+def _delta(value: Any, baseline: Any) -> float | None:
+    left = _to_float(value)
+    right = _to_float(baseline)
+    if left is None or right is None:
+        return None
+    return left - right
+
+
+def _relative_delta(value: Any, baseline: Any) -> float | None:
+    left = _to_float(value)
+    right = _to_float(baseline)
+    if left is None or right is None or right == 0:
+        return None
+    return (left - right) / right
+
+
+def _merge_side_by_side_views(
+    raw_view: Mapping[str, Any],
+    dedup_view: Mapping[str, Any],
+) -> dict[str, Any]:
+    raw_summary = dict(raw_view.get("triage_summary", {}))
+    dedup_summary = dict(dedup_view.get("triage_summary", {}))
+
+    side_summary = dict(raw_summary)
+    side_summary["lens"] = "side_by_side"
+    side_summary["total_submissions_raw"] = raw_summary.get("total_submissions")
+    side_summary["total_submissions_exact_row_dedup"] = dedup_summary.get("total_submissions")
+    side_summary["total_submissions_delta"] = _delta(
+        dedup_summary.get("total_submissions"),
+        raw_summary.get("total_submissions"),
+    )
+    side_summary["total_submissions_relative_delta"] = _relative_delta(
+        dedup_summary.get("total_submissions"),
+        raw_summary.get("total_submissions"),
+    )
+    side_summary["overall_pro_rate_raw"] = raw_summary.get("overall_pro_rate")
+    side_summary["overall_pro_rate_exact_row_dedup"] = dedup_summary.get("overall_pro_rate")
+    side_summary["overall_pro_rate_delta"] = _delta(
+        dedup_summary.get("overall_pro_rate"),
+        raw_summary.get("overall_pro_rate"),
+    )
+    side_summary["overall_con_rate_raw"] = raw_summary.get("overall_con_rate")
+    side_summary["overall_con_rate_exact_row_dedup"] = dedup_summary.get("overall_con_rate")
+    side_summary["overall_con_rate_delta"] = _delta(
+        dedup_summary.get("overall_con_rate"),
+        raw_summary.get("overall_con_rate"),
+    )
+
+    raw_windows = list(raw_view.get("window_evidence_queue", []))
+    dedup_windows = {
+        str((row or {}).get("window_id") or ""): row
+        for row in list(dedup_view.get("window_evidence_queue", []))
+        if isinstance(row, dict)
+    }
+    side_windows: list[dict[str, Any]] = []
+    for raw_row in raw_windows:
+        if not isinstance(raw_row, dict):
+            continue
+        dedup_row = dedup_windows.get(str(raw_row.get("window_id") or ""), {})
+        merged = dict(raw_row)
+        merged["count_raw"] = raw_row.get("count")
+        merged["count_exact_row_dedup"] = dedup_row.get("count")
+        merged["count_delta"] = _delta(
+            dedup_row.get("count"),
+            raw_row.get("count"),
+        )
+        merged["count_relative_delta"] = _relative_delta(
+            dedup_row.get("count"),
+            raw_row.get("count"),
+        )
+        merged["pro_rate_raw"] = raw_row.get("pro_rate")
+        merged["pro_rate_exact_row_dedup"] = dedup_row.get("pro_rate")
+        merged["pro_rate_delta"] = _delta(
+            dedup_row.get("pro_rate"),
+            raw_row.get("pro_rate"),
+        )
+        merged["dup_fraction_raw"] = raw_row.get("dup_fraction")
+        merged["dup_fraction_exact_row_dedup"] = dedup_row.get("dup_fraction")
+        merged["dup_fraction_delta"] = _delta(
+            dedup_row.get("dup_fraction"),
+            raw_row.get("dup_fraction"),
+        )
+        side_windows.append(merged)
+
+    return {
+        "triage_summary": side_summary,
+        "window_evidence_queue": side_windows,
+        "record_evidence_queue": list(raw_view.get("record_evidence_queue", [])),
+        "cluster_evidence_queue": list(raw_view.get("cluster_evidence_queue", [])),
+    }
+
+
 def build_investigation_view(
     table_map: Mapping[str, pd.DataFrame],
     *,
@@ -357,14 +455,49 @@ def build_investigation_view(
     top_n_windows: int = 250,
     top_n_records: int = 250,
     top_n_clusters: int = 250,
+    dedup_mode: str = "raw",
 ) -> dict[str, Any]:
     """Build Phase 2 investigation-first triage contracts from detector tables."""
+    resolved_mode = normalize_dedup_mode(dedup_mode, default="raw")
+    if resolved_mode == "side_by_side":
+        raw_view = build_investigation_view(
+            table_map=table_map,
+            thresholds=thresholds,
+            top_n_windows=top_n_windows,
+            top_n_records=top_n_records,
+            top_n_clusters=top_n_clusters,
+            dedup_mode="raw",
+        )
+        dedup_view = build_investigation_view(
+            table_map=table_map,
+            thresholds=thresholds,
+            top_n_windows=top_n_windows,
+            top_n_records=top_n_records,
+            top_n_clusters=top_n_clusters,
+            dedup_mode="exact_row_dedup",
+        )
+        return _merge_side_by_side_views(raw_view=raw_view, dedup_view=dedup_view)
+
     resolved_thresholds = thresholds or TriageTierThresholds()
 
     counts = _with_columns(
         _table(table_map, "artifacts.counts_per_minute"),
-        ["minute_bucket", "n_total", "n_pro", "n_con", "dup_name_fraction", "pro_rate"],
+        [
+            "minute_bucket",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "dup_name_fraction",
+            "n_total_dedup",
+            "n_pro_dedup",
+            "n_con_dedup",
+            "dup_name_fraction_dedup",
+            "pro_rate",
+            "pro_rate_dedup",
+        ],
     )
+    counts = ensure_dedup_count_columns(counts)
+    count_columns = counts_columns_for_mode(resolved_mode)
     bursts = _with_columns(
         _table(table_map, "bursts.burst_significant_windows"),
         [
@@ -633,14 +766,28 @@ def build_investigation_view(
             in_window = pd.DataFrame()
 
         if not in_window.empty:
-            n_total = float(pd.to_numeric(in_window["n_total"], errors="coerce").fillna(0.0).sum())
-            n_pro = float(pd.to_numeric(in_window["n_pro"], errors="coerce").fillna(0.0).sum())
+            n_total = float(
+                pd.to_numeric(
+                    in_window[count_columns["n_total"]],
+                    errors="coerce",
+                )
+                .fillna(0.0)
+                .sum()
+            )
+            n_pro = float(
+                pd.to_numeric(
+                    in_window[count_columns["n_pro"]],
+                    errors="coerce",
+                )
+                .fillna(0.0)
+                .sum()
+            )
             candidate["count"] = n_total
             candidate["support_n"] = int(n_total)
             candidate["pro_rate"] = n_pro / n_total if n_total > 0 else None
             candidate["dup_fraction"] = _weighted_mean(
-                in_window["dup_name_fraction"],
-                in_window["n_total"],
+                in_window[count_columns["dup_fraction"]],
+                in_window[count_columns["n_total"]],
             )
 
         if not dup_near_clusters.empty and candidate["count"]:
@@ -1035,9 +1182,15 @@ def build_investigation_view(
 
     summary = _empty_summary()
     if not counts.empty:
-        n_total = float(pd.to_numeric(counts["n_total"], errors="coerce").fillna(0.0).sum())
-        n_pro = float(pd.to_numeric(counts["n_pro"], errors="coerce").fillna(0.0).sum())
-        n_con = float(pd.to_numeric(counts["n_con"], errors="coerce").fillna(0.0).sum())
+        n_total = float(
+            pd.to_numeric(counts[count_columns["n_total"]], errors="coerce").fillna(0.0).sum()
+        )
+        n_pro = float(
+            pd.to_numeric(counts[count_columns["n_pro"]], errors="coerce").fillna(0.0).sum()
+        )
+        n_con = float(
+            pd.to_numeric(counts[count_columns["n_con"]], errors="coerce").fillna(0.0).sum()
+        )
         summary["total_submissions"] = int(n_total)
         summary["date_range_start"] = _iso_or_none(_to_timestamp(counts["minute_bucket"].min()))
         summary["date_range_end"] = _iso_or_none(_to_timestamp(counts["minute_bucket"].max()))
@@ -1123,6 +1276,7 @@ def build_investigation_view(
     )
     for tier in ("high", "medium", "watch"):
         summary["window_tier_counts"].setdefault(tier, 0)
+    summary["lens"] = resolved_mode
 
     return {
         "triage_summary": summary,
@@ -1130,3 +1284,24 @@ def build_investigation_view(
         "record_evidence_queue": record_rows,
         "cluster_evidence_queue": cluster_rows,
     }
+
+
+def build_investigation_views(
+    table_map: Mapping[str, pd.DataFrame],
+    *,
+    thresholds: TriageTierThresholds | None = None,
+    top_n_windows: int = 250,
+    top_n_records: int = 250,
+    top_n_clusters: int = 250,
+) -> dict[str, dict[str, Any]]:
+    views: dict[str, dict[str, Any]] = {}
+    for mode in DEDUP_MODES:
+        views[mode] = build_investigation_view(
+            table_map=table_map,
+            thresholds=thresholds,
+            top_n_windows=top_n_windows,
+            top_n_records=top_n_records,
+            top_n_clusters=top_n_clusters,
+            dedup_mode=mode,
+        )
+    return views

@@ -8,7 +8,19 @@ from testifier_audit.pipeline.pass2_deep_dive import run_detectors
 from testifier_audit.report.render import render_report
 
 
-def run_all(csv_path: Path | None, out_dir: Path, config: AppConfig) -> Path:
+def run_all(
+    csv_path: Path | None,
+    out_dir: Path,
+    config: AppConfig,
+    *,
+    dedup_mode: str | None = None,
+) -> Path:
     artifacts = build_profile_artifacts(csv_path=csv_path, out_dir=out_dir, config=config)
     results = run_detectors(csv_path=csv_path, artifacts=artifacts, out_dir=out_dir, config=config)
-    return render_report(results=results, artifacts=artifacts, out_dir=out_dir)
+    return render_report(
+        results=results,
+        artifacts=artifacts,
+        out_dir=out_dir,
+        default_dedup_mode=dedup_mode or config.report.default_dedup_mode,
+        min_cell_n_for_rates=int(config.report.min_cell_n_for_rates),
+    )

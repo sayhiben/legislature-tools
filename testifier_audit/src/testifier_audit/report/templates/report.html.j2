@@ -281,6 +281,48 @@
         gap: 0.48rem;
       }
 
+      .triage-lens-controls {
+        margin-top: 0.72rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.8rem;
+      }
+
+      .triage-lens-label {
+        color: var(--ink-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .triage-lens-select {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #0f172a;
+        font: inherit;
+        font-size: 0.84rem;
+        padding: 0.3rem 0.5rem;
+      }
+
+      .warning-banner {
+        margin-top: 0.5rem;
+        border: 1px solid #fde68a;
+        border-left: 4px solid #d97706;
+        border-radius: 8px;
+        background: #fffbeb;
+        color: #92400e;
+        padding: 0.5rem 0.62rem;
+        font-size: 0.84rem;
+      }
+
+      .warning-banner.ok {
+        border-color: #99f6e4;
+        border-left-color: #0f766e;
+        background: #f0fdfa;
+        color: #115e59;
+      }
+
       .definition-callout {
         margin-top: 0.75rem;
         border: 1px solid #bfdbfe;
@@ -949,6 +991,11 @@
             <p class="tiny-note">
               Prioritize windows first, then record and cluster evidence. Click a window row to sync drilldown context.
             </p>
+            <div class="triage-lens-controls">
+              <label for="triage-dedup-mode" class="triage-lens-label">Triage lens</label>
+              <select id="triage-dedup-mode" class="triage-lens-select"></select>
+              <span id="triage-dedup-note" class="tiny-note"></span>
+            </div>
             <section class="kpi-grid">
               <article class="kpi-card">
                 <div class="kpi-label">Total submissions</div>
@@ -967,6 +1014,21 @@
                 <div class="kpi-value" id="triage-top-tier-count">0</div>
               </article>
             </section>
+            <div id="data-quality-summary" class="warning-banner"></div>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Data Quality Warnings</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-warning-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Raw vs Dedup Metrics</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-dedup-metrics-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
             <div class="triage-actions">
               <button id="download-selected-window-rows" class="control-button" type="button">
                 download selected window rows
@@ -1202,6 +1264,15 @@
                 </div>
               </article>
               <article class="detail-card">
+                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
+                <p class="tiny-note">
+                  Artifact/table row counts are retained for reproducibility and moved here to keep triage focused on actionable evidence.
+                </p>
+                <div class="table-wrap">
+                  <div id="methodology-artifact-rows-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
                 <h3 class="detail-title">Interpretation Guardrails</h3>
                 <p class="tiny-note">
                   Signals indicate statistical irregularity and warrant review; they are not direct attribution of intent.
@@ -1249,6 +1320,7 @@
         const analysisCatalog = Array.isArray(interactive.analysis_catalog) ? interactive.analysis_catalog : [];
         const analysisById = new Map(analysisCatalog.map((analysis) => [String(analysis.id || ""), analysis]));
         const chartRowsMap = interactive.charts || {};
+        const triageViews = interactive.triage_views || {};
         const triageSummary = interactive.triage_summary || {};
         const windowEvidenceQueue = Array.isArray(interactive.window_evidence_queue)
           ? interactive.window_evidence_queue
@@ -1259,6 +1331,7 @@
         const clusterEvidenceQueue = Array.isArray(interactive.cluster_evidence_queue)
           ? interactive.cluster_evidence_queue
           : [];
+        const dataQualityPanel = interactive.data_quality_panel || {};
         const controls = interactive.controls || {};
         const tableColumnDocs = reportData.table_column_docs || {};
         const tableHelpDocs = reportData.table_help_docs || {};
@@ -1270,6 +1343,17 @@
           typeof controls.timezone_label === "string" && controls.timezone_label.trim()
             ? controls.timezone_label.trim()
             : reportTimezone;
+        const dedupModes = Array.isArray(controls.dedup_modes)
+          ? controls.dedup_modes.map((mode) => String(mode || "").trim()).filter((mode) => !!mode)
+          : [];
+        const defaultDedupMode =
+          typeof controls.default_dedup_mode === "string" && dedupModes.includes(controls.default_dedup_mode)
+            ? controls.default_dedup_mode
+            : dedupModes.includes("side_by_side")
+              ? "side_by_side"
+              : dedupModes.includes("raw")
+                ? "raw"
+                : dedupModes[0] || "raw";
 
         const hasEcharts = typeof window.echarts !== "undefined";
         const hasTabulator = typeof window.Tabulator !== "undefined";
@@ -1282,9 +1366,11 @@
           windowTable: null,
           selectedWindowIds: [],
         };
+        let investigationActionsBound = false;
 
         const state = {
           activeBucket: null,
+          activeDedupMode: defaultDedupMode,
           cursorX: null,
           activeTocHeading: null,
           selectedWindowRange: null,
@@ -1367,6 +1453,45 @@
             return "-";
           }
           return formatEpochMillis(start) + " to " + formatEpochMillis(end);
+        }
+
+        function dedupModeLabel(mode) {
+          if (mode === "raw") {
+            return "Raw";
+          }
+          if (mode === "exact_row_dedup") {
+            return "Exact row dedup";
+          }
+          if (mode === "side_by_side") {
+            return "Side-by-side";
+          }
+          return mode;
+        }
+
+        function getTriageView(mode) {
+          const key = String(mode || "");
+          const view = triageViews[key];
+          if (view && typeof view === "object") {
+            return view;
+          }
+          if (key === "raw" || !key) {
+            return {
+              triage_summary: triageSummary,
+              window_evidence_queue: windowEvidenceQueue,
+              record_evidence_queue: recordEvidenceQueue,
+              cluster_evidence_queue: clusterEvidenceQueue,
+            };
+          }
+          return {
+            triage_summary: triageSummary,
+            window_evidence_queue: windowEvidenceQueue,
+            record_evidence_queue: recordEvidenceQueue,
+            cluster_evidence_queue: clusterEvidenceQueue,
+          };
+        }
+
+        function getActiveTriageView() {
+          return getTriageView(state.activeDedupMode);
         }
 
         function rowsToCsv(rows) {
@@ -3432,37 +3557,107 @@
         }
 
         function renderTriageSummary() {
+          const view = getActiveTriageView();
+          const summary = view.triage_summary || {};
           const setText = (id, value) => {
             const element = document.getElementById(id);
             if (element) {
               element.textContent = String(value);
             }
           };
-          setText("triage-total-submissions", Number(toNumber(triageSummary.total_submissions || 0)).toLocaleString());
+
+          if (
+            state.activeDedupMode === "side_by_side" &&
+            summary.total_submissions_raw !== undefined &&
+            summary.total_submissions_exact_row_dedup !== undefined
+          ) {
+            setText(
+              "triage-total-submissions",
+              Number(toNumber(summary.total_submissions_raw || 0)).toLocaleString() +
+                " -> " +
+                Number(toNumber(summary.total_submissions_exact_row_dedup || 0)).toLocaleString()
+            );
+          } else {
+            setText(
+              "triage-total-submissions",
+              Number(toNumber(summary.total_submissions || 0)).toLocaleString()
+            );
+          }
           setText(
             "triage-date-range",
-            formatDateRange(triageSummary.date_range_start, triageSummary.date_range_end)
+            formatDateRange(summary.date_range_start, summary.date_range_end)
           );
-          setText(
-            "triage-overall-procon",
-            formatPercent(triageSummary.overall_pro_rate) + " / " + formatPercent(triageSummary.overall_con_rate)
-          );
-          const tierCounts = triageSummary.window_tier_counts || {};
+          if (
+            state.activeDedupMode === "side_by_side" &&
+            summary.overall_pro_rate_raw !== undefined &&
+            summary.overall_pro_rate_exact_row_dedup !== undefined
+          ) {
+            setText(
+              "triage-overall-procon",
+              formatPercent(summary.overall_pro_rate_raw) +
+                " -> " +
+                formatPercent(summary.overall_pro_rate_exact_row_dedup) +
+                " / " +
+                formatPercent(summary.overall_con_rate_raw) +
+                " -> " +
+                formatPercent(summary.overall_con_rate_exact_row_dedup)
+            );
+          } else {
+            setText(
+              "triage-overall-procon",
+              formatPercent(summary.overall_pro_rate) + " / " + formatPercent(summary.overall_con_rate)
+            );
+          }
+
+          const tierCounts = summary.window_tier_counts || {};
           setText(
             "triage-top-tier-count",
             Number(toNumber(tierCounts.high || 0)).toLocaleString()
           );
         }
 
+        function renderDataQualityPanel() {
+          const summaryHost = document.getElementById("data-quality-summary");
+          const warningHost = document.getElementById("data-quality-warning-host");
+          const metricsHost = document.getElementById("data-quality-dedup-metrics-host");
+
+          const panelStatus = String(dataQualityPanel.status || "ok");
+          const warnings = Array.isArray(dataQualityPanel.warnings) ? dataQualityPanel.warnings : [];
+          const metrics = Array.isArray(dataQualityPanel.triage_raw_vs_dedup_metrics)
+            ? dataQualityPanel.triage_raw_vs_dedup_metrics
+            : [];
+
+          if (summaryHost) {
+            summaryHost.classList.toggle("ok", panelStatus === "ok");
+            summaryHost.textContent =
+              typeof dataQualityPanel.summary === "string" && dataQualityPanel.summary.trim()
+                ? dataQualityPanel.summary
+                : "Data-quality checks unavailable for this run.";
+          }
+          if (warningHost) {
+            mountTable(warningHost, warnings, { pagination: false, maxHeight: "260px" });
+          }
+          if (metricsHost) {
+            mountTable(metricsHost, metrics, { pagination: false, maxHeight: "260px" });
+          }
+        }
+
         function renderInvestigationTables() {
+          const view = getActiveTriageView();
+          const summary = view.triage_summary || {};
+          const windowQueue = Array.isArray(view.window_evidence_queue) ? view.window_evidence_queue : [];
+          const recordQueue = Array.isArray(view.record_evidence_queue) ? view.record_evidence_queue : [];
+          const clusterQueue = Array.isArray(view.cluster_evidence_queue) ? view.cluster_evidence_queue : [];
+
           const windowHost = document.getElementById("triage-window-queue-host");
           const recordHost = document.getElementById("triage-record-queue-host");
           const clusterHost = document.getElementById("triage-cluster-queue-host");
           const forensicsNamesHost = document.getElementById("forensics-top-names-host");
           const forensicsClustersHost = document.getElementById("forensics-top-clusters-host");
           const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
+          const artifactRowsHost = document.getElementById("methodology-artifact-rows-host");
 
-          const windowMount = mountTable(windowHost, windowEvidenceQueue, {
+          const windowMount = mountTable(windowHost, windowQueue, {
             paginationSize: 12,
             maxHeight: "420px",
             selectableRows: true,
@@ -3488,23 +3683,23 @@
             }
           }
 
-          mountTable(recordHost, recordEvidenceQueue, {
+          mountTable(recordHost, recordQueue, {
             paginationSize: 10,
             maxHeight: "380px",
           });
-          mountTable(clusterHost, clusterEvidenceQueue, {
+          mountTable(clusterHost, clusterQueue, {
             paginationSize: 10,
             maxHeight: "380px",
           });
 
-          const topNames = Array.isArray(triageSummary.top_repeated_names) && triageSummary.top_repeated_names.length
-            ? triageSummary.top_repeated_names
-            : recordEvidenceQueue.slice(0, 10);
+          const topNames = Array.isArray(summary.top_repeated_names) && summary.top_repeated_names.length
+            ? summary.top_repeated_names
+            : recordQueue.slice(0, 10);
           const topClusters =
-            Array.isArray(triageSummary.top_near_dup_clusters) &&
-            triageSummary.top_near_dup_clusters.length
-              ? triageSummary.top_near_dup_clusters
-              : clusterEvidenceQueue.slice(0, 10);
+            Array.isArray(summary.top_near_dup_clusters) &&
+            summary.top_near_dup_clusters.length
+              ? summary.top_near_dup_clusters
+              : clusterQueue.slice(0, 10);
           mountTable(forensicsNamesHost, topNames, {
             paginationSize: 8,
             maxHeight: "340px",
@@ -3522,53 +3717,137 @@
             maxHeight: "280px",
           });
 
-          if (windowEvidenceQueue.length) {
-            renderWindowDrilldown(windowEvidenceQueue[0]);
+          const artifactRows = Object.entries(reportData.artifact_rows || {})
+            .map((entry) => ({
+              artifact: entry[0],
+              rows: toNumber(entry[1]),
+            }))
+            .sort((left, right) => {
+              const rowDelta = Number(toNumber(right.rows)) - Number(toNumber(left.rows));
+              if (rowDelta !== 0) {
+                return rowDelta;
+              }
+              return String(left.artifact).localeCompare(String(right.artifact));
+            });
+          mountTable(artifactRowsHost, artifactRows, {
+            paginationSize: 10,
+            maxHeight: "300px",
+          });
+
+          const currentWindowId = String((drilldownState.activeWindow || {}).window_id || "");
+          const nextActiveWindow =
+            windowQueue.find((row) => String((row || {}).window_id || "") === currentWindowId) ||
+            (windowQueue.length ? windowQueue[0] : null);
+          if (nextActiveWindow) {
+            renderWindowDrilldown(nextActiveWindow);
           } else {
             renderWindowDrilldown(null);
           }
 
-          const selectedButton = document.getElementById("download-selected-window-rows");
-          if (selectedButton) {
-            selectedButton.addEventListener("click", () => {
-              let selectedWindows = [];
-              if (
-                drilldownState.windowTable &&
-                typeof drilldownState.windowTable.getSelectedData === "function"
-              ) {
-                selectedWindows = drilldownState.windowTable.getSelectedData() || [];
-              }
-              if (!selectedWindows.length && drilldownState.activeWindow) {
-                selectedWindows = [drilldownState.activeWindow];
-              }
-              const rows = selectedWindows.flatMap((windowRow) =>
-                getWindowSpanRows(windowRow).map((row) =>
-                  Object.assign({ window_id: windowRow.window_id || "" }, row)
-                )
-              );
-              if (!downloadCsv("selected_window_rows.csv", rows)) {
-                window.alert("No selected window rows available to export.");
-              }
-            });
+          if (!investigationActionsBound) {
+            const selectedButton = document.getElementById("download-selected-window-rows");
+            if (selectedButton) {
+              selectedButton.addEventListener("click", () => {
+                let selectedWindows = [];
+                if (
+                  drilldownState.windowTable &&
+                  typeof drilldownState.windowTable.getSelectedData === "function"
+                ) {
+                  selectedWindows = drilldownState.windowTable.getSelectedData() || [];
+                }
+                if (!selectedWindows.length && drilldownState.activeWindow) {
+                  selectedWindows = [drilldownState.activeWindow];
+                }
+                const rows = selectedWindows.flatMap((windowRow) =>
+                  getWindowSpanRows(windowRow).map((row) =>
+                    Object.assign({ window_id: windowRow.window_id || "" }, row)
+                  )
+                );
+                if (!downloadCsv("selected_window_rows.csv", rows)) {
+                  window.alert("No selected window rows available to export.");
+                }
+              });
+            }
+
+            const topWindowsButton = document.getElementById("download-top-evidence-windows");
+            if (topWindowsButton) {
+              topWindowsButton.addEventListener("click", () => {
+                const activeView = getActiveTriageView();
+                const activeRows = Array.isArray(activeView.window_evidence_queue)
+                  ? activeView.window_evidence_queue
+                  : [];
+                if (!downloadCsv("top_evidence_windows.csv", activeRows)) {
+                  window.alert("No window evidence rows available to export.");
+                }
+              });
+            }
+
+            const topRecordsButton = document.getElementById("download-top-evidence-records");
+            if (topRecordsButton) {
+              topRecordsButton.addEventListener("click", () => {
+                const activeView = getActiveTriageView();
+                const activeRows = Array.isArray(activeView.record_evidence_queue)
+                  ? activeView.record_evidence_queue
+                  : [];
+                if (!downloadCsv("top_evidence_records.csv", activeRows)) {
+                  window.alert("No record evidence rows available to export.");
+                }
+              });
+            }
+            investigationActionsBound = true;
+          }
+        }
+
+        function initDedupModeControl() {
+          const select = document.getElementById("triage-dedup-mode");
+          const note = document.getElementById("triage-dedup-note");
+          if (!select) {
+            return;
           }
 
-          const topWindowsButton = document.getElementById("download-top-evidence-windows");
-          if (topWindowsButton) {
-            topWindowsButton.addEventListener("click", () => {
-              if (!downloadCsv("top_evidence_windows.csv", windowEvidenceQueue)) {
-                window.alert("No window evidence rows available to export.");
-              }
-            });
+          const modes = dedupModes.length ? dedupModes : ["raw"];
+          if (!modes.includes(state.activeDedupMode)) {
+            state.activeDedupMode = modes[0];
           }
 
-          const topRecordsButton = document.getElementById("download-top-evidence-records");
-          if (topRecordsButton) {
-            topRecordsButton.addEventListener("click", () => {
-              if (!downloadCsv("top_evidence_records.csv", recordEvidenceQueue)) {
-                window.alert("No record evidence rows available to export.");
-              }
+          select.innerHTML = "";
+          modes.forEach((mode) => {
+            const option = document.createElement("option");
+            option.value = mode;
+            option.textContent = dedupModeLabel(mode);
+            select.appendChild(option);
+          });
+          select.value = state.activeDedupMode;
+
+          const updateNote = () => {
+            if (!note) {
+              return;
+            }
+            const lensNote =
+              typeof dataQualityPanel.lens_note === "string" ? dataQualityPanel.lens_note.trim() : "";
+            const materialMetricCount = Number(toNumber(dataQualityPanel.material_metric_count || 0));
+            const impactNote =
+              materialMetricCount > 0
+                ? materialMetricCount.toLocaleString() + " raw-vs-dedup metric(s) changed materially."
+                : "No material raw-vs-dedup metric deltas detected.";
+            note.textContent = dedupModeLabel(state.activeDedupMode) + " lens. " + lensNote + " " + impactNote;
+          };
+
+          select.addEventListener("change", () => {
+            const nextMode = String(select.value || "").trim();
+            if (!nextMode || nextMode === state.activeDedupMode) {
+              updateNote();
+              return;
+            }
+            state.activeDedupMode = nextMode;
+            runWithBusyIndicator("Applying " + dedupModeLabel(nextMode) + " lens...", () => {
+              renderTriageSummary();
+              renderInvestigationTables();
             });
-          }
+            updateNote();
+          });
+
+          updateNote();
         }
 
         function renderTablesForAnalysis(section, analysis) {
@@ -3581,28 +3860,6 @@
           const detectorKey = analysis.detector;
           const detectorTables = detectorKey ? (reportData.table_previews || {})[detectorKey] || {} : {};
           const tableNames = Object.keys(detectorTables).sort();
-
-          if (analysis.id === "baseline_profile") {
-            const baselineCard = document.createElement("details");
-            baselineCard.className = "table-group";
-            baselineCard.open = true;
-            const summary = document.createElement("summary");
-            summary.textContent = "artifact_rows";
-            baselineCard.appendChild(summary);
-            const wrap = document.createElement("div");
-            wrap.className = "table-wrap";
-            const host = document.createElement("div");
-            host.className = "table-host";
-            const artifactRows = Object.entries(reportData.artifact_rows || {}).map((entry) => ({
-              artifact: entry[0],
-              rows: toNumber(entry[1]),
-            }));
-            renderTableHelpCard(wrap, "artifacts.artifact_rows", artifactRows);
-            wrap.appendChild(host);
-            baselineCard.appendChild(wrap);
-            mountTable(host, artifactRows, { paginationSize: 10, maxHeight: "360px" });
-            container.appendChild(baselineCard);
-          }
 
           if (analysis.id === "composite_score" && Array.isArray(reportData.evidence_bundle_preview || [])) {
             const evidenceDetails = document.createElement("details");
@@ -4170,6 +4427,8 @@
         }
 
         buildKpis();
+        initDedupModeControl();
+        renderDataQualityPanel();
         renderTriageSummary();
         renderInvestigationTables();
         initSidebarToggle();

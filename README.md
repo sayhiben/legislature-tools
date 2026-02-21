@@ -64,6 +64,18 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - For every new analysis chart, update registry definitions, payload wiring, template rendering, and
   contract tests together to prevent contract drift.
 
+## Lessons Learned (Phase 4 Data Quality and Dual-Lens Reporting)
+- Keep dedup-lens behavior contract-driven in payload controls:
+  default lens selection belongs in `controls.default_dedup_mode` and lens views belong in
+  `triage_views`.
+- Keep triage actionable by default:
+  prioritize high-value quality warnings and material raw-vs-dedup deltas in the `Triage` section,
+  while relocating profiling-only coverage tables to `Methodology`.
+- Treat quality warning sensitivity as configuration, not template logic:
+  thread `report.min_cell_n_for_rates` through config/CLI/pipeline into report quality builders.
+- Limit Phase 4 side-by-side expansion to the primary prioritization surface (window queue deltas)
+  unless there is an explicit need to mirror side-by-side deltas for record/cluster queues.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 

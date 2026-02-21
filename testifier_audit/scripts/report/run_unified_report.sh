@@ -19,6 +19,7 @@ DEFAULT_OUT_DIR="${REPORTS_ROOT}/${CSV_STEM}"
 OUT_DIR="${OUT_DIR:-${DEFAULT_OUT_DIR}}"
 CONFIG_PATH="${CONFIG_PATH:-${PROJECT_ROOT}/configs/voter_registry_enabled.yaml}"
 DB_URL="${TESTIFIER_AUDIT_DB_URL:-${DATABASE_URL:-postgresql://legislature:legislature@localhost:55432/legislature}}"
+DEDUP_MODE="${DEDUP_MODE:-}"
 
 if [[ ! -f "${SUBMISSIONS_CSV}" ]]; then
   echo "Submissions CSV not found: ${SUBMISSIONS_CSV}" >&2
@@ -44,6 +45,9 @@ echo "Using submissions CSV: ${SUBMISSIONS_CSV}"
 echo "Using VRDB extract: ${VRDB_EXTRACT}"
 echo "Using config: ${CONFIG_PATH}"
 echo "Output directory: ${OUT_DIR}"
+if [[ -n "${DEDUP_MODE}" ]]; then
+  echo "Using dedup mode override: ${DEDUP_MODE}"
+fi
 
 docker compose up -d postgres
 
@@ -54,6 +58,10 @@ fi
 CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/db/import_submissions.sh" "${SUBMISSIONS_CSV}"
 CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/vrdb/import_vrdb.sh" "${VRDB_EXTRACT}"
 
-python -m testifier_audit.cli run-all --out "${OUT_DIR}" --config "${CONFIG_PATH}"
+CLI_ARGS=(run-all --out "${OUT_DIR}" --config "${CONFIG_PATH}")
+if [[ -n "${DEDUP_MODE}" ]]; then
+  CLI_ARGS+=(--dedup-mode "${DEDUP_MODE}")
+fi
+python -m testifier_audit.cli "${CLI_ARGS[@]}"
 
 echo "Unified report written to: ${OUT_DIR}/report.html"

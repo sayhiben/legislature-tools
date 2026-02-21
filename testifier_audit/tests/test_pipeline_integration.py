@@ -167,6 +167,7 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert (out_dir / "tables" / "triage__window_evidence_queue.csv").exists()
     assert (out_dir / "tables" / "triage__record_evidence_queue.csv").exists()
     assert (out_dir / "tables" / "triage__cluster_evidence_queue.csv").exists()
+    assert (out_dir / "tables" / "data_quality__raw_vs_dedup_metrics.csv").exists()
     assert (out_dir / "figures" / "counts_with_anomalies.png").exists()
     assert (out_dir / "figures" / "pro_rate_with_anomalies.png").exists()
     assert (out_dir / "figures" / "pro_rate_heatmap_day_hour.png").exists()

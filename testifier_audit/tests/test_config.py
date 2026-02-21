@@ -61,3 +61,33 @@ def test_load_config_uses_env_db_url_for_input(monkeypatch, tmp_path: Path) -> N
     )
     cfg = load_config(config_path)
     assert cfg.input.db_url == "postgresql://env-user:env-pass@localhost:55432/legislature"
+
+
+def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
+    base = {
+        "columns": {
+            "id": "id",
+            "name": "name",
+            "organization": "organization",
+            "position": "position",
+            "time_signed_in": "time_signed_in",
+        }
+    }
+    base_path = tmp_path / "base.yaml"
+    base_path.write_text(yaml.safe_dump(base), encoding="utf-8")
+    base_cfg = load_config(base_path)
+    assert base_cfg.report.default_dedup_mode == "side_by_side"
+    assert base_cfg.report.min_cell_n_for_rates == 25
+
+    override = {
+        **base,
+        "report": {
+            "default_dedup_mode": "raw",
+            "min_cell_n_for_rates": 40,
+        },
+    }
+    override_path = tmp_path / "override.yaml"
+    override_path.write_text(yaml.safe_dump(override), encoding="utf-8")
+    override_cfg = load_config(override_path)
+    assert override_cfg.report.default_dedup_mode == "raw"
+    assert override_cfg.report.min_cell_n_for_rates == 40

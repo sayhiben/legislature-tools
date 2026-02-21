@@ -484,16 +484,87 @@ Lessons learned to carry into later phases:
    - time-varying missingness spikes.
 4. Move non-actionable profiling metrics out of primary triage view.
 
-Where:
-- `.../features/dedup.py`
-- `.../report/quality_builder.py`
-- `.../report/render.py`
-- `.../report/templates/report.html.j2`
+Status (2026-02-21): Complete
+- Completed in this phase:
+  - Added dual-lens dedup infrastructure:
+    - new `features/dedup.py` helpers for mode normalization, count-column mapping, and dedup-safe
+      minute-count enrichment.
+    - extended `features/aggregates.py::build_counts_per_minute(...)` with dedup-aware minute metrics:
+      `n_total_dedup`, `n_pro_dedup`, `n_con_dedup`, `dup_name_fraction_dedup`,
+      `dedup_drop_fraction`, and `dedup_multiplier`.
+  - Implemented triage dual-lens contracts in `report/triage_builder.py`:
+    - `build_investigation_view(..., dedup_mode=...)` now supports `raw`, `exact_row_dedup`,
+      and `side_by_side`.
+    - added `build_investigation_views(...)` payload-ready map across all three lenses.
+    - side-by-side queue rows now include explicit deltas (`count_*`, `pro_rate_*`, `dup_fraction_*`).
+  - Implemented `report/quality_builder.py` with:
+    - high-value warning generation for:
+      - invalid/missing positions
+      - unparsable/missing names
+      - duplicate IDs
+      - non-monotonic timestamps vs ID
+      - time-varying organization missingness spikes
+    - raw-vs-dedup material-delta metrics for triage context.
+  - Wired Phase 4 payload/runtime contracts in `report/render.py`:
+    - replaced `pending_phase4` placeholder with computed `data_quality_panel`.
+    - added `triage_views` payload key and `controls.default_dedup_mode`.
+    - preserved backward-compatible top-level active-lens keys:
+      `triage_summary`, `window_evidence_queue`, `record_evidence_queue`, `cluster_evidence_queue`.
+    - added artifact export:
+      `tables/data_quality__raw_vs_dedup_metrics.(csv|parquet)`.
+  - Added report-level config + wiring for dual-lens/data-quality controls:
+    - new config fields in `config.py` and YAMLs:
+      - `report.min_cell_n_for_rates` (default `25`)
+      - `report.default_dedup_mode` (default `side_by_side`)
+    - threaded through `pipeline/run_all.py`, CLI (`run-all` and `report`), and `render_report(...)`.
+    - added unified script override (`DEDUP_MODE`) in
+      `scripts/report/run_unified_report.sh`.
+  - Updated `report/templates/report.html.j2`:
+    - added triage lens selector (`raw` / `exact_row_dedup` / `side_by_side`) with live rerender.
+    - added Data Quality warning card + Raw-vs-Dedup metrics card.
+    - export actions now read from active lens queues.
+    - moved profiling-only `artifact_rows` table out of detector analysis cards and into
+      `Methodology` (`methodology-artifact-rows-host`) to keep triage/investigation paths focused on
+      actionable evidence.
+  - Refined primary triage metrics to reduce non-actionable noise:
+    - `report/quality_builder.py` now emits `triage_raw_vs_dedup_metrics` as material-change rows only
+      (with single-row fallback when no material deltas exist).
+- Added/updated tests:
+  - Added:
+    - `tests/test_dedup_lenses.py`
+    - `tests/test_data_quality_panel.py`
+  - Updated:
+    - `tests/test_report_chart_payload.py`
+    - `tests/test_report_render_helpers.py`
+    - `tests/test_pipeline_integration.py`
+    - `tests/test_cli.py`
+    - `tests/test_config.py`
+  - Validation run:
+    - `python -m pytest testifier_audit/tests/test_data_quality_panel.py testifier_audit/tests/test_report_render_helpers.py testifier_audit/tests/test_report_chart_payload.py testifier_audit/tests/test_pipeline_integration.py` (16 passed)
+    - `python -m ruff check tests/test_report_render_helpers.py tests/test_data_quality_panel.py`
+    - `./scripts/ci/lint.sh` (passed)
+    - `./scripts/ci/test.sh` (138 passed)
 
-Tests:
-- `test_dedup_lenses.py`
-- `test_data_quality_panel.py`
-- updates to payload and render contract tests.
+Scope refinement decisions:
+- To avoid Phase 4/5 scope creep, `exact_row_dedup` currently uses the highest-fidelity
+  payload-available proxy: canonical-name collapse within minute buckets.
+  This is surfaced in panel lens notes and can be upgraded later if/when row-level dedup contracts
+  are introduced.
+- Record/cluster queues remain lens-switchable (`raw`, `exact_row_dedup`, `side_by_side`) without
+  extra side-by-side delta columns; window queue side-by-side deltas were kept as the Phase 4
+  sufficient contract because those windows are the primary prioritization surface.
+
+Lessons learned to carry into later phases:
+- Keep configuration-driven controls end-to-end:
+  when thresholds/modes affect interpretation (for example dedup lens defaults and min support for
+  warning rates), thread config values through CLI/pipeline/render contracts instead of embedding
+  local defaults in downstream builders.
+- Preserve investigator-first information hierarchy:
+  keep triage focused on high-signal, actionable tables; move profiling/completeness tables to
+  methodology contexts unless they directly influence prioritization.
+- Prefer lens-switchable views over schema multiplication:
+  if a queue can reuse the same schema across lenses, avoid introducing parallel side-by-side delta
+  columns unless the additional fields materially improve prioritization decisions.
 
 ## Phase 5: Hearing-Relative Context and Process-Aware Features
 1. Add metadata sidecar ingestion and validation.

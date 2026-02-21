@@ -53,6 +53,19 @@ HTML report for anomaly review.
 - For each new detail chart, enforce 4-way parity updates:
   `analysis_registry.py`, `render.py`, `report.html.j2`, and chart payload/contract tests.
 
+## Lessons Learned (Phase 4 Data Quality and Dual-Lens Reporting)
+- Keep raw/dedup triage modes as explicit report contracts:
+  build all three lens views (`raw`, `exact_row_dedup`, `side_by_side`) and set active default via
+  config (`report.default_dedup_mode`).
+- Keep data-quality checks high-value and investigator-first:
+  triage should foreground warning signals and material raw-vs-dedup deltas; profiling-only table
+  inventories should live in methodology/detail contexts.
+- Thread warning support thresholds from config, not local constants:
+  `report.min_cell_n_for_rates` should be the source for rate-cell support gating in quality
+  warning builders.
+- Scope side-by-side deltas to the window queue unless explicitly requested for deeper queue levels,
+  to avoid payload/schema bloat during pre-production iteration.
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.

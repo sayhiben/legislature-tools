@@ -73,6 +73,10 @@ voter_registry:
   active_only: true
   match_bucket_minutes: 30
 
+report:
+  min_cell_n_for_rates: 25
+  default_dedup_mode: "side_by_side"
+
 outputs:
   tables_format: "parquet"
   figures_format: "png"

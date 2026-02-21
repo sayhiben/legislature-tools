@@ -73,6 +73,21 @@ Repository-specific guidance for AI/code agents.
 - For multi-tranche phase work, keep plan status explicit (completed vs pending) and trim duplicate
   scope items once fulfilled to reduce roadmap drift.
 
+## Lessons Learned (Phase 4 Data Quality and Dual-Lens Reporting)
+- Keep raw/dedup triage lenses as explicit payload contracts:
+  `triage_views` + `controls.default_dedup_mode`, with backward-compatible top-level active-lens
+  keys (`triage_summary`, `window_evidence_queue`, `record_evidence_queue`,
+  `cluster_evidence_queue`) preserved in `report/render.py`.
+- Use a config-backed quality threshold for rate-driven warnings:
+  `report.min_cell_n_for_rates` should flow from config -> pipeline/CLI -> `render_report(...)` ->
+  `report/quality_builder.py`; avoid hardcoded local thresholds.
+- Keep primary triage high-signal:
+  show high-value warnings and material raw-vs-dedup deltas in triage, and move profiling-only
+  coverage tables (for example artifact row inventories) into `Methodology`.
+- For dual-lens scope control, keep side-by-side delta columns focused on window prioritization;
+  record/cluster queues can remain lens-switchable without duplicate side-by-side delta schemas
+  unless explicitly requested.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`

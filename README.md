@@ -90,6 +90,16 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
   implement deadline-ramp and stance-by-deadline summaries in `hearing_context_panel` without
   introducing a parallel detector family.
 
+## Lessons Learned (Phase 6 Probabilistic Voter Linkage)
+- Treat voter linkage as probabilistic and tiered (`exact`, `strong_fuzzy`, `weak_fuzzy`,
+  `unmatched`) rather than binary matched/unmatched framing.
+- Keep uncertainty explicit in detector outputs and report payloads:
+  emit `match_confidence`, expected-match metrics, and uncertainty summaries/caveats.
+- Keep attribution guardrails explicit in both methodology copy and payload semantics:
+  voter linkage is supporting context, not standalone attribution evidence.
+- Keep detector/report parity strict for voter-linkage changes:
+  update `analysis_registry.py`, `render.py`, `report.html.j2`, and contract tests together.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 

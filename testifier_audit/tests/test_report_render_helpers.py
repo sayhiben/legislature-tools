@@ -289,6 +289,8 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert "renderDataQualityPanel()" in rendered
     assert "renderHearingContextPanel()" in rendered
     assert "buildProcessMarkerLines()" in rendered
+    assert "voter_registry_match_tiers" in rendered
+    assert "probabilistic supporting context only" in rendered
     assert 'summary.textContent = "artifact_rows"' not in rendered
 
 

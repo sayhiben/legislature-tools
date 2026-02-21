@@ -701,14 +701,89 @@ written_testimony_deadline: 2026-02-07T13:30:00-08:00
 2. Add match confidence and uncertainty caveat summaries.
 3. Ensure voter signals are treated as supporting evidence, not standalone attribution.
 
+Status (2026-02-21): Complete
+- Completed in this phase:
+  - Implemented probabilistic voter-linkage tiers in `detectors/voter_registry_match.py`:
+    - exact, strong fuzzy, weak fuzzy, unmatched
+    - confidence-weighted linkage (`match_confidence`) and expected-match metrics
+    - uncertainty caveat flags and summaries (`match_uncertainty_summary`)
+    - tier composition summary (`match_tier_summary`)
+  - Added registry candidate lookup helper in `io/vrdb_postgres.py`:
+    - `fetch_voter_candidates_by_last_name(...)` to support bounded fuzzy matching.
+  - Wired Phase 6 payload/report contracts in `report/render.py`:
+    - voter charts now carry tier rates + confidence fields
+    - added `voter_registry_match_tiers` detail chart contract
+    - added column glossary docs for tier/confidence/uncertainty fields.
+  - Updated investigation copy and runtime chart behavior in `report/templates/report.html.j2`:
+    - voter trend chart now emphasizes tier/composition lines
+    - methodology guardrail explicitly states voter linkage is supporting context only.
+  - Updated registry/help framing in `report/analysis_registry.py` for probabilistic interpretation.
+  - Added/updated tests:
+    - `tests/test_voter_registry_match.py` (tier assignment + uncertainty tables)
+    - `tests/test_report_chart_payload.py` (tier chart + confidence field payload checks)
+    - `tests/test_report_render_helpers.py` (template/render uncertainty contract checks)
+    - verified with `tests/test_analysis_registry.py`.
+  - Completed real-dataset QA pass for Phase 6 contracts on:
+    `/Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330/report.html`
+    - Confirmed payload/runtime artifacts:
+      - `summary/voter_registry_match.json` contains tier counts/rates, confidence metrics, and
+        supporting-evidence/attribution caveat fields.
+      - `tables/voter_registry_match__match_tier_summary.parquet` and
+        `tables/voter_registry_match__match_uncertainty_summary.parquet` render with expected schemas.
+    - Browser QA (Playwright wrapper):
+      - verified `voter_registry_match_tiers` chart rows present (4) and voter-rate chart populated.
+      - console clean during final validation pass (0 errors, 0 warnings).
+      - captured screenshots in
+        `/Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330/screenshots/`:
+        - `report-fullpage-desktop-20260221-phase6-voter.png`
+        - `report-viewport-top-desktop-20260221-phase6-voter.png`
+        - `report-viewport-middle-desktop-20260221-phase6-voter.png`
+        - `report-viewport-bottom-desktop-20260221-phase6-voter.png`
+        - `report-viewport-top-mobile-20260221-phase6-voter.png`
+        - `report-viewport-middle-mobile-20260221-phase6-voter.png`
+        - `report-viewport-bottom-mobile-20260221-phase6-voter.png`
+  - Addressed review-discovered implementation gap:
+    - Removed a real-run pandas FutureWarning path in voter linkage boolean casting
+      (`is_ambiguous`) to keep Phase 6 runtime logs cleaner.
+
+Scope refinement decisions:
+- Kept probabilistic linkage candidate pools bounded by canonical last name (with rapidfuzz scoring)
+  rather than introducing expensive all-name global matching or external identity enrichment.
+- Did not introduce voter linkage as a standalone triage scorer; Phase 6 keeps it explicitly as
+  supporting evidence via detector summaries, chart contracts, and report guardrail copy.
+
+Lessons learned to carry into later phases:
+- Keep voter-linkage interpretation probabilistic and uncertainty-aware end-to-end:
+  detector outputs, payload fields, chart legends, and methodology copy must all agree on tiered
+  confidence framing.
+- Keep bounded candidate search as the default operating model:
+  widening to global identity linkage should require explicit roadmap scope due to runtime and
+  false-attribution risk.
+- Keep anti-attribution guardrails explicit:
+  voter linkage should remain supporting context unless triage/scoring changes are intentionally
+  designed and reviewed as separate scope.
+- Keep runtime logs warning-clean for large real-data runs:
+  avoid pandas dtype coercion patterns that introduce noisy deprecation/future warnings.
+
 Where:
 - `.../detectors/voter_registry_match.py`
+- `.../io/vrdb_postgres.py`
 - `.../report/render.py`
+- `.../report/analysis_registry.py`
 - `.../report/templates/report.html.j2`
 
 Tests:
 - update `test_voter_registry_match.py`
 - add uncertainty rendering checks.
+- `tests/test_report_chart_payload.py`
+- `tests/test_report_render_helpers.py`
+
+Validation run (this tranche):
+- `python -m ruff check src/testifier_audit/detectors/voter_registry_match.py src/testifier_audit/io/vrdb_postgres.py src/testifier_audit/report/render.py src/testifier_audit/report/analysis_registry.py tests/test_voter_registry_match.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py`
+- `python -m pytest tests/test_voter_registry_match.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_analysis_registry.py` (20 passed)
+- `python -m pytest tests/test_pipeline_integration.py tests/test_report_layout_contract.py` (2 passed)
+- `./scripts/report/run_unified_report.sh ...SB6346-20260206-1330.csv ...20260202_VRDB_Extract.txt ...SB6346-20260206-1330.hearing.yaml`
+- `python -m pytest` (148 passed)
 
 ## Phase 7: Cross-Hearing Feature Store and Comparative Baselines
 1. Emit per-report feature vectors.

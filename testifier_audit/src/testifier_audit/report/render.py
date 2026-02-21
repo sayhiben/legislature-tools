@@ -83,6 +83,15 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "n_unique_names": "Count of distinct canonical names in the bucket/group.",
     "n_matches": "Count of records whose name matched the voter registry reference.",
     "n_unmatched": "Count of records with no voter-registry name match.",
+    "n_exact_matches": "Count of exact canonical-name matches to voter registry names.",
+    "n_strong_fuzzy_matches": "Count of strong fuzzy voter-linkage matches.",
+    "n_weak_fuzzy_matches": "Count of weak fuzzy voter-linkage matches.",
+    "expected_matches": (
+        "Confidence-weighted expected match count from probabilistic linkage tiers."
+    ),
+    "expected_match_count": (
+        "Confidence-weighted expected matched records from probabilistic linkage tiers."
+    ),
     "support_n": "Total contributing records supporting the run or signal.",
     "n_windows": "Number of windows evaluated for that parameter setting.",
     "n_significant": "Number of windows passing the detector's significance threshold.",
@@ -117,6 +126,12 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     ),
     "rate_ratio": "Observed/expected rate ratio for burst testing.",
     "match_rate": "Share of records matched to voter registry (0 to 1).",
+    "exact_match_rate": "Share of records in the exact voter-linkage tier.",
+    "strong_fuzzy_match_rate": "Share of records in the strong fuzzy linkage tier.",
+    "weak_fuzzy_match_rate": "Share of records in the weak fuzzy linkage tier.",
+    "expected_match_rate": "Confidence-weighted expected match share from probabilistic tiers.",
+    "mean_match_confidence": "Average linkage confidence (0 to 1) across rows in this grouping.",
+    "matched_confidence_mean": "Average linkage confidence among matched-tier rows only.",
     "pro_match_rate": "Match rate for pro-position records only.",
     "con_match_rate": "Match rate for con-position records only.",
     "blank_org_rate": "Share of records with blank/null organization values.",
@@ -214,6 +229,26 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "peak_bucket_records": "Record count in the highest-density bucket for a cluster.",
     "peak_bucket_fraction": "Share of cluster records contained in the highest-density bucket.",
     "concentration_hhi": "Herfindahl index of cluster bucket concentration (higher = tighter).",
+    "match_tier": (
+        "Probabilistic voter-linkage tier (`exact`, `strong_fuzzy`, `weak_fuzzy`, "
+        "`unmatched`)."
+    ),
+    "matched_registry_name": "Best matched registry canonical name for linkage diagnostics.",
+    "matched_registry_rows": "Count of registry rows supporting the matched registry name.",
+    "best_similarity_score": (
+        "Highest fuzzy-name similarity score for the candidate match (0 to 1)."
+    ),
+    "second_best_similarity_score": "Second-highest fuzzy-name similarity score (0 to 1).",
+    "candidate_pool_size": "Number of registry-name candidates evaluated for this last name.",
+    "is_ambiguous": "True when multiple top fuzzy candidates had near-tied similarity scores.",
+    "match_caveat": "Comma-separated uncertainty caveat flags emitted during linkage.",
+    "caveat_flag": "Uncertainty caveat identifier for probabilistic voter linkage.",
+    "strong_fuzzy_min_score": "Configured similarity threshold for strong fuzzy linkage.",
+    "weak_fuzzy_min_score": "Configured similarity threshold for weak fuzzy linkage.",
+    "uncertainty_caveat": "Summary string of uncertainty caveat counts for probabilistic linkage.",
+    "attribution_caveat": (
+        "Reminder that voter linkage is supporting context, not standalone attribution."
+    ),
     "score_primary_driver": "Detector family contributing the largest share of suspicion score.",
     "score_detector_breakdown": "Detector-level contribution shares for suspicion score.",
     "score_signal_breakdown": "Top signal-level contribution shares for suspicion score.",
@@ -878,19 +913,18 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
         ],
         "voter_registry_match": [
             (
-                "Transient match-rate drops in very small buckets are expected; treat "
-                "as notable only when low-power flags are absent and the drop "
-                "persists across neighboring windows."
+                "Interpret voter linkage through probabilistic tiers (exact, strong "
+                "fuzzy, weak fuzzy, unmatched); avoid binary matched/unmatched "
+                "framing in isolation."
             ),
             (
-                "Sustained side-specific divergence (pro vs con) with adequate volume "
-                "may indicate composition shifts, normalization mismatch, or "
-                "targeted non-registered participation."
+                "Sustained drops in exact/strong tiers with growth in weak/unmatched "
+                "tiers are stronger when low-power flags are absent and adjacent "
+                "windows corroborate the shift."
             ),
             (
-                "Rapid oscillation between high and low match rates can suggest "
-                "mixed data sources or ingestion inconsistencies; cross-check "
-                "unmatched-name concentration for diagnostics."
+                "Treat voter linkage as supporting evidence only: combine with other "
+                "detector signals before drawing investigative conclusions."
             ),
         ],
         "periodicity": [
@@ -1080,12 +1114,12 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             "extended_low": "more complete organization capture across participation streams",
         },
         "voter_registry_match": {
-            "primary_metric": "name match coverage against voter registry reference",
-            "momentary_high": "temporary concentration in highly matchable names",
-            "momentary_low": "normal alias/normalization mismatch in sparse buckets",
-            "extended_high": "stable overlap with known-voter naming patterns",
+            "primary_metric": "probabilistic voter-linkage tier composition and confidence",
+            "momentary_high": "brief concentration in exact or strong-fuzzy linkage tiers",
+            "momentary_low": "short-lived weak/unmatched tier growth in sparse buckets",
+            "extended_high": "stable overlap with exact/strong linkage tiers across windows",
             "extended_low": (
-                "persistent mismatch patterns requiring normalization and source review"
+                "persistent weak/unmatched tier dominance requiring normalization and source review"
             ),
         },
         "periodicity": {
@@ -1897,18 +1931,30 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "voter_registry_match_rates": timebar(
-            summary="Registry match-rate trend over time.",
+            summary="Probabilistic voter-linkage tier trend over time.",
             primary_label="Match rate",
-            primary_desc="Overall voter-registry name match rate per bucket.",
+            primary_desc=(
+                "Overall linked share per bucket using exact + fuzzy probabilistic linkage tiers."
+            ),
             include_wilson=True,
             extra=[
                 {
-                    "label": "Pro match rate",
-                    "description": "Match rate among pro-position records.",
+                    "label": "Exact match rate",
+                    "description": "Share of records in the exact linkage tier.",
                 },
                 {
-                    "label": "Con match rate",
-                    "description": "Match rate among con-position records.",
+                    "label": "Strong fuzzy match rate",
+                    "description": "Share of records in the strong-fuzzy linkage tier.",
+                },
+                {
+                    "label": "Weak fuzzy match rate",
+                    "description": "Share of records in the weak-fuzzy linkage tier.",
+                },
+                {
+                    "label": "Mean match confidence",
+                    "description": (
+                        "Average probabilistic linkage confidence for records in bucket."
+                    ),
                 },
             ],
         ),
@@ -1930,6 +1976,19 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Count of unmatched records for each canonical name.",
                 },
                 {"label": "X-axis", "description": "Canonical unmatched name values."},
+            ],
+        },
+        "voter_registry_match_tiers": {
+            "summary": "Probabilistic voter-linkage tier composition.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Share of records in each probabilistic linkage tier.",
+                },
+                {
+                    "label": "X-axis",
+                    "description": "Linkage tiers: exact, strong fuzzy, weak fuzzy, unmatched.",
+                },
             ],
         },
         "voter_registry_position_buckets": timebar(
@@ -2946,6 +3005,12 @@ def _build_interactive_chart_payload_v2(
             "bucket_minutes",
             "n_total",
             "match_rate",
+            "exact_match_rate",
+            "strong_fuzzy_match_rate",
+            "weak_fuzzy_match_rate",
+            "expected_match_rate",
+            "mean_match_confidence",
+            "matched_confidence_mean",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
             "pro_match_rate",
@@ -2954,6 +3019,10 @@ def _build_interactive_chart_payload_v2(
             "con_match_rate",
             "con_match_rate_wilson_low",
             "con_match_rate_wilson_high",
+            "n_exact_matches",
+            "n_strong_fuzzy_matches",
+            "n_weak_fuzzy_matches",
+            "n_ambiguous_fuzzy_matches",
             "is_low_power",
             "pro_is_low_power",
             "con_is_low_power",
@@ -2967,8 +3036,19 @@ def _build_interactive_chart_payload_v2(
             "n_matches",
             "n_unmatched",
             "match_rate",
+            "exact_match_rate",
+            "strong_fuzzy_match_rate",
+            "weak_fuzzy_match_rate",
+            "expected_matches",
+            "expected_match_rate",
+            "mean_match_confidence",
+            "matched_confidence_mean",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
+            "n_exact_matches",
+            "n_strong_fuzzy_matches",
+            "n_weak_fuzzy_matches",
+            "n_ambiguous_fuzzy_matches",
             "is_low_power",
         ],
     )
@@ -2987,9 +3067,31 @@ def _build_interactive_chart_payload_v2(
             "position_normalized",
             "n_total",
             "match_rate",
+            "exact_match_rate",
+            "strong_fuzzy_match_rate",
+            "weak_fuzzy_match_rate",
+            "expected_matches",
+            "expected_match_rate",
+            "mean_match_confidence",
+            "matched_confidence_mean",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
+            "n_exact_matches",
+            "n_strong_fuzzy_matches",
+            "n_weak_fuzzy_matches",
+            "n_ambiguous_fuzzy_matches",
             "is_low_power",
+        ],
+    )
+    voter_tier_summary = _with_expected_columns(
+        table_map.get(_table_key("voter_registry_match", "match_tier_summary"), pd.DataFrame()),
+        [
+            "match_tier",
+            "n_records",
+            "record_rate",
+            "mean_match_confidence",
+            "min_match_confidence",
+            "max_match_confidence",
         ],
     )
 
@@ -3722,6 +3824,12 @@ def _build_interactive_chart_payload_v2(
             "bucket_minutes",
             "n_total",
             "match_rate",
+            "exact_match_rate",
+            "strong_fuzzy_match_rate",
+            "weak_fuzzy_match_rate",
+            "expected_match_rate",
+            "mean_match_confidence",
+            "matched_confidence_mean",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
             "pro_match_rate",
@@ -3730,6 +3838,10 @@ def _build_interactive_chart_payload_v2(
             "con_match_rate",
             "con_match_rate_wilson_low",
             "con_match_rate_wilson_high",
+            "n_exact_matches",
+            "n_strong_fuzzy_matches",
+            "n_weak_fuzzy_matches",
+            "n_ambiguous_fuzzy_matches",
             "is_low_power",
             "pro_is_low_power",
             "con_is_low_power",
@@ -3744,8 +3856,19 @@ def _build_interactive_chart_payload_v2(
             "n_matches",
             "n_unmatched",
             "match_rate",
+            "exact_match_rate",
+            "strong_fuzzy_match_rate",
+            "weak_fuzzy_match_rate",
+            "expected_matches",
+            "expected_match_rate",
+            "mean_match_confidence",
+            "matched_confidence_mean",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
+            "n_exact_matches",
+            "n_strong_fuzzy_matches",
+            "n_weak_fuzzy_matches",
+            "n_ambiguous_fuzzy_matches",
             "is_low_power",
         ],
         max_rows=100,
@@ -3765,11 +3888,40 @@ def _build_interactive_chart_payload_v2(
             "position_normalized",
             "n_total",
             "match_rate",
+            "exact_match_rate",
+            "strong_fuzzy_match_rate",
+            "weak_fuzzy_match_rate",
+            "expected_matches",
+            "expected_match_rate",
+            "mean_match_confidence",
+            "matched_confidence_mean",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
+            "n_exact_matches",
+            "n_strong_fuzzy_matches",
+            "n_weak_fuzzy_matches",
+            "n_ambiguous_fuzzy_matches",
             "is_low_power",
         ],
         max_rows=25_000,
+    )
+    _voter_tier_order = {"exact": 0, "strong_fuzzy": 1, "weak_fuzzy": 2, "unmatched": 3}
+    charts["voter_registry_match_tiers"] = _records_from_frame(
+        voter_tier_summary.assign(
+            _tier_order=voter_tier_summary["match_tier"]
+            .map(_voter_tier_order)
+            .fillna(99)
+            .astype(int)
+        ).sort_values(["_tier_order", "match_tier"]),
+        columns=[
+            "match_tier",
+            "n_records",
+            "record_rate",
+            "mean_match_confidence",
+            "min_match_confidence",
+            "max_match_confidence",
+        ],
+        max_rows=20,
     )
 
     charts["periodicity_clockface"] = _records_from_frame(

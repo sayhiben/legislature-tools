@@ -93,11 +93,26 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
                 "bucket_minutes": [30, 30],
                 "n_total": [22, 19],
                 "match_rate": [0.9, 0.84],
+                "exact_match_rate": [0.72, 0.66],
+                "strong_fuzzy_match_rate": [0.12, 0.11],
+                "weak_fuzzy_match_rate": [0.06, 0.07],
+                "expected_match_rate": [0.84, 0.79],
+                "mean_match_confidence": [0.84, 0.79],
                 "match_rate_wilson_low": [0.75, 0.64],
                 "match_rate_wilson_high": [0.98, 0.94],
                 "pro_match_rate": [0.86, 0.8],
                 "con_match_rate": [0.94, 0.87],
                 "is_low_power": [False, False],
+            }
+        ),
+        "voter_registry_match.match_tier_summary": pd.DataFrame(
+            {
+                "match_tier": ["exact", "strong_fuzzy", "weak_fuzzy", "unmatched"],
+                "n_records": [28, 4, 2, 5],
+                "record_rate": [0.72, 0.1, 0.05, 0.13],
+                "mean_match_confidence": [1.0, 0.88, 0.66, 0.0],
+                "min_match_confidence": [1.0, 0.82, 0.57, 0.0],
+                "max_match_confidence": [1.0, 0.95, 0.74, 0.0],
             }
         ),
     }
@@ -139,6 +154,15 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
         for detail_chart_id in entry["detail_chart_ids"]:
             assert detail_chart_id in payload["charts"]
             assert detail_chart_id in payload["chart_legend_docs"]
+
+    voter_rates = payload["charts"]["voter_registry_match_rates"]
+    assert voter_rates
+    assert "exact_match_rate" in voter_rates[0]
+    assert "strong_fuzzy_match_rate" in voter_rates[0]
+    assert "weak_fuzzy_match_rate" in voter_rates[0]
+    assert "expected_match_rate" in voter_rates[0]
+    assert "mean_match_confidence" in voter_rates[0]
+    assert payload["charts"]["voter_registry_match_tiers"]
 
     controls = payload["controls"]
     assert "global_bucket_options" in controls

@@ -1275,6 +1275,9 @@
               Queue tiers combine statistically controlled contributors (when available) with heuristic contributors.
               Low-support items are explicitly caveated and cannot be promoted to high tier.
             </p>
+            <p class="tiny-note">
+              Voter-registry linkage is probabilistic supporting context only and must not be treated as standalone attribution.
+            </p>
             <div class="analysis-detail-grid">
               <article class="detail-card">
                 <h3 class="detail-title">Evidence Taxonomy</h3>
@@ -2876,7 +2879,12 @@
               lineField: "match_rate",
               lineLow: "match_rate_wilson_low",
               lineHigh: "match_rate_wilson_high",
-              extraLines: ["pro_match_rate", "con_match_rate"],
+              extraLines: [
+                "exact_match_rate",
+                "strong_fuzzy_match_rate",
+                "weak_fuzzy_match_rate",
+                "mean_match_confidence",
+              ],
               lowPowerField: "is_low_power",
               lineAxisName: "Match rate",
               lineMin: 0,
@@ -3088,6 +3096,9 @@
           }
           if (mount.chartId === "voter_registry_unmatched_names") {
             return renderSimpleBar(mount, rows, "canonical_name", "n_records", "count");
+          }
+          if (mount.chartId === "voter_registry_match_tiers") {
+            return renderSimpleBar(mount, rows, "match_tier", "record_rate", "record rate");
           }
           if (mount.chartId === "procon_swings_time_of_day_profile") {
             return renderSimpleBar(mount, rows, "slot_start_minute", "pro_rate", "pro rate");

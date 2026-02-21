@@ -100,6 +100,22 @@ Repository-specific guidance for AI/code agents.
   implement deadline-ramp and stance-by-deadline contracts in `hearing_context_panel` rather than
   adding a parallel detector family.
 
+## Lessons Learned (Phase 6 Probabilistic Voter Linkage)
+- Keep voter-registry linkage explicitly probabilistic:
+  emit and interpret tiered outcomes (`exact`, `strong_fuzzy`, `weak_fuzzy`, `unmatched`) instead
+  of reverting to binary match framing.
+- Bound fuzzy candidate pools by canonical last name in `io/vrdb_postgres.py` and score within
+  that bounded set to avoid expensive global comparisons.
+- Keep uncertainty and confidence as payload contracts:
+  preserve `match_confidence`, expected-match metrics, and uncertainty summary outputs in detector
+  summaries/tables and report chart payloads.
+- Preserve anti-attribution guardrails in both methodology copy and triage semantics:
+  voter linkage is supporting evidence only and should not be promoted to a standalone scorer
+  without explicit roadmap direction.
+- For voter-linkage report changes, update all four surfaces together:
+  `report/analysis_registry.py`, `report/render.py`, `report/templates/report.html.j2`, and
+  payload/render contract tests.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`

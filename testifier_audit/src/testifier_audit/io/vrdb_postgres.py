@@ -429,6 +429,59 @@ def fetch_matching_voter_names(
     return pd.DataFrame(rows, columns=["canonical_name", "n_registry_rows"])
 
 
+def fetch_voter_candidates_by_last_name(
+    db_url: str,
+    table_name: str,
+    canonical_lasts: list[str],
+    active_only: bool = True,
+) -> pd.DataFrame:
+    if not canonical_lasts:
+        return pd.DataFrame(
+            columns=[
+                "canonical_last",
+                "canonical_first",
+                "canonical_name",
+                "n_registry_rows",
+            ]
+        )
+
+    psycopg, sql = _load_psycopg()
+    rows: list[tuple[str, str, str, int]] = []
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+            for chunk in _chunk_values(canonical_lasts, chunk_size=10_000):
+                where_clause = sql.SQL("canonical_last = ANY(%s)")
+                if active_only:
+                    where_clause = sql.SQL("{} AND LOWER(status_code) = 'active'").format(
+                        where_clause
+                    )
+                query = sql.SQL(
+                    "SELECT canonical_last, canonical_first, canonical_name, "
+                    "COUNT(*)::INT AS n_registry_rows "
+                    "FROM {table_name} WHERE {where_clause} "
+                    "GROUP BY canonical_last, canonical_first, canonical_name"
+                ).format(
+                    table_name=sql.Identifier(table_name),
+                    where_clause=where_clause,
+                )
+                cursor.execute(query, (chunk,))
+                rows.extend(cursor.fetchall())
+
+    if not rows:
+        return pd.DataFrame(
+            columns=[
+                "canonical_last",
+                "canonical_first",
+                "canonical_name",
+                "n_registry_rows",
+            ]
+        )
+    return pd.DataFrame(
+        rows,
+        columns=["canonical_last", "canonical_first", "canonical_name", "n_registry_rows"],
+    )
+
+
 def count_registry_rows(db_url: str, table_name: str, active_only: bool = True) -> int:
     psycopg, sql = _load_psycopg()
     with psycopg.connect(db_url) as conn:

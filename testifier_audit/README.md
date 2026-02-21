@@ -77,6 +77,16 @@ HTML report for anomaly review.
   derive deadline-ramp and stance-by-deadline context from existing minute artifacts instead of
   introducing duplicate detector families.
 
+## Lessons Learned (Phase 6 Probabilistic Voter Linkage)
+- Replace binary voter matching with explicit probabilistic tiers:
+  `exact`, `strong_fuzzy`, `weak_fuzzy`, `unmatched`.
+- Bound fuzzy candidate search by canonical last name and score within that pool instead of global
+  all-name matching, to keep runtime and false-positive risk controlled.
+- Keep voter-linkage uncertainty first-class in tables/payload:
+  include `match_confidence`, expected-match metrics, and uncertainty caveat summaries.
+- Preserve guardrail semantics in UX and contracts:
+  voter linkage remains supporting evidence only, not a standalone attribution signal.
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.

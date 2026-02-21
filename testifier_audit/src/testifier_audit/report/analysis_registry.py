@@ -247,15 +247,17 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         hero_chart_id="voter_registry_match_rates",
         detail_chart_ids=(
             "voter_registry_match_by_position",
+            "voter_registry_match_tiers",
             "voter_registry_unmatched_names",
             "voter_registry_position_buckets",
         ),
         how_to_read=(
-            "Match-rate trends are volume-weighted and should be interpreted with Wilson "
-            "confidence width."
+            "Voter linkage uses probabilistic tiers (exact/strong fuzzy/weak fuzzy/unmatched); "
+            "interpret tier shifts with confidence and support context."
         ),
         what_to_look_for=(
-            "Material and sustained match-rate departures with adequate per-bucket support."
+            "Material and sustained tier-composition shifts with adequate support, especially when "
+            "exact+strong tiers decline while weak/unmatched tiers increase."
         ),
         common_benign_causes=(
             "Name normalization variance and registration recency can reduce observed "

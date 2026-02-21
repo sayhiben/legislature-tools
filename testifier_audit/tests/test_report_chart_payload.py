@@ -133,6 +133,8 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     controls = payload["controls"]
     assert "global_bucket_options" in controls
     assert "zoom_sync_groups" in controls
+    assert controls["timezone"] == "UTC"
+    assert controls["timezone_label"] == "UTC"
     assert "absolute_time" in controls["zoom_sync_groups"]
     assert isinstance(controls["zoom_sync_groups"]["absolute_time"], list)
     assert 30 in controls["global_bucket_options"]

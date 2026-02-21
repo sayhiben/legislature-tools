@@ -31,6 +31,18 @@ Repository-specific guidance for AI/code agents.
   `controls.runtime.payload_build_ms`, `controls.runtime.payload_json_bytes`,
   `controls.runtime.interactive_payload_build_ms`, and `artifacts/report_runtime.json`.
 
+## Lessons Learned (Phase 1 UX Reliability)
+- Keep section status badges high-signal only; do not render `ready` badges by default.
+- After sidebar/layout transitions, use sequenced chart resize calls; a single immediate resize is
+  insufficient for reliable ECharts rendering.
+- Bucket rerender actions should expose explicit progress UI (`runWithBusyIndicator` pattern) to
+  preserve user trust during heavy redraws.
+- Keep shared zoom controls and range labels visible and synchronized (`updateZoomRangeLabel`) when
+  absolute-time chart linking is enabled.
+- Maintain timezone labeling as an explicit payload contract (`controls.timezone`,
+  `controls.timezone_label`); use deterministic defaults (`UTC`) until hearing-metadata timezone
+  integration is implemented.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`

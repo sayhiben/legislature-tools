@@ -22,6 +22,15 @@ HTML report for anomaly review.
 - For report-architecture refactors, run targeted parity checks:
   - `python -m pytest tests/test_analysis_registry.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_pipeline_integration.py`
 
+## Lessons Learned (Phase 1 UX Reliability)
+- Hide routine `ready` section badges and keep explicit status labels only for non-ready states.
+- For sidebar open/close and major layout changes, trigger chart resize in a short sequence (not a
+  single resize call) to prevent clipped/distorted canvases.
+- During global bucket changes, show a visible loading/progress indicator while charts rerender.
+- Keep linked zoom UX explicit: provide a reset action and a visible shared range label.
+- Treat timezone and bucket labels as payload-backed UI contracts; current default is explicit
+  `UTC` controls in payload until hearing-metadata timezone wiring is added in a later phase.
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.

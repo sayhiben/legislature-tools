@@ -271,6 +271,13 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert 'mount.chart.on("dataZoom"' in rendered
     assert "scheduleZoomSync(" in rendered
     assert "state.zoom" in rendered
+    assert 'id="zoom-sync-panel"' in rendered
+    assert 'id="zoom-reset-button"' in rendered
+    assert "updateZoomRangeLabel" in rendered
+    assert 'id="report-busy-indicator"' in rendered
+    assert "runWithBusyIndicator(" in rendered
+    assert "scheduleChartResizeSequence()" in rendered
+    assert 'Time (" + reportTimezoneLabel + ")"' in rendered
 
 
 def test_render_report_template_contract_renders_analysis_hosts_and_placeholders(
@@ -297,3 +304,4 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
     assert "chart_legend_docs" in rendered
     assert "Column glossary" in rendered
     assert "<strong>Legend guide:</strong>" in rendered
+    assert "status-ready" not in rendered

@@ -167,7 +167,8 @@ Lessons learned to carry into later phases:
 2. Fix sidebar toggle resize distortion by resizing charts after layout changes.
 3. Add bucket-change loading spinner/progress indicator.
 4. Add explicit global zoom reset and linked zoom-range controls.
-5. Show timezone and bucket-size labels consistently on charts/tooltips.
+5. Show timezone and bucket-size labels consistently on charts/tooltips
+   (read from `controls.timezone`/`controls.timezone_label` when present; fallback `UTC`).
 
 Why:
 - Directly addresses known UX bugs and trust issues.
@@ -178,6 +179,48 @@ Where:
 Tests:
 - `test_report_render_helpers.py`
 - `test_report_runtime_contracts.py`
+
+Status (2026-02-21): Complete
+- Implemented in `report/templates/report.html.j2`:
+  - `ready` badges are no longer rendered; non-ready badges remain visible.
+  - Sidebar open/close and viewport resize now trigger multi-pass chart resize sequencing to prevent
+    distortion after layout transitions.
+  - Added a global busy indicator for bucket changes (`runWithBusyIndicator`) with explicit progress text.
+  - Added linked zoom controls in the sidebar:
+    - `Reset linked zoom` action.
+    - live linked zoom-range label synchronized to shared zoom state.
+  - Added consistent timezone/bucket context:
+    - time-aware tooltip labels include timezone and bucket where available.
+    - chart notes now include timezone and active bucket metadata for mounted time-series charts.
+- Implemented in `report/render.py`:
+  - Added explicit payload controls defaults: `controls.timezone = "UTC"` and
+    `controls.timezone_label = "UTC"` so template timezone labeling has a deterministic contract.
+- Regression/contract coverage updates:
+  - Updated `tests/test_report_render_helpers.py` to assert:
+    - zoom controls and zoom-range runtime hooks are present,
+    - busy indicator hooks are present,
+    - layout resize sequencing hook is present,
+    - and `status-ready` styling is removed from rendered output.
+  - Validation run:
+    - `python -m ruff check testifier_audit/tests/test_report_render_helpers.py testifier_audit/src/testifier_audit/report/render.py`
+    - `python -m pytest testifier_audit/tests/test_report_render_helpers.py testifier_audit/tests/test_report_runtime_contracts.py` (11 passed).
+    - `python -m pytest testifier_audit/tests/test_report_chart_payload.py` (payload contract assertions include timezone controls).
+    - `python -m ruff check src tests --select F`
+    - `python -m pytest tests/test_pipeline_integration.py` (1 passed)
+    - `./scripts/ci/test.sh` (122 passed).
+
+Gap/Scope note discovered during implementation:
+- Timezone is currently explicitly fixed to `UTC` in payload controls for deterministic labeling.
+  This is intentional to avoid Phase 5 scope creep; wiring authoritative hearing timezone through
+  metadata ingestion/payload remains part of Phase 5 context work.
+
+Lessons learned to carry into later phases:
+- Keep UX interaction state explicit in the sidebar (global controls, range state, and loading
+  feedback) rather than implicit in chart internals.
+- Preserve payload-driven UI contracts (`controls.*`) for shared runtime behavior; avoid hardcoding
+  UI assumptions in template logic.
+- Treat layout-transition reliability as a first-class chart concern; preserve sequenced resize
+  behavior when extending IA in Phase 2.
 
 ## Phase 2: Investigation-First Report IA and Drilldown
 1. Implement report pages/tabs:

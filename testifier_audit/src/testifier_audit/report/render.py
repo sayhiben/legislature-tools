@@ -3395,6 +3395,8 @@ def _build_interactive_chart_payload_v2(
             else (global_bucket_options[0] if global_bucket_options else None),
             "global_bucket_options": global_bucket_options,
             "zoom_sync_groups": {"absolute_time": absolute_time_chart_ids},
+            "timezone": "UTC",
+            "timezone_label": "UTC",
         },
     }
     payload = _json_safe(payload)

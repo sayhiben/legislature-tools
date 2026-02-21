@@ -28,6 +28,16 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - Keep runtime observability first-class: preserve payload/render timing metrics and payload byte
   size reporting to catch regressions early.
 
+## Lessons Learned (Phase 1 UX Reliability)
+- Avoid showing routine `ready` status badges; reserve badges for exceptional states
+  (`empty`/`disabled`) to reduce visual noise.
+- Sidebar layout changes can distort ECharts unless resize is sequenced after transition; use a
+  multi-pass resize pattern on toggle/viewport changes.
+- Bucket rerenders should show explicit progress feedback so users can distinguish redraw latency
+  from a frozen UI.
+- Keep shared controls contract-driven: global zoom reset/range and timezone labels should be backed
+  by payload controls rather than ad-hoc template assumptions.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 

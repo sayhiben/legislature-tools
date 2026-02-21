@@ -31,6 +31,11 @@ from testifier_audit.report.global_baselines import (
     default_cross_hearing_baseline_payload,
     load_cross_hearing_baseline,
 )
+from testifier_audit.report.help_registry import (
+    build_methodology_content,
+    default_evidence_taxonomy,
+    default_theme_options,
+)
 from testifier_audit.report.quality_builder import build_data_quality_panel
 from testifier_audit.report.triage_builder import build_investigation_views
 
@@ -4196,6 +4201,9 @@ def _build_interactive_chart_payload_v2(
 
     timezone_name = hearing_metadata.timezone if hearing_metadata else "UTC"
     process_markers = hearing_context_panel.get("process_markers", [])
+    evidence_taxonomy = default_evidence_taxonomy()
+    methodology = build_methodology_content(evidence_taxonomy=evidence_taxonomy)
+    theme_options = default_theme_options()
 
     payload = {
         "version": 2,
@@ -4217,23 +4225,10 @@ def _build_interactive_chart_payload_v2(
             else (global_bucket_options[0] if global_bucket_options else None),
             "global_bucket_options": global_bucket_options,
             "zoom_sync_groups": {"absolute_time": absolute_time_chart_ids},
-            "evidence_taxonomy": [
-                {
-                    "kind": "stat_fdr",
-                    "label": "Statistical (FDR-controlled)",
-                    "description": "Hypothesis-tested signal with multiple-testing control.",
-                },
-                {
-                    "kind": "calibrated_empirical",
-                    "label": "Calibrated empirical",
-                    "description": "Simulation/permutation calibrated evidence.",
-                },
-                {
-                    "kind": "heuristic",
-                    "label": "Heuristic",
-                    "description": "Structured indicator without formal significance control.",
-                },
-            ],
+            "evidence_taxonomy": evidence_taxonomy,
+            "methodology": methodology,
+            "theme_options": theme_options,
+            "default_theme": "light",
             "dedup_modes": list(DEDUP_MODES),
             "default_dedup_mode": resolved_default_dedup_mode,
             "timezone": timezone_name,

@@ -318,12 +318,18 @@ After major report/template changes, perform this checklist:
   - accepts a report URL or local report path
   - if a local path is provided, starts a temporary localhost server automatically
   - opens sidebar + expands all `<details>` by default
+  - hides fixed report chrome (sidebar/menu/busy indicator) by default during tiling to reduce
+    false duplicate-content interpretation in stitched output
+  - prints per-tile progress and writes capture diagnostics JSON next to the PNG
   - captures viewport tiles and stitches into one PNG
 - Example command:
   - `python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/capture_report_screenshot.py /Users/sayhiben/dev/legislature-tools/reports/<csv-stem>/report.html /Users/sayhiben/dev/legislature-tools/reports/<csv-stem>/screenshots/report-full-expanded-sidebar-<YYYYMMDD>-stitched.png --width 1920 --height 1400 --wait-ms 12000 --settle-ms 600`
 - Optional flags:
+  - `--keep-fixed-chrome` (opt out of fixed-chrome hiding; can reintroduce repeated-sidebar artifacts)
   - `--no-open-sidebar`
   - `--no-expand-details`
+  - `--max-tiles <N>` (bounds runtime and intentionally truncates output with warning metadata)
+  - `--command-timeout-sec <seconds>` (fails fast if any Playwright CLI command hangs)
   - `--keep-tiles` (keeps intermediate tiles under `output/playwright/tiles/`)
 
 ## CI and GitHub Pages

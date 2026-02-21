@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-02-21T04:52:16.334117+00:00",
-  "interactive_payload_build_ms": 182335.222,
-  "template_render_ms": 1037.286,
-  "report_write_ms": 47.439,
-  "report_total_ms": 183599.731,
-  "report_html_bytes": 49099346
+  "generated_at": "2026-02-21T05:45:20.326575+00:00",
+  "interactive_payload_build_ms": 175872.115,
+  "template_render_ms": 1046.867,
+  "report_write_ms": 42.864,
+  "report_total_ms": 177091.048,
+  "report_html_bytes": 49125391
 }

@@ -1,4 +1,95 @@
 {
+  "schema_version": 2,
+  "report_id": "SB6346-20260206-1330",
+  "generated_at_utc": "2026-02-21T05:48:16.294531+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-03T17:07:00-08:00",
+  "date_range_end": "2026-02-06T12:30:00-08:00",
+  "metrics": {
+    "total_submissions": 80644,
+    "overall_pro_rate": 0.23670700858092356,
+    "overall_con_rate": 0.7593869351718665,
+    "window_queue_size": 250,
+    "record_queue_size": 250,
+    "cluster_queue_size": 250,
+    "window_high_count": 250,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": 1.0,
+    "window_top_score": 1.0,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.0,
+    "window_min_q_value": 0.0,
+    "top_name_max_records": 40,
+    "top_cluster_max_records": 17,
+    "off_hours_ratio": 0.06516293834631219,
+    "dedup_drop_fraction": 0.004464064282525668
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "HARSHAW|NORM",
+      "display_name": "HARSHAW, NORM",
+      "n_records": 40,
+      "n_pro": 0,
+      "n_con": 40
+    },
+    {
+      "canonical_name": "HUFFMAN|TRACY",
+      "display_name": "HUFFMAN, TRACY",
+      "n_records": 34,
+      "n_pro": 0,
+      "n_con": 34
+    },
+    {
+      "canonical_name": "BACKOUS|KATHLEEN",
+      "display_name": "BACKOUS, KATHLEEN",
+      "n_records": 29,
+      "n_pro": 0,
+      "n_con": 29
+    },
+    {
+      "canonical_name": "YONKMAN|MIKE",
+      "display_name": "YONKMAN, MIKE",
+      "n_records": 20,
+      "n_pro": 0,
+      "n_con": 20
+    },
+    {
+      "canonical_name": "DURHAM|RHONDA",
+      "display_name": "DURHAM, RHONDA",
+      "n_records": 17,
+      "n_pro": 0,
+      "n_con": 17
+    }
+  ],
+  "top_near_dup_clusters": [
+    {
+      "cluster_id": "cluster_0003",
+      "cluster_size": 8,
+      "n_records": 17
+    },
+    {
+      "cluster_id": "cluster_0007",
+      "cluster_size": 6,
+      "n_records": 16
+    },
+    {
+      "cluster_id": "cluster_0001",
+      "cluster_size": 13,
+      "n_records": 15
+    },
+    {
+      "cluster_id": "cluster_0002",
+      "cluster_size": 9,
+      "n_records": 14
+    },
+    {
+      "cluster_id": "cluster_0004",
+      "cluster_size": 7,
+      "n_records": 8
+    }
+  ],
+  "material_quality_metric_count": 0,
   "total_submissions": 80644,
   "overall_pro_rate": 0.23670700858092356,
   "overall_con_rate": 0.7593869351718665,

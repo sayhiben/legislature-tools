@@ -328,7 +328,14 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert 'id="hearing-context-metadata-host"' in rendered
     assert 'id="hearing-deadline-ramp-host"' in rendered
     assert 'id="hearing-stance-by-deadline-host"' in rendered
+    assert 'id="theme-select"' in rendered
+    assert "initThemeControl()" in rendered
     assert 'id="methodology-artifact-rows-host"' in rendered
+    assert 'id="methodology-definitions-host"' in rendered
+    assert 'id="methodology-tests-used-host"' in rendered
+    assert 'id="methodology-guardrails-host"' in rendered
+    assert 'id="methodology-multiple-testing-list"' in rendered
+    assert "renderMethodologyPanel()" in rendered
     assert "initDedupModeControl()" in rendered
     assert "renderDataQualityPanel()" in rendered
     assert "renderCrossHearingComparator()" in rendered
@@ -341,6 +348,7 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert "buildProcessMarkerLines()" in rendered
     assert "voter_registry_match_tiers" in rendered
     assert "probabilistic supporting context only" in rendered
+    assert "statistical irregularity requiring review" in rendered
     assert 'summary.textContent = "artifact_rows"' not in rendered
 
 

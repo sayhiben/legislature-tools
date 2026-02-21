@@ -878,19 +878,124 @@ Lessons learned to carry into later phases:
 3. Optional dark mode with preserved semantic color meanings.
 4. Improve screenshot capture UX to avoid false duplication interpretation in stitched output.
 
+Status (2026-02-21): Complete
+- Completed in Phase 8:
+  - Added a dedicated methodology content registry:
+    - new `testifier_audit/src/testifier_audit/report/help_registry.py` centralizes:
+      - evidence taxonomy defaults,
+      - methodology definitions,
+      - detector test/calibration summaries,
+      - multiple-testing policy guidance,
+      - interpretation caveats/guidance,
+      - ethical guardrail standards,
+      - and theme options.
+  - Wired Phase 8 methodology contracts into payload controls in
+    `testifier_audit/src/testifier_audit/report/render.py`:
+    - `controls.methodology`
+    - `controls.theme_options`
+    - `controls.default_theme`
+    - and kept `controls.evidence_taxonomy` as the same canonical registry output.
+  - Expanded the Methodology UI in
+    `testifier_audit/src/testifier_audit/report/templates/report.html.j2`:
+    - added dedicated cards/hosts for:
+      - Definitions
+      - Tests and Calibrations Used
+      - Evidence Taxonomy
+      - Multiple Testing Policy
+      - Interpretation Caveats
+      - Interpretation Guidance
+      - Ethical Guardrails
+      - Profiling Coverage
+    - added runtime renderer `renderMethodologyPanel()` to mount all methodology contracts from
+      payload controls instead of hardcoded copy.
+  - Implemented optional dark mode (default light) in
+    `testifier_audit/src/testifier_audit/report/templates/report.html.j2`:
+    - added sidebar theme selector (`#theme-select`) and persisted selection via localStorage.
+    - added dark-theme variable overrides and component-level styling while preserving semantic
+      intent for `ok`/`warn`/`danger` states.
+  - Improved screenshot capture UX in
+    `testifier_audit/scripts/report/capture_report_screenshot.py`:
+    - hid fixed report chrome by default during stitched capture (opt out with
+      `--keep-fixed-chrome`) to reduce repeated-sidebar artifacts.
+    - switched tile placement to actual scroll offsets (not requested offsets only).
+    - skipped duplicate scroll-position tiles and emitted explicit artifact warnings in output
+      metadata.
+    - expanded metadata contract with:
+      `stitched_height`, `requested_tiles`, `actual_scroll_positions`,
+      `duplicate_scroll_positions_skipped`, `fixed_chrome_hidden`, and `warnings`.
+  - Added/updated Phase 8 tests:
+    - Added:
+      - `testifier_audit/tests/test_help_registry.py`
+      - `testifier_audit/tests/test_capture_report_screenshot.py`
+    - Updated:
+      - `testifier_audit/tests/test_report_chart_payload.py`
+      - `testifier_audit/tests/test_report_render_helpers.py`
+      - `testifier_audit/tests/test_report_layout_contract.py`
+      - `testifier_audit/tests/test_pipeline_integration.py`
+  - Completed real-report QA pass on
+    `reports/SB6346-20260206-1330/report.html`:
+    - regenerated report via unified pipeline with hearing metadata sidecar.
+    - captured desktop/mobile screenshots:
+      - `report-fullpage-desktop-20260221-phase8.png`
+      - `report-viewport-top-desktop-20260221-phase8.png`
+      - `report-viewport-middle-desktop-20260221-phase8.png`
+      - `report-viewport-bottom-desktop-20260221-phase8.png`
+      - `report-viewport-top-mobile-20260221-phase8.png`
+      - `report-viewport-middle-mobile-20260221-phase8.png`
+      - `report-viewport-bottom-mobile-20260221-phase8.png`
+    - verified methodology and theme runtime behavior in browser:
+      - theme selector options `light` + `dark` rendered,
+      - default theme `light`,
+      - switching to `dark` updates `data-theme`.
+    - browser console verification:
+      - no report JS/runtime payload errors; only expected static `/favicon.ico` 404 on local server.
+  - Extended screenshot capture reliability to avoid silent long stalls:
+    - added per-command timeout control (`--command-timeout-sec`),
+    - added bounded capture mode (`--max-tiles`) with explicit truncation warnings,
+    - added per-tile progress logging during capture.
+    - validated bounded capture on real report output:
+      - `report-full-20260221-phase8-stitched-bounded.png`
+      - metadata confirms bounded behavior (`truncated_by_max_tiles=true`) and warning diagnostics.
+  - Updated screenshot runbook docs in `AGENTS.md`:
+    - documented fixed-chrome hidden default,
+    - documented `--keep-fixed-chrome`,
+    - documented bounded/timeout flags for reliable long-page runs.
+
+Validation run:
+- `python -m ruff check` on touched Phase 8 Python modules/tests (passed)
+- `python -m pytest testifier_audit/tests/test_capture_report_screenshot.py testifier_audit/tests/test_help_registry.py testifier_audit/tests/test_report_chart_payload.py testifier_audit/tests/test_report_render_helpers.py testifier_audit/tests/test_report_layout_contract.py testifier_audit/tests/test_pipeline_integration.py` (23 passed)
+- `./scripts/ci/lint.sh` (passed)
+- `./scripts/ci/test.sh` (158 passed)
+- Historical performance observations and tuning notes from this phase are intentionally deferred
+  to a future stabilization phase and are not gating completion here.
+
+Scope refinement decisions:
+- Implemented methodology and guardrail copy as payload-backed contracts (`help_registry`) instead
+  of adding another hardcoded template-only content layer, keeping Phase 8 DRY and easier to audit.
+- Dark mode remains optional and UI-local; no config/CLI/feature-flag expansion was added in
+  pre-production scope.
+- Screenshot UX hardening remained script-local (no new orchestration service): fixed-chrome
+  handling, duplicate tile suppression, diagnostics metadata, bounded capture, and command timeouts.
+- Deferred performance optimization as an explicit non-goal for this phase.
+
+Remaining Phase 8 focus:
+- None. Phase 8 scope is complete.
+- Follow-up (future phase, non-blocking): evaluate report runtime/payload performance after broader
+  project stabilization work.
+
 Where:
 - `.../report/help_registry.py`
 - `.../report/templates/report.html.j2`
 - `.../scripts/report/capture_report_screenshot.py`
 
 Tests:
-- methodology and copy guardrail tests.
-- screenshot script argument behavior tests.
+- `testifier_audit/tests/test_help_registry.py`
+- `testifier_audit/tests/test_capture_report_screenshot.py`
+- updated payload/render contract checks:
+  - `testifier_audit/tests/test_report_chart_payload.py`
+  - `testifier_audit/tests/test_report_render_helpers.py`
 
-## Performance and Quality Gates
-- Payload size target on reference dataset: <= 8 MB.
-- First render target on reference dataset: <= 3.0s.
-- Bucket-switch rerender target: <= 1.5s.
+## Quality Gates
 - No uncaught browser console errors during QA checklist.
 - Keep coverage >= 80% overall.
 

@@ -21,18 +21,35 @@
         --ok: #0f766e;
         --warn: #b45309;
         --danger: #b91c1c;
+        --bg-accent-a: #dbeafe;
+        --bg-accent-b: #e2e8f0;
       }
 
       * {
         box-sizing: border-box;
       }
 
+      :root[data-theme="dark"] {
+        --bg: #0a1220;
+        --surface: #0f1b2d;
+        --surface-alt: #112036;
+        --ink: #e2e8f0;
+        --ink-muted: #94a3b8;
+        --line: #223147;
+        --brand: #60a5fa;
+        --ok: #34d399;
+        --warn: #f59e0b;
+        --danger: #f87171;
+        --bg-accent-a: #1e293b;
+        --bg-accent-b: #0f172a;
+      }
+
       body {
         margin: 0;
         color: var(--ink);
         background:
-          radial-gradient(circle at top left, #dbeafe 0%, transparent 28%),
-          radial-gradient(circle at top right, #e2e8f0 0%, transparent 24%),
+          radial-gradient(circle at top left, var(--bg-accent-a) 0%, transparent 28%),
+          radial-gradient(circle at top right, var(--bg-accent-b) 0%, transparent 24%),
           var(--bg);
         font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
         scroll-padding-top: 84px;
@@ -373,6 +390,17 @@
 
       .zoom-sync-panel {
         margin-top: 0.72rem;
+      }
+
+      .theme-panel {
+        margin-top: 0.72rem;
+      }
+
+      .theme-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 0.72rem;
       }
 
       .zoom-controls {
@@ -763,6 +791,18 @@
         line-height: 1.44;
       }
 
+      .methodology-list {
+        margin: 0.2rem 0 0;
+        padding-left: 1.1rem;
+      }
+
+      .methodology-list li {
+        margin: 0.3rem 0;
+        color: #334155;
+        font-size: 0.86rem;
+        line-height: 1.44;
+      }
+
       .tabulator {
         border: none;
         background: #ffffff;
@@ -816,6 +856,127 @@
         border-radius: 6px;
         border: 1px solid #cbd5e1;
         background: #ffffff;
+      }
+
+      :root[data-theme="dark"] .hero {
+        border-color: #1e3a5f;
+        background: linear-gradient(128deg, #10223a 0%, #101b2e 60%, #102932 100%);
+      }
+
+      :root[data-theme="dark"] .panel,
+      :root[data-theme="dark"] .analysis-section,
+      :root[data-theme="dark"] .kpi-card,
+      :root[data-theme="dark"] .detail-card,
+      :root[data-theme="dark"] .toc-sidebar,
+      :root[data-theme="dark"] .analysis-help-card,
+      :root[data-theme="dark"] details.table-group,
+      :root[data-theme="dark"] .table-host,
+      :root[data-theme="dark"] .table-help-card,
+      :root[data-theme="dark"] .chart-help-card {
+        background: var(--surface);
+        border-color: var(--line);
+      }
+
+      :root[data-theme="dark"] .analysis-help-card > summary,
+      :root[data-theme="dark"] details.table-group > summary,
+      :root[data-theme="dark"] .table-help-card > summary,
+      :root[data-theme="dark"] .chart-help-card > summary,
+      :root[data-theme="dark"] .tabulator .tabulator-header {
+        background: #15273f;
+        border-color: var(--line);
+      }
+
+      :root[data-theme="dark"] .tabulator .tabulator-row {
+        background: #0f1e33;
+        border-color: var(--line);
+      }
+
+      :root[data-theme="dark"] .tabulator .tabulator-row:nth-child(even),
+      :root[data-theme="dark"] .tabulator-row:nth-child(2n) {
+        background: #12253c;
+      }
+
+      :root[data-theme="dark"] .tabulator .tabulator-row:hover,
+      :root[data-theme="dark"] .tabulator .tabulator-row:hover .tabulator-cell {
+        background: #17304b;
+      }
+
+      :root[data-theme="dark"] .tabulator .tabulator-cell,
+      :root[data-theme="dark"] .tabulator .tabulator-header .tabulator-col,
+      :root[data-theme="dark"] .tabulator .tabulator-footer {
+        border-color: var(--line);
+      }
+
+      :root[data-theme="dark"] .sidebar-toggle,
+      :root[data-theme="dark"] .sidebar-close,
+      :root[data-theme="dark"] .control-button,
+      :root[data-theme="dark"] .bucket-tab,
+      :root[data-theme="dark"] .workflow-tab,
+      :root[data-theme="dark"] .triage-lens-select {
+        background: #0f1e33;
+        color: var(--ink);
+        border-color: #365175;
+      }
+
+      :root[data-theme="dark"] .workflow-tab:hover,
+      :root[data-theme="dark"] .bucket-tab:hover,
+      :root[data-theme="dark"] .control-button:hover,
+      :root[data-theme="dark"] .sidebar-toggle:hover {
+        background: #17304b;
+      }
+
+      :root[data-theme="dark"] .bucket-tab[aria-selected="true"] {
+        border-color: #60a5fa;
+        background: #1d4f82;
+        color: #dbeafe;
+      }
+
+      :root[data-theme="dark"] #report-toc .toc-link {
+        color: #d1d9e6;
+      }
+
+      :root[data-theme="dark"] #report-toc .toc-link:hover {
+        background: #17304b;
+        color: #dbeafe;
+      }
+
+      :root[data-theme="dark"] #report-toc .toc-link.is-active-link {
+        border-left-color: #60a5fa;
+        background: #1d4f82;
+        color: #dbeafe;
+      }
+
+      :root[data-theme="dark"] .warning-banner {
+        background: #3b2f0f;
+        border-color: #8c6d1f;
+        color: #fcd34d;
+      }
+
+      :root[data-theme="dark"] .warning-banner.ok {
+        background: #0f2f28;
+        border-color: #1f6f63;
+        color: #99f6e4;
+      }
+
+      :root[data-theme="dark"] .definition-callout {
+        background: #10223a;
+        border-color: #365175;
+      }
+
+      :root[data-theme="dark"] .definition-callout p,
+      :root[data-theme="dark"] .methodology-list li,
+      :root[data-theme="dark"] .table-help-body p,
+      :root[data-theme="dark"] .analysis-help-body p,
+      :root[data-theme="dark"] .analysis-help-body li,
+      :root[data-theme="dark"] .chart-help-body p,
+      :root[data-theme="dark"] .chart-help-body li {
+        color: #cbd5e1;
+      }
+
+      :root[data-theme="dark"] code,
+      :root[data-theme="dark"] .column-glossary {
+        background: #12253c;
+        border-color: #2a425f;
       }
 
       @media (max-width: 1220px) {
@@ -927,6 +1088,14 @@
             <div class="zoom-controls">
               <button id="zoom-reset-button" class="control-button" type="button">Reset linked zoom</button>
               <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
+            </div>
+          </section>
+          <section class="theme-panel panel" id="theme-panel">
+            <h3>Theme</h3>
+            <p class="tiny-note">Switch report theme while preserving semantic color meaning.</p>
+            <div class="theme-controls">
+              <label for="theme-select" class="triage-lens-label">Theme</label>
+              <select id="theme-select" class="triage-lens-select"></select>
             </div>
           </section>
 
@@ -1282,14 +1451,41 @@
               Queue tiers combine statistically controlled contributors (when available) with heuristic contributors.
               Low-support items are explicitly caveated and cannot be promoted to high tier.
             </p>
-            <p class="tiny-note">
-              Voter-registry linkage is probabilistic supporting context only and must not be treated as standalone attribution.
-            </p>
             <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Definitions</h3>
+                <div class="table-wrap">
+                  <div id="methodology-definitions-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Tests and Calibrations Used</h3>
+                <div class="table-wrap">
+                  <div id="methodology-tests-used-host" class="table-host"></div>
+                </div>
+              </article>
               <article class="detail-card">
                 <h3 class="detail-title">Evidence Taxonomy</h3>
                 <div class="table-wrap">
                   <div id="methodology-evidence-taxonomy-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Multiple Testing Policy</h3>
+                <ul id="methodology-multiple-testing-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Interpretation Caveats</h3>
+                <ul id="methodology-caveats-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Interpretation Guidance</h3>
+                <ul id="methodology-guidance-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Ethical Guardrails</h3>
+                <div class="table-wrap">
+                  <div id="methodology-guardrails-host" class="table-host"></div>
                 </div>
               </article>
               <article class="detail-card">
@@ -1300,16 +1496,6 @@
                 <div class="table-wrap">
                   <div id="methodology-artifact-rows-host" class="table-host"></div>
                 </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Interpretation Guardrails</h3>
-                <p class="tiny-note">
-                  Signals indicate statistical irregularity and warrant review; they are not direct attribution of intent.
-                </p>
-                <p class="tiny-note">
-                  Stronger confidence comes from persistent, corroborated, adequately powered signals across multiple
-                  independent indicators.
-                </p>
               </article>
             </div>
           </section>
@@ -1364,6 +1550,14 @@
         const hearingContextPanel = interactive.hearing_context_panel || {};
         const crossHearingBaseline = interactive.cross_hearing_baseline || {};
         const controls = interactive.controls || {};
+        const methodology = controls.methodology || {};
+        const themeOptions = Array.isArray(controls.theme_options)
+          ? controls.theme_options
+          : [];
+        const defaultTheme =
+          typeof controls.default_theme === "string" && controls.default_theme.trim()
+            ? controls.default_theme.trim()
+            : "light";
         const tableColumnDocs = reportData.table_column_docs || {};
         const tableHelpDocs = reportData.table_help_docs || {};
         const reportTimezone =
@@ -1569,6 +1763,149 @@
             return "Side-by-side";
           }
           return mode;
+        }
+
+        function themeLabel(themeId) {
+          if (themeId === "light") {
+            return "Light";
+          }
+          if (themeId === "dark") {
+            return "Dark";
+          }
+          return themeId;
+        }
+
+        function applyTheme(themeId, persist) {
+          const canPersist = persist !== false;
+          const availableThemes = Array.from(
+            new Set(
+              themeOptions
+                .map((entry) => (entry && typeof entry.id === "string" ? entry.id.trim() : ""))
+                .filter((entry) => !!entry)
+            )
+          );
+          if (!availableThemes.length) {
+            availableThemes.push("light", "dark");
+          }
+          const resolved = availableThemes.includes(themeId) ? themeId : availableThemes[0];
+          document.documentElement.setAttribute("data-theme", resolved);
+          if (!canPersist) {
+            return;
+          }
+          try {
+            window.localStorage.setItem("testifier_audit_theme", resolved);
+          } catch (_error) {}
+        }
+
+        function initThemeControl() {
+          const select = document.getElementById("theme-select");
+          if (!select) {
+            applyTheme(defaultTheme, false);
+            return;
+          }
+
+          const options = Array.from(
+            new Set(
+              themeOptions
+                .map((entry) => (entry && typeof entry.id === "string" ? entry.id.trim() : ""))
+                .filter((entry) => !!entry)
+            )
+          );
+          if (!options.length) {
+            options.push("light", "dark");
+          }
+
+          select.innerHTML = "";
+          options.forEach((themeId) => {
+            const option = document.createElement("option");
+            option.value = themeId;
+            const explicit = themeOptions.find(
+              (entry) => entry && typeof entry.id === "string" && entry.id.trim() === themeId
+            );
+            option.textContent =
+              explicit && typeof explicit.label === "string" && explicit.label.trim()
+                ? explicit.label.trim()
+                : themeLabel(themeId);
+            select.appendChild(option);
+          });
+
+          let savedTheme = "";
+          try {
+            savedTheme = String(window.localStorage.getItem("testifier_audit_theme") || "").trim();
+          } catch (_error) {}
+
+          const selectedTheme = options.includes(savedTheme)
+            ? savedTheme
+            : options.includes(defaultTheme)
+              ? defaultTheme
+              : options[0];
+          select.value = selectedTheme;
+          applyTheme(selectedTheme, false);
+
+          select.addEventListener("change", () => {
+            const nextTheme = String(select.value || "").trim();
+            applyTheme(nextTheme, true);
+            scheduleChartResizeSequence();
+          });
+        }
+
+        function setListItems(host, items) {
+          if (!host) {
+            return;
+          }
+          host.innerHTML = "";
+          const values = Array.isArray(items)
+            ? items.map((item) => String(item || "").trim()).filter((item) => !!item)
+            : [];
+          if (!values.length) {
+            const empty = document.createElement("li");
+            empty.textContent = "No guidance available for this run.";
+            host.appendChild(empty);
+            return;
+          }
+          values.forEach((value) => {
+            const item = document.createElement("li");
+            item.textContent = value;
+            host.appendChild(item);
+          });
+        }
+
+        function renderMethodologyPanel() {
+          const definitionsHost = document.getElementById("methodology-definitions-host");
+          const testsHost = document.getElementById("methodology-tests-used-host");
+          const guardrailsHost = document.getElementById("methodology-guardrails-host");
+          const multipleTestingHost = document.getElementById("methodology-multiple-testing-list");
+          const caveatsHost = document.getElementById("methodology-caveats-list");
+          const guidanceHost = document.getElementById("methodology-guidance-list");
+
+          const definitions = Array.isArray(methodology.definitions) ? methodology.definitions : [];
+          const testsUsed = Array.isArray(methodology.tests_used) ? methodology.tests_used : [];
+          const guardrails = Array.isArray(methodology.ethical_guardrails)
+            ? methodology.ethical_guardrails
+            : [];
+          const multipleTesting = Array.isArray(methodology.multiple_testing_policy)
+            ? methodology.multiple_testing_policy
+            : [];
+          const caveats = Array.isArray(methodology.caveats) ? methodology.caveats : [];
+          const guidance = Array.isArray(methodology.interpretation_guidance)
+            ? methodology.interpretation_guidance
+            : [];
+
+          mountTable(definitionsHost, definitions, {
+            pagination: false,
+            maxHeight: "280px",
+          });
+          mountTable(testsHost, testsUsed, {
+            pagination: false,
+            maxHeight: "320px",
+          });
+          mountTable(guardrailsHost, guardrails, {
+            pagination: false,
+            maxHeight: "260px",
+          });
+          setListItems(multipleTestingHost, multipleTesting);
+          setListItems(caveatsHost, caveats);
+          setListItems(guidanceHost, guidance);
         }
 
         function getCrossHearingComparator(metric) {
@@ -1892,6 +2229,7 @@
         }
 
         let busyToken = 0;
+
         function setBusyIndicator(isVisible, text) {
           const root = document.getElementById("report-busy-indicator");
           if (!root) {
@@ -4093,9 +4431,11 @@
             renderCrossHearingComparator();
           }
 
-          const taxonomyRows = Array.isArray(controls.evidence_taxonomy)
-            ? controls.evidence_taxonomy
-            : [];
+          const taxonomyRows = Array.isArray(methodology.evidence_taxonomy)
+            ? methodology.evidence_taxonomy
+            : Array.isArray(controls.evidence_taxonomy)
+              ? controls.evidence_taxonomy
+              : [];
           mountTable(taxonomyHost, taxonomyRows, {
             pagination: false,
             maxHeight: "280px",
@@ -4117,6 +4457,7 @@
             paginationSize: 10,
             maxHeight: "300px",
           });
+          renderMethodologyPanel();
 
           const currentWindowId = String((drilldownState.activeWindow || {}).window_id || "");
           const nextActiveWindow =
@@ -4812,6 +5153,7 @@
         }
 
         buildKpis();
+        initThemeControl();
         initDedupModeControl();
         renderDataQualityPanel();
         renderHearingContextPanel();

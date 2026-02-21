@@ -172,6 +172,24 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert controls["timezone_label"] == "UTC"
     assert controls["process_markers"] == []
     assert isinstance(controls["evidence_taxonomy"], list)
+    assert isinstance(controls["methodology"], dict)
+    assert isinstance(controls["methodology"]["definitions"], list)
+    assert isinstance(controls["methodology"]["tests_used"], list)
+    guardrails = controls["methodology"]["ethical_guardrails"]
+    assert isinstance(guardrails, list) and guardrails
+    assert any(
+        "statistical irregularity" in str(row.get("requirement", "")).lower()
+        for row in guardrails
+    )
+    assert any(
+        "standalone attribution" in str(row.get("requirement", "")).lower()
+        for row in guardrails
+    )
+    assert controls["theme_options"] == [
+        {"id": "light", "label": "Light"},
+        {"id": "dark", "label": "Dark"},
+    ]
+    assert controls["default_theme"] == "light"
     assert controls["dedup_modes"] == ["raw", "exact_row_dedup", "side_by_side"]
     assert controls["default_dedup_mode"] in controls["dedup_modes"]
     assert "absolute_time" in controls["zoom_sync_groups"]

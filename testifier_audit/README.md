@@ -87,6 +87,17 @@ HTML report for anomaly review.
 - Preserve guardrail semantics in UX and contracts:
   voter linkage remains supporting evidence only, not a standalone attribution signal.
 
+## Lessons Learned (Phase 7 Cross-Hearing Baselines)
+- Keep per-run comparative fields in `summary/feature_vector.json` and maintain a schema-versioned
+  contract so cross-hearing baselines can evolve safely.
+- Build comparative baselines from existing report outputs first:
+  aggregate from `reports/*/summary/feature_vector.json` and use `investigation_summary.json`
+  backfill for older runs, rather than introducing a parallel persistence layer.
+- Keep cross-hearing chart overlays intentional and scoped:
+  apply percentile/band overlays to selected hero charts before considering broader rollout.
+- Keep runtime contracts robust when no corpus exists:
+  always emit a fallback `cross_hearing_baseline` object so template logic remains deterministic.
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.
@@ -117,6 +128,9 @@ cd /Users/sayhiben/dev/legislature-tools/testifier_audit
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
   /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+
+# Rebuild cross-hearing comparative baselines (run from repo root)
+python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/build_global_baselines.py
 ```
 
 Result:

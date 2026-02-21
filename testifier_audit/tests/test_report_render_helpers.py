@@ -258,6 +258,48 @@ def test_render_report_json_payload_does_not_include_nan_literals(tmp_path: Path
     assert "NaN" not in rendered
 
 
+def test_render_report_loads_cross_hearing_baseline_file_when_available(tmp_path: Path) -> None:
+    reports_dir = tmp_path / "reports"
+    out_dir = reports_dir / "SB9999-20260221-1000"
+    out_dir.mkdir(parents=True)
+    baseline_path = reports_dir / "global_baselines.json"
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "report_count": 3,
+                "by_report": {
+                    out_dir.name: {
+                        "available": True,
+                        "report_id": out_dir.name,
+                        "report_count": 3,
+                        "metric_comparators": [
+                            {
+                                "metric": "total_submissions",
+                                "label": "Total submissions",
+                                "value": 123.0,
+                                "percentile": 0.91,
+                                "band_p10": 20.0,
+                                "band_p50": 80.0,
+                                "band_p90": 150.0,
+                                "n_reports": 3,
+                            }
+                        ],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
+    rendered = report_path.read_text(encoding="utf-8")
+
+    assert "cross_hearing_baseline" in rendered
+    assert '"report_count": 3' in rendered
+    assert "Cross-Hearing Comparator" in rendered
+
+
 def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     tmp_path: Path,
 ) -> None:
@@ -281,12 +323,20 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert 'id="triage-dedup-mode"' in rendered
     assert 'id="data-quality-warning-host"' in rendered
     assert 'id="data-quality-dedup-metrics-host"' in rendered
+    assert 'id="cross-hearing-comparator-host"' in rendered
+    assert 'id="cross-hearing-comparator-summary"' in rendered
     assert 'id="hearing-context-metadata-host"' in rendered
     assert 'id="hearing-deadline-ramp-host"' in rendered
     assert 'id="hearing-stance-by-deadline-host"' in rendered
     assert 'id="methodology-artifact-rows-host"' in rendered
     assert "initDedupModeControl()" in rendered
     assert "renderDataQualityPanel()" in rendered
+    assert "renderCrossHearingComparator()" in rendered
+    assert "applyCrossHearingNameCues(" in rendered
+    assert "applyCrossHearingClusterCues(" in rendered
+    assert "getCrossHearingComparator(" in rendered
+    assert "Cross-hearing p10-p90 band" in rendered
+    assert 'comparatorMetric: "overall_pro_rate"' in rendered
     assert "renderHearingContextPanel()" in rendered
     assert "buildProcessMarkerLines()" in rendered
     assert "voter_registry_match_tiers" in rendered

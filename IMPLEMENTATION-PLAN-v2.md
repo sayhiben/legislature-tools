@@ -800,6 +800,71 @@ Tests:
 - `test_global_baselines.py`
 - payload contract test updates.
 
+Status (2026-02-21): Complete
+- Completed in this tranche:
+  - Implemented Phase 7 feature-vector contracts in
+    `testifier_audit/src/testifier_audit/report/global_baselines.py` and wired them from
+    `testifier_audit/src/testifier_audit/report/render.py`:
+    - `summary/feature_vector.json` is now schema-versioned and enriched with:
+      - queue/tier structure metrics (`window_high_share`, queue sizes, top-window score/z/dup metrics),
+      - dedup and quality context (`dedup_drop_fraction`, material quality metric count),
+      - and cross-hearing forensics seeds (`top_repeated_names`, `top_near_dup_clusters`).
+    - retained compatibility top-level keys (`total_submissions`, `overall_pro_rate`, etc.) to avoid
+      breaking existing consumers while we iterate pre-production.
+  - Added corpus baseline aggregator script:
+    - `testifier_audit/scripts/report/build_global_baselines.py`
+    - scans `reports/*/summary/feature_vector.json` (and backfills from
+      `investigation_summary.json` when needed),
+    - writes `reports/global_baselines.json` with per-report comparator metrics
+      (percentile + p10/p50/p90 comparator bands) and cross-hearing name/cluster cues.
+  - Wired cross-hearing baseline payload into report render/runtime:
+    - `render_report(...)` now auto-loads `global_baselines.json` from report directory scope and
+      injects `interactive_charts.cross_hearing_baseline`.
+    - payload contract now always exposes a deterministic fallback object when corpus baselines are absent.
+  - Added Triage + Forensics UI contracts in
+    `testifier_audit/src/testifier_audit/report/templates/report.html.j2`:
+    - new `Cross-Hearing Comparator` card renders percentile + comparator-band rows.
+    - top names and top near-dup cluster tables are augmented with cross-hearing cues:
+      - name recurrence across reports and corpus-relative recurrence percentile,
+      - cluster size/record percentiles against corpus distributions.
+  - Completed chart-level comparator overlays for selected high-value hero charts in
+    `testifier_audit/src/testifier_audit/report/templates/report.html.j2`:
+    - `baseline_volume_pro_rate` and `procon_swings_hero_bucket_trend` now render
+      cross-hearing comparator overlays from corpus baselines:
+      - shaded p10-p90 comparator band
+      - dashed p50 comparator line
+    - chart notes now include comparator context (`metric`, corpus `n`, percentile) when
+      overlays are active.
+- Added/updated tests:
+  - Added:
+    - `testifier_audit/tests/test_global_baselines.py`
+  - Updated:
+    - `testifier_audit/tests/test_report_chart_payload.py`
+    - `testifier_audit/tests/test_report_render_helpers.py`
+  - Validation run:
+    - `python -m ruff check` on touched Phase 7 modules/tests (passed).
+    - `python -m pytest testifier_audit/tests/test_global_baselines.py testifier_audit/tests/test_report_chart_payload.py testifier_audit/tests/test_report_render_helpers.py testifier_audit/tests/test_pipeline_integration.py` (17 passed).
+    - `python -m ruff check testifier_audit/src testifier_audit/tests --select F` (passed).
+
+Scope refinement decisions:
+- Kept Phase 7 comparator UX table-first (triage comparator card + forensics cue columns) rather than
+  introducing broad detector-wide overlay behavior. Final overlays were limited to two high-value hero
+  charts to deliver comparative context while controlling visual/runtime complexity.
+- Implemented feature-vector backfill from `investigation_summary.json` in the baseline aggregator so
+  existing historical report runs can participate in corpus baselines immediately, without requiring a
+  full re-render migration pass.
+
+Lessons learned to carry into later phases:
+- Keep comparative contracts artifact-first:
+  schema-versioned `feature_vector.json` + `global_baselines.json` are sufficient for Phase 7 and
+  avoid unnecessary datastore complexity while pre-production.
+- Keep comparator overlays selective and high-signal:
+  apply bands/percentiles only where they materially improve triage decisions; avoid global overlay
+  defaults that crowd chart interpretation.
+- Preserve deterministic payload shapes for optional features:
+  `cross_hearing_baseline` should always exist in payloads with explicit availability state to
+  prevent template/runtime branching errors.
+
 ## Phase 8: Methodology, Guardrails, and Publish Readiness
 1. Build a dedicated methodology page:
    - definitions

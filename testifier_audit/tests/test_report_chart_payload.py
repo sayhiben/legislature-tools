@@ -137,6 +137,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(payload["cluster_evidence_queue"], list)
     assert isinstance(payload["data_quality_panel"], dict)
     assert isinstance(payload["hearing_context_panel"], dict)
+    assert isinstance(payload["cross_hearing_baseline"], dict)
 
     ids = {entry["id"] for entry in payload["analysis_catalog"]}
     assert EXPECTED_ANALYSES.issubset(ids)
@@ -186,6 +187,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert payload["data_quality_panel"]["status"] in {"ok", "warning"}
     assert isinstance(payload["data_quality_panel"]["triage_raw_vs_dedup_metrics"], list)
     assert payload["hearing_context_panel"]["available"] is False
+    assert payload["cross_hearing_baseline"]["available"] is False
 
 
 def test_empty_and_disabled_analyses_are_still_in_catalog() -> None:

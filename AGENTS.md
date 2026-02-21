@@ -116,6 +116,20 @@ Repository-specific guidance for AI/code agents.
   `report/analysis_registry.py`, `report/render.py`, `report/templates/report.html.j2`, and
   payload/render contract tests.
 
+## Lessons Learned (Phase 7 Cross-Hearing Baselines)
+- Keep per-report comparative features as a stable artifact contract:
+  `summary/feature_vector.json` should remain schema-versioned and include queue/tier, dedup, and
+  forensics cue fields needed for corpus baselines.
+- Keep corpus baseline aggregation report-local and lightweight:
+  use `scripts/report/build_global_baselines.py` over `reports/*/summary/feature_vector.json` and
+  backfill from `investigation_summary.json` for older reports rather than introducing a new store.
+- Limit chart comparator overlays to high-value surfaces:
+  apply percentile/band overlays to selected hero charts first, and avoid broad detector-wide
+  overlay rollout unless explicitly requested.
+- Keep cross-hearing payload contracts deterministic:
+  always emit `interactive_charts.cross_hearing_baseline` with a fallback `available=false` shape so
+  report runtime logic never depends on optional keys.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`
@@ -181,6 +195,9 @@ Run from `/Users/sayhiben/dev/legislature-tools/testifier_audit` unless noted.
 
 # Rebuild reports index (run from repo root)
 python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/build_reports_index.py
+
+# Rebuild cross-hearing baseline corpus (run from repo root, after report generation)
+python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/build_global_baselines.py
 ```
 
 ## Runtime and Infrastructure
@@ -259,6 +276,7 @@ python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/buil
 - Payload contains:
   - `analysis_catalog`
   - `charts`
+  - `cross_hearing_baseline`
   - `controls` (`global_bucket_options`, `default_bucket_minutes`, `zoom_sync_groups`)
   - chart/table legend/help docs
 - JSON must be finite-safe:

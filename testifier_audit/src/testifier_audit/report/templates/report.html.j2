@@ -1029,6 +1029,13 @@
                 </div>
               </article>
               <article class="detail-card">
+                <h3 class="detail-title">Cross-Hearing Comparator</h3>
+                <p id="cross-hearing-comparator-summary" class="tiny-note"></p>
+                <div class="table-wrap">
+                  <div id="cross-hearing-comparator-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
                 <h3 class="detail-title">Hearing Context Metadata</h3>
                 <p id="hearing-context-summary" class="tiny-note"></p>
                 <div class="table-wrap">
@@ -1355,6 +1362,7 @@
           : [];
         const dataQualityPanel = interactive.data_quality_panel || {};
         const hearingContextPanel = interactive.hearing_context_panel || {};
+        const crossHearingBaseline = interactive.cross_hearing_baseline || {};
         const controls = interactive.controls || {};
         const tableColumnDocs = reportData.table_column_docs || {};
         const tableHelpDocs = reportData.table_help_docs || {};
@@ -1372,6 +1380,14 @@
         const processMarkers = Array.isArray(controls.process_markers)
           ? controls.process_markers
           : [];
+        const crossHearingComparatorRows = Array.isArray(crossHearingBaseline.metric_comparators)
+          ? crossHearingBaseline.metric_comparators
+          : [];
+        const crossHearingComparatorByMetric = new Map(
+          crossHearingComparatorRows
+            .filter((row) => row && typeof row.metric === "string")
+            .map((row) => [String(row.metric), row])
+        );
         const defaultDedupMode =
           typeof controls.default_dedup_mode === "string" && dedupModes.includes(controls.default_dedup_mode)
             ? controls.default_dedup_mode
@@ -1553,6 +1569,35 @@
             return "Side-by-side";
           }
           return mode;
+        }
+
+        function getCrossHearingComparator(metric) {
+          const key = String(metric || "").trim();
+          if (!key) {
+            return null;
+          }
+          const row = crossHearingComparatorByMetric.get(key);
+          if (!row || typeof row !== "object") {
+            return null;
+          }
+          const bandP10 = toFiniteNumberOrNull(row.band_p10);
+          const bandP50 = toFiniteNumberOrNull(row.band_p50);
+          const bandP90 = toFiniteNumberOrNull(row.band_p90);
+          if (bandP10 === null && bandP50 === null && bandP90 === null) {
+            return null;
+          }
+          return {
+            metric: key,
+            label:
+              typeof row.label === "string" && row.label.trim()
+                ? row.label.trim()
+                : key.replace(/_/g, " "),
+            nReports: Number(toNumber(row.n_reports || crossHearingBaseline.report_count || 0)),
+            percentile: toFiniteNumberOrNull(row.percentile),
+            bandP10: bandP10,
+            bandP50: bandP50,
+            bandP90: bandP90,
+          };
         }
 
         function getTriageView(mode) {
@@ -1822,6 +1867,9 @@
           }
           if (mount && Number.isFinite(mount.activeBucket)) {
             parts.push("Bucket: " + mount.activeBucket + "m.");
+          }
+          if (mount && mount.crossHearingComparatorNote) {
+            parts.push(mount.crossHearingComparatorNote);
           }
           if (fallbackNote) {
             parts.push(fallbackNote);
@@ -2197,6 +2245,8 @@
           const extraLines = Array.isArray(config.extraLines) ? config.extraLines : [];
           const lowPowerField = config.lowPowerField;
           const flaggedField = config.flaggedField;
+          const comparatorMetric =
+            typeof config.comparatorMetric === "string" ? config.comparatorMetric.trim() : "";
 
           const sorted = rows
             .map((row) => Object.assign({}, row, { __time: toEpochMillis(row[timeField]) }))
@@ -2208,6 +2258,7 @@
           }
 
           mount.timeExtent = extentFromRows(sorted, "__time");
+          mount.crossHearingComparatorNote = null;
           const mainSeriesId = "main-" + mount.chartId;
 
           const barData = barField ? sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[barField])]) : [];
@@ -2381,6 +2432,70 @@
               },
             });
           });
+
+          const comparator = comparatorMetric ? getCrossHearingComparator(comparatorMetric) : null;
+          if (comparator && lineField) {
+            const comparatorYAxisIndex = barField ? 1 : 0;
+            const startTime = sorted[0].__time;
+            const endTime = sorted[sorted.length - 1].__time;
+
+            if (
+              comparator.bandP10 !== null &&
+              comparator.bandP90 !== null &&
+              comparator.bandP90 >= comparator.bandP10
+            ) {
+              const bandAnchor =
+                comparator.bandP50 !== null ? comparator.bandP50 : comparator.bandP10;
+              option.series.push({
+                name: "Cross-hearing p10-p90 band",
+                type: "line",
+                yAxisIndex: comparatorYAxisIndex,
+                data: sorted.map((row) => [row.__time, bandAnchor]),
+                showSymbol: false,
+                tooltip: { show: false },
+                lineStyle: { opacity: 0 },
+                markArea: {
+                  silent: true,
+                  itemStyle: { color: "rgba(14, 116, 144, 0.10)" },
+                  data: [
+                    [
+                      { xAxis: startTime, yAxis: comparator.bandP10 },
+                      { xAxis: endTime, yAxis: comparator.bandP90 },
+                    ],
+                  ],
+                },
+              });
+            }
+
+            if (comparator.bandP50 !== null) {
+              option.series.push({
+                name: "Cross-hearing p50",
+                type: "line",
+                yAxisIndex: comparatorYAxisIndex,
+                data: sorted.map((row) => [row.__time, comparator.bandP50]),
+                showSymbol: false,
+                lineStyle: {
+                  color: "#0f766e",
+                  width: 1.5,
+                  type: "dashed",
+                  opacity: 0.95,
+                },
+              });
+            }
+
+            const percentileLabel =
+              comparator.percentile !== null
+                ? formatPercent(comparator.percentile, 0)
+                : "n/a";
+            mount.crossHearingComparatorNote =
+              "Cross-hearing baseline (" +
+              comparator.label +
+              ", n=" +
+              comparator.nReports.toLocaleString() +
+              "): percentile " +
+              percentileLabel +
+              ".";
+          }
 
           if (flaggedData.length) {
             option.series.push({
@@ -2821,6 +2936,7 @@
               lineField: "pro_rate",
               lineLow: "pro_rate_wilson_low",
               lineHigh: "pro_rate_wilson_high",
+              comparatorMetric: "overall_pro_rate",
               lowPowerField: "is_low_power",
               lineAxisName: "Pro rate",
               lineMin: 0,
@@ -2835,6 +2951,7 @@
               lowPowerField: "is_low_power",
               flaggedField: "is_flagged",
               extraLines: ["baseline_pro_rate", "stable_lower", "stable_upper"],
+              comparatorMetric: "overall_pro_rate",
               lineAxisName: "Pro rate",
               lineMin: 0,
               lineMax: 1,
@@ -3735,6 +3852,112 @@
           }
         }
 
+        function renderCrossHearingComparator() {
+          const summaryHost = document.getElementById("cross-hearing-comparator-summary");
+          const comparatorHost = document.getElementById("cross-hearing-comparator-host");
+          if (!summaryHost && !comparatorHost) {
+            return;
+          }
+
+          const available = !!(crossHearingBaseline && crossHearingBaseline.available);
+          const reportCount = Number(toNumber(crossHearingBaseline.report_count || 0));
+          const rowsRaw = Array.isArray(crossHearingBaseline.metric_comparators)
+            ? crossHearingBaseline.metric_comparators
+            : [];
+          const rows = rowsRaw.map((row) => {
+            const p10 = toFiniteNumberOrNull(row.band_p10);
+            const p50 = toFiniteNumberOrNull(row.band_p50);
+            const p90 = toFiniteNumberOrNull(row.band_p90);
+            return Object.assign({}, row, {
+              percentile_label: formatPercent(row.percentile, 0),
+              comparator_band:
+                p10 !== null && p50 !== null && p90 !== null
+                  ? "p10/p50/p90: " +
+                    formatTooltipValue(p10) +
+                    " / " +
+                    formatTooltipValue(p50) +
+                    " / " +
+                    formatTooltipValue(p90)
+                  : "n/a",
+            });
+          });
+
+          if (summaryHost) {
+            if (available && rows.length) {
+              summaryHost.textContent =
+                "Compared against " +
+                reportCount.toLocaleString() +
+                " hearing run(s). Percentiles and p10/p50/p90 bands are corpus-relative.";
+            } else {
+              const reason =
+                typeof crossHearingBaseline.reason === "string" && crossHearingBaseline.reason.trim()
+                  ? crossHearingBaseline.reason.trim()
+                  : "Run the global baseline aggregator to enable cross-hearing comparisons.";
+              summaryHost.textContent = reason;
+            }
+          }
+          if (comparatorHost) {
+            mountTable(comparatorHost, rows, { pagination: false, maxHeight: "280px" });
+          }
+        }
+
+        function applyCrossHearingNameCues(rows) {
+          const cueRows = Array.isArray(crossHearingBaseline.top_name_cues)
+            ? crossHearingBaseline.top_name_cues
+            : [];
+          if (!cueRows.length) {
+            return rows;
+          }
+          const cueByCanonical = new Map(
+            cueRows
+              .filter((row) => row && typeof row.canonical_name === "string")
+              .map((row) => [String(row.canonical_name), row])
+          );
+          return rows.map((row) => {
+            const canonical = String((row || {}).canonical_name || "");
+            const cue = cueByCanonical.get(canonical);
+            if (!cue) {
+              return row;
+            }
+            return Object.assign({}, row, {
+              cross_hearing_report_count: Number(toNumber(cue.report_count || 0)),
+              cross_hearing_report_share: toFiniteNumberOrNull(cue.report_share),
+              cross_hearing_max_n_records: Number(toNumber(cue.max_n_records_across_reports || 0)),
+              cross_hearing_max_records_percentile: toFiniteNumberOrNull(
+                cue.max_n_records_percentile
+              ),
+              cross_hearing_recurrent_name: Number(toNumber(cue.report_count || 0)) > 1,
+            });
+          });
+        }
+
+        function applyCrossHearingClusterCues(rows) {
+          const cueRows = Array.isArray(crossHearingBaseline.top_cluster_cues)
+            ? crossHearingBaseline.top_cluster_cues
+            : [];
+          if (!cueRows.length) {
+            return rows;
+          }
+          const cueByCluster = new Map(
+            cueRows
+              .filter((row) => row && typeof row.cluster_id === "string")
+              .map((row) => [String(row.cluster_id), row])
+          );
+          return rows.map((row) => {
+            const clusterId = String((row || {}).cluster_id || "");
+            const cue = cueByCluster.get(clusterId);
+            if (!cue) {
+              return row;
+            }
+            return Object.assign({}, row, {
+              cross_hearing_cluster_size_percentile: toFiniteNumberOrNull(
+                cue.cluster_size_percentile
+              ),
+              cross_hearing_n_records_percentile: toFiniteNumberOrNull(cue.n_records_percentile),
+            });
+          });
+        }
+
         function renderHearingContextPanel() {
           const summaryHost = document.getElementById("hearing-context-summary");
           const metadataHost = document.getElementById("hearing-context-metadata-host");
@@ -3808,6 +4031,7 @@
           const clusterHost = document.getElementById("triage-cluster-queue-host");
           const forensicsNamesHost = document.getElementById("forensics-top-names-host");
           const forensicsClustersHost = document.getElementById("forensics-top-clusters-host");
+          const comparatorHost = document.getElementById("cross-hearing-comparator-host");
           const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
           const artifactRowsHost = document.getElementById("methodology-artifact-rows-host");
 
@@ -3854,14 +4078,20 @@
             summary.top_near_dup_clusters.length
               ? summary.top_near_dup_clusters
               : clusterQueue.slice(0, 10);
-          mountTable(forensicsNamesHost, topNames, {
+          const topNamesWithCues = applyCrossHearingNameCues(topNames);
+          const topClustersWithCues = applyCrossHearingClusterCues(topClusters);
+
+          mountTable(forensicsNamesHost, topNamesWithCues, {
             paginationSize: 8,
             maxHeight: "340px",
           });
-          mountTable(forensicsClustersHost, topClusters, {
+          mountTable(forensicsClustersHost, topClustersWithCues, {
             paginationSize: 8,
             maxHeight: "340px",
           });
+          if (comparatorHost) {
+            renderCrossHearingComparator();
+          }
 
           const taxonomyRows = Array.isArray(controls.evidence_taxonomy)
             ? controls.evidence_taxonomy
@@ -4182,6 +4412,7 @@
             isAbsoluteTime: false,
             seriesId: null,
             baseMarkLines: state.absoluteTimeSet.has(chartId) ? buildProcessMarkerLines() : [],
+            crossHearingComparatorNote: null,
             timeExtent: null,
             activeBucket: null,
           };

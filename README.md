@@ -100,6 +100,17 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - Keep detector/report parity strict for voter-linkage changes:
   update `analysis_registry.py`, `render.py`, `report.html.j2`, and contract tests together.
 
+## Lessons Learned (Phase 7 Cross-Hearing Baselines)
+- Keep `summary/feature_vector.json` schema-versioned and stable so each report run can feed the
+  corpus baseline process without custom adapters.
+- Build corpus baselines from existing report artifacts (`feature_vector.json` with
+  `investigation_summary.json` backfill) rather than adding a separate feature-store service.
+- Keep comparator overlays constrained to high-value charts first to preserve readability and avoid
+  broad runtime/render complexity.
+- Keep cross-hearing payloads deterministic:
+  always emit `cross_hearing_baseline` with `available=false` fallback fields when corpus baselines
+  are absent.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 
@@ -113,6 +124,9 @@ From `testifier_audit/`, the recommended end-to-end run is:
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
   /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+
+# Rebuild cross-hearing comparative baselines (run from repo root)
+python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/build_global_baselines.py
 ```
 
 This imports submissions + voter registry data into Postgres, runs all detectors, and writes a

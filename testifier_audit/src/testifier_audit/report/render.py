@@ -26,6 +26,11 @@ from testifier_audit.report.analysis_registry import (
 from testifier_audit.report.analysis_registry import (
     default_analysis_definitions as registry_analysis_definitions,
 )
+from testifier_audit.report.global_baselines import (
+    build_feature_vector,
+    default_cross_hearing_baseline_payload,
+    load_cross_hearing_baseline,
+)
 from testifier_audit.report.quality_builder import build_data_quality_panel
 from testifier_audit.report.triage_builder import build_investigation_views
 
@@ -4205,6 +4210,7 @@ def _build_interactive_chart_payload_v2(
         "cluster_evidence_queue": cluster_evidence_queue,
         "data_quality_panel": data_quality_panel,
         "hearing_context_panel": hearing_context_panel,
+        "cross_hearing_baseline": default_cross_hearing_baseline_payload(),
         "controls": {
             "default_bucket_minutes": 30
             if 30 in global_bucket_options
@@ -4339,6 +4345,7 @@ def _rows_to_frame(rows: Any) -> pd.DataFrame:
 
 def _write_investigation_artifacts(
     out_dir: Path,
+    report_id: str,
     triage_summary: dict[str, Any],
     window_evidence_queue: Any,
     record_evidence_queue: Any,
@@ -4365,23 +4372,14 @@ def _write_investigation_artifacts(
         if isinstance(candidate_rows, list):
             raw_vs_dedup_rows = candidate_rows
 
-    feature_vector = {
-        "total_submissions": int(summary_payload.get("total_submissions") or 0),
-        "overall_pro_rate": summary_payload.get("overall_pro_rate"),
-        "overall_con_rate": summary_payload.get("overall_con_rate"),
-        "window_queue_size": int(len(window_rows)),
-        "record_queue_size": int(len(record_rows)),
-        "cluster_queue_size": int(len(cluster_rows)),
-        "window_high_count": int(
-            sum(1 for row in window_rows if str(row.get("evidence_tier")) == "high")
-        ),
-        "window_medium_count": int(
-            sum(1 for row in window_rows if str(row.get("evidence_tier")) == "medium")
-        ),
-        "window_watch_count": int(
-            sum(1 for row in window_rows if str(row.get("evidence_tier")) == "watch")
-        ),
-    }
+    feature_vector = build_feature_vector(
+        report_id=report_id,
+        triage_summary=summary_payload,
+        window_evidence_queue=window_rows,
+        record_evidence_queue=record_rows,
+        cluster_evidence_queue=cluster_rows,
+        data_quality_panel=data_quality_panel if isinstance(data_quality_panel, dict) else {},
+    )
     (summary_dir / "feature_vector.json").write_text(
         json.dumps(_json_safe(feature_vector), indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -4505,9 +4503,14 @@ def render_report(
             runtime_metrics = {}
         runtime_metrics["interactive_payload_build_ms"] = interactive_build_ms
         interactive_charts["controls"]["runtime"] = runtime_metrics
+    interactive_charts["cross_hearing_baseline"] = load_cross_hearing_baseline(
+        out_dir=out_dir,
+        report_id=out_dir.name,
+    )
 
     _write_investigation_artifacts(
         out_dir=out_dir,
+        report_id=out_dir.name,
         triage_summary=interactive_charts.get("triage_summary", {}),
         window_evidence_queue=interactive_charts.get("window_evidence_queue", []),
         record_evidence_queue=interactive_charts.get("record_evidence_queue", []),

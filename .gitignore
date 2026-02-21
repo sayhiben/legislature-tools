@@ -214,3 +214,6 @@ output/playwright/
 
 # Local runtime/output artifacts
 output/
+
+# Local Playwright CLI debug artifacts
+/.playwright-cli/

@@ -18,6 +18,16 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
   feature flags or backward-compatibility scaffolding.
 - The current roadmap source of truth is `IMPLEMENTATION-PLAN-v2.md`.
 
+## Lessons Learned (Phase 0)
+- Keep report contracts and registries modular and typed; avoid growing `report/render.py` as a
+  mixed source-of-truth module.
+- Maintain exactly one source of truth for analysis definitions/status to avoid silent drift across
+  payload, template, and tests.
+- Add contract-level tests plus at least one integration parity test whenever core report contracts
+  move.
+- Keep runtime observability first-class: preserve payload/render timing metrics and payload byte
+  size reporting to catch regressions early.
+
 ## Primary workflow
 From `testifier_audit/`, the recommended end-to-end run is:
 

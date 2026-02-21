@@ -127,6 +127,7 @@ Design constraints:
 2. Implement shared scoring and explanation helpers.
 3. Add runtime instrumentation for payload size and render timings.
 4. Extract analysis registry out of `render.py`.
+5. Remove legacy inlined registry helpers from `render.py` after parity tests pass (new task).
 
 Why:
 - Stabilizes future changes and reduces accidental signal mixing.
@@ -138,6 +139,28 @@ Tests:
 - `test_evidence_contract.py`
 - `test_triage_builder.py`
 - `test_report_runtime_contracts.py`
+- `test_analysis_registry.py` (added to lock registry extraction/parity behavior)
+- `test_pipeline_integration.py` (used as regression check after render registry cleanup)
+
+Status (2026-02-21): Complete
+- Implemented `report/contracts.py` with typed triage evidence contracts and validation.
+- Implemented `report/triage_builder.py` shared scoring/tiering/explanation/caveat helpers.
+- Added payload and render runtime instrumentation:
+  `controls.runtime.payload_build_ms`, `controls.runtime.payload_json_bytes`,
+  `controls.runtime.interactive_payload_build_ms`, and `artifacts/report_runtime.json`.
+- Extracted analysis registry/status into `report/analysis_registry.py` and removed legacy duplicated
+  registry helpers from `report/render.py`.
+- Validation:
+  `python -m ruff check src/testifier_audit/report tests/test_analysis_registry.py tests/test_evidence_contract.py tests/test_triage_builder.py tests/test_report_runtime_contracts.py tests/test_report_render_helpers.py tests/test_pipeline_integration.py`
+  and
+  `python -m pytest tests/test_analysis_registry.py tests/test_evidence_contract.py tests/test_triage_builder.py tests/test_report_runtime_contracts.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_pipeline_integration.py`
+  (24 passed).
+
+Lessons learned to carry into later phases:
+- Keep one source of truth per report contract domain (registry, evidence contracts, scoring helpers).
+- Avoid adding large new behavior directly in `render.py`; add focused modules and wire them in.
+- Couple structural refactors with both unit-contract coverage and integration parity checks.
+- Keep runtime metrics in payload/artifacts to guard performance while IA grows in Phases 1-4.
 
 ## Phase 1: UX Bug Fixes and Interaction Reliability
 1. Remove noisy `ready` status badge from section header UI.

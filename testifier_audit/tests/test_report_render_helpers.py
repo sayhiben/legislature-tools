@@ -8,10 +8,10 @@ import pandas as pd
 
 from testifier_audit.detectors.base import DetectorResult
 from testifier_audit.report import render
+from testifier_audit.report.analysis_registry import default_analysis_definitions
 from testifier_audit.report.render import (
     _artifact_rows_from_disk,
     _build_table_column_docs,
-    _default_analysis_definitions,
     _evidence_bundle_preview_from_disk,
     _evidence_bundle_preview_from_results,
     _json_safe,
@@ -280,7 +280,7 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
 
-    for analysis in _default_analysis_definitions():
+    for analysis in default_analysis_definitions():
         analysis_id = str(analysis["id"])
         hero_chart_id = str(analysis["hero_chart_id"])
         assert f'data-analysis-id="{analysis_id}"' in rendered

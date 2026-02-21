@@ -19,6 +19,18 @@ Repository-specific guidance for AI/code agents.
   - `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
 - When proposing or executing substantial changes, align with this plan unless the user explicitly overrides it.
 
+## Lessons Learned (Phase 0)
+- Treat `src/testifier_audit/report/analysis_registry.py` as the only source of truth for analysis
+  definitions/status; do not reintroduce duplicate registry helpers in `report/render.py`.
+- Keep triage evidence contracts and scoring/tiering logic in dedicated modules:
+  `report/contracts.py` and `report/triage_builder.py`.
+- When refactoring report architecture, require both:
+  - focused unit/contract tests (for new modules), and
+  - at least one integration parity test (`tests/test_pipeline_integration.py`) to catch render drift.
+- Preserve runtime instrumentation fields unless intentionally revised:
+  `controls.runtime.payload_build_ms`, `controls.runtime.payload_json_bytes`,
+  `controls.runtime.interactive_payload_build_ms`, and `artifacts/report_runtime.json`.
+
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
    - `/Users/sayhiben/dev/legislature-tools/README.md`

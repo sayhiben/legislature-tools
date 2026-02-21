@@ -7,7 +7,7 @@ import yaml
 from typer.testing import CliRunner
 
 from testifier_audit.cli import app
-from testifier_audit.report.render import _default_analysis_definitions
+from testifier_audit.report.analysis_registry import default_analysis_definitions
 
 
 def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
@@ -200,8 +200,8 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert "Rare / Unique Names" in report_text
     assert "Periodicity" in report_text
     assert "Static Figure Exports" not in report_text
-    expected_analyses = {entry["id"] for entry in _default_analysis_definitions()}
-    expected_hero_ids = {entry["hero_chart_id"] for entry in _default_analysis_definitions()}
+    expected_analyses = {entry["id"] for entry in default_analysis_definitions()}
+    expected_hero_ids = {entry["hero_chart_id"] for entry in default_analysis_definitions()}
     rendered_analysis_ids = set(re.findall(r'data-analysis-id="([^"]+)"', report_text))
     rendered_hero_ids = set(
         re.findall(r'data-chart-id="([^"]+)"\s+data-chart-role="hero"', report_text)

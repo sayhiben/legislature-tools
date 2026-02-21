@@ -10,6 +10,18 @@ HTML report for anomaly review.
 - The current end-to-end roadmap is documented in:
   - `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
 
+## Lessons Learned (Phase 0 Foundations)
+- Analysis catalog and status logic now belong in `src/testifier_audit/report/analysis_registry.py`.
+  Do not duplicate these definitions in `report/render.py`.
+- Triage evidence semantics should stay centralized in:
+  - `src/testifier_audit/report/contracts.py`
+  - `src/testifier_audit/report/triage_builder.py`
+- Report runtime metrics are now part of the contract:
+  - payload controls include `controls.runtime.*`
+  - render timings are written to `artifacts/report_runtime.json`
+- For report-architecture refactors, run targeted parity checks:
+  - `python -m pytest tests/test_analysis_registry.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_pipeline_integration.py`
+
 ## What this app covers
 - Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
 - Burst detection and calibrated significance windows.

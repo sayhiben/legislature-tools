@@ -5,6 +5,7 @@ import math
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import pandas as pd
@@ -15,6 +16,12 @@ from testifier_audit.proportion_stats import (
     DEFAULT_LOW_POWER_MIN_TOTAL,
     low_power_mask,
     wilson_interval,
+)
+from testifier_audit.report.analysis_registry import (
+    analysis_status as analysis_registry_status,
+)
+from testifier_audit.report.analysis_registry import (
+    default_analysis_definitions as registry_analysis_definitions,
 )
 
 try:
@@ -641,319 +648,6 @@ def _build_table_help_docs(
         }
 
     return docs
-
-
-def _default_analysis_definitions() -> list[dict[str, Any]]:
-    return [
-        {
-            "id": "baseline_profile",
-            "title": "Baseline Profile",
-            "detector": None,
-            "hero_chart_id": "baseline_volume_pro_rate",
-            "detail_chart_ids": [
-                "baseline_day_hour_volume",
-                "baseline_top_names",
-                "baseline_name_length_distribution",
-            ],
-            "how_to_read": (
-                "Start with baseline volume and pro-rate movement to establish normal tempo "
-                "before detector-specific interpretation."
-            ),
-            "what_to_look_for": (
-                "Baseline breaks in volume or composition that align with detector flags "
-                "and repeat across adjacent windows."
-            ),
-            "common_benign_causes": (
-                "Hearing schedule transitions and reminder cascades can create expected "
-                "baseline shifts."
-            ),
-        },
-        {
-            "id": "bursts",
-            "title": "Burst Windows",
-            "detector": "bursts",
-            "hero_chart_id": "bursts_hero_timeline",
-            "detail_chart_ids": [
-                "bursts_significance_by_window",
-                "bursts_null_distribution",
-            ],
-            "how_to_read": (
-                "Burst windows compare observed local volume to expected background volume."
-            ),
-            "what_to_look_for": (
-                "Repeated high-rate-ratio windows at multiple window sizes rather than "
-                "isolated spikes."
-            ),
-            "common_benign_causes": (
-                "Agenda release timing and outbound campaign alerts can generate "
-                "short-lived legitimate bursts."
-            ),
-        },
-        {
-            "id": "procon_swings",
-            "title": "Pro/Con Swings",
-            "detector": "procon_swings",
-            "hero_chart_id": "procon_swings_hero_bucket_trend",
-            "detail_chart_ids": [
-                "procon_swings_shift_heatmap",
-                "procon_swings_day_hour_heatmap",
-                "procon_swings_time_of_day_profile",
-                "procon_swings_null_distribution",
-            ],
-            "how_to_read": (
-                "Track pro-rate relative to stable bands and baseline while preserving "
-                "per-bucket uncertainty context."
-            ),
-            "what_to_look_for": (
-                "Sustained directional ratio changes across neighboring buckets and "
-                "repeated dayparts."
-            ),
-            "common_benign_causes": (
-                "Daypart participation mix and event-response waves can move ratios "
-                "without manipulation."
-            ),
-        },
-        {
-            "id": "changepoints",
-            "title": "Structural Changepoints",
-            "detector": "changepoints",
-            "hero_chart_id": "changepoints_hero_timeline",
-            "detail_chart_ids": [
-                "changepoints_magnitude",
-                "changepoints_hour_hist",
-            ],
-            "how_to_read": (
-                "Changepoints mark regime boundaries where level means differ before "
-                "and after a boundary."
-            ),
-            "what_to_look_for": (
-                "Clusters of large-magnitude changes that align with other detector "
-                "evidence windows."
-            ),
-            "common_benign_causes": (
-                "Hearing open/close windows and coverage surges naturally create "
-                "structural breaks."
-            ),
-        },
-        {
-            "id": "off_hours",
-            "title": "Off-Hours Profile",
-            "detector": "off_hours",
-            "hero_chart_id": "off_hours_hourly_profile",
-            "detail_chart_ids": [
-                "off_hours_summary_compare",
-            ],
-            "how_to_read": (
-                "Compare hourly volume and pro-rate with Wilson uncertainty and "
-                "low-power flags."
-            ),
-            "what_to_look_for": (
-                "Consistent off-hours elevation in volume or composition beyond "
-                "daytime baselines."
-            ),
-            "common_benign_causes": (
-                "Statewide campaigns spanning time zones can shift participation into "
-                "late-hour windows."
-            ),
-        },
-        {
-            "id": "duplicates_exact",
-            "title": "Exact Duplicate Names",
-            "detector": "duplicates_exact",
-            "hero_chart_id": "duplicates_exact_bucket_concentration",
-            "detail_chart_ids": [
-                "duplicates_exact_top_names",
-                "duplicates_exact_position_switch",
-            ],
-            "how_to_read": (
-                "Bucket-level duplicate concentration highlights repeated identical "
-                "names within narrow windows."
-            ),
-            "what_to_look_for": (
-                "High duplicate concentration with frequent position switching for the "
-                "same canonical name."
-            ),
-            "common_benign_causes": (
-                "Common household names and family submissions may elevate duplicate "
-                "counts."
-            ),
-        },
-        {
-            "id": "duplicates_near",
-            "title": "Near-Duplicate Clusters",
-            "detector": "duplicates_near",
-            "hero_chart_id": "duplicates_near_cluster_timeline",
-            "detail_chart_ids": [
-                "duplicates_near_cluster_size",
-                "duplicates_near_similarity",
-            ],
-            "how_to_read": (
-                "Near-duplicate clusters group highly similar names that appear in "
-                "related windows."
-            ),
-            "what_to_look_for": "Large or fast-forming clusters with high edge similarity scores.",
-            "common_benign_causes": (
-                "Typos, OCR noise, and multilingual transliteration can inflate "
-                "near-duplicate clusters."
-            ),
-        },
-        {
-            "id": "sortedness",
-            "title": "Ordering / Sortedness",
-            "detector": "sortedness",
-            "hero_chart_id": "sortedness_bucket_ratio",
-            "detail_chart_ids": [
-                "sortedness_bucket_summary",
-                "sortedness_minute_spikes",
-            ],
-            "how_to_read": (
-                "Ordering metrics test whether names arrive in unusually sorted or "
-                "monotonic patterns."
-            ),
-            "what_to_look_for": (
-                "Bucket ranges with elevated alphabetical ratios and repeated "
-                "minute-level ordering spikes."
-            ),
-            "common_benign_causes": (
-                "Batch exports or admin processing can produce temporary ordering "
-                "artifacts."
-            ),
-        },
-        {
-            "id": "rare_names",
-            "title": "Rare / Unique Names",
-            "detector": "rare_names",
-            "hero_chart_id": "rare_names_unique_ratio",
-            "detail_chart_ids": [
-                "rare_names_weird_scores",
-                "rare_names_singletons",
-                "rare_names_rarity_timeline",
-            ],
-            "how_to_read": (
-                "Unique-ratio and rarity indicators help identify sudden novelty "
-                "surges in the name stream."
-            ),
-            "what_to_look_for": (
-                "Sustained unique-ratio lifts with concurrent weirdness-score "
-                "concentration."
-            ),
-            "common_benign_causes": (
-                "Reference lookup gaps and nickname coverage gaps can overstate rarity."
-            ),
-        },
-        {
-            "id": "org_anomalies",
-            "title": "Organization Field Anomalies",
-            "detector": "org_anomalies",
-            "hero_chart_id": "org_anomalies_blank_rate",
-            "detail_chart_ids": [
-                "org_anomalies_position_rates",
-                "org_anomalies_bursts",
-                "org_anomalies_top_orgs",
-            ],
-            "how_to_read": (
-                "Track blank-organization share with Wilson intervals and "
-                "per-position splits."
-            ),
-            "what_to_look_for": (
-                "Blank-rate surges that persist across higher-volume windows and one "
-                "position side."
-            ),
-            "common_benign_causes": (
-                "Form UX and campaign guidance often increase legitimate blank "
-                "organization submissions."
-            ),
-        },
-        {
-            "id": "voter_registry_match",
-            "title": "Registered Voter Match",
-            "detector": "voter_registry_match",
-            "hero_chart_id": "voter_registry_match_rates",
-            "detail_chart_ids": [
-                "voter_registry_match_by_position",
-                "voter_registry_unmatched_names",
-                "voter_registry_position_buckets",
-            ],
-            "how_to_read": (
-                "Match-rate trends are volume-weighted and should be interpreted with "
-                "Wilson confidence width."
-            ),
-            "what_to_look_for": (
-                "Material and sustained match-rate departures with adequate "
-                "per-bucket support."
-            ),
-            "common_benign_causes": (
-                "Name normalization variance and registration recency can reduce "
-                "observed match rates."
-            ),
-        },
-        {
-            "id": "periodicity",
-            "title": "Periodicity",
-            "detector": "periodicity",
-            "hero_chart_id": "periodicity_clockface",
-            "detail_chart_ids": [
-                "periodicity_autocorr",
-                "periodicity_spectrum",
-            ],
-            "how_to_read": (
-                "Clock-face, autocorrelation, and spectrum views test for recurring "
-                "timing patterns."
-            ),
-            "what_to_look_for": (
-                "Narrow periodic peaks that recur over long spans and align across "
-                "methods."
-            ),
-            "common_benign_causes": (
-                "Calendar reminders and regular campaign sends can produce expected "
-                "periodic structure."
-            ),
-        },
-        {
-            "id": "multivariate_anomalies",
-            "title": "Multivariate Anomalies",
-            "detector": "multivariate_anomalies",
-            "hero_chart_id": "multivariate_score_timeline",
-            "detail_chart_ids": [
-                "multivariate_top_buckets",
-                "multivariate_feature_projection",
-            ],
-            "how_to_read": (
-                "Composite feature-space anomaly scoring identifies unusual bucket "
-                "combinations."
-            ),
-            "what_to_look_for": (
-                "Consecutive high anomaly-score buckets supported by other detector "
-                "flags."
-            ),
-            "common_benign_causes": (
-                "Correlated event shocks can move multiple features together without "
-                "abuse."
-            ),
-        },
-        {
-            "id": "composite_score",
-            "title": "Composite Evidence Score",
-            "detector": "composite_score",
-            "hero_chart_id": "composite_score_timeline",
-            "detail_chart_ids": [
-                "composite_evidence_flags",
-                "composite_high_priority",
-            ],
-            "how_to_read": (
-                "Composite score ranks windows by multi-detector agreement and "
-                "evidence density."
-            ),
-            "what_to_look_for": (
-                "High-score windows with overlapping detector flags and strong local "
-                "support."
-            ),
-            "common_benign_causes": (
-                "Major events can legitimately raise multiple detectors in the same "
-                "period."
-            ),
-        },
-    ]
 
 
 def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
@@ -2372,30 +2066,6 @@ def _build_bucketed_day_hour_profiles(
     return _with_expected_columns(grouped, expected)
 
 
-def _analysis_status(
-    detector: str | None,
-    charts: dict[str, list[dict[str, Any]]],
-    hero_chart_id: str,
-    detail_chart_ids: list[str],
-    detector_summaries: dict[str, dict[str, Any]],
-) -> tuple[str, str]:
-    total_rows = len(charts.get(hero_chart_id, []))
-    total_rows += sum(len(charts.get(chart_id, [])) for chart_id in detail_chart_ids)
-    if total_rows > 0:
-        return "ready", ""
-
-    if detector:
-        summary = detector_summaries.get(detector, {})
-        if summary:
-            enabled = summary.get("enabled")
-            active = summary.get("active")
-            if enabled is False or active is False:
-                reason = str(summary.get("reason") or "disabled")
-                return "disabled", reason
-
-    return "empty", "No chartable records were produced for this analysis in this run."
-
-
 def _load_table_map_from_results(
     results: dict[str, DetectorResult],
     artifacts: dict[str, pd.DataFrame],
@@ -2449,6 +2119,7 @@ def _build_interactive_chart_payload_v2(
     table_map: dict[str, pd.DataFrame],
     detector_summaries: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    payload_started = perf_counter()
     counts_per_minute = _with_expected_columns(
         table_map.get("artifacts.counts_per_minute", pd.DataFrame()),
         [
@@ -3612,7 +3283,7 @@ def _build_interactive_chart_payload_v2(
         max_rows=5_000,
     )
 
-    analysis_definitions = _default_analysis_definitions()
+    analysis_definitions = registry_analysis_definitions()
     look_for_details = _detailed_what_to_look_for_by_analysis()
     analysis_help_docs = _build_analysis_help_docs(
         analysis_definitions=analysis_definitions,
@@ -3647,13 +3318,13 @@ def _build_interactive_chart_payload_v2(
         "composite_score": [],
     }
     standard_buckets = [int(value) for value in BASELINE_PROFILE_BUCKET_MINUTES]
-    for definition in _default_analysis_definitions():
+    for definition in registry_analysis_definitions():
         analysis_id = str(definition["id"])
         current = {int(value) for value in bucket_map.get(analysis_id, []) if int(value) > 0}
         bucket_map[analysis_id] = sorted(current.union(standard_buckets))
 
     for definition in analysis_definitions:
-        status, reason = _analysis_status(
+        status, reason = analysis_registry_status(
             detector=definition.get("detector"),
             charts=charts,
             hero_chart_id=str(definition["hero_chart_id"]),
@@ -3726,7 +3397,23 @@ def _build_interactive_chart_payload_v2(
             "zoom_sync_groups": {"absolute_time": absolute_time_chart_ids},
         },
     }
-    return _json_safe(payload)
+    payload = _json_safe(payload)
+    payload_build_ms = round((perf_counter() - payload_started) * 1000.0, 3)
+    payload_json_bytes = len(
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    )
+    controls = payload.get("controls")
+    if isinstance(controls, dict):
+        controls["runtime"] = {
+            "payload_build_ms": payload_build_ms,
+            "payload_json_bytes": payload_json_bytes,
+        }
+    return payload
 
 
 def _build_interactive_chart_payload(
@@ -3779,6 +3466,8 @@ def render_report(
     artifacts: dict[str, pd.DataFrame],
     out_dir: Path,
 ) -> Path:
+    report_started = perf_counter()
+    generated_at = datetime.now(timezone.utc).isoformat()
     env = _template_env()
     template = env.get_template("report.html.j2")
 
@@ -3848,14 +3537,23 @@ def render_report(
         clockface_top_preview=clockface_top_preview,
     )
     table_help_docs = _build_table_help_docs(table_column_docs=table_column_docs)
+    interactive_started = perf_counter()
     interactive_charts = (
         _interactive_chart_payload_from_results(results=results, artifacts=artifacts)
         if results
         else _interactive_chart_payload_from_disk(out_dir=out_dir)
     )
+    interactive_build_ms = round((perf_counter() - interactive_started) * 1000.0, 3)
+    if isinstance(interactive_charts.get("controls"), dict):
+        runtime_metrics = interactive_charts["controls"].get("runtime", {})
+        if not isinstance(runtime_metrics, dict):
+            runtime_metrics = {}
+        runtime_metrics["interactive_payload_build_ms"] = interactive_build_ms
+        interactive_charts["controls"]["runtime"] = runtime_metrics
 
+    template_started = perf_counter()
     rendered = template.render(
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=generated_at,
         detector_summaries=_json_safe(detector_summaries),
         artifact_rows=_json_safe(artifact_rows),
         table_previews=_json_safe(table_previews),
@@ -3869,8 +3567,26 @@ def render_report(
         interactive_charts=_json_safe(interactive_charts),
         figure_files=sorted(path.name for path in (out_dir / "figures").glob("*")),
     )
+    template_render_ms = round((perf_counter() - template_started) * 1000.0, 3)
 
     report_path = out_dir / "report.html"
     report_path.parent.mkdir(parents=True, exist_ok=True)
+    write_started = perf_counter()
     report_path.write_text(rendered, encoding="utf-8")
+    report_write_ms = round((perf_counter() - write_started) * 1000.0, 3)
+
+    runtime_metrics = {
+        "generated_at": generated_at,
+        "interactive_payload_build_ms": interactive_build_ms,
+        "template_render_ms": template_render_ms,
+        "report_write_ms": report_write_ms,
+        "report_total_ms": round((perf_counter() - report_started) * 1000.0, 3),
+        "report_html_bytes": int(report_path.stat().st_size),
+    }
+    runtime_path = out_dir / "artifacts" / "report_runtime.json"
+    runtime_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_path.write_text(
+        json.dumps(_json_safe(runtime_metrics), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
     return report_path

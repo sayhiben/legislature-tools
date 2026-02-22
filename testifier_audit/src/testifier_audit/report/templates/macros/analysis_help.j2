@@ -1,0 +1,26 @@
+{% macro render_analysis_help(analysis) -%}
+<details class="analysis-help-card">
+  <summary>Analysis Help</summary>
+  <div class="analysis-help-body">
+    {% if analysis.help_sections %}
+      <p><strong>What is this?</strong> {{ analysis.help_sections.what_is_this }}</p>
+      <p><strong>Why this data matters:</strong> {{ analysis.help_sections.why_it_matters }}</p>
+      <p><strong>How do I interpret this data?</strong> {{ analysis.help_sections.how_to_interpret }}</p>
+      <p><strong>What do I look for?</strong> {{ analysis.help_sections.what_to_look_for }}</p>
+      <p><strong>What could a momentary high/low mean?</strong> {{ analysis.help_sections.momentary_high_low }}</p>
+      <p><strong>What could an extended high/low mean?</strong> {{ analysis.help_sections.extended_high_low }}</p>
+    {% else %}
+      <p><strong>How to read:</strong> {{ analysis.how_to_read }}</p>
+      <p><strong>What to look for:</strong> {{ analysis.what_to_look_for }}</p>
+    {% endif %}
+    {% if analysis.what_to_look_for_details %}
+      <ul>
+        {% for detail in analysis.what_to_look_for_details %}
+          <li>{{ detail }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    <p><strong>Common benign causes:</strong> {{ analysis.common_benign_causes }}</p>
+  </div>
+</details>
+{%- endmacro %}

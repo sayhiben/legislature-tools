@@ -1,0 +1,92 @@
+          {% if not off_hours_focus_only %}
+          <section id="section-name-cluster-forensics" class="report-section panel">
+            <h2 id="name-cluster-forensics" class="toc-heading">Name/Cluster Forensics</h2>
+            <p class="tiny-note">
+              High-frequency names and compressed near-duplicate clusters are shown here for rapid adjudication.
+            </p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Top Repeated Names</h3>
+                <div class="table-wrap">
+                  <div id="forensics-top-names-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Top Near-Dup Clusters</h3>
+                <div class="table-wrap">
+                  <div id="forensics-top-clusters-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="section-methodology" class="report-section panel">
+            <h2 id="methodology" class="toc-heading">Methodology</h2>
+            <p>
+              Queue tiers combine statistically controlled contributors (when available) with heuristic contributors.
+              Low-support items are explicitly caveated and cannot be promoted to high tier.
+            </p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Definitions</h3>
+                <div class="table-wrap">
+                  <div id="methodology-definitions-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Tests and Calibrations Used</h3>
+                <div class="table-wrap">
+                  <div id="methodology-tests-used-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Evidence Taxonomy</h3>
+                <div class="table-wrap">
+                  <div id="methodology-evidence-taxonomy-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Multiple Testing Policy</h3>
+                <ul id="methodology-multiple-testing-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Interpretation Caveats</h3>
+                <ul id="methodology-caveats-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Interpretation Guidance</h3>
+                <ul id="methodology-guidance-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Ethical Guardrails</h3>
+                <div class="table-wrap">
+                  <div id="methodology-guardrails-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
+                <p class="tiny-note">
+                  Artifact/table row counts are retained for reproducibility and moved here to keep triage focused on actionable evidence.
+                </p>
+                <div class="table-wrap">
+                  <div id="methodology-artifact-rows-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+          {% endif %}
+
+          <footer class="panel report-attribution">
+            <p class="subtle">
+              Interactive charts are powered by
+              <a href="https://echarts.apache.org/" target="_blank" rel="noopener noreferrer">ECharts</a>;
+              data tables use
+              <a href="https://tabulator.info/" target="_blank" rel="noopener noreferrer">Tabulator</a>.
+            </p>
+          </footer>
+        </main>
+      </div>
+    </div>
+    <div id="report-busy-indicator" class="report-busy-indicator hidden" role="status" aria-live="polite">
+      <span class="busy-spinner" aria-hidden="true"></span>
+      <span id="report-busy-text">Updating charts...</span>

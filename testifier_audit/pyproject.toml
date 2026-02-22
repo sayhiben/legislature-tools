@@ -53,7 +53,13 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-"testifier_audit.report" = ["templates/*.j2"]
+"testifier_audit.report" = [
+  "templates/*.j2",
+  "templates/macros/*.j2",
+  "templates/partials/*.j2",
+  "static/report/*.css",
+  "static/report/*.js",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

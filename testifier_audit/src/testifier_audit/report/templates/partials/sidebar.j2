@@ -1,0 +1,132 @@
+    <div class="page-shell" id="page-shell">
+      <button
+        id="sidebar-launcher"
+        class="sidebar-launcher"
+        type="button"
+        aria-controls="toc-sidebar"
+        aria-expanded="false"
+        aria-label="Show menu"
+      >
+        ☰
+      </button>
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+      <div class="report-layout">
+        <aside class="toc-sidebar panel" id="toc-sidebar" aria-label="Section navigation">
+          <div class="sidebar-header">
+            <div class="sidebar-title-block">
+              <h1 class="sidebar-report-title">Testifier Audit Report</h1>
+              <p class="tiny-note sidebar-meta">Generated ({{ generated_at_label }}): <code>{{ generated_at }}</code></p>
+            </div>
+            <button
+              id="sidebar-toggle"
+              class="sidebar-icon-button"
+              type="button"
+              aria-controls="toc-sidebar"
+              aria-expanded="false"
+              aria-label="Hide menu"
+            >
+              ←
+            </button>
+          </div>
+
+          <section class="sidebar-controls-panel panel" id="sidebar-controls-panel">
+            <h3 class="sidebar-controls-title">
+              Linked Controls
+              <button
+                class="help-tip"
+                type="button"
+                data-tooltip="Bucket changes rerender bucket-aware charts; absolute-time charts share linked zoom and cursor context."
+                aria-label="Linked controls help"
+              >
+                ?
+              </button>
+            </h3>
+            <div class="sidebar-control-group" id="bucket-sync-panel">
+              <p class="sidebar-control-label">
+                Bucket
+                <button
+                  class="help-tip"
+                  type="button"
+                  data-tooltip="Choose one bucket and all bucket-aware charts update together when that bucket exists."
+                  aria-label="Bucket selector help"
+                >
+                  ?
+                </button>
+              </p>
+              <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
+            </div>
+            <div class="sidebar-control-group hidden" id="zoom-sync-panel">
+              <div class="sidebar-control-row">
+                <p class="sidebar-control-label">
+                  Zoom
+                  <button
+                    class="help-tip"
+                    type="button"
+                    data-tooltip="Absolute-time charts share one zoom range. Reset returns all linked charts to full timeline."
+                    aria-label="Linked zoom help"
+                  >
+                    ?
+                  </button>
+                </p>
+                <span id="zoom-status-chip" class="zoom-status-chip">Full timeline</span>
+                <button id="zoom-reset-button" class="control-button" type="button">Reset</button>
+              </div>
+              <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
+            </div>
+            <div class="sidebar-control-group">
+              <div class="sidebar-control-row">
+                <p class="sidebar-control-label">
+                  Theme
+                  <button
+                    class="help-tip"
+                    type="button"
+                    data-tooltip="Theme changes only appearance; detector semantics and alert logic are unchanged."
+                    aria-label="Theme selector help"
+                  >
+                    ?
+                  </button>
+                </p>
+                <div class="theme-icon-controls" id="theme-controls" role="group" aria-label="Theme controls">
+                  <button
+                    id="theme-light-button"
+                    class="theme-icon-button"
+                    type="button"
+                    data-theme-option="light"
+                    aria-label="Use light theme"
+                    title="Light theme"
+                  >
+                    ☀
+                  </button>
+                  <button
+                    id="theme-dark-button"
+                    class="theme-icon-button"
+                    type="button"
+                    data-theme-option="dark"
+                    aria-label="Use dark theme"
+                    title="Dark theme"
+                  >
+                    ☾
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <hr class="sidebar-divider" />
+          <h2 class="toc-title">
+            Contents
+            <button
+              class="help-tip"
+              type="button"
+              data-tooltip="Active section updates while scrolling. Clicking links updates the URL hash without adding browser history entries."
+              aria-label="Contents help"
+            >
+              ?
+            </button>
+          </h2>
+          <div class="sidebar-toc-scroll" id="sidebar-toc-scroll">
+            <nav id="report-toc" class="js-toc" aria-label="Table of contents"></nav>
+          </div>
+        </aside>
+
+        <main id="toc-content" class="report-main">

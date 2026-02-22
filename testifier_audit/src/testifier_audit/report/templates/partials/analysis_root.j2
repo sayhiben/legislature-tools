@@ -1,0 +1,52 @@
+{% import "macros/chart_help.j2" as chart_help %}
+{% import "macros/chart_host.j2" as chart_host %}
+{% import "macros/analysis_help.j2" as analysis_help %}
+
+<section id="analysis-root" class="report-section">
+  {% set analysis_items = interactive_charts.analysis_catalog %}
+  {% for analysis in analysis_items %}
+    <section
+      class="analysis-section"
+      id="section-{{ analysis.id }}"
+      data-analysis-id="{{ analysis.id }}"
+      data-analysis-status="{{ analysis.status }}"
+      data-analysis-detector="{{ analysis.detector or '' }}"
+    >
+      <div class="analysis-header">
+        <h2 id="analysis-{{ analysis.id }}" class="toc-heading">{{ analysis.title }}</h2>
+        {% if analysis.status != "ready" %}
+          <span class="status-badge status-{{ analysis.status }}">{{ analysis.status }}</span>
+        {% endif %}
+      </div>
+      {% if analysis.reason %}
+        <p class="tiny-note">{{ analysis.reason }}</p>
+      {% endif %}
+
+      <div class="analysis-hero-block">
+        {{ chart_host.render_chart_host(analysis.hero_chart_id, "hero", "chart-host-hero") }}
+        {% set hero_help = interactive_charts.chart_help_docs.get(analysis.hero_chart_id) if interactive_charts.chart_help_docs else None %}
+        {% set hero_legend = interactive_charts.chart_legend_docs.get(analysis.hero_chart_id) if interactive_charts.chart_legend_docs else None %}
+        {{ chart_help.render_chart_help(hero_help, hero_legend) }}
+      </div>
+
+      {{ analysis_help.render_analysis_help(analysis) }}
+
+      {% if analysis.detail_chart_ids %}
+        <div class="analysis-detail-grid">
+          {% for chart_id in analysis.detail_chart_ids %}
+            <article class="detail-card">
+              <h3 class="detail-title">{{ chart_id.replace("_", " ")|title }}</h3>
+              <p class="tiny-note"><code>{{ chart_id }}</code></p>
+              {{ chart_host.render_chart_host(chart_id, "detail", "chart-host-detail") }}
+              {% set detail_help = interactive_charts.chart_help_docs.get(chart_id) if interactive_charts.chart_help_docs else None %}
+              {% set detail_legend = interactive_charts.chart_legend_docs.get(chart_id) if interactive_charts.chart_legend_docs else None %}
+              {{ chart_help.render_chart_help(detail_help, detail_legend) }}
+            </article>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="analysis-tables" data-analysis-tables-for="{{ analysis.id }}"></div>
+    </section>
+  {% endfor %}
+</section>

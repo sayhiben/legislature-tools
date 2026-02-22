@@ -1,0 +1,220 @@
+          {% if not off_hours_focus_only %}
+            <nav class="workflow-tabs panel" aria-label="Investigation tabs">
+              <a class="workflow-tab" href="#triage">Triage</a>
+              <a class="workflow-tab" href="#window-drilldown">Window Drilldown</a>
+              <a class="workflow-tab" href="#name-cluster-forensics">Name/Cluster Forensics</a>
+              <a class="workflow-tab" href="#methodology">Methodology</a>
+            </nav>
+          {% endif %}
+
+          <section id="zoom-active-banner" class="zoom-active-banner hidden" role="status" aria-live="polite" aria-atomic="true">
+            <div class="zoom-active-banner-copy">
+              <p class="zoom-active-banner-title">Filtered Timeline View</p>
+              <p id="zoom-active-banner-text" class="zoom-active-banner-text"></p>
+              <p id="zoom-active-banner-meta" class="zoom-active-banner-meta"></p>
+            </div>
+            <div class="zoom-active-banner-actions">
+              <span id="zoom-active-banner-chip" class="zoom-active-banner-chip"></span>
+              <button id="zoom-banner-copy-button" class="zoom-banner-button" type="button">Copy link</button>
+              <button id="zoom-banner-reset-button" class="zoom-banner-button" type="button">Reset zoom</button>
+            </div>
+          </section>
+
+          <section id="section-overview" class="report-section panel">
+            <h2 id="overview" class="toc-heading">How To Use This Report</h2>
+            {% if off_hours_focus_only %}
+              <p>
+                This temporary focused view shows only the off-hours shift anomaly analysis so methodology and chart behavior can be refined in isolation.
+              </p>
+            {% else %}
+              <p>
+                This report is investigation-first. Start in <strong>Triage</strong> to rank windows/records/clusters, then move to
+                <strong>Window Drilldown</strong> for linked chart context and supporting evidence, and use
+                <strong>Name/Cluster Forensics</strong> before final interpretation.
+              </p>
+            {% endif %}
+            <aside class="definition-callout">
+              <p>
+                <strong>What low power means:</strong> low-support buckets/windows have high proportion uncertainty and can swing
+                from random variation.
+              </p>
+              <p>
+                <strong>How to interpret:</strong> prioritize signals that persist into adjacent higher-volume windows or recur at
+                similar dayparts across days.
+              </p>
+            </aside>
+            <p class="tiny-note" id="report-timezone-summary"></p>
+            {% if off_hours_focus_only %}
+              <div id="off-hours-evidence-tier" class="offhours-evidence-tier hidden"></div>
+              <div id="off-hours-inference-banner" class="warning-banner hidden"></div>
+            {% endif %}
+            <section class="kpi-grid">
+              <article class="kpi-card">
+                <div class="kpi-label">
+                  {% if off_hours_focus_only %}Off-Hours Records{% else %}Artifacts Tracked{% endif %}
+                </div>
+                <div class="kpi-value" id="kpi-artifacts">0</div>
+                <div class="kpi-meta" id="kpi-artifacts-meta"></div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">
+                  {% if off_hours_focus_only %}Analyses Shown{% else %}Detectors Run{% endif %}
+                </div>
+                <div class="kpi-value" id="kpi-detectors">0</div>
+                <div class="kpi-meta" id="kpi-detectors-meta"></div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">
+                  {% if off_hours_focus_only %}Robust Primary Alerts{% else %}Flagged/Significant Windows{% endif %}
+                </div>
+                <div class="kpi-value" id="kpi-flagged">0</div>
+                <div class="kpi-meta" id="kpi-flagged-meta"></div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">
+                  {% if off_hours_focus_only %}Primary-Bucket Low-Power Off-Hours{% else %}Low-power Windows{% endif %}
+                </div>
+                <div class="kpi-value" id="kpi-low-power">0</div>
+                <div class="kpi-meta" id="kpi-low-power-meta"></div>
+              </article>
+            </section>
+          </section>
+
+          {% if not off_hours_focus_only %}
+          <section id="section-triage" class="report-section panel">
+            <h2 id="triage" class="toc-heading">Triage</h2>
+            <p class="tiny-note">
+              Prioritize windows first, then record and cluster evidence. Click a window row to sync drilldown context.
+            </p>
+            <div class="triage-lens-controls">
+              <label for="triage-dedup-mode" class="triage-lens-label">Triage lens</label>
+              <select id="triage-dedup-mode" class="triage-lens-select"></select>
+              <span id="triage-dedup-note" class="tiny-note"></span>
+            </div>
+            <section class="kpi-grid">
+              <article class="kpi-card">
+                <div class="kpi-label">Total submissions</div>
+                <div class="kpi-value" id="triage-total-submissions">0</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Date range</div>
+                <div class="kpi-value" id="triage-date-range">-</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Overall Pro / Con</div>
+                <div class="kpi-value" id="triage-overall-procon">-</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Top-tier windows</div>
+                <div class="kpi-value" id="triage-top-tier-count">0</div>
+              </article>
+            </section>
+            <div id="data-quality-summary" class="warning-banner"></div>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Data Quality Warnings</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-warning-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Raw vs Dedup Metrics</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-dedup-metrics-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Cross-Hearing Comparator</h3>
+                <p id="cross-hearing-comparator-summary" class="tiny-note"></p>
+                <div class="table-wrap">
+                  <div id="cross-hearing-comparator-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Hearing Context Metadata</h3>
+                <p id="hearing-context-summary" class="tiny-note"></p>
+                <div class="table-wrap">
+                  <div id="hearing-context-metadata-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Deadline Ramp Metrics</h3>
+                <div class="table-wrap">
+                  <div id="hearing-deadline-ramp-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Stance By Deadline Window</h3>
+                <div class="table-wrap">
+                  <div id="hearing-stance-by-deadline-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+            <div class="triage-actions">
+              <button id="download-selected-window-rows" class="control-button" type="button">
+                download selected window rows
+              </button>
+              <button id="download-top-evidence-windows" class="control-button" type="button">
+                download top evidence windows
+              </button>
+              <button id="download-top-evidence-records" class="control-button" type="button">
+                download top evidence records
+              </button>
+            </div>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">window_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-window-queue-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">record_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-record-queue-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">cluster_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-cluster-queue-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="section-window-drilldown" class="report-section panel">
+            <h2 id="window-drilldown" class="toc-heading">Window Drilldown</h2>
+            <p class="tiny-note">
+              Click a queue row to focus linked charts and inspect causative rows, duplicate names, near-dup clusters, and
+              rarity-context comparison.
+            </p>
+            <p id="window-drilldown-selection" class="tiny-note"></p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Causative Rows</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-causative-rows-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Exact Dup Names (Window)</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-dup-names-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Near-Dup Clusters (Window)</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-clusters-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Runs + Weirdness Comparison</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-runs-weirdness-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+          {% endif %}

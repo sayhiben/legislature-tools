@@ -1,0 +1,27 @@
+{% macro render_chart_help(help_doc, legend_doc) -%}
+{% if help_doc or legend_doc %}
+<details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+    {% if help_doc %}
+      <p><strong>What is this?</strong> {{ help_doc.what_is_this }}</p>
+      <p><strong>Why this matters:</strong> {{ help_doc.why_it_matters }}</p>
+      <p><strong>How to interpret:</strong> {{ help_doc.how_to_interpret }}</p>
+      <p><strong>What to look for:</strong> {{ help_doc.what_to_look_for }}</p>
+      <p><strong>Momentary high/low:</strong> {{ help_doc.momentary_high_low }}</p>
+      <p><strong>Extended high/low:</strong> {{ help_doc.extended_high_low }}</p>
+    {% endif %}
+    {% if legend_doc %}
+      <p><strong>Legend guide:</strong> {{ legend_doc.summary }}</p>
+      {% if legend_doc["items"] %}
+        <ul>
+          {% for item in legend_doc["items"] %}
+            <li><strong>{{ item.label }}:</strong> {{ item.description }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+  </div>
+</details>
+{% endif %}
+{%- endmacro %}

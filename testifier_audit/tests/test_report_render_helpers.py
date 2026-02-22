@@ -369,90 +369,98 @@ def test_render_report_loads_cross_hearing_baseline_file_when_available(tmp_path
         assert "Cross-Hearing Comparator" in rendered
 
 
-def test_render_report_includes_lazy_data_mount_bucket_sync_and_zoom_sync_runtime(
+def test_render_report_includes_external_assets_and_runtime_contracts(
     tmp_path: Path,
 ) -> None:
     out_dir = tmp_path / "out"
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
     payload_text = (out_dir / REPORT_DATA_FILENAME).read_text(encoding="utf-8")
+    css_asset_path = out_dir / "assets" / "report" / "report.css"
+    js_asset_path = out_dir / "assets" / "report" / "main.js"
+    css_text = css_asset_path.read_text(encoding="utf-8")
+    js_text = js_asset_path.read_text(encoding="utf-8")
 
-    assert "IntersectionObserver" in rendered
-    assert "mountAllSections()" in rendered
-    assert "initLazySectionMounting()" in rendered
-    assert "preload_data" in rendered
-    assert "preload_all_data" in rendered
+    assert css_asset_path.exists()
+    assert js_asset_path.exists()
+    assert 'href="assets/report/report.css"' in rendered
+    assert 'type="module" src="assets/report/main.js"' in rendered
+    assert "mountAllSections()" in js_text
+    assert "Loading report sections..." in js_text
+    assert "initLazySectionMounting" not in js_text
+    assert "IntersectionObserver" not in js_text
+    assert "preload_data" not in js_text
+    assert "preload_all_data" not in js_text
     assert "chart_data_manifest" in payload_text
     assert "report_data/analyses/" in payload_text
-    assert "rerenderBucketAwareCharts" in rendered
-    assert 'mount.chart.on("dataZoom"' in rendered
-    assert "fetch(reportDataUrl)" in rendered
-    assert "async function ensureHeaderDataLoaded()" in rendered
-    assert '"off_hours_summary_compare", "off_hours_control_timeline"' in rendered
-    assert "scheduleZoomSync(" in rendered
-    assert "parseLinkedZoomFromQueryParams" in rendered
-    assert "initializeLinkedZoomOnLoad()" in rendered
-    assert "preloadAllChartShardFiles" in rendered
-    assert "setChartLoading(" in rendered
-    assert "is-loading" in rendered
-    assert "state.zoom" in rendered
+    assert "rerenderBucketAwareCharts" in js_text
+    assert 'mount.chart.on("dataZoom"' in js_text
+    assert "fetch(reportDataUrl)" in js_text
+    assert "async function ensureHeaderDataLoaded()" in js_text
+    assert '"off_hours_summary_compare", "off_hours_control_timeline"' in js_text
+    assert "scheduleZoomSync(" in js_text
+    assert "parseLinkedZoomFromQueryParams" in js_text
+    assert "initializeLinkedZoomOnLoad()" in js_text
+    assert "setChartLoading(" in js_text
+    assert "is-loading" in css_text
+    assert "state.zoom" in js_text
     assert 'id="zoom-sync-panel"' in rendered
     assert 'id="zoom-reset-button"' in rendered
     assert 'id="report-timezone-summary"' in rendered
-    assert "All times in this report are shown in " in rendered
-    assert "updateZoomRangeLabel" in rendered
-    assert "await ensureHeaderDataLoaded();" in rendered
+    assert "All times in this report are shown in " in js_text
+    assert "updateZoomRangeLabel" in js_text
+    assert "await ensureHeaderDataLoaded();" in js_text
     assert 'id="report-busy-indicator"' in rendered
-    assert "runWithBusyIndicator(" in rendered
-    assert "clearAllChartInteractionState();" in rendered
-    assert "clearChartInteractionState(mount);" in rendered
-    assert "scheduleChartResizeSequence()" in rendered
-    assert 'Time (" + reportTimezoneLabel + ")"' in rendered
-    assert "force24HourSlots: true" in rendered
-    assert rendered.count("inverse: true") >= 3
-    assert "ensureReadableAxes(option, mount)" in rendered
-    assert 'name: "Date"' in rendered
-    assert 'name: "Day of week"' in rendered
+    assert "runWithBusyIndicator(" in js_text
+    assert "clearAllChartInteractionState();" in js_text
+    assert "clearChartInteractionState(mount);" in js_text
+    assert "scheduleChartResizeSequence()" in js_text
+    assert 'Time (" + reportTimezoneLabel + ")"' in js_text
+    assert "force24HourSlots: true" in js_text
+    assert js_text.count("inverse: true") >= 3
+    assert "ensureReadableAxes(option, mount)" in js_text
+    assert 'name: "Date"' in js_text
+    assert 'name: "Day of week"' in js_text
     assert 'id="theme-controls"' in rendered
     assert 'id="theme-light-button"' in rendered
     assert 'id="theme-dark-button"' in rendered
     assert 'id="chart-theme-palette"' not in rendered
-    assert "testifier_audit_chart_theme" not in rendered
-    assert "initSidebarTooltips()" in rendered
-    assert "initThemeControl()" in rendered
-    assert "initChartThemeControl()" not in rendered
-    assert "computeLegendDockMode(mount)" in rendered
-    assert "scheduleLegendLayoutRerender()" in rendered
-    assert "rerenderChartsForLegendLayoutIfNeeded()" in rendered
-    assert "reserveXAxisBottomSpace(option)" in rendered
-    assert "hasSliderDataZoom(option)" in rendered
-    assert "hasVisualMap(option)" in rendered
-    assert "attachFunnelCursorHandler(mount)" in rendered
-    assert "extractFunnelCursorFromEvent(params)" in rendered
-    assert "controls.color_semantics" in rendered
-    assert "fallbackColorSemantics" in rendered
-    assert "resolveColorSemanticTheme(" in rendered
-    assert "semanticTokenCache" in rendered
-    assert "volumeBarOpacity: surfaceTheme === \"dark\" ? 0.42 : 0.4" in rendered
-    assert "shadowColor: theme.shadowColor" in rendered
-    assert "shadowColor: \"rgba(0,0,0,0.35)\"" not in rendered
-    assert "shadowColor: \"rgba(0,0,0,0.3)\"" not in rendered
-    assert 'type: "errorBar"' not in rendered
-    assert "Wilson low (tested)" in rendered
-    assert "Wilson high (tested)" in rendered
-    assert "Robust lower-tail alert" in rendered
-    assert "Robust upper-tail alert" in rendered
-    assert "SPC-only flag" in rendered
-    assert "FDR-only flag" in rendered
-    assert "simpleBarCategoricalChartIds" in rendered
-    assert "simpleBarRankedChartIds" in rendered
-    assert "simpleBarNullDiagnosticChartIds" in rendered
-    assert "simpleBarRatioReferenceChartIds" in rendered
-    assert "table-cell-semantic-alert" in rendered
-    assert "table-cell-semantic-warn" in rendered
-    assert "table-cell-semantic-context" in rendered
-    assert "semanticClassForTableCell(tableKey, field, value)" in rendered
-    assert "background: var(--table-row-bg);" in rendered
+    assert "testifier_audit_chart_theme" not in js_text
+    assert "initSidebarTooltips()" in js_text
+    assert "initThemeControl()" in js_text
+    assert "initChartThemeControl()" not in js_text
+    assert "computeLegendDockMode(mount)" in js_text
+    assert "scheduleLegendLayoutRerender()" in js_text
+    assert "rerenderChartsForLegendLayoutIfNeeded()" in js_text
+    assert "reserveXAxisBottomSpace(option)" in js_text
+    assert "hasSliderDataZoom(option)" in js_text
+    assert "hasVisualMap(option)" in js_text
+    assert "attachFunnelCursorHandler(mount)" in js_text
+    assert "extractFunnelCursorFromEvent(params)" in js_text
+    assert "controls.color_semantics" in js_text
+    assert "fallbackColorSemantics" in js_text
+    assert "resolveColorSemanticTheme(" in js_text
+    assert "semanticTokenCache" in js_text
+    assert "volumeBarOpacity: surfaceTheme === \"dark\" ? 0.42 : 0.4" in js_text
+    assert "shadowColor: theme.shadowColor" in js_text
+    assert "shadowColor: \"rgba(0,0,0,0.35)\"" not in js_text
+    assert "shadowColor: \"rgba(0,0,0,0.3)\"" not in js_text
+    assert 'type: "errorBar"' not in js_text
+    assert "Wilson low (tested)" in js_text
+    assert "Wilson high (tested)" in js_text
+    assert "Robust lower-tail alert" in js_text
+    assert "Robust upper-tail alert" in js_text
+    assert "SPC-only flag" in js_text
+    assert "FDR-only flag" in js_text
+    assert "simpleBarCategoricalChartIds" in js_text
+    assert "simpleBarRankedChartIds" in js_text
+    assert "simpleBarNullDiagnosticChartIds" in js_text
+    assert "simpleBarRatioReferenceChartIds" in js_text
+    assert "table-cell-semantic-alert" in css_text
+    assert "table-cell-semantic-warn" in css_text
+    assert "table-cell-semantic-context" in css_text
+    assert "semanticClassForTableCell(tableKey, field, value)" in js_text
+    assert "background: var(--table-row-bg);" in css_text
     if _is_off_hours_only_view():
         assert 'id="triage-dedup-mode"' not in rendered
         assert 'id="data-quality-warning-host"' not in rendered
@@ -470,15 +478,15 @@ def test_render_report_includes_lazy_data_mount_bucket_sync_and_zoom_sync_runtim
         assert 'id="off-hours-evidence-tier"' in rendered
         assert 'id="off-hours-inference-banner"' in rendered
         assert 'id="kpi-artifacts-meta"' in rendered
-        assert "sparseWhenLowSupport: true" in rendered
-        assert "off_hours_primary_residual_timeline" in rendered
-        assert "off_hours_primary_flag_channels" in rendered
-        assert "off_hours_model_fit_diagnostics" in rendered
-        assert "off_hours_date_hour_primary_residual_heatmap" in rendered
-        assert "highlightOffHoursAxis: true" in rendered
-        assert "model_fit_diagnostics" in rendered
-        assert "flag_channel_summary" in rendered
-        assert "flagged_window_diagnostics" in rendered
+        assert "sparseWhenLowSupport: true" in js_text
+        assert "off_hours_primary_residual_timeline" in js_text
+        assert "off_hours_primary_flag_channels" in js_text
+        assert "off_hours_model_fit_diagnostics" in js_text
+        assert "off_hours_date_hour_primary_residual_heatmap" in js_text
+        assert "highlightOffHoursAxis: true" in js_text
+        assert "model_fit_diagnostics" in js_text
+        assert "flag_channel_summary" in js_text
+        assert "flagged_window_diagnostics" in js_text
     else:
         assert 'id="triage-dedup-mode"' in rendered
         assert 'id="data-quality-warning-host"' in rendered
@@ -493,45 +501,46 @@ def test_render_report_includes_lazy_data_mount_bucket_sync_and_zoom_sync_runtim
         assert 'id="methodology-tests-used-host"' in rendered
         assert 'id="methodology-guardrails-host"' in rendered
         assert 'id="methodology-multiple-testing-list"' in rendered
-    assert "renderMethodologyPanel()" in rendered
-    assert "initDedupModeControl()" in rendered
-    assert "renderDataQualityPanel()" in rendered
-    assert "renderCrossHearingComparator()" in rendered
-    assert "applyCrossHearingNameCues(" in rendered
-    assert "applyCrossHearingClusterCues(" in rendered
-    assert "getCrossHearingComparator(" in rendered
-    assert "Cross-hearing p10-p90 band" in rendered
-    assert 'comparatorMetric: "overall_pro_rate"' in rendered
-    assert "renderHearingContextPanel()" in rendered
-    assert "buildProcessMarkerLines()" in rendered
-    assert "voter_registry_match_tiers" in rendered
+    assert "renderMethodologyPanel()" in js_text
+    assert "initDedupModeControl()" in js_text
+    assert "renderDataQualityPanel()" in js_text
+    assert "renderCrossHearingComparator()" in js_text
+    assert "applyCrossHearingNameCues(" in js_text
+    assert "applyCrossHearingClusterCues(" in js_text
+    assert "getCrossHearingComparator(" in js_text
+    assert "Cross-hearing p10-p90 band" in js_text
+    assert 'comparatorMetric: "overall_pro_rate"' in js_text
+    assert "renderHearingContextPanel()" in js_text
+    assert "buildProcessMarkerLines()" in js_text
+    assert "voter_registry_match_tiers" in js_text
     assert "probabilistic supporting context only" in payload_text
     assert "statistical irregularity requiring review" in payload_text
-    assert 'summary.textContent = "artifact_rows"' not in rendered
+    assert 'summary.textContent = "artifact_rows"' not in js_text
 
 
 def test_render_report_table_semantic_rules_and_cell_background_normalization(
     tmp_path: Path,
 ) -> None:
     out_dir = tmp_path / "out"
-    report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
-    rendered = report_path.read_text(encoding="utf-8")
+    render_report(results={}, artifacts={}, out_dir=out_dir)
+    css_text = (out_dir / "assets" / "report" / "report.css").read_text(encoding="utf-8")
+    js_text = (out_dir / "assets" / "report" / "main.js").read_text(encoding="utf-8")
 
-    assert "--table-semantic-alert-bg:" in rendered
-    assert "--table-semantic-warn-bg:" in rendered
-    assert "--table-semantic-context-bg:" in rendered
-    assert "off_hours.off_hours_summary" in rendered
-    assert "off_hours.model_fit_diagnostics" in rendered
-    assert "model_fit_available_fraction" in rendered
-    assert "primary_model_fit_converged" in rendered
-    assert "semanticClassForTableCell(tableKey, field, value)" in rendered
-    assert "delete tableOptions.tableKey;" in rendered
+    assert "--table-semantic-alert-bg:" in css_text
+    assert "--table-semantic-warn-bg:" in css_text
+    assert "--table-semantic-context-bg:" in css_text
+    assert "off_hours.off_hours_summary" in js_text
+    assert "off_hours.model_fit_diagnostics" in js_text
+    assert "model_fit_available_fraction" in js_text
+    assert "primary_model_fit_converged" in js_text
+    assert "semanticClassForTableCell(tableKey, field, value)" in js_text
+    assert "delete tableOptions.tableKey;" in js_text
     assert (
         ".tabulator .tabulator-tableholder .tabulator-table .tabulator-row "
-        ".tabulator-cell:first-child" in rendered
+        ".tabulator-cell:first-child" in css_text
     )
-    assert "--table-row-bg: var(--table-bg-alt);" in rendered
-    assert "background: var(--table-row-bg);" in rendered
+    assert "--table-row-bg: var(--table-bg-alt);" in css_text
+    assert "background: var(--table-row-bg);" in css_text
 
 
 def test_render_report_template_contract_renders_analysis_hosts_and_placeholders(
@@ -559,6 +568,6 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
     assert "table_column_docs" in report_data_payload
     assert isinstance(interactive_payload, dict)
     assert "chart_legend_docs" in interactive_payload
-    assert "Column glossary" in rendered
+    assert 'type="module" src="assets/report/main.js"' in rendered
     assert "<strong>Legend guide:</strong>" in rendered
     assert "status-ready" not in rendered

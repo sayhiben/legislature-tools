@@ -1,0 +1,5 @@
+{% macro render_chart_host(chart_id, role, host_class) -%}
+<div class="chart-host {{ host_class }}" data-chart-id="{{ chart_id }}" data-chart-role="{{ role }}"></div>
+<p class="empty-message hidden" data-chart-empty-for="{{ chart_id }}">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="{{ chart_id }}"></p>
+{%- endmacro %}

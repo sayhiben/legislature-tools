@@ -59,6 +59,9 @@ BASELINE_PROFILE_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
 PACIFIC_TIMEZONE_NAME = "America/Los_Angeles"
 REPORT_DATA_DIRECTORY = "report_data"
 REPORT_DATA_FILENAME = f"{REPORT_DATA_DIRECTORY}/index.json"
+REPORT_ASSETS_DIRECTORY = "assets/report"
+REPORT_CSS_ASSET_FILENAME = f"{REPORT_ASSETS_DIRECTORY}/report.css"
+REPORT_JS_ASSET_FILENAME = f"{REPORT_ASSETS_DIRECTORY}/main.js"
 
 _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "artifact": "Artifact/table identifier written by the pipeline.",
@@ -693,6 +696,35 @@ def _template_env() -> Environment:
         trim_blocks=True,
         lstrip_blocks=True,
     )
+
+
+def _copy_report_static_assets(out_dir: Path) -> dict[str, str]:
+    source_root = Path(__file__).resolve().parent / "static" / "report"
+    if not source_root.exists():
+        raise FileNotFoundError(f"Report static assets directory not found: {source_root}")
+
+    destination_root = out_dir / REPORT_ASSETS_DIRECTORY
+    if destination_root.exists():
+        shutil.rmtree(destination_root)
+    destination_root.mkdir(parents=True, exist_ok=True)
+
+    copied_files: set[str] = set()
+    for source_path in sorted(source_root.iterdir()):
+        if not source_path.is_file():
+            continue
+        shutil.copy2(source_path, destination_root / source_path.name)
+        copied_files.add(source_path.name)
+
+    required_files = {"report.css", "main.js"}
+    missing = sorted(required_files.difference(copied_files))
+    if missing:
+        missing_label = ", ".join(missing)
+        raise FileNotFoundError(f"Missing required report static asset(s): {missing_label}")
+
+    return {
+        "css_url": REPORT_CSS_ASSET_FILENAME,
+        "js_url": REPORT_JS_ASSET_FILENAME,
+    }
 
 
 def _to_pacific_timestamp(value: pd.Timestamp) -> pd.Timestamp:
@@ -6306,6 +6338,7 @@ def render_report(
         separators=(",", ":"),
     )
     report_data_path.write_text(report_data_json, encoding="utf-8")
+    report_assets = _copy_report_static_assets(out_dir)
 
     template_started = perf_counter()
     rendered = template.render(
@@ -6323,6 +6356,7 @@ def render_report(
         table_help_docs=table_help_docs_safe,
         interactive_charts=interactive_charts_for_template,
         report_data_url=REPORT_DATA_FILENAME,
+        report_assets=report_assets,
         figure_files=sorted(path.name for path in (out_dir / "figures").glob("*")),
     )
     template_render_ms = round((perf_counter() - template_started) * 1000.0, 3)

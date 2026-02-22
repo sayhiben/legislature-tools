@@ -1,8 +1,0 @@
-{
-  "max_repeat_count": 40,
-  "max_same_bucket_repeat_count": 21,
-  "n_position_switching_names": 540,
-  "n_repeated_names": 7941,
-  "n_same_bucket_instances": 6533,
-  "n_same_minute_instances": 310
-}

@@ -1,8 +1,0 @@
-{
-  "alphabetical_minute_ratio": 0.008060033351862146,
-  "id_timestamp_corr": 0.9999999004256834,
-  "max_bucket_abs_kendall_tau": 1.0,
-  "max_bucket_alphabetical_ratio": 0.008060033351862146,
-  "mean_bucket_abs_kendall_tau": 0.06271130618142517,
-  "time_monotonic_breaks": 0
-}

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 import math
+import re
+import shutil
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -24,8 +27,15 @@ from testifier_audit.report.analysis_registry import (
     analysis_status as analysis_registry_status,
 )
 from testifier_audit.report.analysis_registry import (
+    configured_analysis_ids as registry_configured_analysis_ids,
+)
+from testifier_audit.report.analysis_registry import (
     default_analysis_definitions as registry_analysis_definitions,
 )
+from testifier_audit.report.analysis_registry import (
+    focus_mode_for_analysis_ids as registry_focus_mode_for_analysis_ids,
+)
+from testifier_audit.report.contracts import default_color_semantics
 from testifier_audit.report.global_baselines import (
     build_feature_vector,
     default_cross_hearing_baseline_payload,
@@ -46,6 +56,9 @@ except ImportError:  # pragma: no cover
 
 
 BASELINE_PROFILE_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
+PACIFIC_TIMEZONE_NAME = "America/Los_Angeles"
+REPORT_DATA_DIRECTORY = "report_data"
+REPORT_DATA_FILENAME = f"{REPORT_DATA_DIRECTORY}/index.json"
 
 _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "artifact": "Artifact/table identifier written by the pipeline.",
@@ -54,23 +67,23 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "window": "Window label or index used by that detector output.",
     "window_minutes": "Window size in minutes used to aggregate records.",
     "bucket_minutes": "Bucket size in minutes for this time-series point.",
-    "bucket_start": "UTC timestamp marking the start of the aggregation bucket.",
-    "minute_bucket": "UTC timestamp rounded to the bucket minute boundary.",
-    "start_minute": "UTC minute where the evaluated window starts.",
-    "end_minute": "UTC minute where the evaluated window ends.",
-    "change_minute": "UTC minute where a structural changepoint was detected.",
+    "bucket_start": "Pacific timestamp marking the start of the aggregation bucket.",
+    "minute_bucket": "Pacific timestamp rounded to the bucket minute boundary.",
+    "start_minute": "Pacific minute where the evaluated window starts.",
+    "end_minute": "Pacific minute where the evaluated window ends.",
+    "change_minute": "Pacific minute where a structural changepoint was detected.",
     "change_hour": "Hour of day (0-23) for changepoint timing summaries.",
     "change_index": "Sequential changepoint identifier in detector output order.",
     "day_of_week": "Weekday label derived from the event timestamp.",
     "day_of_week_index": "Numeric weekday index (Monday=0 .. Sunday=6).",
-    "date": "Calendar date (UTC) associated with the aggregated slot.",
+    "date": "Calendar date (Pacific Time) associated with the aggregated slot.",
     "hour": "Hour of day (0-23) used for hour-level aggregation.",
     "slot_start_minute": "Minute offset from midnight for the day/time slot.",
     "minute_of_hour": "Minute within the hour (0-59) used in clock-face tests.",
     "run_id": "Stable identifier for a contiguous directional run segment.",
     "run_direction": "Dominant direction of the run (`pro_heavy` or `con_heavy`).",
-    "start_bucket": "UTC timestamp where the directional run starts.",
-    "end_bucket": "UTC timestamp where the directional run ends.",
+    "start_bucket": "Pacific timestamp where the directional run starts.",
+    "end_bucket": "Pacific timestamp where the directional run ends.",
     "run_length_buckets": "Number of contiguous buckets in the directional run.",
     "position_normalized": "Normalized testimony position label (for example pro/con/other).",
     "display_name": "Raw name string as it appeared in submitted data.",
@@ -83,8 +96,8 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "cluster_id": "Identifier of a near-duplicate name cluster.",
     "cluster_size": "Number of unique names contained in the cluster.",
     "time_span_minutes": "Minutes between first and last observed record in this grouping.",
-    "first_seen": "First observed UTC timestamp for this entity/group.",
-    "last_seen": "Last observed UTC timestamp for this entity/group.",
+    "first_seen": "First observed Pacific timestamp for this entity/group.",
+    "last_seen": "Last observed Pacific timestamp for this entity/group.",
     "n": "Count of records in the row's grouping.",
     "n_total": "Total records in the bucket/group (all positions combined).",
     "n_pro": "Count of records labeled pro within the bucket/group.",
@@ -104,6 +117,30 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     ),
     "support_n": "Total contributing records supporting the run or signal.",
     "n_windows": "Number of windows evaluated for that parameter setting.",
+    "n_windows_alert_eligible": (
+        "Number of off-hours windows meeting the configured alert-eligibility threshold."
+    ),
+    "n_windows_tested": (
+        "Number of alert-eligible windows that remained inferentially tested "
+        "after low-power filtering."
+    ),
+    "n_windows_low_power": (
+        "Alert-eligible windows filtered out as low-power for inferential scoring."
+    ),
+    "n_windows_primary_alert": "Number of robust primary-alert windows in this grouped cell.",
+    "primary_alert_fraction_tested": (
+        "Share of inferentially tested windows in this group that met robust primary-alert "
+        "criteria."
+    ),
+    "n_known_tested": (
+        "Known pro/con records contributing to inferentially tested windows in this grouped cell."
+    ),
+    "z_score_primary_median": (
+        "Median primary-baseline standardized residual across supportable windows in this group."
+    ),
+    "z_score_primary_abs_max": (
+        "Maximum absolute primary-baseline standardized residual across supportable windows."
+    ),
     "n_significant": "Number of windows passing the detector's significance threshold.",
     "n_runs": "Number of directional runs identified for the grouping.",
     "n_long_runs": "Number of directional runs meeting the long-run threshold.",
@@ -124,8 +161,382 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "on_hours_pro_rate_wilson_high": "Upper Wilson bound for on-hours pro share.",
     "off_hours_is_low_power": "True when off-hours sample size is too small for stable inference.",
     "on_hours_is_low_power": "True when on-hours sample size is too small for stable inference.",
+    "primary_bucket_minutes": "Primary bucket size used for off-hours control summaries.",
+    "primary_baseline_method": (
+        "Primary baseline used in summary scoring (model_day_hour or day_on_hours_fallback)."
+    ),
+    "alert_off_hours_min_fraction": (
+        "Minimum off-hours share required for an alert-eligible window."
+    ),
+    "primary_alert_min_abs_delta": (
+        "Minimum absolute primary-baseline pro-rate delta required before alert escalation."
+    ),
+    "off_hours_windows_alert_eligible": (
+        "Count of alert-eligible off-hours windows before low-power filtering."
+    ),
+    "off_hours_windows_alert_eligible_low_power": (
+        "Number of alert-eligible off-hours windows flagged as low-power."
+    ),
+    "off_hours_windows_alert_eligible_tested_fraction": (
+        "Fraction of alert-eligible off-hours windows that remained inferentially tested "
+        "after low-power filtering."
+    ),
+    "off_hours_windows_alert_eligible_low_power_fraction": (
+        "Fraction of alert-eligible off-hours windows filtered as low-power."
+    ),
+    "off_hours_windows_tested": (
+        "Count of alert-eligible off-hours windows tested after low-power filtering."
+    ),
+    "off_hours_windows_below_day_control_95": (
+        "Number of off-hours windows below the day-adjusted lower 95% control limit."
+    ),
+    "off_hours_windows_below_day_control_998": (
+        "Number of off-hours windows below the day-adjusted lower 99.8% control limit."
+    ),
+    "off_hours_windows_below_model_control_95": (
+        "Number of off-hours windows below the model-based lower 95% control limit."
+    ),
+    "off_hours_windows_below_model_control_998": (
+        "Number of off-hours windows below the model-based lower 99.8% control limit."
+    ),
+    "off_hours_windows_below_primary_control_95": (
+        "Number of off-hours windows below the active primary-baseline 95% lower control limit."
+    ),
+    "off_hours_windows_below_primary_control_998": (
+        "Number of off-hours windows below the active primary-baseline 99.8% lower control limit."
+    ),
+    "off_hours_windows_above_primary_control_95": (
+        "Number of off-hours windows above the active primary-baseline 95% upper control limit."
+    ),
+    "off_hours_windows_above_primary_control_998": (
+        "Number of off-hours windows above the active primary-baseline 99.8% upper control limit."
+    ),
+    "off_hours_windows_significant_day": (
+        "Number of off-hours windows passing day-adjusted FDR control in the primary bucket."
+    ),
+    "off_hours_windows_significant_model": (
+        "Number of off-hours windows passing model-based lower-tail FDR control."
+    ),
+    "off_hours_windows_significant_primary": (
+        "Number of off-hours windows passing primary-baseline lower-tail FDR control."
+    ),
+    "off_hours_windows_significant_primary_upper": (
+        "Number of off-hours windows passing primary-baseline upper-tail FDR control."
+    ),
+    "off_hours_windows_significant_primary_two_sided": (
+        "Number of off-hours windows passing primary-baseline two-sided FDR control."
+    ),
+    "off_hours_windows_primary_spc_998_any": (
+        "Number of tested off-hours windows outside primary-baseline 99.8% control limits "
+        "(two-sided SPC-style channel)."
+    ),
+    "off_hours_windows_primary_fdr_two_sided": (
+        "Number of tested off-hours windows passing primary-baseline two-sided FDR control."
+    ),
+    "off_hours_windows_primary_flag_any": (
+        "Number of tested off-hours windows flagged by either primary 99.8% control breach "
+        "or two-sided primary FDR channel."
+    ),
+    "off_hours_windows_primary_flag_both": (
+        "Number of tested off-hours windows flagged by both primary 99.8% control breach "
+        "and two-sided primary FDR channels."
+    ),
+    "off_hours_windows_primary_spc_998_any_fraction": (
+        "Share of tested off-hours windows flagged by the primary 99.8% control-breach "
+        "channel."
+    ),
+    "off_hours_windows_primary_fdr_two_sided_fraction": (
+        "Share of tested off-hours windows flagged by the primary two-sided FDR channel."
+    ),
+    "off_hours_windows_primary_flag_any_fraction": (
+        "Share of tested off-hours windows flagged by either primary SPC or primary FDR "
+        "two-sided channels."
+    ),
+    "off_hours_windows_primary_flag_both_fraction": (
+        "Share of tested off-hours windows flagged by both primary SPC and primary FDR "
+        "two-sided channels."
+    ),
+    "off_hours_windows_primary_alert": (
+        "Count of robust primary alerts (alert-eligible, low-power filtered, below 99.8% "
+        "primary lower limit, lower-tail FDR-significant, and material effect size)."
+    ),
+    "off_hours_windows_primary_alert_fraction": (
+        "Share of tested off-hours windows that meet robust primary-alert criteria."
+    ),
+    "off_hours_primary_alert_run_count": (
+        "Count of contiguous robust primary-alert runs in the primary bucket."
+    ),
+    "off_hours_primary_alert_max_run_windows": (
+        "Length (in windows) of the longest contiguous robust primary-alert run."
+    ),
+    "off_hours_primary_alert_max_run_minutes": (
+        "Duration (minutes) of the longest contiguous robust primary-alert run."
+    ),
+    "off_hours_min_day_z": "Most negative day-adjusted standardized residual among tested windows.",
+    "off_hours_max_abs_day_z": (
+        "Largest absolute day-adjusted standardized residual among tested windows."
+    ),
+    "off_hours_min_model_z": (
+        "Most negative model-based standardized residual among tested windows."
+    ),
+    "off_hours_max_abs_model_z": (
+        "Largest absolute model-based standardized residual among tested windows."
+    ),
+    "off_hours_min_primary_z": (
+        "Most negative primary-baseline standardized residual among tested windows."
+    ),
+    "off_hours_max_abs_primary_z": (
+        "Largest absolute primary-baseline standardized residual among tested windows."
+    ),
+    "off_hours_min_primary_delta": (
+        "Most negative observed-minus-expected pro-rate delta under the primary baseline."
+    ),
+    "off_hours_max_abs_primary_delta": (
+        "Largest absolute observed-minus-expected pro-rate delta under the primary baseline."
+    ),
+    "off_hours_windows_model_available": (
+        "Count of tested off-hours windows where the model baseline was available."
+    ),
+    "global_daytime_pro_rate": "Global on-hours pro-rate baseline used for funnel/control context.",
+    "day_adjusted_fdr_alpha": "FDR alpha used for day-adjusted window scanning.",
+    "model_fit_min_rows": (
+        "Minimum number of non-empty windows required before fitting model baseline."
+    ),
+    "model_hour_harmonics": (
+        "Number of cyclic hour-of-day harmonic pairs (sin/cos) used in the model baseline."
+    ),
+    "primary_model_fit_method": "Model fit method used for the primary bucket baseline.",
+    "primary_model_fit_rows": "Number of windows used to fit the primary-bucket model baseline.",
+    "primary_model_fit_unique_days": "Unique day count used in the primary-bucket model fit.",
+    "primary_model_fit_unique_hours": (
+        "Unique hour-of-day count used in the primary-bucket model fit."
+    ),
+    "primary_model_fit_converged": (
+        "Model convergence indicator for the primary bucket fit (1 converged, 0 not converged)."
+    ),
+    "primary_model_fit_aic": "AIC for the primary-bucket fitted model when available.",
     "n_off_hours": "Count of records in the day/hour cell that fall in off-hours.",
     "off_hours_fraction": "Share of day/hour cell records that fall in off-hours.",
+    "n_known": "Count of records with known pro/con position labels.",
+    "n_unknown": "Count of records without a known pro/con position label.",
+    "is_off_hours_window": "True when at least half of records in a bucket fall in off-hours.",
+    "is_pure_off_hours_window": "True when all records in a bucket fall in off-hours.",
+    "is_alert_off_hours_window": (
+        "True when a bucket meets the configured off-hours-share threshold for alert scanning."
+    ),
+    "expected_pro_rate_day": "Day-adjusted expected pro rate used for residual/control scoring.",
+    "expected_pro_rate_model": (
+        "Model-based expected pro rate from binomial logit with day effects and harmonic "
+        "hour terms."
+    ),
+    "expected_pro_rate_primary": (
+        "Primary expected pro rate used for alerting (model-based where available, else "
+        "day-adjusted)."
+    ),
+    "expected_pro_rate_global": "Global on-hours expected pro rate baseline.",
+    "baseline_source": (
+        "Baseline source used for this row (day_on_hours, global_on_hours, or fallback)."
+    ),
+    "model_baseline_source": "Model baseline fit source for this row.",
+    "primary_baseline_source": "Baseline source for primary scoring columns in this row.",
+    "is_model_baseline_available": "True when model expected pro rate is available for this row.",
+    "model_fit_method": "Per-bucket model fit method backing this row.",
+    "model_fit_rows": "Per-bucket number of windows used for model fitting.",
+    "model_fit_unique_days": "Per-bucket unique day count in model fit data.",
+    "model_fit_unique_hours": "Per-bucket unique hour-of-day count in model fit data.",
+    "model_fit_converged": "Per-bucket model convergence indicator (1 converged, 0 not converged).",
+    "model_fit_aic": "Per-bucket model AIC when available.",
+    "model_fit_used_harmonics": (
+        "Per-bucket number of harmonic pairs used in the model design matrix."
+    ),
+    "model_fit_window_count": "Total windows available in this bucket-size profile.",
+    "model_fit_available_windows": (
+        "Windows in this bucket size where model expected rates were available."
+    ),
+    "model_fit_available_fraction": (
+        "Share of windows in this bucket size where model expected rates were available."
+    ),
+    "control_low_95_day": "Lower 95% day-adjusted p-chart control limit for pro rate.",
+    "control_high_95_day": "Upper 95% day-adjusted p-chart control limit for pro rate.",
+    "control_low_998_day": "Lower 99.8% day-adjusted p-chart control limit for pro rate.",
+    "control_high_998_day": "Upper 99.8% day-adjusted p-chart control limit for pro rate.",
+    "control_low_95_model": "Lower 95% model-based p-chart control limit for pro rate.",
+    "control_high_95_model": "Upper 95% model-based p-chart control limit for pro rate.",
+    "control_low_998_model": "Lower 99.8% model-based p-chart control limit for pro rate.",
+    "control_high_998_model": "Upper 99.8% model-based p-chart control limit for pro rate.",
+    "control_low_95_primary": "Lower 95% primary-baseline p-chart control limit for pro rate.",
+    "control_high_95_primary": "Upper 95% primary-baseline p-chart control limit for pro rate.",
+    "control_low_998_primary": "Lower 99.8% primary-baseline p-chart control limit for pro rate.",
+    "control_high_998_primary": "Upper 99.8% primary-baseline p-chart control limit for pro rate.",
+    "control_low_95_global": "Lower 95% global-baseline control limit for pro rate.",
+    "control_high_95_global": "Upper 95% global-baseline control limit for pro rate.",
+    "control_low_998_global": "Lower 99.8% global-baseline control limit for pro rate.",
+    "control_high_998_global": "Upper 99.8% global-baseline control limit for pro rate.",
+    "z_score_day": "Day-adjusted standardized residual for observed pro count.",
+    "z_score_model": "Model-based standardized residual for observed pro count.",
+    "z_score_primary": "Primary-baseline standardized residual for observed pro count.",
+    "delta_pro_rate_day": "Observed minus expected pro rate under day-adjusted baseline.",
+    "delta_pro_rate_model": "Observed minus expected pro rate under model baseline.",
+    "delta_pro_rate_primary": "Observed minus expected pro rate under primary baseline.",
+    "p_value_day": (
+        "Exact binomial lower-tail p-value from day-adjusted expected rate "
+        "(tests for unusually low pro share)."
+    ),
+    "p_value_day_two_sided": (
+        "Two-sided p-value (equal-tail) from day-adjusted exact binomial test."
+    ),
+    "p_value_day_lower": "Exact binomial lower-tail p-value from day-adjusted expected rate.",
+    "p_value_day_upper": "Exact binomial upper-tail p-value from day-adjusted expected rate.",
+    "q_value_day": "FDR-adjusted lower-tail q-value for day-adjusted off-hours scan.",
+    "q_value_day_lower": "FDR-adjusted lower-tail q-value for day-adjusted off-hours scan.",
+    "q_value_day_upper": "FDR-adjusted upper-tail q-value for day-adjusted off-hours scan.",
+    "q_value_day_two_sided": "FDR-adjusted two-sided q-value for day-adjusted off-hours scan.",
+    "is_significant_day": "True when day-adjusted lower-tail q-value <= configured FDR alpha.",
+    "is_significant_day_lower": (
+        "True when day-adjusted lower-tail q-value <= configured FDR alpha."
+    ),
+    "is_significant_day_upper": (
+        "True when day-adjusted upper-tail q-value <= configured FDR alpha."
+    ),
+    "is_significant_day_two_sided": (
+        "True when day-adjusted two-sided q-value <= configured FDR alpha."
+    ),
+    "p_value_model": "Exact binomial lower-tail p-value from model-based expected rate.",
+    "p_value_model_two_sided": (
+        "Two-sided p-value (equal-tail) from model-based exact binomial test."
+    ),
+    "p_value_model_lower": "Exact binomial lower-tail p-value from model-based expected rate.",
+    "p_value_model_upper": "Exact binomial upper-tail p-value from model-based expected rate.",
+    "q_value_model": "FDR-adjusted lower-tail q-value for model-based off-hours scan.",
+    "q_value_model_lower": "FDR-adjusted lower-tail q-value for model-based off-hours scan.",
+    "q_value_model_upper": "FDR-adjusted upper-tail q-value for model-based off-hours scan.",
+    "q_value_model_two_sided": "FDR-adjusted two-sided q-value for model-based off-hours scan.",
+    "is_significant_model": "True when model-based lower-tail q-value <= configured FDR alpha.",
+    "is_significant_model_lower": (
+        "True when model-based lower-tail q-value <= configured FDR alpha."
+    ),
+    "is_significant_model_upper": (
+        "True when model-based upper-tail q-value <= configured FDR alpha."
+    ),
+    "is_significant_model_two_sided": (
+        "True when model-based two-sided q-value <= configured FDR alpha."
+    ),
+    "p_value_primary": "Exact binomial lower-tail p-value from primary-baseline expected rate.",
+    "p_value_primary_two_sided": (
+        "Two-sided p-value (equal-tail) from primary-baseline exact binomial test."
+    ),
+    "p_value_primary_lower": (
+        "Exact binomial lower-tail p-value from primary-baseline expected rate."
+    ),
+    "p_value_primary_upper": (
+        "Exact binomial upper-tail p-value from primary-baseline expected rate."
+    ),
+    "q_value_primary": "FDR-adjusted lower-tail q-value for primary-baseline off-hours scan.",
+    "q_value_primary_lower": "FDR-adjusted lower-tail q-value for primary-baseline off-hours scan.",
+    "q_value_primary_upper": "FDR-adjusted upper-tail q-value for primary-baseline off-hours scan.",
+    "q_value_primary_two_sided": (
+        "FDR-adjusted two-sided q-value for primary-baseline off-hours scan."
+    ),
+    "is_significant_primary": (
+        "True when primary-baseline lower-tail q-value <= configured FDR alpha."
+    ),
+    "is_significant_primary_lower": (
+        "True when primary-baseline lower-tail q-value <= configured FDR alpha."
+    ),
+    "is_significant_primary_upper": (
+        "True when primary-baseline upper-tail q-value <= configured FDR alpha."
+    ),
+    "is_significant_primary_two_sided": (
+        "True when primary-baseline two-sided q-value <= configured FDR alpha."
+    ),
+    "is_material_primary_shift": (
+        "True when absolute primary observed-minus-expected pro-rate delta meets configured floor."
+    ),
+    "is_material_primary_lower_shift": (
+        "True when negative primary pro-rate delta meets configured absolute floor."
+    ),
+    "is_material_primary_upper_shift": (
+        "True when positive primary pro-rate delta meets configured absolute floor."
+    ),
+    "is_primary_alert_window": (
+        "True for robust primary alerts: alert-eligible off-hours window with adequate support, "
+        "below primary 99.8% lower limit, lower-tail FDR-significant, and material effect size."
+    ),
+    "is_primary_spc_998_two_sided": (
+        "True when an inferentially tested off-hours window is outside primary-baseline "
+        "99.8% control limits (either direction)."
+    ),
+    "is_primary_fdr_two_sided": (
+        "True when an inferentially tested off-hours window passes primary-baseline two-sided "
+        "FDR control."
+    ),
+    "is_primary_any_flag_channel": (
+        "True when either primary SPC 99.8% breach or primary two-sided FDR channel flags "
+        "the inferentially tested off-hours window."
+    ),
+    "is_primary_both_flag_channels": (
+        "True when both primary SPC 99.8% breach and primary two-sided FDR channels flag "
+        "the inferentially tested off-hours window."
+    ),
+    "channel": "Flag channel identifier used in off-hours channel-breakdown summaries.",
+    "channel_label": "Human-readable label for the off-hours flag channel.",
+    "share_of_tested": (
+        "Fraction of inferentially tested off-hours windows represented by this channel."
+    ),
+    "is_below_day_control_95": "True when observed pro rate is below day-adjusted 95% lower limit.",
+    "is_below_day_control_998": (
+        "True when observed pro rate is below day-adjusted 99.8% lower limit."
+    ),
+    "is_below_model_control_95": (
+        "True when observed pro rate is below model-based 95% lower limit."
+    ),
+    "is_below_model_control_998": (
+        "True when observed pro rate is below model-based 99.8% lower limit."
+    ),
+    "is_below_primary_control_95": (
+        "True when observed pro rate is below primary-baseline 95% lower limit."
+    ),
+    "is_below_primary_control_998": (
+        "True when observed pro rate is below primary-baseline 99.8% lower limit."
+    ),
+    "is_above_day_control_95": "True when observed pro rate is above day-adjusted 95% upper limit.",
+    "is_above_day_control_998": (
+        "True when observed pro rate is above day-adjusted 99.8% upper limit."
+    ),
+    "is_above_model_control_95": (
+        "True when observed pro rate is above model-based 95% upper limit."
+    ),
+    "is_above_model_control_998": (
+        "True when observed pro rate is above model-based 99.8% upper limit."
+    ),
+    "is_above_primary_control_95": (
+        "True when observed pro rate is above primary-baseline 95% upper limit."
+    ),
+    "is_above_primary_control_998": (
+        "True when observed pro rate is above primary-baseline 99.8% upper limit."
+    ),
+    "is_outside_day_control_95": (
+        "True when observed pro rate lies outside day-adjusted 95% control limits."
+    ),
+    "is_outside_day_control_998": (
+        "True when observed pro rate lies outside day-adjusted 99.8% control limits."
+    ),
+    "is_outside_model_control_95": (
+        "True when observed pro rate lies outside model-based 95% control limits."
+    ),
+    "is_outside_model_control_998": (
+        "True when observed pro rate lies outside model-based 99.8% control limits."
+    ),
+    "is_outside_primary_control_95": (
+        "True when observed pro rate lies outside primary-baseline 95% control limits."
+    ),
+    "is_outside_primary_control_998": (
+        "True when observed pro rate lies outside primary-baseline 99.8% control limits."
+    ),
+    "is_below_global_control_95": "True when observed pro rate is below global 95% lower limit.",
+    "is_below_global_control_998": (
+        "True when observed pro rate is below global 99.8% lower limit."
+    ),
     "pro_rate": "Share of records that are pro in this row (0 to 1).",
     "baseline_pro_rate": "Reference pro share expected for this day/time context.",
     "stable_lower": "Lower bound of the expected stable pro-share band.",
@@ -284,9 +695,24 @@ def _template_env() -> Environment:
     )
 
 
+def _to_pacific_timestamp(value: pd.Timestamp) -> pd.Timestamp:
+    if value.tzinfo is None:
+        localized = value.tz_localize(
+            PACIFIC_TIMEZONE_NAME,
+            nonexistent="shift_forward",
+            ambiguous="NaT",
+        )
+    else:
+        localized = value.tz_convert(PACIFIC_TIMEZONE_NAME)
+    return localized
+
+
 def _serialize_value(value: Any) -> Any:
     if isinstance(value, pd.Timestamp):
-        return value.isoformat()
+        converted = _to_pacific_timestamp(value)
+        if pd.isna(converted):
+            return None
+        return converted.isoformat()
     if isinstance(value, pd.Timedelta):
         return str(value)
     try:
@@ -308,7 +734,10 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_json_safe(item) for item in value]
     if isinstance(value, pd.Timestamp):
-        return value.isoformat()
+        converted = _to_pacific_timestamp(value)
+        if pd.isna(converted):
+            return None
+        return converted.isoformat()
     if isinstance(value, pd.Timedelta):
         return str(value)
     if hasattr(value, "item"):
@@ -328,8 +757,445 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
-def _table_preview(df: pd.DataFrame, max_rows: int = 12) -> list[dict[str, Any]]:
+def _slugify_path_component(value: Any) -> str:
+    normalized = re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()).strip("-")
+    return normalized or "analysis"
+
+
+def _coerce_bucket_minutes(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return int(value) if value > 0 else None
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            return None
+        rounded = int(round(value))
+        return rounded if rounded > 0 else None
+    if isinstance(value, str):
+        trimmed = value.strip()
+        if not trimmed:
+            return None
+        try:
+            parsed = float(trimmed)
+        except ValueError:
+            return None
+        if not math.isfinite(parsed):
+            return None
+        rounded = int(round(parsed))
+        return rounded if rounded > 0 else None
+    return None
+
+
+def _write_json_payload(path: Path, payload: Any) -> int:
+    encoded = json.dumps(
+        _json_safe(payload),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(encoded, encoding="utf-8")
+    return len(encoded.encode("utf-8"))
+
+
+def _ordered_chart_ids_for_analysis(analysis_entry: Any) -> list[str]:
+    if not isinstance(analysis_entry, dict):
+        return []
+    seen: set[str] = set()
+    ordered: list[str] = []
+    hero = str(analysis_entry.get("hero_chart_id") or "").strip()
+    if hero:
+        seen.add(hero)
+        ordered.append(hero)
+    details = analysis_entry.get("detail_chart_ids")
+    if isinstance(details, list):
+        for raw in details:
+            chart_id = str(raw or "").strip()
+            if not chart_id or chart_id in seen:
+                continue
+            seen.add(chart_id)
+            ordered.append(chart_id)
+    return ordered
+
+
+def _build_chart_data_manifest(
+    out_dir: Path,
+    interactive_charts: dict[str, Any],
+) -> tuple[dict[str, Any], int]:
+    charts_raw = interactive_charts.get("charts", {})
+    charts: dict[str, list[dict[str, Any]]] = {}
+    if isinstance(charts_raw, dict):
+        for chart_id, rows in charts_raw.items():
+            normalized_id = str(chart_id or "").strip()
+            if not normalized_id:
+                continue
+            charts[normalized_id] = rows if isinstance(rows, list) else []
+
+    analysis_catalog_raw = interactive_charts.get("analysis_catalog", [])
+    analysis_catalog = (
+        analysis_catalog_raw if isinstance(analysis_catalog_raw, list) else []
+    )
+
+    chart_to_analysis: dict[str, str] = {}
+    analysis_to_chart_ids: dict[str, list[str]] = {}
+    analysis_order: list[str] = []
+    for entry in analysis_catalog:
+        if not isinstance(entry, dict):
+            continue
+        analysis_id = str(entry.get("id") or "").strip()
+        if not analysis_id:
+            continue
+        analysis_order.append(analysis_id)
+        ordered_chart_ids = _ordered_chart_ids_for_analysis(entry)
+        analysis_to_chart_ids[analysis_id] = ordered_chart_ids
+        for chart_id in ordered_chart_ids:
+            chart_to_analysis[chart_id] = analysis_id
+
+    shared_chart_ids = sorted(
+        [chart_id for chart_id in charts.keys() if chart_id not in chart_to_analysis]
+    )
+    if shared_chart_ids:
+        shared_analysis_id = "__shared__"
+        analysis_order.append(shared_analysis_id)
+        analysis_to_chart_ids[shared_analysis_id] = shared_chart_ids
+        for chart_id in shared_chart_ids:
+            chart_to_analysis[chart_id] = shared_analysis_id
+
+    used_slug_paths: set[str] = set()
+    analysis_slug_map: dict[str, str] = {}
+    for analysis_id in analysis_order:
+        base = _slugify_path_component(analysis_id)
+        slug = base
+        suffix = 2
+        while slug in used_slug_paths:
+            slug = f"{base}-{suffix}"
+            suffix += 1
+        used_slug_paths.add(slug)
+        analysis_slug_map[analysis_id] = slug
+
+    analysis_manifest: dict[str, dict[str, Any]] = {}
+    all_urls: list[str] = []
+    shard_bytes_total = 0
+    analyses_root = out_dir / REPORT_DATA_DIRECTORY / "analyses"
+    for analysis_id in analysis_order:
+        chart_ids = analysis_to_chart_ids.get(analysis_id, [])
+        slug = analysis_slug_map[analysis_id]
+        base_rows_by_chart: dict[str, list[dict[str, Any]]] = {}
+        bucket_rows_by_bucket: dict[int, dict[str, list[dict[str, Any]]]] = {}
+        chart_bucket_options: dict[str, list[int]] = {}
+
+        for chart_id in chart_ids:
+            rows = charts.get(chart_id, [])
+            row_buckets: dict[int, list[dict[str, Any]]] = defaultdict(list)
+            row_base: list[dict[str, Any]] = []
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                bucket_minutes = _coerce_bucket_minutes(row.get("bucket_minutes"))
+                if bucket_minutes is None:
+                    row_base.append(row)
+                else:
+                    row_buckets[bucket_minutes].append(row)
+            if row_base:
+                base_rows_by_chart[chart_id] = row_base
+            chart_bucket_options[chart_id] = sorted(row_buckets.keys())
+            for bucket_minutes, bucket_rows in row_buckets.items():
+                chart_rows = bucket_rows_by_bucket.setdefault(bucket_minutes, {})
+                chart_rows[chart_id] = bucket_rows
+
+        analysis_dir = analyses_root / slug
+        base_file = analysis_dir / "base.json"
+        base_url = f"{REPORT_DATA_DIRECTORY}/analyses/{slug}/base.json"
+        shard_bytes_total += _write_json_payload(
+            base_file,
+            {
+                "analysis_id": analysis_id,
+                "bucket_minutes": None,
+                "charts": base_rows_by_chart,
+            },
+        )
+        all_urls.append(base_url)
+
+        bucket_urls: dict[str, str] = {}
+        for bucket_minutes in sorted(bucket_rows_by_bucket.keys()):
+            bucket_key = str(bucket_minutes)
+            bucket_file = analysis_dir / f"bucket-{bucket_key}m.json"
+            bucket_url = f"{REPORT_DATA_DIRECTORY}/analyses/{slug}/bucket-{bucket_key}m.json"
+            shard_bytes_total += _write_json_payload(
+                bucket_file,
+                {
+                    "analysis_id": analysis_id,
+                    "bucket_minutes": bucket_minutes,
+                    "charts": bucket_rows_by_bucket.get(bucket_minutes, {}),
+                },
+            )
+            bucket_urls[bucket_key] = bucket_url
+            all_urls.append(bucket_url)
+
+        analysis_manifest[analysis_id] = {
+            "base_url": base_url,
+            "bucket_urls": bucket_urls,
+            "chart_ids": chart_ids,
+            "chart_bucket_options": chart_bucket_options,
+        }
+
+    return (
+        {
+            "version": 1,
+            "analysis": analysis_manifest,
+            "chart_to_analysis": chart_to_analysis,
+            "all_urls": all_urls,
+        },
+        shard_bytes_total,
+    )
+
+
+def _build_report_data_payload(
+    out_dir: Path,
+    *,
+    artifact_rows_safe: dict[str, Any],
+    detector_summaries_safe: dict[str, Any],
+    table_previews_safe: dict[str, Any],
+    evidence_bundle_preview_safe: list[dict[str, Any]],
+    rarity_coverage_preview_safe: list[dict[str, Any]],
+    rarity_unmatched_first_preview_safe: list[dict[str, Any]],
+    rarity_unmatched_last_preview_safe: list[dict[str, Any]],
+    clockface_top_preview_safe: list[dict[str, Any]],
+    table_column_docs_safe: dict[str, Any],
+    table_help_docs_safe: dict[str, Any],
+    interactive_charts_safe: dict[str, Any],
+) -> tuple[dict[str, Any], int]:
+    chart_data_manifest, shard_bytes_total = _build_chart_data_manifest(
+        out_dir=out_dir,
+        interactive_charts=interactive_charts_safe,
+    )
+    interactive_without_rows = dict(interactive_charts_safe)
+    interactive_without_rows["charts"] = {}
+    interactive_without_rows["chart_data_manifest"] = chart_data_manifest
+
+    return (
+        {
+            "artifact_rows": artifact_rows_safe,
+            "detector_summaries": detector_summaries_safe,
+            "table_previews": table_previews_safe,
+            "evidence_bundle_preview": evidence_bundle_preview_safe,
+            "rarity_coverage_preview": rarity_coverage_preview_safe,
+            "rarity_unmatched_first_preview": rarity_unmatched_first_preview_safe,
+            "rarity_unmatched_last_preview": rarity_unmatched_last_preview_safe,
+            "clockface_top_preview": clockface_top_preview_safe,
+            "table_column_docs": table_column_docs_safe,
+            "table_help_docs": table_help_docs_safe,
+            "interactive_charts": interactive_without_rows,
+        },
+        shard_bytes_total,
+    )
+
+
+def _preview_columns_for_detector_table(
+    detector_name: str,
+    table_name: str,
+) -> list[str] | None:
+    if detector_name != "off_hours":
+        return None
+    preview_columns: dict[str, list[str]] = {
+        "off_hours_summary": [
+            "off_hours",
+            "on_hours",
+            "off_hours_ratio",
+            "off_hours_pro_rate",
+            "on_hours_pro_rate",
+            "primary_bucket_minutes",
+            "primary_baseline_method",
+            "alert_off_hours_min_fraction",
+            "primary_alert_min_abs_delta",
+            "off_hours_windows_alert_eligible",
+            "off_hours_windows_alert_eligible_low_power",
+            "off_hours_windows_alert_eligible_tested_fraction",
+            "off_hours_windows_alert_eligible_low_power_fraction",
+            "off_hours_windows_tested",
+            "off_hours_windows_below_primary_control_998",
+            "off_hours_windows_above_primary_control_998",
+            "off_hours_windows_significant_primary",
+            "off_hours_windows_significant_primary_two_sided",
+            "off_hours_windows_primary_spc_998_any",
+            "off_hours_windows_primary_fdr_two_sided",
+            "off_hours_windows_primary_flag_any",
+            "off_hours_windows_primary_flag_both",
+            "off_hours_windows_primary_spc_998_any_fraction",
+            "off_hours_windows_primary_fdr_two_sided_fraction",
+            "off_hours_windows_primary_flag_any_fraction",
+            "off_hours_windows_primary_flag_both_fraction",
+            "off_hours_windows_primary_alert",
+            "off_hours_windows_primary_alert_fraction",
+            "off_hours_primary_alert_run_count",
+            "off_hours_primary_alert_max_run_minutes",
+            "off_hours_windows_model_available",
+            "off_hours_min_primary_delta",
+            "off_hours_min_primary_z",
+            "day_adjusted_fdr_alpha",
+            "model_fit_min_rows",
+            "model_hour_harmonics",
+            "primary_model_fit_method",
+            "primary_model_fit_rows",
+            "primary_model_fit_unique_days",
+            "primary_model_fit_unique_hours",
+            "primary_model_fit_converged",
+            "primary_model_fit_aic",
+        ],
+        "window_control_profile": [
+            "bucket_start",
+            "bucket_minutes",
+            "is_alert_off_hours_window",
+            "is_off_hours_window",
+            "is_pure_off_hours_window",
+            "n_total",
+            "n_known",
+            "n_pro",
+            "n_con",
+            "pro_rate",
+            "is_low_power",
+            "expected_pro_rate_primary",
+            "delta_pro_rate_primary",
+            "control_low_95_primary",
+            "control_low_998_primary",
+            "control_high_95_primary",
+            "control_high_998_primary",
+            "z_score_primary",
+            "q_value_primary",
+            "is_significant_primary",
+            "is_below_primary_control_998",
+            "is_above_primary_control_998",
+            "is_material_primary_lower_shift",
+            "is_primary_alert_window",
+            "is_primary_spc_998_two_sided",
+            "is_primary_fdr_two_sided",
+            "is_primary_any_flag_channel",
+            "is_primary_both_flag_channels",
+        ],
+        "model_fit_diagnostics": [
+            "bucket_minutes",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_converged",
+            "model_fit_aic",
+            "model_fit_used_harmonics",
+            "model_fit_window_count",
+            "model_fit_available_windows",
+            "model_fit_available_fraction",
+        ],
+        "flag_channel_summary": [
+            "rank",
+            "channel",
+            "channel_label",
+            "count",
+            "share_of_tested",
+        ],
+        "flagged_window_diagnostics": [
+            "bucket_start",
+            "bucket_minutes",
+            "n_total",
+            "n_known",
+            "n_pro",
+            "n_con",
+            "pro_rate",
+            "expected_pro_rate_primary",
+            "delta_pro_rate_primary",
+            "z_score_primary",
+            "p_value_primary_two_sided",
+            "q_value_primary_two_sided",
+            "is_primary_spc_998_two_sided",
+            "is_primary_fdr_two_sided",
+            "is_primary_any_flag_channel",
+            "is_primary_both_flag_channels",
+            "is_primary_alert_window",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_used_harmonics",
+        ],
+        "date_hour_distribution": [
+            "date",
+            "day_of_week",
+            "hour",
+            "n_total",
+            "n_known",
+            "n_pro",
+            "n_con",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+            "n_off_hours",
+            "off_hours_fraction",
+        ],
+        "date_hour_primary_residual_distribution": [
+            "bucket_minutes",
+            "date",
+            "day_of_week",
+            "hour",
+            "n_windows",
+            "n_windows_alert_eligible",
+            "n_windows_tested",
+            "n_windows_low_power",
+            "n_windows_primary_alert",
+            "primary_alert_fraction_tested",
+            "n_total",
+            "n_known",
+            "n_known_tested",
+            "n_pro",
+            "n_con",
+            "off_hours_fraction",
+            "pro_rate",
+            "expected_pro_rate_primary",
+            "delta_pro_rate_primary",
+            "z_score_primary",
+            "z_score_primary_median",
+            "z_score_primary_abs_max",
+            "is_low_power",
+        ],
+        "hour_of_week_distribution": [
+            "day_of_week",
+            "day_of_week_index",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+            "n_off_hours",
+            "off_hours_fraction",
+        ],
+        "hourly_distribution": [
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+        ],
+    }
+    return preview_columns.get(table_name)
+
+
+def _table_preview(
+    df: pd.DataFrame,
+    max_rows: int = 12,
+    *,
+    columns: list[str] | None = None,
+) -> list[dict[str, Any]]:
     limited = df.head(max_rows).copy()
+    if columns:
+        selected_columns = [column for column in columns if column in limited.columns]
+        if selected_columns:
+            limited = limited[selected_columns]
     for column in limited.columns:
         limited[column] = limited[column].map(_serialize_value)
     return _json_safe(limited.to_dict(orient="records"))
@@ -374,7 +1240,11 @@ def _table_previews_from_results(
         for table_name, table in sorted(result.tables.items()):
             if table.empty:
                 continue
-            detector_tables[table_name] = _table_preview(table, max_rows=max_rows)
+            detector_tables[table_name] = _table_preview(
+                table,
+                max_rows=max_rows,
+                columns=_preview_columns_for_detector_table(detector_name, table_name),
+            )
         if detector_tables:
             previews[detector_name] = detector_tables
     return previews
@@ -407,7 +1277,11 @@ def _load_table_previews_from_disk(
 
         if table.empty:
             continue
-        previews[detector_name][table_name] = _table_preview(table, max_rows=max_rows)
+        previews[detector_name][table_name] = _table_preview(
+            table,
+            max_rows=max_rows,
+            columns=_preview_columns_for_detector_table(detector_name, table_name),
+        )
 
     return dict(previews)
 
@@ -821,19 +1695,24 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
         ],
         "off_hours": [
             (
-                "A higher off-hours pro rate or off-hours volume share can be benign "
-                "when support is low; prioritize differences that remain outside "
-                "Wilson overlap and persist across days."
+                "Prioritize robust primary alerts (below primary 99.8% lower limit, "
+                "lower-tail FDR-significant, and materially negative delta at "
+                "adequate support); avoid interpreting low-n windows even if raw "
+                "rates look extreme."
             ),
             (
-                "Extended off-hours enrichment paired with normal daytime behavior "
-                "can suggest time-targeted mobilization; compare with swing and "
-                "periodicity detectors for repeated timing signatures."
+                "If tested off-hours windows are zero after low-power filtering, treat "
+                "the section as descriptive-only and avoid inferential conclusions."
             ),
             (
-                "Unexpectedly low off-hours activity can also be anomalous in "
-                "historically active datasets and may indicate ingestion gaps or "
-                "narrowly timed campaign workflows."
+                "Use the funnel view to compare primary and global expected bands; "
+                "treat primary-baseline breaches as the decision metric and global "
+                "bands as context."
+            ),
+            (
+                "In date-hour heatmaps, repeated overnight blocks across multiple "
+                "dates are stronger than a single-night dip; corroborate with burst, "
+                "periodicity, and duplicate detectors before escalation."
             ),
         ],
         "duplicates_exact": [
@@ -1057,16 +1936,22 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             "extended_low": "a relatively stationary process with fewer systemic shifts",
         },
         "off_hours": {
-            "primary_metric": "overnight/off-hours participation and composition",
+            "primary_metric": "model-aware off-hours composition shift with volume context",
             "momentary_high": (
-                "localized campaign pushes, timezone spillover, or delayed user "
-                "activity"
+                "short overnight swings that stay within primary control limits after "
+                "day/hour adjustment"
             ),
-            "momentary_low": "typical circadian troughs with naturally sparse submissions",
+            "momentary_low": (
+                "small support windows where apparent extremes are likely sampling noise"
+            ),
             "extended_high": (
-                "systematic off-hours concentration that can indicate strategic timing"
+                "repeating robust primary alerts across adjacent windows or nights at "
+                "moderate/high support"
             ),
-            "extended_low": "consistently daytime-driven behavior and lower overnight engagement",
+            "extended_low": (
+                "stable overnight behavior that remains inside expected primary "
+                "control bands"
+            ),
         },
         "duplicates_exact": {
             "primary_metric": "exact repeated-name concentration",
@@ -1245,12 +2130,13 @@ def _build_analysis_help_docs(
 _SCATTER_CHART_IDS = {
     "multivariate_feature_projection",
     "multivariate_top_buckets",
+    "off_hours_funnel_plot",
 }
 
 
 def _chart_family(chart_id: str) -> str:
     chart_id_norm = str(chart_id or "")
-    if chart_id_norm in _SCATTER_CHART_IDS:
+    if chart_id_norm in _SCATTER_CHART_IDS or "funnel" in chart_id_norm:
         return "scatter"
     if "heatmap" in chart_id_norm:
         return "heatmap"
@@ -1638,14 +2524,26 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "label": "Slot outlier dots",
                     "description": "Highlighted cells that exceed detector outlier thresholds.",
                 },
-                {"label": "Axes", "description": "X-axis is slot-of-day; Y-axis is calendar date."},
+                {
+                    "label": "Axes",
+                    "description": (
+                        "X-axis is slot-of-day; Y-axis is calendar date in chronological "
+                        "top-down order (earliest at top)."
+                    ),
+                },
             ],
         },
         "procon_swings_day_hour_heatmap": {
             "summary": "Average pro-rate by weekday/hour.",
             "items": [
                 {"label": "Cell color", "description": "Darker cells indicate higher pro rate."},
-                {"label": "Axes", "description": "X-axis is hour of day; Y-axis is weekday."},
+                {
+                    "label": "Axes",
+                    "description": (
+                        "X-axis is hour of day; Y-axis is weekday in chronological "
+                        "top-down order (Monday to Sunday)."
+                    ),
+                },
             ],
         },
         "procon_swings_time_of_day_profile": {
@@ -1707,34 +2605,195 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {"label": "X-axis", "description": "Hour of day (0-23)."},
             ],
         },
-        "off_hours_hourly_profile": {
-            "summary": "Submission volume by hour-of-day.",
+        "off_hours_control_timeline": timebar(
+            summary=(
+                "Off-hours control timeline with primary baseline overlays "
+                "(model when available, day-adjusted fallback otherwise)."
+            ),
+            primary_label="Pro rate",
+            primary_desc=(
+                "Observed pro share by bucket, with Wilson uncertainty and primary "
+                "expected/control-band overlays."
+            ),
+            include_wilson=True,
+            include_low_power=True,
+            volume_label="Submission count",
+            volume_desc="Total records per bucket for support context.",
+            flagged_label="Robust primary alert",
+            flagged_desc=(
+                "Alert-eligible windows below the primary 99.8% lower control limit "
+                "with lower-tail FDR support and material effect size. Shaded spans "
+                "mark contiguous robust-alert runs."
+            ),
+        ),
+        "off_hours_funnel_plot": {
+            "summary": (
+                "Funnel plot of pro share versus support with primary and global "
+                "control references."
+            ),
             "items": [
-                {"label": "Bar height", "description": "Total submissions in each hourly bin."},
-                {"label": "X-axis", "description": "Hour of day (0-23)."},
+                {
+                    "label": "Point",
+                    "description": (
+                        "Each point is one time bucket (x = known pro/con count, y = pro share). "
+                        "Inference is strongest when windows are alert-eligible and not low-power."
+                    ),
+                },
+                {
+                    "label": "Control curves",
+                    "description": (
+                        "Curves show global-baseline expected range (95% and 99.8%). "
+                        "Primary baseline is row-specific (model/day-adjusted) and is used "
+                        "for robust-alert scoring and tooltip diagnostics."
+                    ),
+                },
+                {
+                    "label": "Color",
+                    "description": (
+                        "Off-hours-dominant windows are highlighted; red points mark "
+                        "robust primary alerts (99.8% lower breach + lower-tail FDR + "
+                        "material effect size)."
+                    ),
+                },
             ],
         },
-        "off_hours_summary_compare": {
-            "summary": "Off-hours vs on-hours summary.",
+        "off_hours_primary_residual_timeline": timebar(
+            summary=(
+                "Primary-baseline residual timeline for inferentially tested off-hours "
+                "windows with SPC/FDR channel markers."
+            ),
+            primary_label="Primary z-score",
+            primary_desc=(
+                "Standardized residual of observed pro count versus the primary expected "
+                "pro-rate baseline (model/day-adjusted)."
+            ),
+            include_wilson=False,
+            include_low_power=True,
+            volume_label="Known Pro+Con count",
+            volume_desc="Known pro/con records supporting each bucket.",
+            flagged_label="Robust primary alert",
+            flagged_desc=(
+                "Alert-eligible windows meeting robust-primary criteria "
+                "(99.8% lower breach + lower-tail FDR + material effect size)."
+            ),
+            extra=[
+                {
+                    "label": "Day z-score",
+                    "description": (
+                        "Day-adjusted standardized residual shown as comparator context."
+                    ),
+                },
+                {
+                    "label": "Z references",
+                    "description": "Reference lines at 0 and +/-3 sigma for residual context.",
+                },
+            ],
+        ),
+        "off_hours_primary_flag_channels": {
+            "summary": (
+                "Channelized flag accounting for tested off-hours windows in the primary bucket."
+            ),
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Off-hours pro-rate statistic for each summary row.",
+                    "description": (
+                        "Count of tested windows meeting each detection channel "
+                        "(SPC 99.8% breach, two-sided FDR, union/intersection, robust alert)."
+                    ),
                 },
-                {"label": "X-axis", "description": "Off-hours count/context grouping key."},
+                {
+                    "label": "X-axis channel",
+                    "description": (
+                        "Channel labels are ordered from denominator context to stricter "
+                        "intersection/robust criteria."
+                    ),
+                },
             ],
         },
-        "off_hours_day_hour_heatmap": {
-            "summary": "Off-hours composition by weekday/hour.",
+        "off_hours_model_fit_diagnostics": {
+            "summary": "Model-fit coverage diagnostics by off-hours bucket size.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": (
+                        "Fraction of windows in each bucket size where model-based expected "
+                        "rates were available."
+                    ),
+                },
+                {
+                    "label": "X-axis bucket",
+                    "description": (
+                        "Bucket size in minutes; use with table diagnostics for fit method, "
+                        "row support, and convergence context."
+                    ),
+                },
+            ],
+        },
+        "off_hours_date_hour_pro_heatmap": {
+            "summary": "Date x hour heatmap for off-hours composition.",
             "items": [
                 {
                     "label": "Cell color",
                     "description": (
-                        "Pro-rate for that weekday/hour cell "
-                        "(with low-power checks available in table data)."
+                        "Pro share for that date/hour cell; low-power cells are marked in tooltip."
                     ),
                 },
-                {"label": "Axes", "description": "X-axis is hour of day; Y-axis is weekday."},
+                {
+                    "label": "Axes",
+                    "description": (
+                        "X-axis is hour of day; Y-axis is calendar date in chronological "
+                        "top-down order (earliest at top)."
+                    ),
+                },
+            ],
+        },
+        "off_hours_date_hour_primary_residual_heatmap": {
+            "summary": (
+                "Date x hour heatmap for primary-baseline standardized residuals "
+                "across the full 24-hour timeline."
+            ),
+            "items": [
+                {
+                    "label": "Cell color",
+                    "description": (
+                        "Average support-window primary z-score for that date/hour cell "
+                        "(blue = below baseline, warm = above baseline)."
+                    ),
+                },
+                {
+                    "label": "Support",
+                    "description": (
+                        "Tooltips show inferential tested-window counts and robust-alert counts so "
+                        "isolated low-support cells are not over-weighted."
+                    ),
+                },
+                {
+                    "label": "Off-hours emphasis",
+                    "description": (
+                        "Off-hours hours are highlighted on the X-axis label to preserve "
+                        "off-hours focus while retaining all-hour context."
+                    ),
+                },
+                {
+                    "label": "Axes",
+                    "description": (
+                        "X-axis is hour of day; Y-axis is calendar date in chronological "
+                        "top-down order (earliest at top)."
+                    ),
+                },
+            ],
+        },
+        "off_hours_date_hour_volume_heatmap": {
+            "summary": "Date x hour heatmap for off-hours volume.",
+            "items": [
+                {"label": "Cell color", "description": "Submission count for that date/hour cell."},
+                {
+                    "label": "Axes",
+                    "description": (
+                        "X-axis is hour of day; Y-axis is calendar date in chronological "
+                        "top-down order (earliest at top)."
+                    ),
+                },
             ],
         },
         "duplicates_exact_bucket_concentration": timebar(
@@ -2411,10 +3470,16 @@ def _build_deadline_ramp_metrics(
     return {
         "status": "ok",
         "window_minutes": 60,
-        "recent_window_start": (cutoff - pd.Timedelta(minutes=60)).isoformat(),
-        "recent_window_end": cutoff.isoformat(),
-        "prior_window_start": (cutoff - pd.Timedelta(minutes=120)).isoformat(),
-        "prior_window_end": (cutoff - pd.Timedelta(minutes=60)).isoformat(),
+        "recent_window_start": _to_pacific_timestamp(
+            cutoff - pd.Timedelta(minutes=60)
+        ).isoformat(),
+        "recent_window_end": _to_pacific_timestamp(cutoff).isoformat(),
+        "prior_window_start": _to_pacific_timestamp(
+            cutoff - pd.Timedelta(minutes=120)
+        ).isoformat(),
+        "prior_window_end": _to_pacific_timestamp(
+            cutoff - pd.Timedelta(minutes=60)
+        ).isoformat(),
         "recent_n_total": int(round(recent_total)),
         "prior_n_total": int(round(prior_total)),
         "recent_pro_rate": float(recent_pro_rate) if recent_pro_rate is not None else None,
@@ -2453,14 +3518,18 @@ def _build_hearing_context_panel(
             "stance_by_deadline": [],
         }
 
-    process_markers = [
-        {
-            "key": key,
-            "label": key.replace("_", " "),
-            "time_iso": value.isoformat(),
-        }
-        for key, value in hearing_metadata.marker_times().items()
-    ]
+    process_markers = []
+    for key, value in hearing_metadata.marker_times().items():
+        marker_time = _to_pacific_timestamp(pd.Timestamp(value))
+        if pd.isna(marker_time):
+            continue
+        process_markers.append(
+            {
+                "key": key,
+                "label": key.replace("_", " "),
+                "time_iso": marker_time.isoformat(),
+            }
+        )
     process_markers = sorted(process_markers, key=lambda item: item["time_iso"])
 
     metadata_rows = [
@@ -2470,12 +3539,12 @@ def _build_hearing_context_panel(
         },
         {
             "field": "timezone",
-            "value": hearing_metadata.timezone,
+            "value": PACIFIC_TIMEZONE_NAME,
         },
         {
             "field": "meeting_start",
             "value": (
-                hearing_metadata.meeting_start.isoformat()
+                _to_pacific_timestamp(pd.Timestamp(hearing_metadata.meeting_start)).isoformat()
                 if hearing_metadata.meeting_start is not None
                 else None
             ),
@@ -2483,7 +3552,7 @@ def _build_hearing_context_panel(
         {
             "field": "sign_in_open",
             "value": (
-                hearing_metadata.sign_in_open.isoformat()
+                _to_pacific_timestamp(pd.Timestamp(hearing_metadata.sign_in_open)).isoformat()
                 if hearing_metadata.sign_in_open is not None
                 else None
             ),
@@ -2491,7 +3560,7 @@ def _build_hearing_context_panel(
         {
             "field": "sign_in_cutoff",
             "value": (
-                hearing_metadata.sign_in_cutoff.isoformat()
+                _to_pacific_timestamp(pd.Timestamp(hearing_metadata.sign_in_cutoff)).isoformat()
                 if hearing_metadata.sign_in_cutoff is not None
                 else None
             ),
@@ -2499,7 +3568,9 @@ def _build_hearing_context_panel(
         {
             "field": "written_testimony_deadline",
             "value": (
-                hearing_metadata.written_testimony_deadline.isoformat()
+                _to_pacific_timestamp(
+                    pd.Timestamp(hearing_metadata.written_testimony_deadline)
+                ).isoformat()
                 if hearing_metadata.written_testimony_deadline is not None
                 else None
             ),
@@ -2528,7 +3599,7 @@ def _build_hearing_context_panel(
         "status": "ok",
         "available": True,
         "hearing_id": hearing_metadata.hearing_id,
-        "timezone": hearing_metadata.timezone,
+        "timezone": PACIFIC_TIMEZONE_NAME,
         "source_path": hearing_metadata.source_path,
         "process_markers": process_markers,
         "metadata_rows": metadata_rows,
@@ -2807,6 +3878,181 @@ def _build_interactive_chart_payload_v2(
             "is_low_power",
         ],
     )
+    off_hours_date_hour = _with_expected_columns(
+        table_map.get(_table_key("off_hours", "date_hour_distribution"), pd.DataFrame()),
+        [
+            "date",
+            "day_of_week",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_known",
+            "n_unknown",
+            "n_off_hours",
+            "off_hours_fraction",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+        ],
+    )
+    off_hours_date_hour_primary_residual = _with_expected_columns(
+        table_map.get(
+            _table_key("off_hours", "date_hour_primary_residual_distribution"),
+            pd.DataFrame(),
+        ),
+        [
+            "bucket_minutes",
+            "date",
+            "day_of_week",
+            "hour",
+            "n_windows",
+            "n_windows_alert_eligible",
+            "n_windows_tested",
+            "n_windows_low_power",
+            "n_windows_primary_alert",
+            "primary_alert_fraction_tested",
+            "n_total",
+            "n_known",
+            "n_known_tested",
+            "n_pro",
+            "n_con",
+            "off_hours_fraction",
+            "pro_rate",
+            "expected_pro_rate_primary",
+            "delta_pro_rate_primary",
+            "z_score_primary",
+            "z_score_primary_median",
+            "z_score_primary_abs_max",
+            "is_low_power",
+        ],
+    )
+    off_hours_window_control = _with_expected_columns(
+        table_map.get(_table_key("off_hours", "window_control_profile"), pd.DataFrame()),
+        [
+            "bucket_start",
+            "bucket_minutes",
+            "event_date_key",
+            "day_of_week",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_known",
+            "n_unknown",
+            "n_off_hours",
+            "off_hours_fraction",
+            "is_off_hours_window",
+            "is_pure_off_hours_window",
+            "is_alert_off_hours_window",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+            "expected_pro_rate_day",
+            "expected_pro_rate_model",
+            "expected_pro_rate_primary",
+            "expected_pro_rate_global",
+            "baseline_source",
+            "model_baseline_source",
+            "primary_baseline_source",
+            "is_model_baseline_available",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_converged",
+            "model_fit_aic",
+            "model_fit_used_harmonics",
+            "control_low_95_day",
+            "control_high_95_day",
+            "control_low_998_day",
+            "control_high_998_day",
+            "control_low_95_model",
+            "control_high_95_model",
+            "control_low_998_model",
+            "control_high_998_model",
+            "control_low_95_primary",
+            "control_high_95_primary",
+            "control_low_998_primary",
+            "control_high_998_primary",
+            "control_low_95_global",
+            "control_high_95_global",
+            "control_low_998_global",
+            "control_high_998_global",
+            "z_score_day",
+            "z_score_model",
+            "z_score_primary",
+            "delta_pro_rate_day",
+            "delta_pro_rate_model",
+            "delta_pro_rate_primary",
+            "p_value_day",
+            "p_value_day_two_sided",
+            "p_value_day_lower",
+            "p_value_day_upper",
+            "p_value_model",
+            "p_value_model_two_sided",
+            "p_value_model_lower",
+            "p_value_model_upper",
+            "p_value_primary",
+            "p_value_primary_two_sided",
+            "p_value_primary_lower",
+            "p_value_primary_upper",
+            "q_value_day",
+            "q_value_day_lower",
+            "q_value_day_upper",
+            "q_value_day_two_sided",
+            "q_value_model",
+            "q_value_model_lower",
+            "q_value_model_upper",
+            "q_value_model_two_sided",
+            "q_value_primary",
+            "q_value_primary_lower",
+            "q_value_primary_upper",
+            "q_value_primary_two_sided",
+            "is_significant_day",
+            "is_significant_day_lower",
+            "is_significant_day_upper",
+            "is_significant_day_two_sided",
+            "is_significant_model",
+            "is_significant_model_lower",
+            "is_significant_model_upper",
+            "is_significant_model_two_sided",
+            "is_significant_primary",
+            "is_significant_primary_lower",
+            "is_significant_primary_upper",
+            "is_significant_primary_two_sided",
+            "is_material_primary_shift",
+            "is_material_primary_lower_shift",
+            "is_material_primary_upper_shift",
+            "is_primary_alert_window",
+            "is_primary_spc_998_two_sided",
+            "is_primary_fdr_two_sided",
+            "is_primary_any_flag_channel",
+            "is_primary_both_flag_channels",
+            "is_below_day_control_95",
+            "is_below_day_control_998",
+            "is_above_day_control_95",
+            "is_above_day_control_998",
+            "is_below_model_control_95",
+            "is_below_model_control_998",
+            "is_above_model_control_95",
+            "is_above_model_control_998",
+            "is_below_primary_control_95",
+            "is_below_primary_control_998",
+            "is_above_primary_control_95",
+            "is_above_primary_control_998",
+            "is_outside_day_control_95",
+            "is_outside_day_control_998",
+            "is_outside_model_control_95",
+            "is_outside_model_control_998",
+            "is_outside_primary_control_95",
+            "is_outside_primary_control_998",
+            "is_below_global_control_95",
+            "is_below_global_control_998",
+        ],
+    )
     off_hours_summary = _with_expected_columns(
         table_map.get(_table_key("off_hours", "off_hours_summary"), pd.DataFrame()),
         [
@@ -2822,6 +4068,86 @@ def _build_interactive_chart_payload_v2(
             "chi_square_p_value",
             "off_hours_is_low_power",
             "on_hours_is_low_power",
+            "primary_bucket_minutes",
+            "primary_baseline_method",
+            "alert_off_hours_min_fraction",
+            "primary_alert_min_abs_delta",
+            "off_hours_windows_alert_eligible",
+            "off_hours_windows_alert_eligible_low_power",
+            "off_hours_windows_alert_eligible_tested_fraction",
+            "off_hours_windows_alert_eligible_low_power_fraction",
+            "off_hours_windows_tested",
+            "off_hours_windows_below_day_control_95",
+            "off_hours_windows_below_day_control_998",
+            "off_hours_windows_below_model_control_95",
+            "off_hours_windows_below_model_control_998",
+            "off_hours_windows_below_primary_control_95",
+            "off_hours_windows_below_primary_control_998",
+            "off_hours_windows_above_primary_control_95",
+            "off_hours_windows_above_primary_control_998",
+            "off_hours_windows_significant_day",
+            "off_hours_windows_significant_model",
+            "off_hours_windows_significant_primary",
+            "off_hours_windows_significant_primary_upper",
+            "off_hours_windows_significant_primary_two_sided",
+            "off_hours_windows_primary_spc_998_any",
+            "off_hours_windows_primary_fdr_two_sided",
+            "off_hours_windows_primary_flag_any",
+            "off_hours_windows_primary_flag_both",
+            "off_hours_windows_primary_spc_998_any_fraction",
+            "off_hours_windows_primary_fdr_two_sided_fraction",
+            "off_hours_windows_primary_flag_any_fraction",
+            "off_hours_windows_primary_flag_both_fraction",
+            "off_hours_windows_primary_alert",
+            "off_hours_windows_primary_alert_fraction",
+            "off_hours_primary_alert_run_count",
+            "off_hours_primary_alert_max_run_windows",
+            "off_hours_primary_alert_max_run_minutes",
+            "off_hours_min_day_z",
+            "off_hours_max_abs_day_z",
+            "off_hours_min_model_z",
+            "off_hours_max_abs_model_z",
+            "off_hours_min_primary_z",
+            "off_hours_max_abs_primary_z",
+            "off_hours_min_primary_delta",
+            "off_hours_max_abs_primary_delta",
+            "off_hours_windows_model_available",
+            "global_daytime_pro_rate",
+            "day_adjusted_fdr_alpha",
+            "model_fit_min_rows",
+            "model_hour_harmonics",
+            "primary_model_fit_method",
+            "primary_model_fit_rows",
+            "primary_model_fit_unique_days",
+            "primary_model_fit_unique_hours",
+            "primary_model_fit_converged",
+            "primary_model_fit_aic",
+        ],
+    )
+    off_hours_model_fit_diagnostics = _with_expected_columns(
+        table_map.get(_table_key("off_hours", "model_fit_diagnostics"), pd.DataFrame()),
+        [
+            "bucket_minutes",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_converged",
+            "model_fit_aic",
+            "model_fit_used_harmonics",
+            "model_fit_window_count",
+            "model_fit_available_windows",
+            "model_fit_available_fraction",
+        ],
+    )
+    off_hours_flag_channels = _with_expected_columns(
+        table_map.get(_table_key("off_hours", "flag_channel_summary"), pd.DataFrame()),
+        [
+            "rank",
+            "channel",
+            "channel_label",
+            "count",
+            "share_of_tested",
         ],
     )
 
@@ -3222,6 +4548,7 @@ def _build_interactive_chart_payload_v2(
         (all_changepoints, "change_minute"),
         (volume_changepoints, "change_minute"),
         (pro_rate_changepoints, "change_minute"),
+        (off_hours_window_control, "bucket_start"),
         (dup_exact_bucket, "bucket_start"),
         (dup_exact_switch, "first_seen"),
         (dup_near_clusters, "first_seen"),
@@ -3561,6 +4888,355 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=500,
     )
+    charts["off_hours_control_timeline"] = _records_from_frame(
+        off_hours_window_control.sort_values(["bucket_minutes", "bucket_start"]),
+        columns=[
+            "bucket_start",
+            "bucket_minutes",
+            "event_date_key",
+            "day_of_week",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_known",
+            "n_unknown",
+            "n_off_hours",
+            "off_hours_fraction",
+            "is_off_hours_window",
+            "is_pure_off_hours_window",
+            "is_alert_off_hours_window",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+            "expected_pro_rate_day",
+            "expected_pro_rate_model",
+            "expected_pro_rate_primary",
+            "expected_pro_rate_global",
+            "baseline_source",
+            "model_baseline_source",
+            "primary_baseline_source",
+            "is_model_baseline_available",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_used_harmonics",
+            "control_low_95_day",
+            "control_high_95_day",
+            "control_low_998_day",
+            "control_high_998_day",
+            "control_low_95_model",
+            "control_high_95_model",
+            "control_low_998_model",
+            "control_high_998_model",
+            "control_low_95_primary",
+            "control_high_95_primary",
+            "control_low_998_primary",
+            "control_high_998_primary",
+            "control_low_95_global",
+            "control_high_95_global",
+            "control_low_998_global",
+            "control_high_998_global",
+            "z_score_day",
+            "z_score_model",
+            "z_score_primary",
+            "delta_pro_rate_day",
+            "delta_pro_rate_model",
+            "delta_pro_rate_primary",
+            "p_value_day",
+            "p_value_day_two_sided",
+            "p_value_day_lower",
+            "p_value_day_upper",
+            "p_value_model",
+            "p_value_model_two_sided",
+            "p_value_model_lower",
+            "p_value_model_upper",
+            "p_value_primary",
+            "p_value_primary_two_sided",
+            "p_value_primary_lower",
+            "p_value_primary_upper",
+            "q_value_day",
+            "q_value_day_lower",
+            "q_value_day_upper",
+            "q_value_day_two_sided",
+            "q_value_model",
+            "q_value_model_lower",
+            "q_value_model_upper",
+            "q_value_model_two_sided",
+            "q_value_primary",
+            "q_value_primary_lower",
+            "q_value_primary_upper",
+            "q_value_primary_two_sided",
+            "is_significant_day",
+            "is_significant_day_lower",
+            "is_significant_day_upper",
+            "is_significant_day_two_sided",
+            "is_significant_model",
+            "is_significant_model_lower",
+            "is_significant_model_upper",
+            "is_significant_model_two_sided",
+            "is_significant_primary",
+            "is_significant_primary_lower",
+            "is_significant_primary_upper",
+            "is_significant_primary_two_sided",
+            "is_material_primary_shift",
+            "is_material_primary_lower_shift",
+            "is_material_primary_upper_shift",
+            "is_primary_alert_window",
+            "is_primary_spc_998_two_sided",
+            "is_primary_fdr_two_sided",
+            "is_primary_any_flag_channel",
+            "is_primary_both_flag_channels",
+            "is_below_day_control_95",
+            "is_below_day_control_998",
+            "is_above_day_control_95",
+            "is_above_day_control_998",
+            "is_below_model_control_95",
+            "is_below_model_control_998",
+            "is_above_model_control_95",
+            "is_above_model_control_998",
+            "is_below_primary_control_95",
+            "is_below_primary_control_998",
+            "is_above_primary_control_95",
+            "is_above_primary_control_998",
+            "is_outside_day_control_95",
+            "is_outside_day_control_998",
+            "is_outside_model_control_95",
+            "is_outside_model_control_998",
+            "is_outside_primary_control_95",
+            "is_outside_primary_control_998",
+            "is_below_global_control_95",
+            "is_below_global_control_998",
+        ],
+        max_rows=100_000,
+    )
+    charts["off_hours_funnel_plot"] = _records_from_frame(
+        off_hours_window_control.sort_values(["bucket_minutes", "n_known", "bucket_start"]),
+        columns=[
+            "bucket_start",
+            "bucket_minutes",
+            "n_total",
+            "n_known",
+            "n_pro",
+            "n_con",
+            "off_hours_fraction",
+            "is_off_hours_window",
+            "is_pure_off_hours_window",
+            "is_alert_off_hours_window",
+            "pro_rate",
+            "is_low_power",
+            "expected_pro_rate_day",
+            "expected_pro_rate_model",
+            "expected_pro_rate_primary",
+            "expected_pro_rate_global",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_used_harmonics",
+            "control_low_95_day",
+            "control_high_95_day",
+            "control_low_998_day",
+            "control_high_998_day",
+            "control_low_95_model",
+            "control_high_95_model",
+            "control_low_998_model",
+            "control_high_998_model",
+            "control_low_95_primary",
+            "control_high_95_primary",
+            "control_low_998_primary",
+            "control_high_998_primary",
+            "control_low_95_global",
+            "control_high_95_global",
+            "control_low_998_global",
+            "control_high_998_global",
+            "z_score_day",
+            "z_score_model",
+            "z_score_primary",
+            "p_value_day",
+            "p_value_day_two_sided",
+            "p_value_model",
+            "p_value_model_two_sided",
+            "p_value_primary",
+            "p_value_primary_two_sided",
+            "q_value_day",
+            "q_value_day_two_sided",
+            "q_value_model",
+            "q_value_model_two_sided",
+            "q_value_primary",
+            "q_value_primary_two_sided",
+            "is_significant_day",
+            "is_significant_day_two_sided",
+            "is_significant_model",
+            "is_significant_model_two_sided",
+            "is_significant_primary",
+            "is_significant_primary_lower",
+            "is_significant_primary_upper",
+            "is_significant_primary_two_sided",
+            "is_material_primary_shift",
+            "is_material_primary_lower_shift",
+            "is_material_primary_upper_shift",
+            "is_primary_alert_window",
+            "is_primary_spc_998_two_sided",
+            "is_primary_fdr_two_sided",
+            "is_primary_any_flag_channel",
+            "is_primary_both_flag_channels",
+            "is_below_day_control_95",
+            "is_below_day_control_998",
+            "is_below_model_control_95",
+            "is_below_model_control_998",
+            "is_below_primary_control_95",
+            "is_below_primary_control_998",
+            "is_above_primary_control_95",
+            "is_above_primary_control_998",
+            "is_below_global_control_95",
+            "is_below_global_control_998",
+        ],
+        max_rows=100_000,
+    )
+    off_hours_residual_timeline = off_hours_window_control.copy()
+    if not off_hours_residual_timeline.empty:
+        off_hours_residual_timeline["z_ref_zero"] = 0.0
+        off_hours_residual_timeline["z_ref_pos3"] = 3.0
+        off_hours_residual_timeline["z_ref_neg3"] = -3.0
+    charts["off_hours_primary_residual_timeline"] = _records_from_frame(
+        off_hours_residual_timeline.sort_values(["bucket_minutes", "bucket_start"]),
+        columns=[
+            "bucket_start",
+            "bucket_minutes",
+            "n_total",
+            "n_known",
+            "n_pro",
+            "n_con",
+            "is_off_hours_window",
+            "is_alert_off_hours_window",
+            "is_low_power",
+            "pro_rate",
+            "expected_pro_rate_primary",
+            "delta_pro_rate_primary",
+            "z_score_primary",
+            "z_score_day",
+            "z_ref_zero",
+            "z_ref_pos3",
+            "z_ref_neg3",
+            "p_value_primary",
+            "p_value_primary_two_sided",
+            "q_value_primary",
+            "q_value_primary_two_sided",
+            "is_primary_spc_998_two_sided",
+            "is_primary_fdr_two_sided",
+            "is_primary_any_flag_channel",
+            "is_primary_both_flag_channels",
+            "is_primary_alert_window",
+            "primary_baseline_source",
+            "is_model_baseline_available",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_used_harmonics",
+        ],
+        max_rows=100_000,
+    )
+    charts["off_hours_primary_flag_channels"] = _records_from_frame(
+        off_hours_flag_channels.sort_values(["rank", "channel"]),
+        columns=[
+            "rank",
+            "channel",
+            "channel_label",
+            "count",
+            "share_of_tested",
+        ],
+        max_rows=50,
+    )
+    charts["off_hours_model_fit_diagnostics"] = _records_from_frame(
+        off_hours_model_fit_diagnostics.sort_values(["bucket_minutes"]),
+        columns=[
+            "bucket_minutes",
+            "model_fit_method",
+            "model_fit_rows",
+            "model_fit_unique_days",
+            "model_fit_unique_hours",
+            "model_fit_converged",
+            "model_fit_aic",
+            "model_fit_used_harmonics",
+            "model_fit_window_count",
+            "model_fit_available_windows",
+            "model_fit_available_fraction",
+        ],
+        max_rows=200,
+    )
+    charts["off_hours_date_hour_pro_heatmap"] = _records_from_frame(
+        off_hours_date_hour.sort_values(["date", "hour"]),
+        columns=[
+            "date",
+            "day_of_week",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_known",
+            "n_unknown",
+            "n_off_hours",
+            "off_hours_fraction",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+        ],
+        max_rows=20_000,
+    )
+    charts["off_hours_date_hour_primary_residual_heatmap"] = _records_from_frame(
+        off_hours_date_hour_primary_residual.sort_values(["bucket_minutes", "date", "hour"]),
+        columns=[
+            "bucket_minutes",
+            "date",
+            "day_of_week",
+            "hour",
+            "n_windows",
+            "n_windows_alert_eligible",
+            "n_windows_tested",
+            "n_windows_low_power",
+            "n_windows_primary_alert",
+            "primary_alert_fraction_tested",
+            "n_total",
+            "n_known",
+            "n_known_tested",
+            "n_pro",
+            "n_con",
+            "off_hours_fraction",
+            "pro_rate",
+            "expected_pro_rate_primary",
+            "delta_pro_rate_primary",
+            "z_score_primary",
+            "z_score_primary_median",
+            "z_score_primary_abs_max",
+            "is_low_power",
+        ],
+        max_rows=20_000,
+    )
+    charts["off_hours_date_hour_volume_heatmap"] = _records_from_frame(
+        off_hours_date_hour.sort_values(["date", "hour"]),
+        columns=[
+            "date",
+            "day_of_week",
+            "hour",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_known",
+            "n_unknown",
+            "n_off_hours",
+            "off_hours_fraction",
+            "pro_rate",
+            "pro_rate_wilson_low",
+            "pro_rate_wilson_high",
+            "is_low_power",
+        ],
+        max_rows=20_000,
+    )
     charts["off_hours_summary_compare"] = _records_from_frame(
         off_hours_summary,
         columns=[
@@ -3576,6 +5252,60 @@ def _build_interactive_chart_payload_v2(
             "chi_square_p_value",
             "off_hours_is_low_power",
             "on_hours_is_low_power",
+            "primary_bucket_minutes",
+            "primary_baseline_method",
+            "alert_off_hours_min_fraction",
+            "primary_alert_min_abs_delta",
+            "off_hours_windows_alert_eligible",
+            "off_hours_windows_alert_eligible_low_power",
+            "off_hours_windows_alert_eligible_tested_fraction",
+            "off_hours_windows_alert_eligible_low_power_fraction",
+            "off_hours_windows_tested",
+            "off_hours_windows_below_day_control_95",
+            "off_hours_windows_below_day_control_998",
+            "off_hours_windows_below_model_control_95",
+            "off_hours_windows_below_model_control_998",
+            "off_hours_windows_below_primary_control_95",
+            "off_hours_windows_below_primary_control_998",
+            "off_hours_windows_above_primary_control_95",
+            "off_hours_windows_above_primary_control_998",
+            "off_hours_windows_significant_day",
+            "off_hours_windows_significant_model",
+            "off_hours_windows_significant_primary",
+            "off_hours_windows_significant_primary_upper",
+            "off_hours_windows_significant_primary_two_sided",
+            "off_hours_windows_primary_spc_998_any",
+            "off_hours_windows_primary_fdr_two_sided",
+            "off_hours_windows_primary_flag_any",
+            "off_hours_windows_primary_flag_both",
+            "off_hours_windows_primary_spc_998_any_fraction",
+            "off_hours_windows_primary_fdr_two_sided_fraction",
+            "off_hours_windows_primary_flag_any_fraction",
+            "off_hours_windows_primary_flag_both_fraction",
+            "off_hours_windows_primary_alert",
+            "off_hours_windows_primary_alert_fraction",
+            "off_hours_primary_alert_run_count",
+            "off_hours_primary_alert_max_run_windows",
+            "off_hours_primary_alert_max_run_minutes",
+            "off_hours_min_day_z",
+            "off_hours_max_abs_day_z",
+            "off_hours_min_model_z",
+            "off_hours_max_abs_model_z",
+            "off_hours_min_primary_z",
+            "off_hours_max_abs_primary_z",
+            "off_hours_min_primary_delta",
+            "off_hours_max_abs_primary_delta",
+            "off_hours_windows_model_available",
+            "global_daytime_pro_rate",
+            "day_adjusted_fdr_alpha",
+            "model_fit_min_rows",
+            "model_hour_harmonics",
+            "primary_model_fit_method",
+            "primary_model_fit_rows",
+            "primary_model_fit_unique_days",
+            "primary_model_fit_unique_hours",
+            "primary_model_fit_converged",
+            "primary_model_fit_aic",
         ],
         max_rows=10,
     )
@@ -4099,7 +5829,7 @@ def _build_interactive_chart_payload_v2(
             time_bucket_profiles, day_bucket_profiles, time_of_day_profiles, procon_direction_runs
         ),
         "changepoints": [],
-        "off_hours": [],
+        "off_hours": _extract_bucket_options(off_hours_window_control),
         "duplicates_exact": _extract_bucket_options(dup_exact_bucket),
         "duplicates_near": [],
         "sortedness": _extract_bucket_options(sorted_bucket, sorted_summary),
@@ -4144,6 +5874,21 @@ def _build_interactive_chart_payload_v2(
             }
         )
 
+    analysis_allowlist = registry_configured_analysis_ids()
+    if analysis_allowlist:
+        allowset = set(analysis_allowlist)
+        analysis_catalog = [
+            analysis
+            for analysis in analysis_catalog
+            if str(analysis.get("id") or "").strip() in allowset
+        ]
+    visible_analysis_ids = [str(analysis.get("id") or "").strip() for analysis in analysis_catalog]
+    visible_analysis_id_set = set(visible_analysis_ids)
+    focus_analysis_ids = [
+        analysis_id for analysis_id in analysis_allowlist if analysis_id in visible_analysis_id_set
+    ]
+    focus_mode = registry_focus_mode_for_analysis_ids(focus_analysis_ids)
+
     global_bucket_options = sorted(
         {
             value
@@ -4163,6 +5908,8 @@ def _build_interactive_chart_payload_v2(
         "bursts_hero_timeline",
         "procon_swings_hero_bucket_trend",
         "changepoints_hero_timeline",
+        "off_hours_control_timeline",
+        "off_hours_primary_residual_timeline",
         "duplicates_exact_bucket_concentration",
         "duplicates_near_cluster_timeline",
         "sortedness_bucket_ratio",
@@ -4199,14 +5946,15 @@ def _build_interactive_chart_payload_v2(
         min_cell_n_for_rates=min_cell_n_for_rates,
     )
 
-    timezone_name = hearing_metadata.timezone if hearing_metadata else "UTC"
+    timezone_name = PACIFIC_TIMEZONE_NAME
     process_markers = hearing_context_panel.get("process_markers", [])
     evidence_taxonomy = default_evidence_taxonomy()
     methodology = build_methodology_content(evidence_taxonomy=evidence_taxonomy)
     theme_options = default_theme_options()
+    color_semantics = default_color_semantics()
 
     payload = {
-        "version": 2,
+        "version": 3,
         "analysis_catalog": analysis_catalog,
         "charts": charts,
         "chart_legend_docs": chart_legend_docs,
@@ -4229,11 +5977,14 @@ def _build_interactive_chart_payload_v2(
             "methodology": methodology,
             "theme_options": theme_options,
             "default_theme": "light",
+            "color_semantics": color_semantics,
             "dedup_modes": list(DEDUP_MODES),
             "default_dedup_mode": resolved_default_dedup_mode,
             "timezone": timezone_name,
             "timezone_label": timezone_name,
             "process_markers": process_markers,
+            "focus_mode": focus_mode,
+            "focus_analysis_ids": focus_analysis_ids,
         },
     }
     payload = _json_safe(payload)
@@ -4404,7 +6155,8 @@ def render_report(
     hearing_metadata: HearingMetadata | None = None,
 ) -> Path:
     report_started = perf_counter()
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(ZoneInfo(PACIFIC_TIMEZONE_NAME)).isoformat()
+    generated_at_label = PACIFIC_TIMEZONE_NAME
     env = _template_env()
     template = env.get_template("report.html.j2")
 
@@ -4513,20 +6265,64 @@ def render_report(
         data_quality_panel=interactive_charts.get("data_quality_panel", {}),
     )
 
+    detector_summaries_safe = _json_safe(detector_summaries)
+    artifact_rows_safe = _json_safe(artifact_rows)
+    table_previews_safe = _json_safe(table_previews)
+    evidence_bundle_preview_safe = _json_safe(evidence_bundle_preview)
+    rarity_coverage_preview_safe = _json_safe(rarity_coverage_preview)
+    rarity_unmatched_first_preview_safe = _json_safe(rarity_unmatched_first_preview)
+    rarity_unmatched_last_preview_safe = _json_safe(rarity_unmatched_last_preview)
+    clockface_top_preview_safe = _json_safe(clockface_top_preview)
+    table_column_docs_safe = _json_safe(table_column_docs)
+    table_help_docs_safe = _json_safe(table_help_docs)
+    interactive_charts_safe = _json_safe(interactive_charts)
+    report_data_root = out_dir / REPORT_DATA_DIRECTORY
+    if report_data_root.exists():
+        shutil.rmtree(report_data_root)
+    legacy_report_data_path = out_dir / "report_data.json"
+    if legacy_report_data_path.exists():
+        legacy_report_data_path.unlink()
+
+    report_data_payload, report_data_shards_json_bytes = _build_report_data_payload(
+        out_dir=out_dir,
+        artifact_rows_safe=artifact_rows_safe,
+        detector_summaries_safe=detector_summaries_safe,
+        table_previews_safe=table_previews_safe,
+        evidence_bundle_preview_safe=evidence_bundle_preview_safe,
+        rarity_coverage_preview_safe=rarity_coverage_preview_safe,
+        rarity_unmatched_first_preview_safe=rarity_unmatched_first_preview_safe,
+        rarity_unmatched_last_preview_safe=rarity_unmatched_last_preview_safe,
+        clockface_top_preview_safe=clockface_top_preview_safe,
+        table_column_docs_safe=table_column_docs_safe,
+        table_help_docs_safe=table_help_docs_safe,
+        interactive_charts_safe=interactive_charts_safe,
+    )
+    interactive_charts_for_template = report_data_payload.get("interactive_charts", {})
+    report_data_path = out_dir / REPORT_DATA_FILENAME
+    report_data_path.parent.mkdir(parents=True, exist_ok=True)
+    report_data_json = json.dumps(
+        report_data_payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    report_data_path.write_text(report_data_json, encoding="utf-8")
+
     template_started = perf_counter()
     rendered = template.render(
         generated_at=generated_at,
-        detector_summaries=_json_safe(detector_summaries),
-        artifact_rows=_json_safe(artifact_rows),
-        table_previews=_json_safe(table_previews),
-        evidence_bundle_preview=_json_safe(evidence_bundle_preview),
-        rarity_coverage_preview=_json_safe(rarity_coverage_preview),
-        rarity_unmatched_first_preview=_json_safe(rarity_unmatched_first_preview),
-        rarity_unmatched_last_preview=_json_safe(rarity_unmatched_last_preview),
-        clockface_top_preview=_json_safe(clockface_top_preview),
-        table_column_docs=_json_safe(table_column_docs),
-        table_help_docs=_json_safe(table_help_docs),
-        interactive_charts=_json_safe(interactive_charts),
+        generated_at_label=generated_at_label,
+        detector_summaries=detector_summaries_safe,
+        artifact_rows=artifact_rows_safe,
+        table_previews=table_previews_safe,
+        evidence_bundle_preview=evidence_bundle_preview_safe,
+        rarity_coverage_preview=rarity_coverage_preview_safe,
+        rarity_unmatched_first_preview=rarity_unmatched_first_preview_safe,
+        rarity_unmatched_last_preview=rarity_unmatched_last_preview_safe,
+        clockface_top_preview=clockface_top_preview_safe,
+        table_column_docs=table_column_docs_safe,
+        table_help_docs=table_help_docs_safe,
+        interactive_charts=interactive_charts_for_template,
+        report_data_url=REPORT_DATA_FILENAME,
         figure_files=sorted(path.name for path in (out_dir / "figures").glob("*")),
     )
     template_render_ms = round((perf_counter() - template_started) * 1000.0, 3)
@@ -4544,6 +6340,8 @@ def render_report(
         "report_write_ms": report_write_ms,
         "report_total_ms": round((perf_counter() - report_started) * 1000.0, 3),
         "report_html_bytes": int(report_path.stat().st_size),
+        "report_data_json_bytes": len(report_data_json.encode("utf-8")),
+        "report_data_shards_json_bytes": report_data_shards_json_bytes,
     }
     runtime_path = out_dir / "artifacts" / "report_runtime.json"
     runtime_path.parent.mkdir(parents=True, exist_ok=True)

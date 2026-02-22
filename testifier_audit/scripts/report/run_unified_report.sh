@@ -51,6 +51,7 @@ echo "Using submissions CSV: ${SUBMISSIONS_CSV}"
 echo "Using VRDB extract: ${VRDB_EXTRACT}"
 echo "Using config: ${CONFIG_PATH}"
 echo "Output directory: ${OUT_DIR}"
+echo "Scoped postgres source_file: ${CSV_BASENAME}"
 if [[ -n "${DEDUP_MODE}" ]]; then
   echo "Using dedup mode override: ${DEDUP_MODE}"
 fi
@@ -67,7 +68,7 @@ fi
 CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/db/import_submissions.sh" "${SUBMISSIONS_CSV}"
 CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/vrdb/import_vrdb.sh" "${VRDB_EXTRACT}"
 
-CLI_ARGS=(run-all --out "${OUT_DIR}" --config "${CONFIG_PATH}")
+CLI_ARGS=(run-all --out "${OUT_DIR}" --config "${CONFIG_PATH}" --source-file "${CSV_BASENAME}")
 if [[ -n "${DEDUP_MODE}" ]]; then
   CLI_ARGS+=(--dedup-mode "${DEDUP_MODE}")
 fi

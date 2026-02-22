@@ -32,6 +32,26 @@ class AnalysisDefinition:
         }
 
 
+# Temporary analysis scope for active development.
+# Uncomment analyses to run/render; leave empty to run/render the full pack.
+ANALYSES_TO_PERFORM: tuple[str, ...] = (
+    # "baseline_profile",
+    # "bursts",
+    # "procon_swings",
+    # "changepoints",
+    "off_hours",
+    # "duplicates_exact",
+    # "duplicates_near",
+    # "sortedness",
+    # "rare_names",
+    # "org_anomalies",
+    # "voter_registry_match",
+    # "periodicity",
+    # "multivariate_anomalies",
+    # "composite_score",
+)
+
+
 _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
     AnalysisDefinition(
         id="baseline_profile",
@@ -124,19 +144,30 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         id="off_hours",
         title="Off-Hours Profile",
         detector="off_hours",
-        hero_chart_id="off_hours_hourly_profile",
-        detail_chart_ids=("off_hours_summary_compare", "off_hours_day_hour_heatmap"),
+        hero_chart_id="off_hours_control_timeline",
+        detail_chart_ids=(
+            "off_hours_funnel_plot",
+            "off_hours_primary_residual_timeline",
+            "off_hours_primary_flag_channels",
+            "off_hours_model_fit_diagnostics",
+            "off_hours_date_hour_pro_heatmap",
+            "off_hours_date_hour_primary_residual_heatmap",
+            "off_hours_date_hour_volume_heatmap",
+        ),
         how_to_read=(
-            "Compare hourly volume and pro-rate with Wilson uncertainty and low-power "
-            "flags."
+            "Use the off-hours control timeline to compare observed pro share with "
+            "Wilson uncertainty and primary expected/control bands "
+            "(model-based when available, day-adjusted fallback otherwise) at each bucket size."
         ),
         what_to_look_for=(
-            "Consistent off-hours elevation in volume or composition beyond daytime "
-            "baselines."
+            "Sustained robust primary alerts (alert-eligible, below primary 99.8% "
+            "lower control band, lower-tail FDR-supported, and materially negative) "
+            "at adequate support, then verify whether the pattern repeats or clusters "
+            "in specific dates/hours."
         ),
         common_benign_causes=(
-            "Statewide campaigns spanning time zones can shift participation into "
-            "late-hour windows."
+            "Time-zone spillover, campaign scheduling, and hearing-deadline pushes can "
+            "produce legitimate overnight composition shifts."
         ),
     ),
     AnalysisDefinition(
@@ -322,6 +353,16 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
     ),
 )
 
+_ANALYSIS_DETECTOR_DEPENDENCIES: dict[str, tuple[str, ...]] = {
+    "composite_score": (
+        "bursts",
+        "procon_swings",
+        "changepoints",
+        "rare_names",
+        "multivariate_anomalies",
+    ),
+}
+
 
 _ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
     "baseline_profile": ("baseline", 100),
@@ -339,6 +380,50 @@ _ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
     "multivariate_anomalies": ("multisignal", 92),
     "composite_score": ("triage", 99),
 }
+
+
+def configured_analysis_ids() -> list[str]:
+    known_analysis_ids = {definition.id for definition in _ANALYSIS_DEFINITIONS}
+    seen: set[str] = set()
+    selected: list[str] = []
+    for analysis_id in ANALYSES_TO_PERFORM:
+        normalized = str(analysis_id or "").strip()
+        if not normalized or normalized in seen or normalized not in known_analysis_ids:
+            continue
+        seen.add(normalized)
+        selected.append(normalized)
+    return selected
+
+
+def configured_detector_names() -> set[str]:
+    selected_analysis_ids = configured_analysis_ids()
+    if not selected_analysis_ids:
+        return {
+            definition.detector
+            for definition in _ANALYSIS_DEFINITIONS
+            if isinstance(definition.detector, str) and definition.detector
+        }
+
+    definitions_by_id = {definition.id: definition for definition in _ANALYSIS_DEFINITIONS}
+    selected_detectors: set[str] = set()
+    for analysis_id in selected_analysis_ids:
+        definition = definitions_by_id.get(analysis_id)
+        detector_name = definition.detector if definition else None
+        if isinstance(detector_name, str) and detector_name:
+            selected_detectors.add(detector_name)
+        for dependency in _ANALYSIS_DETECTOR_DEPENDENCIES.get(analysis_id, ()):
+            dependency_name = str(dependency or "").strip()
+            if dependency_name:
+                selected_detectors.add(dependency_name)
+    return selected_detectors
+
+
+def focus_mode_for_analysis_ids(analysis_ids: list[str]) -> str:
+    if not analysis_ids:
+        return "full_report"
+    if len(analysis_ids) == 1 and analysis_ids[0] == "off_hours":
+        return "off_hours_only"
+    return "analysis_subset"
 
 
 def default_analysis_definitions() -> list[dict[str, Any]]:

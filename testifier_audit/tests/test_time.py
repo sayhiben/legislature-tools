@@ -37,7 +37,7 @@ def test_add_time_features_populates_hearing_relative_minutes() -> None:
 
     out = add_time_features(
         df=df,
-        config=TimeConfig(timezone="UTC", off_hours_start=0, off_hours_end=5),
+        config=TimeConfig(timezone="America/Los_Angeles", off_hours_start=0, off_hours_end=5),
         hearing_metadata=metadata,
     )
 

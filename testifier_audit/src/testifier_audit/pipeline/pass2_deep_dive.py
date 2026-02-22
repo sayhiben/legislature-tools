@@ -9,8 +9,14 @@ from testifier_audit.config import AppConfig
 from testifier_audit.detectors.base import DetectorResult
 from testifier_audit.detectors.registry import default_detectors
 from testifier_audit.io.write import write_summary, write_table
-from testifier_audit.paths import build_output_paths
+from testifier_audit.paths import OutputPaths, build_output_paths
 from testifier_audit.pipeline.pass1_profile import prepare_base_dataframe
+from testifier_audit.report.analysis_registry import (
+    configured_analysis_ids as registry_configured_analysis_ids,
+)
+from testifier_audit.report.analysis_registry import (
+    configured_detector_names as registry_configured_detector_names,
+)
 from testifier_audit.viz.distributions import (
     plot_burst_null_distribution,
     plot_periodicity_autocorrelation,
@@ -39,6 +45,42 @@ def _series_to_table(series: pd.Series, value_column: str) -> pd.DataFrame:
     return (
         series.rename(value_column).to_frame().reset_index().rename(columns={"index": "row_index"})
     )
+
+
+def _remove_stale_detector_outputs(paths: OutputPaths, detector_names: set[str]) -> None:
+    for detector_name in sorted(detector_names):
+        normalized = str(detector_name or "").strip()
+        if not normalized:
+            continue
+        (paths.summary / f"{normalized}.json").unlink(missing_ok=True)
+        for directory in (paths.tables, paths.flags):
+            for artifact_path in directory.glob(f"{normalized}__*.*"):
+                artifact_path.unlink(missing_ok=True)
+
+
+def _remove_stale_overlay_figures(paths: OutputPaths, figure_suffix: str) -> None:
+    suffix = str(figure_suffix or "").strip().lstrip(".") or "png"
+    figure_names = {
+        "counts_with_anomalies",
+        "pro_rate_with_anomalies",
+        "bursts_null_distribution",
+        "swing_null_distribution",
+        "periodicity_autocorr",
+        "periodicity_spectrum",
+        "periodicity_clockface",
+        "pro_rate_heatmap_day_hour",
+        "pro_rate_bucket_trends",
+        "pro_rate_time_of_day_profiles",
+        "organization_blank_rates",
+        "voter_registry_match_rates",
+        "multivariate_anomaly_scores",
+    }
+    for bucket_minutes in (1, 5, 15, 30, 60, 120, 240):
+        figure_names.add(f"pro_rate_heatmap_day_hour_{int(bucket_minutes)}m")
+        figure_names.add(f"pro_rate_shift_heatmap_{int(bucket_minutes)}m")
+        figure_names.add(f"pro_rate_bucket_trends_{int(bucket_minutes)}m")
+    for figure_name in sorted(figure_names):
+        (paths.figures / f"{figure_name}.{suffix}").unlink(missing_ok=True)
 
 
 def _render_detector_figures(
@@ -188,9 +230,27 @@ def run_detectors(
 
     extension = "parquet" if config.outputs.tables_format == "parquet" else "csv"
     feature_context: dict[str, pd.DataFrame] = dict(artifacts)
+    analysis_scope_ids = registry_configured_analysis_ids()
+    scoped_detector_names = registry_configured_detector_names()
+    all_detector_instances = default_detectors(config)
+    detector_instances = list(all_detector_instances)
+    if analysis_scope_ids:
+        detector_instances = [
+            detector for detector in detector_instances if detector.name in scoped_detector_names
+        ]
+        skipped_detector_names = {detector.name for detector in all_detector_instances} - {
+            detector.name for detector in detector_instances
+        }
+        _remove_stale_detector_outputs(paths, skipped_detector_names)
+        LOGGER.info(
+            "Scoped detector execution to analyses: %s (detectors: %s)",
+            ", ".join(analysis_scope_ids),
+            ", ".join(sorted({detector.name for detector in detector_instances})),
+        )
+        _remove_stale_overlay_figures(paths=paths, figure_suffix=config.outputs.figures_format)
 
     results: dict[str, DetectorResult] = {}
-    for detector in default_detectors(config):
+    for detector in detector_instances:
         result = detector.run(df=df, features=feature_context)
         results[result.detector] = result
 
@@ -216,5 +276,6 @@ def run_detectors(
                 fmt=config.outputs.tables_format,
             )
 
-    _render_detector_figures(feature_context=feature_context, out_dir=out_dir, config=config)
+    if not analysis_scope_ids:
+        _render_detector_figures(feature_context=feature_context, out_dir=out_dir, config=config)
     return results

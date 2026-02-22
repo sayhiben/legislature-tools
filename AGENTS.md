@@ -19,116 +19,56 @@ Repository-specific guidance for AI/code agents.
   - `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
 - When proposing or executing substantial changes, align with this plan unless the user explicitly overrides it.
 
-## Lessons Learned (Phase 0)
-- Treat `src/testifier_audit/report/analysis_registry.py` as the only source of truth for analysis
-  definitions/status; do not reintroduce duplicate registry helpers in `report/render.py`.
-- Keep triage evidence contracts and scoring/tiering logic in dedicated modules:
-  `report/contracts.py` and `report/triage_builder.py`.
-- When refactoring report architecture, require both:
-  - focused unit/contract tests (for new modules), and
-  - at least one integration parity test (`tests/test_pipeline_integration.py`) to catch render drift.
+## Durable Engineering Lessons
+- Treat `src/testifier_audit/report/analysis_registry.py` as the single source of truth for
+  analysis definitions and run/publish status.
+- Keep detector/report contracts in dedicated modules (`report/contracts.py`,
+  `report/triage_builder.py`) rather than re-encoding shape logic in templates.
+- When adding or modifying detector charts, update all four surfaces together:
+  `report/analysis_registry.py`, `report/render.py`, `report/templates/report.html.j2`, and
+  payload/render tests.
 - Preserve runtime instrumentation fields unless intentionally revised:
   `controls.runtime.payload_build_ms`, `controls.runtime.payload_json_bytes`,
   `controls.runtime.interactive_payload_build_ms`, and `artifacts/report_runtime.json`.
+- For structural report changes, require both focused unit/contract tests and at least one
+  integration parity test (`tests/test_pipeline_integration.py`).
 
-## Lessons Learned (Phase 1 UX Reliability)
-- Keep section status badges high-signal only; do not render `ready` badges by default.
-- After sidebar/layout transitions, use sequenced chart resize calls; a single immediate resize is
-  insufficient for reliable ECharts rendering.
-- Bucket rerender actions should expose explicit progress UI (`runWithBusyIndicator` pattern) to
-  preserve user trust during heavy redraws.
-- Keep shared zoom controls and range labels visible and synchronized (`updateZoomRangeLabel`) when
-  absolute-time chart linking is enabled.
-- Maintain timezone labeling as an explicit payload contract (`controls.timezone`,
-  `controls.timezone_label`); default to deterministic `UTC` when metadata is absent and override
-  from hearing metadata timezone when sidecar context is present.
+## Off-Hours Analysis Lessons (Current)
+- Do not conflate statistical concepts across views:
+  Wilson intervals quantify binomial proportion uncertainty for a cell/window;
+  control limits and standardized residuals are separate diagnostics.
+- Keep low-power handling explicit:
+  retain low-power flags, gate inferential claims on support, and allow descriptive-only runs when
+  alert-eligible windows fail support criteria.
+- Prefer model-aware primary baselines (when available) with explicit day/hour fallback paths.
+- Treat persistence and neighborhood structure as first-class evidence:
+  repeated adjacent-window signals are stronger than isolated single-cell spikes.
+- Keep one CSV per report run by default; comparative analysis must be explicitly requested and
+  rendered as a separate comparative output.
+- Avoid hidden focus flags in orchestration; use an explicit list of analyses to run/publish so
+  unused analyses are not computed during focused development runs.
 
-## Lessons Learned (Phase 2 Investigation IA)
-- Keep the top-level report workflow anchored on four sections:
-  `Triage`, `Window Drilldown`, `Name/Cluster Forensics`, and `Methodology`.
-- Keep `triage_summary`, `window_evidence_queue`, `record_evidence_queue`, and
-  `cluster_evidence_queue` synchronized across:
-  `report/triage_builder.py`, `report/render.py`, `report/templates/report.html.j2`, and contract tests.
-- In `mountTable(...)`, fallback HTML mode must honor `options.rowClick` and keyboard activation
-  (`Enter`/`Space`) so drilldown works when Tabulator is unavailable.
-- Treat per-submission causative-row payloads as out of scope for Phase 2 unless explicitly
-  requested; current Phase 2 contract uses causative timeline rows to control payload size.
-- For report UX changes, always perform a real-dataset QA pass that includes screenshot artifacts
-  and browser console verification in addition to automated tests.
-
-## Lessons Learned (Phase 3 Analysis Pack A)
-- Prefer extending existing detector contracts over adding parallel detector families when the
-  statistical domain is already represented:
-  - burst composition in `detectors/bursts.py`
-  - regularity (rolling Fano) in `detectors/periodicity.py`
-  - directional runs in `detectors/procon_swings.py`
-- Treat external-frequency name improbability as satisfied by the existing rarity pipeline
-  (`detectors/rare_names.py`) unless a materially different methodology is explicitly requested.
-- Keep burst/swing composition outputs proportion-safe:
-  - include Wilson bounds where applicable, and
-  - retain low-power flags to prevent over-interpretation of sparse windows.
-- When adding detector detail charts, update all four surfaces together:
-  `report/analysis_registry.py`, `report/render.py`, `report/templates/report.html.j2`, and
-  payload/render contract tests.
-- For multi-tranche phase work, keep plan status explicit (completed vs pending) and trim duplicate
-  scope items once fulfilled to reduce roadmap drift.
-
-## Lessons Learned (Phase 4 Data Quality and Dual-Lens Reporting)
-- Keep raw/dedup triage lenses as explicit payload contracts:
-  `triage_views` + `controls.default_dedup_mode`, with backward-compatible top-level active-lens
-  keys (`triage_summary`, `window_evidence_queue`, `record_evidence_queue`,
-  `cluster_evidence_queue`) preserved in `report/render.py`.
-- Use a config-backed quality threshold for rate-driven warnings:
-  `report.min_cell_n_for_rates` should flow from config -> pipeline/CLI -> `render_report(...)` ->
-  `report/quality_builder.py`; avoid hardcoded local thresholds.
-- Keep primary triage high-signal:
-  show high-value warnings and material raw-vs-dedup deltas in triage, and move profiling-only
-  coverage tables (for example artifact row inventories) into `Methodology`.
-- For dual-lens scope control, keep side-by-side delta columns focused on window prioritization;
-  record/cluster queues can remain lens-switchable without duplicate side-by-side delta schemas
-  unless explicitly requested.
-
-## Lessons Learned (Phase 5 Hearing-Relative Context)
-- Keep hearing sidecar ingestion strict and explicit:
-  validate schema version, timezone, required process timestamps, and timestamp ordering in
-  `io/hearing_metadata.py`.
-- Parse sidecar timestamps robustly across authoring styles:
-  support both ISO timestamp strings and YAML-native datetime values.
-- Do not infer hearing schedule markers from VRDB extract filenames:
-  extract timestamps represent voter-registry export timing, not hearing timing.
-- Reuse existing minute-level artifacts for hearing-context summaries:
-  implement deadline-ramp and stance-by-deadline contracts in `hearing_context_panel` rather than
-  adding a parallel detector family.
-
-## Lessons Learned (Phase 6 Probabilistic Voter Linkage)
-- Keep voter-registry linkage explicitly probabilistic:
-  emit and interpret tiered outcomes (`exact`, `strong_fuzzy`, `weak_fuzzy`, `unmatched`) instead
-  of reverting to binary match framing.
-- Bound fuzzy candidate pools by canonical last name in `io/vrdb_postgres.py` and score within
-  that bounded set to avoid expensive global comparisons.
-- Keep uncertainty and confidence as payload contracts:
-  preserve `match_confidence`, expected-match metrics, and uncertainty summary outputs in detector
-  summaries/tables and report chart payloads.
-- Preserve anti-attribution guardrails in both methodology copy and triage semantics:
-  voter linkage is supporting evidence only and should not be promoted to a standalone scorer
-  without explicit roadmap direction.
-- For voter-linkage report changes, update all four surfaces together:
-  `report/analysis_registry.py`, `report/render.py`, `report/templates/report.html.j2`, and
-  payload/render contract tests.
-
-## Lessons Learned (Phase 7 Cross-Hearing Baselines)
-- Keep per-report comparative features as a stable artifact contract:
-  `summary/feature_vector.json` should remain schema-versioned and include queue/tier, dedup, and
-  forensics cue fields needed for corpus baselines.
-- Keep corpus baseline aggregation report-local and lightweight:
-  use `scripts/report/build_global_baselines.py` over `reports/*/summary/feature_vector.json` and
-  backfill from `investigation_summary.json` for older reports rather than introducing a new store.
-- Limit chart comparator overlays to high-value surfaces:
-  apply percentile/band overlays to selected hero charts first, and avoid broad detector-wide
-  overlay rollout unless explicitly requested.
-- Keep cross-hearing payload contracts deterministic:
-  always emit `interactive_charts.cross_hearing_baseline` with a fallback `available=false` shape so
-  report runtime logic never depends on optional keys.
+## Report UX Lessons (Current)
+- All report times are Pacific (`America/Los_Angeles`) for WA-focused analysis; communicate this
+  once in report summary context instead of repeating timezone labels everywhere.
+- Keep zoom behavior contract-consistent:
+  default to full timeline unless URL params provide an override, and apply zoom to every chart
+  with absolute-time data (timeseries, date/hour heatmaps, funnel/scatter, and bucketed tables).
+- When zoom is active, show persistent state in the UI and provide a clear reset action.
+- Persist user controls (`bucket`, theme, palette) via URL/localStorage so views are shareable and
+  restore correctly on load.
+- Ensure chart palettes/themes are centrally sourced from selected ECharts theme/palette values;
+  avoid hardcoded chart colors, including heatmaps and visualMap gradients.
+- Keep chart readability resilient:
+  right-side legends on wide layouts, responsive legend reflow on narrow/mobile layouts, explicit
+  axis labels, and enough grid spacing so x-axis labels do not collide with zoom/visualMap UI.
+- On bucket/theme rerender, avoid stale ECharts state when series/data shapes change:
+  rebuild option payloads from the active filtered dataset and clear/replace chart options so
+  tooltip/dataIndex lookups do not reference removed series.
+- For date/hour heatmaps, use chronological reading order (top-to-bottom dates, left-to-right
+  hours), keep consistent 24-hour slot display, and align bucketing behavior with global controls.
+- Cross-chart interaction should stay bidirectional:
+  clicking funnel/scatter points should move the shared timeline marker in time-series charts.
 
 ## Fast Onboarding Checklist (10-15 minutes)
 1. Read:
@@ -184,6 +124,12 @@ Run from `/Users/sayhiben/dev/legislature-tools/testifier_audit` unless noted.
 
 # Optional: include hearing metadata sidecar for process markers and hearing-relative context
 ./scripts/report/run_unified_report.sh \
+  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
+  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
+  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+
+# Preferred visual-regression capture: generate report + capture known-good stitched screenshot
+./scripts/report/run_unified_report_and_capture.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
   /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
@@ -254,6 +200,9 @@ python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/buil
   - eager mount (`mountAllSections()`), not lazy mount
   - all time-series charts and time-bucketed tables support bucketing/rollups via the global bucket selector
   - synchronized zoom range across all time-series charts
+  - apply linked zoom to all charts with absolute-time rows whenever possible:
+    timeseries use zoomed x-range, heatmaps/time-grids truncate out-of-range buckets, and funnel/scatter
+    views drop points outside the selected window
   - synchronized vertical cursor across time-series charts that follows mouse X position
   - synchronized click marker across time-series charts; clicking any chart moves/places the shared X marker
 - Static image gallery / PhotoSwipe UI is intentionally not used in report page.
@@ -297,6 +246,7 @@ After major report/template changes, perform this checklist:
    - cursor linking follows shared x-axis position across time-series charts
    - clicking any time-series chart moves/places the shared X marker across time-series charts
    - zooming one time-series chart syncs global zoom range to all time-series charts
+   - zoom selection also updates non-timeseries time-based charts (for example date/hour heatmaps and funnel plots)
 5. Confirm no visual overlap:
    - hero charts are readable and not vertically clipped
    - tables are full-width and not squished
@@ -312,6 +262,11 @@ After major report/template changes, perform this checklist:
   ~16,384px intervals on very tall pages.
 - Note: repeated fixed sidebar visuals in stitched screenshots can be a capture artifact from tiled
   viewport stitching and do not necessarily indicate duplicated report content.
+- Preferred one-command workflow for visual regression checks:
+  - `/Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/run_unified_report_and_capture.sh`
+  - runs `run_unified_report.sh`, then captures a fully loaded stitched screenshot from `report.html`
+    using the known-good defaults (`--wait-ms 12000`, `--settle-ms 600`, sidebar open, all
+    `<details>` expanded).
 - Use the chunked capture script:
   - `/Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/capture_report_screenshot.py`
 - Script behavior:

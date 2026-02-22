@@ -123,6 +123,17 @@ class ReportConfig(BaseModel):
     default_dedup_mode: Literal["raw", "exact_row_dedup", "side_by_side"] = "side_by_side"
 
 
+class OffHoursConfig(BaseModel):
+    bucket_minutes: list[int] | None = None
+    min_window_total: int = Field(default=25, ge=1)
+    fdr_alpha: float = Field(default=0.05, gt=0.0, lt=1.0)
+    primary_bucket_minutes: int = Field(default=30, ge=1)
+    model_min_rows: int = Field(default=24, ge=8)
+    model_hour_harmonics: int = Field(default=3, ge=1, le=6)
+    alert_off_hours_min_fraction: float = Field(default=1.0, ge=0.5, le=1.0)
+    primary_alert_min_abs_delta: float = Field(default=0.03, ge=0.0, le=1.0)
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -141,6 +152,7 @@ class AppConfig(BaseModel):
         default_factory=MultivariateAnomalyConfig
     )
     report: ReportConfig = Field(default_factory=ReportConfig)
+    off_hours: OffHoursConfig = Field(default_factory=OffHoursConfig)
     outputs: OutputsConfig = Field(default_factory=OutputsConfig)
 
 

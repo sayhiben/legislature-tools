@@ -194,7 +194,7 @@ def test_import_submissions_command_runs_with_config_defaults(
     assert "rows_upserted: 1" in result.stdout
 
 
-def test_run_all_allows_postgres_mode_without_csv(monkeypatch, tmp_path: Path) -> None:
+def test_run_all_requires_source_file_in_postgres_mode(monkeypatch, tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     config_path = tmp_path / "config.yaml"
     config_path.write_text("{}", encoding="utf-8")
@@ -202,7 +202,43 @@ def test_run_all_allows_postgres_mode_without_csv(monkeypatch, tmp_path: Path) -
     monkeypatch.setattr(
         "testifier_audit.cli._load_app_config",
         lambda _path: SimpleNamespace(
-            input=SimpleNamespace(mode="postgres"),
+            input=SimpleNamespace(mode="postgres", source_file=None),
+        ),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run-all",
+            "--out",
+            str(out_dir),
+            "--config",
+            str(config_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    combined_output = result.stdout
+    if hasattr(result, "stderr") and result.stderr:
+        combined_output += result.stderr
+    assert "requires a single source_file" in combined_output or "requires a single source_file" in str(
+        result.exception
+    )
+
+
+def test_run_all_allows_postgres_mode_without_source_file_when_comparative(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    out_dir = tmp_path / "out"
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            input=SimpleNamespace(mode="postgres", source_file=None),
         ),
     )
 
@@ -228,6 +264,7 @@ def test_run_all_allows_postgres_mode_without_csv(monkeypatch, tmp_path: Path) -
             str(out_dir),
             "--config",
             str(config_path),
+            "--comparative",
         ],
     )
 
@@ -244,7 +281,7 @@ def test_run_all_forwards_dedup_mode_override(monkeypatch, tmp_path: Path) -> No
     monkeypatch.setattr(
         "testifier_audit.cli._load_app_config",
         lambda _path: SimpleNamespace(
-            input=SimpleNamespace(mode="postgres"),
+            input=SimpleNamespace(mode="postgres", source_file="seed.csv"),
             report=SimpleNamespace(default_dedup_mode="side_by_side", min_cell_n_for_rates=25),
         ),
     )
@@ -286,6 +323,57 @@ def test_run_all_forwards_dedup_mode_override(monkeypatch, tmp_path: Path) -> No
     assert result.exit_code == 0, result.stdout
     assert captured["csv_path"] is None
     assert captured["dedup_mode"] == "raw"
+
+
+def test_run_all_forwards_source_file_override(monkeypatch, tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            input=SimpleNamespace(mode="postgres", source_file=None),
+            report=SimpleNamespace(default_dedup_mode="side_by_side", min_cell_n_for_rates=25),
+        ),
+    )
+
+    captured: dict[str, object] = {}
+
+    def _fake_run_all(
+        csv_path: Path | None,
+        out_dir: Path,
+        config: object,
+        *,
+        dedup_mode: str | None = None,
+    ) -> Path:
+        captured["csv_path"] = csv_path
+        captured["config"] = config
+        captured["dedup_mode"] = dedup_mode
+        report_path = out_dir / "report.html"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text("<html></html>", encoding="utf-8")
+        return report_path
+
+    monkeypatch.setattr("testifier_audit.cli.run_all", _fake_run_all)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run-all",
+            "--out",
+            str(out_dir),
+            "--config",
+            str(config_path),
+            "--source-file",
+            "SB6346-20260206-1330.csv",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    cfg = captured["config"]
+    assert getattr(cfg.input, "source_file") == "SB6346-20260206-1330.csv"
 
 
 def test_report_uses_configured_report_settings(monkeypatch, tmp_path: Path) -> None:
@@ -355,7 +443,11 @@ def test_run_all_applies_hearing_metadata_override(monkeypatch, tmp_path: Path) 
     monkeypatch.setattr(
         "testifier_audit.cli._load_app_config",
         lambda _path: SimpleNamespace(
-            input=SimpleNamespace(mode="postgres", hearing_metadata_path=None),
+            input=SimpleNamespace(
+                mode="postgres",
+                source_file="sample.csv",
+                hearing_metadata_path=None,
+            ),
             report=SimpleNamespace(default_dedup_mode="side_by_side", min_cell_n_for_rates=25),
         ),
     )

@@ -20,12 +20,27 @@ from testifier_audit.paths import build_output_paths
 from testifier_audit.preprocess.names import add_name_features
 from testifier_audit.preprocess.position import normalize_position
 from testifier_audit.preprocess.time import add_time_features
+from testifier_audit.report.analysis_registry import (
+    configured_analysis_ids as registry_configured_analysis_ids,
+)
 from testifier_audit.viz.distributions import plot_name_length_distribution
 from testifier_audit.viz.heatmaps import plot_day_hour_heatmap
 from testifier_audit.viz.names import plot_top_names
 from testifier_audit.viz.time_series import plot_counts_per_minute
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _remove_stale_profile_figures(out_dir: Path, figure_suffix: str) -> None:
+    paths = build_output_paths(out_dir)
+    suffix = str(figure_suffix or "").strip().lstrip(".") or "png"
+    for figure_name in (
+        "counts_per_minute",
+        "counts_heatmap_day_hour",
+        "top_duplicate_names",
+        "name_length_distribution",
+    ):
+        (paths.figures / f"{figure_name}.{suffix}").unlink(missing_ok=True)
 
 
 def prepare_base_dataframe(csv_path: Path | None, config: AppConfig) -> pd.DataFrame:
@@ -95,6 +110,11 @@ def build_profile_artifacts(
     for name, table in artifacts.items():
         output_path = paths.artifacts / f"{name}.{extension}"
         write_table(table, output_path, fmt=config.outputs.tables_format)
+
+    analysis_scope_ids = registry_configured_analysis_ids()
+    if analysis_scope_ids and "baseline_profile" not in set(analysis_scope_ids):
+        _remove_stale_profile_figures(out_dir=out_dir, figure_suffix=config.outputs.figures_format)
+        return artifacts
 
     _render_profile_figures(artifacts=artifacts, out_dir=out_dir, config=config)
     return artifacts

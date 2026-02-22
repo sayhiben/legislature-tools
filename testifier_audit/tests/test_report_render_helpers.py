@@ -8,8 +8,12 @@ import pandas as pd
 
 from testifier_audit.detectors.base import DetectorResult
 from testifier_audit.report import render
-from testifier_audit.report.analysis_registry import default_analysis_definitions
+from testifier_audit.report.analysis_registry import (
+    ANALYSES_TO_PERFORM,
+    default_analysis_definitions,
+)
 from testifier_audit.report.render import (
+    REPORT_DATA_FILENAME,
     _artifact_rows_from_disk,
     _build_table_column_docs,
     _evidence_bundle_preview_from_disk,
@@ -26,10 +30,39 @@ from testifier_audit.report.render import (
 )
 
 
+def _configured_focus_analysis_ids() -> list[str]:
+    seen: set[str] = set()
+    ids: list[str] = []
+    for analysis_id in ANALYSES_TO_PERFORM:
+        normalized = str(analysis_id or "").strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        ids.append(normalized)
+    return ids
+
+
+def _is_off_hours_only_view() -> bool:
+    return _configured_focus_analysis_ids() == ["off_hours"]
+
+
+def _visible_analysis_definitions() -> list[dict[str, object]]:
+    definitions = default_analysis_definitions()
+    configured_ids = set(_configured_focus_analysis_ids())
+    if not configured_ids:
+        return definitions
+    return [entry for entry in definitions if str(entry.get("id") or "") in configured_ids]
+
+
+def _load_report_data_payload(out_dir: Path) -> dict[str, object]:
+    payload_path = out_dir / REPORT_DATA_FILENAME
+    return json.loads(payload_path.read_text(encoding="utf-8"))
+
+
 def test_serialize_value_handles_timestamp_timedelta_nan_and_item_paths(
     monkeypatch,
 ) -> None:
-    assert _serialize_value(pd.Timestamp("2026-02-01T12:00:00Z")) == "2026-02-01T12:00:00+00:00"
+    assert _serialize_value(pd.Timestamp("2026-02-01T12:00:00Z")) == "2026-02-01T04:00:00-08:00"
     assert _serialize_value(pd.Timedelta(minutes=5)) == "0 days 00:05:00"
     assert _serialize_value(np.nan) is None
 
@@ -57,7 +90,7 @@ def test_json_safe_normalizes_non_finite_values() -> None:
     normalized = _json_safe(payload)
     assert normalized["a"] is None
     assert normalized["b"] == [1.0, None, None]
-    assert normalized["c"] == "2026-02-01T12:00:00+00:00"
+    assert normalized["c"] == "2026-02-01T04:00:00-08:00"
 
 
 def test_build_table_column_docs_includes_detector_and_special_preview_tables() -> None:
@@ -225,10 +258,33 @@ def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path)
 
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
+    report_data_payload = _load_report_data_payload(out_dir)
+
     assert report_path.exists()
-    assert "Composite Evidence Score" in rendered
-    assert "Rare / Unique Names" in rendered
-    assert "Periodicity" in rendered
+    assert (out_dir / REPORT_DATA_FILENAME).exists()
+    assert 'id="report-data-source"' in rendered
+    assert 'id="report-data"' not in rendered
+    assert "interactive_charts" in report_data_payload
+    interactive_payload = report_data_payload.get("interactive_charts", {})
+    assert isinstance(interactive_payload, dict)
+    assert interactive_payload.get("charts", {}) == {}
+    manifest = interactive_payload.get("chart_data_manifest", {})
+    assert isinstance(manifest, dict)
+    assert manifest.get("version") == 1
+    shard_urls = manifest.get("all_urls", [])
+    assert isinstance(shard_urls, list)
+    assert shard_urls
+    for shard_url in shard_urls:
+        assert (out_dir / str(shard_url)).exists()
+    if _is_off_hours_only_view():
+        assert 'data-analysis-id="off_hours"' in rendered
+        assert 'data-analysis-id="composite_score"' not in rendered
+        assert 'data-analysis-id="rare_names"' not in rendered
+        assert 'data-analysis-id="periodicity"' not in rendered
+    else:
+        assert "Composite Evidence Score" in rendered
+        assert "Rare / Unique Names" in rendered
+        assert "Periodicity" in rendered
     assert "Static Figure Exports" not in rendered
 
 
@@ -255,7 +311,11 @@ def test_render_report_json_payload_does_not_include_nan_literals(tmp_path: Path
     }
     report_path = render_report(results=results, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
+    payload_text = (out_dir / REPORT_DATA_FILENAME).read_text(encoding="utf-8")
     assert "NaN" not in rendered
+    assert "NaN" not in payload_text
+    for shard_path in (out_dir / "report_data").rglob("*.json"):
+        assert "NaN" not in shard_path.read_text(encoding="utf-8")
 
 
 def test_render_report_loads_cross_hearing_baseline_file_when_available(tmp_path: Path) -> None:
@@ -294,47 +354,145 @@ def test_render_report_loads_cross_hearing_baseline_file_when_available(tmp_path
 
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
+    report_data_payload = _load_report_data_payload(out_dir)
+    interactive_payload = report_data_payload.get("interactive_charts", {})
+    baseline_payload = (
+        interactive_payload.get("cross_hearing_baseline", {})
+        if isinstance(interactive_payload, dict)
+        else {}
+    )
 
-    assert "cross_hearing_baseline" in rendered
-    assert '"report_count": 3' in rendered
-    assert "Cross-Hearing Comparator" in rendered
+    assert baseline_payload.get("report_count") == 3
+    if _is_off_hours_only_view():
+        assert "Cross-Hearing Comparator" not in rendered
+    else:
+        assert "Cross-Hearing Comparator" in rendered
 
 
-def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
+def test_render_report_includes_lazy_data_mount_bucket_sync_and_zoom_sync_runtime(
     tmp_path: Path,
 ) -> None:
     out_dir = tmp_path / "out"
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
+    payload_text = (out_dir / REPORT_DATA_FILENAME).read_text(encoding="utf-8")
 
-    assert "IntersectionObserver" not in rendered
+    assert "IntersectionObserver" in rendered
     assert "mountAllSections()" in rendered
+    assert "initLazySectionMounting()" in rendered
+    assert "preload_data" in rendered
+    assert "preload_all_data" in rendered
+    assert "chart_data_manifest" in payload_text
+    assert "report_data/analyses/" in payload_text
     assert "rerenderBucketAwareCharts" in rendered
     assert 'mount.chart.on("dataZoom"' in rendered
+    assert "fetch(reportDataUrl)" in rendered
+    assert "async function ensureHeaderDataLoaded()" in rendered
+    assert '"off_hours_summary_compare", "off_hours_control_timeline"' in rendered
     assert "scheduleZoomSync(" in rendered
+    assert "parseLinkedZoomFromQueryParams" in rendered
+    assert "initializeLinkedZoomOnLoad()" in rendered
+    assert "preloadAllChartShardFiles" in rendered
+    assert "setChartLoading(" in rendered
+    assert "is-loading" in rendered
     assert "state.zoom" in rendered
     assert 'id="zoom-sync-panel"' in rendered
     assert 'id="zoom-reset-button"' in rendered
+    assert 'id="report-timezone-summary"' in rendered
+    assert "All times in this report are shown in " in rendered
     assert "updateZoomRangeLabel" in rendered
+    assert "await ensureHeaderDataLoaded();" in rendered
     assert 'id="report-busy-indicator"' in rendered
     assert "runWithBusyIndicator(" in rendered
+    assert "clearAllChartInteractionState();" in rendered
+    assert "clearChartInteractionState(mount);" in rendered
     assert "scheduleChartResizeSequence()" in rendered
     assert 'Time (" + reportTimezoneLabel + ")"' in rendered
-    assert 'id="triage-dedup-mode"' in rendered
-    assert 'id="data-quality-warning-host"' in rendered
-    assert 'id="data-quality-dedup-metrics-host"' in rendered
-    assert 'id="cross-hearing-comparator-host"' in rendered
-    assert 'id="cross-hearing-comparator-summary"' in rendered
-    assert 'id="hearing-context-metadata-host"' in rendered
-    assert 'id="hearing-deadline-ramp-host"' in rendered
-    assert 'id="hearing-stance-by-deadline-host"' in rendered
-    assert 'id="theme-select"' in rendered
+    assert "force24HourSlots: true" in rendered
+    assert rendered.count("inverse: true") >= 3
+    assert "ensureReadableAxes(option, mount)" in rendered
+    assert 'name: "Date"' in rendered
+    assert 'name: "Day of week"' in rendered
+    assert 'id="theme-controls"' in rendered
+    assert 'id="theme-light-button"' in rendered
+    assert 'id="theme-dark-button"' in rendered
+    assert 'id="chart-theme-palette"' not in rendered
+    assert "testifier_audit_chart_theme" not in rendered
+    assert "initSidebarTooltips()" in rendered
     assert "initThemeControl()" in rendered
-    assert 'id="methodology-artifact-rows-host"' in rendered
-    assert 'id="methodology-definitions-host"' in rendered
-    assert 'id="methodology-tests-used-host"' in rendered
-    assert 'id="methodology-guardrails-host"' in rendered
-    assert 'id="methodology-multiple-testing-list"' in rendered
+    assert "initChartThemeControl()" not in rendered
+    assert "computeLegendDockMode(mount)" in rendered
+    assert "scheduleLegendLayoutRerender()" in rendered
+    assert "rerenderChartsForLegendLayoutIfNeeded()" in rendered
+    assert "reserveXAxisBottomSpace(option)" in rendered
+    assert "hasSliderDataZoom(option)" in rendered
+    assert "hasVisualMap(option)" in rendered
+    assert "attachFunnelCursorHandler(mount)" in rendered
+    assert "extractFunnelCursorFromEvent(params)" in rendered
+    assert "controls.color_semantics" in rendered
+    assert "fallbackColorSemantics" in rendered
+    assert "resolveColorSemanticTheme(" in rendered
+    assert "semanticTokenCache" in rendered
+    assert "volumeBarOpacity: surfaceTheme === \"dark\" ? 0.42 : 0.4" in rendered
+    assert "shadowColor: theme.shadowColor" in rendered
+    assert "shadowColor: \"rgba(0,0,0,0.35)\"" not in rendered
+    assert "shadowColor: \"rgba(0,0,0,0.3)\"" not in rendered
+    assert 'type: "errorBar"' not in rendered
+    assert "Wilson low (tested)" in rendered
+    assert "Wilson high (tested)" in rendered
+    assert "Robust lower-tail alert" in rendered
+    assert "Robust upper-tail alert" in rendered
+    assert "SPC-only flag" in rendered
+    assert "FDR-only flag" in rendered
+    assert "simpleBarCategoricalChartIds" in rendered
+    assert "simpleBarRankedChartIds" in rendered
+    assert "simpleBarNullDiagnosticChartIds" in rendered
+    assert "simpleBarRatioReferenceChartIds" in rendered
+    assert "table-cell-semantic-alert" in rendered
+    assert "table-cell-semantic-warn" in rendered
+    assert "table-cell-semantic-context" in rendered
+    assert "semanticClassForTableCell(tableKey, field, value)" in rendered
+    assert "background: var(--table-row-bg);" in rendered
+    if _is_off_hours_only_view():
+        assert 'id="triage-dedup-mode"' not in rendered
+        assert 'id="data-quality-warning-host"' not in rendered
+        assert 'id="data-quality-dedup-metrics-host"' not in rendered
+        assert 'id="cross-hearing-comparator-host"' not in rendered
+        assert 'id="cross-hearing-comparator-summary"' not in rendered
+        assert 'id="hearing-context-metadata-host"' not in rendered
+        assert 'id="hearing-deadline-ramp-host"' not in rendered
+        assert 'id="hearing-stance-by-deadline-host"' not in rendered
+        assert 'id="methodology-artifact-rows-host"' not in rendered
+        assert 'id="methodology-definitions-host"' not in rendered
+        assert 'id="methodology-tests-used-host"' not in rendered
+        assert 'id="methodology-guardrails-host"' not in rendered
+        assert 'id="methodology-multiple-testing-list"' not in rendered
+        assert 'id="off-hours-evidence-tier"' in rendered
+        assert 'id="off-hours-inference-banner"' in rendered
+        assert 'id="kpi-artifacts-meta"' in rendered
+        assert "sparseWhenLowSupport: true" in rendered
+        assert "off_hours_primary_residual_timeline" in rendered
+        assert "off_hours_primary_flag_channels" in rendered
+        assert "off_hours_model_fit_diagnostics" in rendered
+        assert "off_hours_date_hour_primary_residual_heatmap" in rendered
+        assert "highlightOffHoursAxis: true" in rendered
+        assert "model_fit_diagnostics" in rendered
+        assert "flag_channel_summary" in rendered
+        assert "flagged_window_diagnostics" in rendered
+    else:
+        assert 'id="triage-dedup-mode"' in rendered
+        assert 'id="data-quality-warning-host"' in rendered
+        assert 'id="data-quality-dedup-metrics-host"' in rendered
+        assert 'id="cross-hearing-comparator-host"' in rendered
+        assert 'id="cross-hearing-comparator-summary"' in rendered
+        assert 'id="hearing-context-metadata-host"' in rendered
+        assert 'id="hearing-deadline-ramp-host"' in rendered
+        assert 'id="hearing-stance-by-deadline-host"' in rendered
+        assert 'id="methodology-artifact-rows-host"' in rendered
+        assert 'id="methodology-definitions-host"' in rendered
+        assert 'id="methodology-tests-used-host"' in rendered
+        assert 'id="methodology-guardrails-host"' in rendered
+        assert 'id="methodology-multiple-testing-list"' in rendered
     assert "renderMethodologyPanel()" in rendered
     assert "initDedupModeControl()" in rendered
     assert "renderDataQualityPanel()" in rendered
@@ -347,9 +505,33 @@ def test_render_report_includes_eager_mount_bucket_sync_and_zoom_sync_runtime(
     assert "renderHearingContextPanel()" in rendered
     assert "buildProcessMarkerLines()" in rendered
     assert "voter_registry_match_tiers" in rendered
-    assert "probabilistic supporting context only" in rendered
-    assert "statistical irregularity requiring review" in rendered
+    assert "probabilistic supporting context only" in payload_text
+    assert "statistical irregularity requiring review" in payload_text
     assert 'summary.textContent = "artifact_rows"' not in rendered
+
+
+def test_render_report_table_semantic_rules_and_cell_background_normalization(
+    tmp_path: Path,
+) -> None:
+    out_dir = tmp_path / "out"
+    report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
+    rendered = report_path.read_text(encoding="utf-8")
+
+    assert "--table-semantic-alert-bg:" in rendered
+    assert "--table-semantic-warn-bg:" in rendered
+    assert "--table-semantic-context-bg:" in rendered
+    assert "off_hours.off_hours_summary" in rendered
+    assert "off_hours.model_fit_diagnostics" in rendered
+    assert "model_fit_available_fraction" in rendered
+    assert "primary_model_fit_converged" in rendered
+    assert "semanticClassForTableCell(tableKey, field, value)" in rendered
+    assert "delete tableOptions.tableKey;" in rendered
+    assert (
+        ".tabulator .tabulator-tableholder .tabulator-table .tabulator-row "
+        ".tabulator-cell:first-child" in rendered
+    )
+    assert "--table-row-bg: var(--table-bg-alt);" in rendered
+    assert "background: var(--table-row-bg);" in rendered
 
 
 def test_render_report_template_contract_renders_analysis_hosts_and_placeholders(
@@ -358,8 +540,10 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
     out_dir = tmp_path / "out"
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
+    report_data_payload = _load_report_data_payload(out_dir)
+    interactive_payload = report_data_payload.get("interactive_charts", {})
 
-    for analysis in default_analysis_definitions():
+    for analysis in _visible_analysis_definitions():
         analysis_id = str(analysis["id"])
         hero_chart_id = str(analysis["hero_chart_id"])
         assert f'data-analysis-id="{analysis_id}"' in rendered
@@ -372,8 +556,9 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
 
     assert "PhotoSwipe" not in rendered
     assert "Static Figure Exports" not in rendered
-    assert '"table_column_docs"' in rendered
-    assert "chart_legend_docs" in rendered
+    assert "table_column_docs" in report_data_payload
+    assert isinstance(interactive_payload, dict)
+    assert "chart_legend_docs" in interactive_payload
     assert "Column glossary" in rendered
     assert "<strong>Legend guide:</strong>" in rendered
     assert "status-ready" not in rendered

@@ -78,6 +78,16 @@ report:
   min_cell_n_for_rates: 25
   default_dedup_mode: "side_by_side"
 
+off_hours:
+  bucket_minutes:
+  min_window_total: 25
+  fdr_alpha: 0.05
+  primary_bucket_minutes: 30
+  model_min_rows: 24
+  model_hour_harmonics: 3
+  alert_off_hours_min_fraction: 1.0
+  primary_alert_min_abs_delta: 0.03
+
 outputs:
   tables_format: "parquet"
   figures_format: "png"

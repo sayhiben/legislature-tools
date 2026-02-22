@@ -99,3 +99,49 @@ def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
     override_cfg = load_config(override_path)
     assert override_cfg.report.default_dedup_mode == "raw"
     assert override_cfg.report.min_cell_n_for_rates == 40
+
+
+def test_load_config_off_hours_defaults_and_overrides(tmp_path: Path) -> None:
+    base = {
+        "columns": {
+            "id": "id",
+            "name": "name",
+            "organization": "organization",
+            "position": "position",
+            "time_signed_in": "time_signed_in",
+        }
+    }
+    base_path = tmp_path / "base.yaml"
+    base_path.write_text(yaml.safe_dump(base), encoding="utf-8")
+    base_cfg = load_config(base_path)
+    assert base_cfg.off_hours.min_window_total == 25
+    assert base_cfg.off_hours.fdr_alpha == 0.05
+    assert base_cfg.off_hours.primary_bucket_minutes == 30
+    assert base_cfg.off_hours.model_hour_harmonics == 3
+    assert base_cfg.off_hours.alert_off_hours_min_fraction == 1.0
+    assert base_cfg.off_hours.primary_alert_min_abs_delta == 0.03
+
+    override = {
+        **base,
+        "off_hours": {
+            "bucket_minutes": [15, 30, 60],
+            "min_window_total": 40,
+            "fdr_alpha": 0.02,
+            "primary_bucket_minutes": 60,
+            "model_min_rows": 30,
+            "model_hour_harmonics": 4,
+            "alert_off_hours_min_fraction": 0.9,
+            "primary_alert_min_abs_delta": 0.06,
+        },
+    }
+    override_path = tmp_path / "override.yaml"
+    override_path.write_text(yaml.safe_dump(override), encoding="utf-8")
+    override_cfg = load_config(override_path)
+    assert override_cfg.off_hours.bucket_minutes == [15, 30, 60]
+    assert override_cfg.off_hours.min_window_total == 40
+    assert override_cfg.off_hours.fdr_alpha == 0.02
+    assert override_cfg.off_hours.primary_bucket_minutes == 60
+    assert override_cfg.off_hours.model_min_rows == 30
+    assert override_cfg.off_hours.model_hour_harmonics == 4
+    assert override_cfg.off_hours.alert_off_hours_min_fraction == 0.9
+    assert override_cfg.off_hours.primary_alert_min_abs_delta == 0.06

@@ -155,11 +155,47 @@ def run_all_command(
         None,
         help="Override report dedup lens mode for triage views.",
     ),
+    source_file: str | None = typer.Option(
+        None,
+        help=(
+            "Filter postgres-mode input to a specific source_file label. "
+            "Ignored in csv mode."
+        ),
+    ),
+    comparative: bool = typer.Option(
+        False,
+        help=(
+            "Allow postgres-mode analysis over all source_file values. "
+            "Use only for explicitly comparative multi-source reports."
+        ),
+    ),
 ) -> None:
     """Execute profile, detect, and report in one command."""
     configure_logging()
     cfg = _load_app_config(config)
     _apply_hearing_metadata_override(cfg, hearing_metadata)
+    if source_file is not None and getattr(cfg, "input", None) is not None:
+        cfg.input.source_file = source_file
+    if (
+        getattr(cfg, "input", None) is not None
+        and cfg.input.mode == "postgres"
+        and not getattr(cfg.input, "source_file", None)
+        and csv is not None
+    ):
+        # When a CSV path is provided in postgres mode, default to its basename
+        # as the source-file filter to prevent accidental multi-source conflation.
+        cfg.input.source_file = csv.name
+    if (
+        getattr(cfg, "input", None) is not None
+        and cfg.input.mode == "postgres"
+        and not str(getattr(cfg.input, "source_file", "") or "").strip()
+        and not comparative
+    ):
+        raise typer.BadParameter(
+            "Postgres mode requires a single source_file to avoid cross-dataset conflation. "
+            "Set --source-file (or input.source_file in config). "
+            "Use --comparative only for explicit multi-source comparative reports."
+        )
     csv = _require_csv_for_csv_mode(csv=csv, cfg=cfg)
     if dedup_mode is None:
         report_path = run_all(csv_path=csv, out_dir=out, config=cfg)

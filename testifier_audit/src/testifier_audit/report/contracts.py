@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import math
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
@@ -30,6 +31,81 @@ ALLOWED_EXPLANATION_LABELS = frozenset(
 )
 ALLOWED_QUEUE_KINDS = frozenset({"window", "record", "cluster"})
 
+_COLOR_SEMANTICS: dict[str, dict[str, Any]] = {
+    "light": {
+        "series": {
+            "primary": "#0072B2",
+            "volume": "#94A3B8",
+            "context": "#009E73",
+            "interval": "#8B99A8",
+            "reference": "#475569",
+        },
+        "alert": {
+            "lower": "#D55E00",
+            "upper": "#CC79A7",
+        },
+        "state": {
+            "low_power": "#E69F00",
+            "outlier": "#56B4E9",
+        },
+        "band": {
+            "alert_run": "rgba(213,94,0,0.12)",
+            "comparator": "rgba(0,114,178,0.10)",
+        },
+        "heatmap": {
+            "rate_diverging": ["#2C7FB8", "#9ECAE1", "#F7F7F7", "#FDD49E", "#D95F0E"],
+            "residual_diverging": ["#B13A00", "#F4A259", "#F5F7FA", "#82B1D8", "#1F6AA5"],
+            "volume_seq": ["#F8FAFC", "#CBD5E1", "#475569"],
+        },
+        "categorical_palette": [
+            "#0072B2",
+            "#009E73",
+            "#E69F00",
+            "#CC79A7",
+            "#56B4E9",
+            "#D55E00",
+            "#8B99A8",
+            "#475569",
+        ],
+    },
+    "dark": {
+        "series": {
+            "primary": "#5AB0FF",
+            "volume": "#64748B",
+            "context": "#2FC79A",
+            "interval": "#A8B5C5",
+            "reference": "#94A3B8",
+        },
+        "alert": {
+            "lower": "#FF8A3D",
+            "upper": "#F2A7D4",
+        },
+        "state": {
+            "low_power": "#F2C14E",
+            "outlier": "#7CC7FF",
+        },
+        "band": {
+            "alert_run": "rgba(255,138,61,0.18)",
+            "comparator": "rgba(90,176,255,0.14)",
+        },
+        "heatmap": {
+            "rate_diverging": ["#6BAED6", "#2E4C66", "#111827", "#6B4A2D", "#F4A259"],
+            "residual_diverging": ["#FF8A3D", "#C9723A", "#1E293B", "#5A8DB8", "#8CC7FF"],
+            "volume_seq": ["#0F172A", "#334155", "#94A3B8"],
+        },
+        "categorical_palette": [
+            "#5AB0FF",
+            "#2FC79A",
+            "#F2C14E",
+            "#F2A7D4",
+            "#7CC7FF",
+            "#FF8A3D",
+            "#A8B5C5",
+            "#94A3B8",
+        ],
+    },
+}
+
 
 def _ensure_probability(name: str, value: float | None) -> None:
     if value is None:
@@ -46,6 +122,10 @@ def _ensure_score(name: str, value: float) -> None:
 def _normalize_caveat_flags(flags: tuple[str, ...]) -> tuple[str, ...]:
     normalized = sorted({str(flag).strip() for flag in flags if str(flag).strip()})
     return tuple(normalized)
+
+
+def default_color_semantics() -> dict[str, dict[str, Any]]:
+    return deepcopy(_COLOR_SEMANTICS)
 
 
 @dataclass(slots=True, frozen=True)

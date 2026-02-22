@@ -1,0 +1,306 @@
+From your CSV (2026-02-03 17:07 to 2026-02-06 12:30; 80,329 Pro/Con rows):
+	•	Overall Pro share: 23.76% (95% Wilson CI 23.47–24.06%)
+	•	02:00–04:59 Pro share: 9.20% with n=1,891 (CI 7.98–10.59%)
+	•	08:00–20:59 Pro share: 26.60% with n=57,846 (CI 26.24–26.96%)
+
+So the 2–5am shift is not a low-volume artifact in this dataset; the uncertainty bands are narrow and the intervals are disjoint.
+
+Charts I generated from your file (shaded bands are 2–5am windows):
+	•	pro_share_time_wilson.png￼
+	•	volume_time_30min.png￼
+	•	funnel_plot_30min.png￼
+
+Charts that answer “is this shift outside what volume allows?”
+
+1) Rolling Pro share with binomial uncertainty + volume (separate panel)
+
+What it shows: whether the apparent shift is within sampling noise for each window size.
+	•	Bin into fixed windows (15m, 30m, 60m); compute p̂ = Pro / (Pro+Con)
+	•	Put a Wilson (or Beta posterior) interval around each point
+	•	Plot volume separately; do not use a dual axis unless you have to
+
+Interpretation:
+	•	If the 2–4am region is low volume, the interval gets wide; swings can be noise.
+	•	If the 2–4am region is moderate/high volume and sits far away from the daytime band, it is a real shift in composition (not proof of bots, but real).
+
+Your 30m plot shows the nighttime dip persists even when volume is non-trivial.
+
+2) Funnel plot (control limits) of p̂ vs n
+
+This is the cleanest “expected ranges based on volume” visualization.
+	•	Each point is one time window; x-axis is n in that window; y-axis is p̂
+	•	Add control curves for a baseline rate p0:
+	•	95% limits: p0 ± 1.96 * sqrt(p0(1-p0)/n)
+	•	99.8% limits: p0 ± 3 * sqrt(p0(1-p0)/n)
+	•	Mark 2–4am windows as a separate marker
+
+Interpretation:
+	•	Points far outside the control limits are not explainable by binomial sampling noise under that baseline.
+
+In your funnel plot (baseline = 08:00–20:59 rate), many 2–4am windows are far below the lower limit.
+
+3) Day x hour heatmap for Pro share and for volume (two heatmaps)
+
+You need to separate “diurnal pattern” from “one weird night”.
+	•	Heatmap A: Pro share by (date, hour)
+	•	Heatmap B: total volume by (date, hour)
+
+This catches:
+	•	A pattern that repeats every night (more consistent with genuine time-of-day composition or a scheduled operation)
+	•	A single-night event (more consistent with a one-off mobilization or a single script run)
+
+In your data, the 2–4am dip is especially extreme on 2026-02-05 (02:00–04:59 Pro share about 5.1% with n=1,074), less extreme on the other nights.
+
+Analyses that help decide “anomalous vs plausible campaign dynamics”
+
+4) Reference-model residuals instead of raw ratios
+
+Raw Pro share conflates multiple effects (day-of-campaign, hour-of-day, surges).
+
+Fit a simple binomial model to predict the expected Pro probability:
+	•	Minimal: logit(p) = α + day_fixed_effect + hour_fixed_effect
+	•	Better: add smooth hour-of-day (splines) and a slow time trend
+
+Then compute, per window:
+	•	standardized residual (z-like): (k − n*p_expected) / sqrt(n*p_expected*(1-p_expected))
+	•	plot residuals over time; flag extreme negative residuals during 2–4am
+
+This answers: “Is 2–4am low even after controlling for the day that was already Con-heavy?”
+
+5) Change-point detection on the Pro share series (with weights)
+
+If you suspect a scripted campaign “turned on”:
+	•	Use change-point algorithms on p̂ with binomial likelihood (or on the logit scale, weighted by n)
+	•	Output: time intervals where the mean Pro share regime shifts
+
+This separates “gradual diurnal drift” from “abrupt regime switch”.
+
+6) Matched-window comparison (night vs neighboring hours)
+
+For each date, compare 2–4am vs “nearby” windows like 23:00–01:59 or 05:00–07:59.
+	•	This controls for day-specific factors better than comparing to all daytime.
+
+In your file, the 2026-02-05 night period is the standout even relative to that day’s own baseline.
+
+If the goal is “scripts/bots/stuffing,” ratio shifts are only one signal
+
+Once you’ve located suspicious windows, run bot-likeness checks within those windows vs adjacent windows:
+
+7) Velocity and burst structure
+	•	Per-minute counts; overdispersion vs Poisson (bots often create spikes/bursts)
+	•	Inter-arrival times; look for unnaturally regular spacing
+	•	Autocorrelation / periodogram on counts to detect periodic submission loops
+
+8) Identity structure
+	•	Duplicate exact names; duplicate last names; duplicates by time window and position
+	•	Near-duplicates (edit distance clustering) that suggest templating
+	•	Alphabetical runs of names across time (list-driven submission behavior)
+
+9) Field quality differences by position and by time
+	•	Organization blank rate; unusual organization strings; repeated organizations
+	•	Character distribution anomalies in names (all-caps patterns, repeated punctuation, improbable initials)
+
+Failure modes to avoid
+	•	Statistical significance != manipulation; with n in the thousands, even modest real-world mobilization produces extreme p-values.
+	•	Baseline choice matters; overall-rate baselines can falsely flag changes caused by day-to-day shifts (your dates have materially different overall Pro shares).
+	•	Timestamp semantics; if “Time Signed In” is processing time (batch inserts) rather than submit time, you can hallucinate nighttime “activity”.
+
+The three plots linked above already give you the right backbone: time series with uncertainty, volume, and the funnel plot. The next step is model-based residuals (day + hour) and then bot-likeness checks restricted to the flagged intervals.
+
+---
+
+For this kind of dataset (timestamped Pro/Con sign-ins, minute resolution), the accepted way to answer “is the 2am–4am Pro/Con shift anomalous or just low-volume noise?” is:
+	1.	visualize the proportion with correct uncertainty for each window size;
+	2.	evaluate it against an explicit baseline model that accounts for time-of-day and day-to-day drift;
+	3.	run change-point and control-chart style detectors for proportions with varying denominators;
+	4.	only then layer on “bot-likeness” signals (burst structure, periodicity, templated identities).
+
+Below are the methodologies and charting patterns that are standard and defensible for this.
+
+⸻
+
+A. Start with the right primitive: binomial proportion with variable n
+
+Each time window t has:
+	•	n_t = \text{Pro}_t + \text{Con}_t
+	•	k_t = \text{Pro}_t
+	•	\hat p_t = k_t / n_t
+
+If you do nothing else, always plot n_t alongside \hat p_t; most mistakes come from reading swings in \hat p_t without noticing n_t collapsed.
+
+Chart 1: Pro share time series with binomial uncertainty bands
+
+Method: compute a confidence interval for p_t per window and plot it as a ribbon.
+
+Accepted intervals:
+	•	Wilson score interval (good default; stable when n is small and avoids bad behavior near 0/1)
+	•	Jeffreys Bayesian credible interval (Beta(0.5, 0.5) prior; also very stable)
+	•	Agresti–Coull is acceptable; plain Wald is not (it misbehaves a lot in edge cases)
+
+Interpretation rule:
+	•	If the interval is wide at 2am–4am, swings can be pure sampling noise.
+	•	If the interval is narrow and displaced relative to the rest of the day, it is a real composition shift (still not proof of bots).
+
+Chart 2: volume time series
+
+Plot n_t per window directly. Do not use a dual axis unless you have to.
+
+Window choice: start with 30 minutes and 60 minutes. For bot detection, also look at 1–5 minute bins to see burst structure.
+
+⸻
+
+B. Use “expected range given n” graphics: funnel plots and p-charts
+
+These are the most direct “is it outside what volume allows?” tools.
+
+Chart 3: Funnel plot of \hat p_t vs n_t with control limits
+
+Pick a baseline p_0 (more on baseline selection below). For each window:
+	•	standard error \mathrm{SE}_t = \sqrt{ p_0(1-p_0)/n_t }
+	•	control limits p_0 \pm z\cdot \mathrm{SE}_t for z=1.96 (95%) and optionally z=3 (about 99.7%)
+
+Plot:
+	•	x-axis: n_t (log scale is typical)
+	•	y-axis: \hat p_t
+	•	overlay the limit curves; highlight 2am–4am windows
+
+Interpretation:
+	•	If 2am–4am points cluster outside the lower limit at moderate/large n, the shift is not a sampling artifact under that baseline.
+
+This is a standard “funnel plot” and also the basis of an attribute SPC chart.
+
+Chart 4: p-chart (Shewhart control chart for proportions) with variable n
+
+Same logic as funnel plot but plotted over time:
+	•	center line: p_0
+	•	time-varying limits: p_0 \pm z\cdot \sqrt{p_0(1-p_0)/n_t}
+
+This is an accepted quality-control methodology; it is often easier for stakeholders to read than a funnel plot.
+
+⸻
+
+C. Baseline selection is the critical modeling choice
+
+If you choose a bad p_0, you can manufacture “anomalies.”
+
+Use one of these baselines, in increasing rigor:
+	1.	Global baseline: p_0 = \frac{\sum k}{\sum n}.
+Good for quick scans; weak if the campaign has strong day-to-day shifts.
+	2.	Day-stratified baseline: p_{0,d} = \frac{\sum_{t \in d} k_t}{\sum_{t \in d} n_t}.
+Use this when the overall ratio changes materially by date.
+	3.	Hour-of-day baseline: p_{0,h} computed by aggregating all days for each hour (or half-hour).
+Use this if you suspect a diurnal pattern that might be benign.
+	4.	Model-based baseline (recommended for your question): a binomial regression predicting Pro probability as a function of time.
+	•	Logistic regression:
+k_t \sim \mathrm{Binomial}(n_t, p_t), \quad \mathrm{logit}(p_t) = \alpha + f(\mathrm{hour}) + g(\mathrm{date}) + \dots
+	•	Use a spline f(\mathrm{hour}) (or hour fixed effects) and a date effect (fixed effects per day, or a smooth time trend).
+	•	This explicitly answers: “is 2am–4am low even after controlling for which day it was and what the overall trend was?”
+
+Once you have p_t^{\text{expected}}, you stop arguing about baselines.
+
+⸻
+
+D. Residual-based anomaly scoring (turn ratio into a standardized “surprise” score)
+
+Given an expected probability p_t^{\text{exp}} from a baseline or regression model, compute a per-window residual:
+	•	raw residual: r_t = \hat p_t - p_t^{\text{exp}}
+	•	standardized residual (approx z-score):
+z_t \approx \frac{k_t - n_t p_t^{\text{exp}}}{\sqrt{n_t p_t^{\text{exp}}(1-p_t^{\text{exp}})}}
+
+Chart 5: residual time series (or heatmap)
+
+Plot z_t over time; highlight windows below, say, -3 or above +3.
+
+This is an accepted way to separate “composition changed” from “composition changed more than our model expects.”
+
+⸻
+
+E. Change-point detection for “the ratio suddenly switched” narratives
+
+If the hypothesis is “a script turned on at 2am,” you want regime detection, not just point anomalies.
+
+Accepted approaches:
+	•	Likelihood-based change-point detection on binomial data (piecewise-constant p on the logit scale)
+	•	Bayesian change-point detection (offline) or Bayesian online change-point detection (BOCPD)
+	•	Hidden Markov Model with two states (normal vs anomalous) emitting binomial observations
+
+Chart 6: segmented ratio with inferred regimes
+
+Show the time series with vertical lines where the algorithm places change points; annotate the inferred p per segment.
+
+Key detail: run this on binned windows with denominators; do not run it on a raw Pro-minus-Con difference without accounting for n_t.
+
+⸻
+
+F. Multiple comparisons and sliding windows; avoid false flags
+
+If you scan many windows, some will look extreme by chance.
+
+Accepted controls:
+	•	Adjust p-values using Benjamini–Hochberg FDR across windows; or
+	•	Use control charts designed for ongoing monitoring (CUSUM/EWMA) that control run-length properties.
+
+Methods:
+	•	CUSUM for proportions (binomial CUSUM) to detect small sustained shifts
+	•	EWMA chart for proportions, again accounting for n_t
+
+These are common in statistical process control when you want detection sensitivity without drowning in false alerts.
+
+⸻
+
+G. Bot and stuffing indicators that pair with a ratio shift
+
+A ratio shift alone can be legitimate mobilization. To argue “scripts/bots,” you want coincident mechanistic signals.
+
+1) Arrival process and burstiness
+
+With minute-resolution timestamps, you can still test:
+	•	Per-minute count distribution vs Poisson; look for overdispersion (negative binomial fit)
+	•	Inter-arrival times (gaps between submissions); scripts often create unnaturally regular or “bursty then silent” patterns
+	•	Periodicity: autocorrelation or spectral density on per-minute counts; scheduled scripts can produce periodic spikes
+
+Charts:
+	•	histogram of per-minute counts; overlay fitted Poisson/NB
+	•	autocorrelation plot of per-minute counts
+	•	raster plot: each submission as a tick mark on a time axis
+
+2) Identity and text structure (names, org fields)
+	•	Duplicate exact names; duplicates per window; duplicates by position
+	•	Near-duplicate clustering (edit distance, Jaro–Winkler) to detect templating
+	•	Lexical entropy of names and org strings over time; bots often reduce diversity
+	•	Alphabetical runs: “sorted-ish sequences” of last names across time windows can indicate list-driven entry
+
+Charts:
+	•	duplicate-rate time series
+	•	top repeated names over time (stacked counts)
+	•	entropy over time; compare 2am–4am vs adjacent hours
+
+3) Cross-signal coherence
+
+The strongest evidence is when multiple independent signals align in the same window:
+	•	ratio shift + burst spike + high duplicate rate + low lexical diversity + periodicity
+
+Build a composite “anomaly score” from standardized sub-scores; then plot it over time.
+
+⸻
+
+H. Practical workflow I would follow (no code, just sequencing)
+	1.	Pick bin sizes: 30m and 60m for composition; 1m and 5m for bot dynamics.
+	2.	Plot \hat p_t with Wilson (or Jeffreys) intervals; plot n_t separately.
+	3.	Funnel plot and p-chart using a baseline; then redo using a day-adjusted baseline.
+	4.	Fit a binomial logistic regression with hour-of-day + day effect; compute standardized residuals; plot residuals and a date x hour heatmap.
+	5.	Run change-point detection on the binned binomial series.
+	6.	In flagged windows, run burst/periodicity and identity-structure analyses; compare against adjacent hours (matched-window design) rather than “all daytime.”
+
+⸻
+
+Common failure modes to explicitly guard against
+	•	Timestamp meaning error: if “Time signed in” is a batch processing timestamp, you will falsely infer nighttime behavior. Validate semantics if possible.
+	•	Baseline confounding: if one day is already Con-heavy, a naive global baseline makes that night look “anomalous.” Use stratified or model-based baselines.
+	•	Significance inflation: with high n, tiny effects become “statistically significant.” Track effect sizes; use control-chart or FDR logic for scanning.
+	•	Sparse-window artifacts: avoid interpreting windows with n below a threshold; set a minimum n per window (for example n \ge 30 or n \ge 50) before you score anomalies.
+
+If you want, take the list above as your checklist; it maps cleanly to a dashboard layout: composition (with uncertainty), volume, funnel/p-chart, model residuals, change points, and bot-likeness panels restricted to flagged intervals.
+
+---
+

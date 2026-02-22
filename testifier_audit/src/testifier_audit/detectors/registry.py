@@ -21,6 +21,18 @@ def default_detectors(config: AppConfig) -> list[Detector]:
     bucket_minutes = sorted(
         {int(value) for value in config.windows.analysis_bucket_minutes if int(value) > 0}
     )
+    configured_off_hours_buckets = config.off_hours.bucket_minutes or bucket_minutes
+    off_hours_bucket_minutes = sorted(
+        {int(value) for value in configured_off_hours_buckets if int(value) > 0}
+    )
+    if not off_hours_bucket_minutes:
+        off_hours_bucket_minutes = list(bucket_minutes or [30])
+    requested_primary_bucket = int(config.off_hours.primary_bucket_minutes)
+    off_hours_primary_bucket = (
+        requested_primary_bucket
+        if requested_primary_bucket in off_hours_bucket_minutes
+        else (30 if 30 in off_hours_bucket_minutes else off_hours_bucket_minutes[0])
+    )
     detectors: list[Detector] = [
         DuplicatesExactDetector(
             top_n=config.thresholds.top_duplicate_names,
@@ -56,7 +68,16 @@ def default_detectors(config: AppConfig) -> list[Detector]:
                 set(bucket_minutes + ProConSwingsDetector.DEFAULT_PROFILE_BUCKET_MINUTES)
             ),
         ),
-        OffHoursDetector(),
+        OffHoursDetector(
+            bucket_minutes=off_hours_bucket_minutes,
+            min_window_total=int(config.off_hours.min_window_total),
+            fdr_alpha=float(config.off_hours.fdr_alpha),
+            primary_bucket_minutes=int(off_hours_primary_bucket),
+            model_min_rows=int(config.off_hours.model_min_rows),
+            model_hour_harmonics=int(config.off_hours.model_hour_harmonics),
+            alert_off_hours_min_fraction=float(config.off_hours.alert_off_hours_min_fraction),
+            primary_alert_min_abs_delta=float(config.off_hours.primary_alert_min_abs_delta),
+        ),
         SortednessDetector(bucket_minutes=bucket_minutes),
         RareNamesDetector(
             min_window_total=config.thresholds.swing_min_window_total,

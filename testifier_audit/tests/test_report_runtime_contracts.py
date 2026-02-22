@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from testifier_audit.report.render import _build_interactive_chart_payload_v2, render_report
+from testifier_audit.report.render import (
+    REPORT_DATA_FILENAME,
+    _build_interactive_chart_payload_v2,
+    render_report,
+)
 
 
 def test_payload_runtime_metrics_include_size_and_build_time() -> None:
@@ -21,11 +25,15 @@ def test_render_report_writes_runtime_artifact(tmp_path: Path) -> None:
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
 
     assert report_path.exists()
+    report_data_path = out_dir / REPORT_DATA_FILENAME
+    assert report_data_path.exists()
     runtime_path = out_dir / "artifacts" / "report_runtime.json"
     assert runtime_path.exists()
 
     runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
     assert runtime["report_html_bytes"] > 0
+    assert runtime["report_data_json_bytes"] > 0
+    assert runtime["report_data_shards_json_bytes"] > 0
     assert runtime["template_render_ms"] >= 0.0
     assert runtime["report_write_ms"] >= 0.0
     assert runtime["report_total_ms"] >= 0.0

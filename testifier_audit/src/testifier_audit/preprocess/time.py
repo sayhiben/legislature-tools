@@ -17,7 +17,9 @@ def add_time_features(
     hearing_metadata: HearingMetadata | None = None,
 ) -> pd.DataFrame:
     working = df.copy()
-    timezone_name = hearing_metadata.timezone if hearing_metadata else config.timezone
+    # WA-only deployment: keep all bucketing/daypart features in configured Pacific time.
+    # Sidecar timezone metadata is preserved for context, but does not override analysis timezone.
+    timezone_name = config.timezone
     # WA legislature exports commonly use `m/d/YYYY h:mm AM/PM`;
     # parse this first for speed and consistency.
     timestamps = pd.to_datetime(

@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import pandas as pd
 import yaml
 
+PACIFIC_TIMEZONE_NAME = "America/Los_Angeles"
+
 
 @dataclass(frozen=True)
 class HearingMetadata:
@@ -90,7 +92,9 @@ def parse_hearing_metadata(
         raise ValueError(f"unsupported hearing metadata schema_version: {schema_version}")
 
     hearing_id = _require_string(payload.get("hearing_id"), field_name="hearing_id")
-    timezone_name = _validate_timezone(str(payload.get("timezone") or "UTC").strip() or "UTC")
+    timezone_name = _validate_timezone(
+        str(payload.get("timezone") or PACIFIC_TIMEZONE_NAME).strip() or PACIFIC_TIMEZONE_NAME
+    )
 
     meeting_start = _parse_timestamp(
         payload.get("meeting_start"),

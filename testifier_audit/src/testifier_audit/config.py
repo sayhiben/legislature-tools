@@ -85,6 +85,28 @@ class NameAnalysisConfig(BaseModel):
     sensitivity_name_keys: list[Literal["strict", "medium", "loose", "nickname"]] = Field(
         default_factory=lambda: ["strict", "nickname"]
     )
+    collision_metrics: list[Literal["repeated_group_rows", "excess_rows", "pairs"]] = Field(
+        default_factory=lambda: ["repeated_group_rows", "excess_rows", "pairs"]
+    )
+    collision_primary_metric: Literal["repeated_group_rows", "excess_rows", "pairs"] = (
+        "repeated_group_rows"
+    )
+    collision_key_mode: Literal["strict", "medium", "loose", "nickname"] = "strict"
+    collision_baseline_source: Literal[
+        "vrdb_full_histogram", "vrdb_full_keys", "hearing_empirical"
+    ] = "hearing_empirical"
+    collision_baseline_model: Literal["multinomial", "hypergeometric"] = "multinomial"
+    collision_uncertainty_mode: Literal["monte_carlo", "analytic_only"] = "monte_carlo"
+    collision_scope_primary: Literal["matched_only", "full_hearing"] = "matched_only"
+    collision_scope_overlays: list[Literal["matched_only", "full_hearing", "unmatched_only"]] = (
+        Field(default_factory=lambda: ["full_hearing"])
+    )
+    collision_baseline_failure_policy: Literal["fail", "degrade"] = "degrade"
+    collision_stratification: str = "none"
+    per_name_significance_model: Literal["binomial_tail", "hypergeometric_tail"] = (
+        "binomial_tail"
+    )
+    per_name_display_limit: int = Field(default=1000, ge=10)
     exclude_non_person_from_inference: bool = True
     monte_carlo_draws: int = Field(default=20_000, ge=100)
     position_permutation_draws: int = Field(default=10_000, ge=100)

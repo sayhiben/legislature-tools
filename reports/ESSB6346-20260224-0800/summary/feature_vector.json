@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "report_id": "ESSB6346-20260224-0800",
-  "generated_at_utc": "2026-02-23T00:42:11.709714+00:00",
+  "generated_at_utc": "2026-02-23T06:12:55.646628+00:00",
   "lens": "side_by_side",
   "date_range_start": "2026-02-18T16:08:00-08:00",
   "date_range_end": "2026-02-22T12:23:00-08:00",
@@ -20,46 +20,46 @@
     "window_top_abs_z": null,
     "window_top_dup_fraction": null,
     "window_min_q_value": null,
-    "top_name_max_records": 117,
+    "top_name_max_records": 116,
     "top_cluster_max_records": 31,
     "off_hours_ratio": 0.05348271526045639,
     "dedup_drop_fraction": 0.006338768526725897
   },
   "top_repeated_names": [
     {
-      "canonical_name": "HUFFMAN|TRACY",
+      "canonical_name": "HUFFMAN|TRACY||",
       "display_name": "HUFFMAN, TRACY",
-      "n_records": 117,
+      "n_records": 116,
       "n_pro": 0,
-      "n_con": 117
+      "n_con": 116
     },
     {
-      "canonical_name": "KESSELRING|BEVERLY",
+      "canonical_name": "KESSELRING|BEVERLY||",
       "display_name": "KESSELRING, BEVERLY",
       "n_records": 64,
       "n_pro": 0,
       "n_con": 64
     },
     {
-      "canonical_name": "HARSHAW|NORM",
-      "display_name": "HARSHAW, NORM",
-      "n_records": 56,
-      "n_pro": 0,
-      "n_con": 56
-    },
-    {
-      "canonical_name": "KESSELRING|JERRY",
+      "canonical_name": "KESSELRING|JERRY||",
       "display_name": "KESSELRING, JERRY",
       "n_records": 40,
       "n_pro": 0,
       "n_con": 40
     },
     {
-      "canonical_name": "MERRITT|BECKY",
-      "display_name": "MERRITT, BECKY",
-      "n_records": 39,
+      "canonical_name": "BACKOUS|KATHLEEN||",
+      "display_name": "BACKOUS, KATHLEEN",
+      "n_records": 38,
       "n_pro": 0,
-      "n_con": 39
+      "n_con": 38
+    },
+    {
+      "canonical_name": "DURHAM|RHONDA||",
+      "display_name": "DURHAM, RHONDA",
+      "n_records": 29,
+      "n_pro": 0,
+      "n_con": 29
     }
   ],
   "top_near_dup_clusters": [

@@ -4,7 +4,7 @@
   "max_concentration_hhi": 0.6800000000000002,
   "max_peak_bucket_fraction": 0.8,
   "n_clusters": 1599,
-  "n_clusters_supporting_primary_name_anomaly": 36,
+  "n_clusters_supporting_primary_name_anomaly": 0,
   "n_high_concentration_clusters": 876,
   "n_similarity_edges": 2043,
   "n_skipped_blocks": 0

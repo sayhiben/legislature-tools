@@ -176,6 +176,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         detector="duplicates_exact",
         hero_chart_id="duplicates_exact_bucket_concentration",
         detail_chart_ids=(
+            "duplicates_exact_metric_diagnostics",
             "duplicates_exact_per_name_anomalies",
             "duplicates_exact_position_concentration",
             "duplicates_exact_null_distribution",

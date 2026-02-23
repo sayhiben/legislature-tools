@@ -17,10 +17,13 @@ from testifier_audit.io.vrdb_postgres import (
     _upsert_vrdb_rows,
     count_registry_rows,
     ensure_voter_registry_schema,
+    fetch_voter_name_key_count_histogram,
     fetch_matching_voter_names,
+    fetch_voter_name_key_stratum_frequencies,
     import_vrdb_extract_to_postgres,
     normalize_vrdb_chunk,
 )
+from testifier_audit.names.canonicalize import canonicalize_name
 
 
 class _FakeSQLText(str):
@@ -158,6 +161,8 @@ def test_normalize_vrdb_chunk_standardizes_and_filters_names() -> None:
     assert len(fallback_keys) == 1
     assert normalized["source_file"].nunique() == 1
     assert normalized["source_file"].iloc[0] == "sample.txt"
+    assert normalized.loc[normalized.index[0], "collision_key_medium"] == "DOE|JANE"
+    assert normalized.loc[normalized.index[0], "collision_key_strict"] == "DOE|JANE|A|"
 
 
 def test_normalize_vrdb_chunk_empty_and_missing_columns_paths() -> None:
@@ -468,6 +473,74 @@ def test_fetch_matching_voter_names_queries_chunks_and_supports_active_only_togg
     assert "LOWER(status_code) = 'active'" in cursor.executed[0][0]
 
 
+def test_fetch_voter_name_key_count_histogram_aggregates_population_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    psycopg, fake_sql, _conn, cursor = _fake_psycopg_bundle(
+        fetchall_batches=[[(1, 10), (2, 5), (0, 3), (3, 0)], [(1, 2)]]
+    )
+    monkeypatch.setattr(vrdb_module, "_load_psycopg", lambda: (psycopg, fake_sql))
+
+    out = fetch_voter_name_key_count_histogram(
+        db_url="postgresql://example",
+        table_name="voter_registry",
+        key_column="collision_key_medium",
+        active_only=True,
+    )
+    assert list(out["name_count"]) == [1, 2]
+    assert list(out["n_keys"]) == [10, 5]
+    assert (out["N"] == 20).all()
+    assert "LOWER(status_code) = 'active'" in cursor.executed[0][0]
+
+    out_inactive = fetch_voter_name_key_count_histogram(
+        db_url="postgresql://example",
+        table_name="voter_registry",
+        key_column="collision_key_medium",
+        active_only=False,
+    )
+    assert list(out_inactive["name_count"]) == [1]
+    assert list(out_inactive["n_keys"]) == [2]
+    assert "LOWER(status_code) = 'active'" not in cursor.executed[1][0]
+
+
+def test_fetch_voter_name_key_stratum_frequencies_queries_and_normalizes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    psycopg, fake_sql, _conn, cursor = _fake_psycopg_bundle(
+        fetchall_batches=[
+            [
+                ("DOE|JANE", "1980s", 8),
+                ("DOE|JANE", "1990s", 2),
+                ("", "1990s", 4),
+                ("SMITH|JOHN", None, 3),
+            ]
+        ]
+    )
+    monkeypatch.setattr(vrdb_module, "_load_psycopg", lambda: (psycopg, fake_sql))
+
+    out = fetch_voter_name_key_stratum_frequencies(
+        db_url="postgresql://example",
+        table_name="voter_registry",
+        key_column="collision_key_medium",
+        stratification="birth_decade",
+        active_only=True,
+    )
+    assert set(out["name_key"]) == {"DOE|JANE", "SMITH|JOHN"}
+    assert set(out["stratum"]) == {"1980s", "1990s", "unknown"}
+    assert "LOWER(status_code) = 'active'" in cursor.executed[0][0]
+
+
+def test_fetch_voter_name_key_stratum_frequencies_rejects_invalid_mode() -> None:
+    with pytest.raises(ValueError, match="Unsupported stratification mode"):
+        fetch_voter_name_key_stratum_frequencies(
+            db_url="postgresql://unused",
+            table_name="voter_registry",
+            key_column="canonical_name",
+            stratification="county",
+            active_only=True,
+        )
+
+
 def test_count_registry_rows_handles_none_and_non_none_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -492,3 +565,28 @@ def test_iter_vrdb_chunks_falls_back_to_cp1252(tmp_path: Path) -> None:
     assert len(chunks) == 1
     assert chunks[0].loc[0, "FName"] == "José"
     assert chunks[0].loc[0, "LName"] == "García"
+
+
+def test_submission_and_vrdb_collision_keys_align_for_same_name() -> None:
+    submission_name = canonicalize_name(
+        "Doe, Jane",
+        nickname_map={},
+        normalize_unicode=True,
+        strip_punctuation=True,
+    )
+    vrdb = normalize_vrdb_chunk(
+        chunk=pd.DataFrame(
+            {
+                "FName": ["Jane"],
+                "LName": ["Doe"],
+                "MName": [""],
+                "NameSuffix": [""],
+                "StatusCode": ["Active"],
+            }
+        ),
+        source_file="sample.txt",
+    )
+    assert len(vrdb) == 1
+    assert vrdb.loc[vrdb.index[0], "collision_key_strict"] == submission_name.collision_key_strict
+    assert vrdb.loc[vrdb.index[0], "collision_key_medium"] == submission_name.collision_key_medium
+    assert vrdb.loc[vrdb.index[0], "canonical_key_medium"] == submission_name.canonical_key_medium

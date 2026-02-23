@@ -55,6 +55,27 @@
               </p>
               <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
             </div>
+            <div class="sidebar-control-group hidden" id="duplicate-collision-panel">
+              <p class="sidebar-control-label">
+                Duplicate Collision
+                <button
+                  class="help-tip"
+                  type="button"
+                  data-tooltip="Choose duplicate scope/metric for the duplicate-name charts and diagnostics."
+                  aria-label="Duplicate collision controls help"
+                >
+                  ?
+                </button>
+              </p>
+              <div class="sidebar-control-row">
+                <label class="tiny-note" for="duplicate-scope-select">Scope</label>
+                <select id="duplicate-scope-select" class="control-button"></select>
+              </div>
+              <div class="sidebar-control-row">
+                <label class="tiny-note" for="duplicate-metric-select">Metric</label>
+                <select id="duplicate-metric-select" class="control-button"></select>
+              </div>
+            </div>
             <div class="sidebar-control-group hidden" id="zoom-sync-panel">
               <div class="sidebar-control-row">
                 <p class="sidebar-control-label">

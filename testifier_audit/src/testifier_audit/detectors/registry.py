@@ -34,11 +34,38 @@ def default_detectors(config: AppConfig) -> list[Detector]:
         else (30 if 30 in off_hours_bucket_minutes else off_hours_bucket_minutes[0])
     )
     detectors: list[Detector] = [
+        VoterRegistryMatchDetector(
+            enabled=config.voter_registry.enabled,
+            db_url=config.voter_registry.db_url,
+            table_name=config.voter_registry.table_name,
+            bucket_minutes=sorted(
+                set(bucket_minutes + [config.voter_registry.match_bucket_minutes])
+            ),
+            active_only=config.voter_registry.active_only,
+            primary_match_mode=config.voter_registry.primary_match_mode,
+            strong_fuzzy_min_score=config.voter_registry.strong_fuzzy_min_score,
+            weak_fuzzy_min_score=config.voter_registry.weak_fuzzy_min_score,
+            ambiguous_score_gap=config.voter_registry.ambiguous_score_gap,
+            pairwise_alpha=config.voter_registry.pairwise_alpha,
+            nickname_map_path=config.names.nickname_map_path,
+        ),
         DuplicatesExactDetector(
             top_n=config.thresholds.top_duplicate_names,
             bucket_minutes=bucket_minutes,
             primary_name_key=config.name_analysis.primary_name_key,
             sensitivity_name_keys=list(config.name_analysis.sensitivity_name_keys),
+            collision_metrics=list(config.name_analysis.collision_metrics),
+            collision_primary_metric=config.name_analysis.collision_primary_metric,
+            collision_key_mode=config.name_analysis.collision_key_mode,
+            collision_baseline_source=config.name_analysis.collision_baseline_source,
+            collision_baseline_model=config.name_analysis.collision_baseline_model,
+            collision_uncertainty_mode=config.name_analysis.collision_uncertainty_mode,
+            collision_scope_primary=config.name_analysis.collision_scope_primary,
+            collision_scope_overlays=list(config.name_analysis.collision_scope_overlays),
+            collision_baseline_failure_policy=config.name_analysis.collision_baseline_failure_policy,
+            collision_stratification=config.name_analysis.collision_stratification,
+            per_name_significance_model=config.name_analysis.per_name_significance_model,
+            per_name_display_limit=config.name_analysis.per_name_display_limit,
             exclude_non_person_from_inference=config.name_analysis.exclude_non_person_from_inference,
             monte_carlo_draws=config.name_analysis.monte_carlo_draws,
             position_permutation_draws=config.name_analysis.position_permutation_draws,
@@ -101,21 +128,6 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             bucket_minutes=bucket_minutes,
         ),
         OrganizationAnomaliesDetector(bucket_minutes=bucket_minutes),
-        VoterRegistryMatchDetector(
-            enabled=config.voter_registry.enabled,
-            db_url=config.voter_registry.db_url,
-            table_name=config.voter_registry.table_name,
-            bucket_minutes=sorted(
-                set(bucket_minutes + [config.voter_registry.match_bucket_minutes])
-            ),
-            active_only=config.voter_registry.active_only,
-            primary_match_mode=config.voter_registry.primary_match_mode,
-            strong_fuzzy_min_score=config.voter_registry.strong_fuzzy_min_score,
-            weak_fuzzy_min_score=config.voter_registry.weak_fuzzy_min_score,
-            ambiguous_score_gap=config.voter_registry.ambiguous_score_gap,
-            pairwise_alpha=config.voter_registry.pairwise_alpha,
-            nickname_map_path=config.names.nickname_map_path,
-        ),
         MultivariateAnomaliesDetector(
             enabled=config.multivariate_anomaly.enabled,
             bucket_minutes=sorted(

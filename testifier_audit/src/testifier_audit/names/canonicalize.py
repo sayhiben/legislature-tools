@@ -53,6 +53,9 @@ class CanonicalizedName:
     canonical_key_medium: str
     canonical_key_loose: str
     canonical_key_nickname: str
+    collision_key_strict: str
+    collision_key_medium: str
+    collision_key_loose: str
     name_display: str
     name_parse_quality: str
     name_parse_flags: str
@@ -149,6 +152,13 @@ def canonicalize_name(
     canonical_key_nickname = (
         f"{last}|{first_nickname_root}" if last or first_nickname_root else "|"
     )
+    collision_key_strict = (
+        f"{last}|{first_primary}|{middle_initial}|{suffix_normalized}"
+        if last or first_primary or middle_initial or suffix_normalized
+        else "|||"
+    )
+    collision_key_medium = f"{last}|{first_primary}" if last or first_primary else "|"
+    collision_key_loose = f"{last}|{first_primary[:1]}" if last or first_primary else "|"
     name_display = f"{last}, {first}".strip(", ").strip()
 
     parse_flags: list[str] = []
@@ -188,6 +198,9 @@ def canonicalize_name(
         canonical_key_medium=canonical_key_medium,
         canonical_key_loose=canonical_key_loose,
         canonical_key_nickname=canonical_key_nickname,
+        collision_key_strict=collision_key_strict,
+        collision_key_medium=collision_key_medium,
+        collision_key_loose=collision_key_loose,
         name_display=name_display,
         name_parse_quality=name_parse_quality,
         name_parse_flags=",".join(sorted(set(parse_flags))),

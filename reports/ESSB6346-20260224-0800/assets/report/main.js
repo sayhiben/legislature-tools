@@ -201,6 +201,26 @@
         : dedupModes.includes("raw")
           ? "raw"
           : dedupModes[0] || "raw";
+  const duplicateScopeOptions = Array.isArray(controls.duplicate_collision_scope_options)
+    ? controls.duplicate_collision_scope_options
+        .map((value) => String(value || "").trim())
+        .filter((value) => !!value)
+    : [];
+  const duplicateMetricOptions = Array.isArray(controls.duplicate_collision_metric_options)
+    ? controls.duplicate_collision_metric_options
+        .map((value) => String(value || "").trim())
+        .filter((value) => !!value)
+    : [];
+  const defaultDuplicateScope =
+    typeof controls.duplicate_collision_scope_default === "string" &&
+    duplicateScopeOptions.includes(controls.duplicate_collision_scope_default)
+      ? controls.duplicate_collision_scope_default
+      : duplicateScopeOptions[0] || "matched_only";
+  const defaultDuplicateMetric =
+    typeof controls.duplicate_collision_metric_default === "string" &&
+    duplicateMetricOptions.includes(controls.duplicate_collision_metric_default)
+      ? controls.duplicate_collision_metric_default
+      : duplicateMetricOptions[0] || "repeated_group_rows";
 
   const hasEcharts = typeof window.echarts !== "undefined";
   const hasTabulator = typeof window.Tabulator !== "undefined";
@@ -219,6 +239,10 @@
     activeBucket: null,
     defaultBucket: null,
     activeDedupMode: defaultDedupMode,
+    activeDuplicateScope: defaultDuplicateScope,
+    defaultDuplicateScope: defaultDuplicateScope,
+    activeDuplicateMetric: defaultDuplicateMetric,
+    defaultDuplicateMetric: defaultDuplicateMetric,
     cursorX: null,
     activeTocHeading: null,
     renderToc: null,
@@ -1569,12 +1593,28 @@
         "bucket_minutes",
         "linked_bucket_minutes",
       ].forEach((key) => params.delete(key));
+      ["dup_scope", "duplicate_scope"].forEach((key) => params.delete(key));
+      ["dup_metric", "duplicate_metric"].forEach((key) => params.delete(key));
       if (
         Number.isFinite(state.activeBucket) &&
         Number.isFinite(state.defaultBucket) &&
         state.activeBucket !== state.defaultBucket
       ) {
         params.set("bucket", String(Math.round(state.activeBucket)));
+      }
+      if (
+        typeof state.activeDuplicateScope === "string" &&
+        state.activeDuplicateScope &&
+        state.activeDuplicateScope !== state.defaultDuplicateScope
+      ) {
+        params.set("dup_scope", state.activeDuplicateScope);
+      }
+      if (
+        typeof state.activeDuplicateMetric === "string" &&
+        state.activeDuplicateMetric &&
+        state.activeDuplicateMetric !== state.defaultDuplicateMetric
+      ) {
+        params.set("dup_metric", state.activeDuplicateMetric);
       }
 
       [
@@ -2674,6 +2714,21 @@
       return null;
     }
     return { min: min, max: max };
+  }
+
+  function parseDuplicateOptionFromQueryParams(names, options) {
+    if (typeof window.URLSearchParams === "undefined") {
+      return null;
+    }
+    if (!Array.isArray(options) || !options.length) {
+      return null;
+    }
+    const params = new window.URLSearchParams(window.location.search || "");
+    const raw = firstQueryParam(params, names);
+    if (!raw) {
+      return null;
+    }
+    return options.includes(raw) ? raw : null;
   }
 
   function collectAbsoluteTimeExtent() {
@@ -4616,6 +4671,7 @@
     "changepoints_hour_hist",
     "changepoints_magnitude",
     "duplicates_exact_per_name_anomalies",
+    "duplicates_exact_metric_diagnostics",
     "duplicates_exact_temporal_burst",
     "duplicates_exact_top_names",
     "duplicates_exact_position_switch",
@@ -5332,6 +5388,9 @@
     }
     if (mount.chartId === "duplicates_exact_per_name_anomalies") {
       return renderSimpleBar(mount, rows, "display_name", "n", "repeat count");
+    }
+    if (mount.chartId === "duplicates_exact_metric_diagnostics") {
+      return renderSimpleBar(mount, rows, "metric", "observed", "observed");
     }
     if (mount.chartId === "duplicates_exact_position_switch") {
       return renderSimpleBar(mount, rows, "display_name", "n", "count");
@@ -6603,6 +6662,33 @@
 
     const detectorKey = analysis.detector;
     const detectorTables = detectorKey ? (reportData.table_previews || {})[detectorKey] || {} : {};
+    if (analysis.id === "duplicates_exact") {
+      const methodRows = Array.isArray(detectorTables.collision_methods)
+        ? detectorTables.collision_methods
+        : [];
+      const scopedRows = methodRows.filter(
+        (row) => String((row || {}).scope || "") === String(state.activeDuplicateScope || "")
+      );
+      const activeRows = scopedRows.length ? scopedRows : methodRows;
+      const degraded = activeRows.some((row) => toBool((row || {}).baseline_degraded));
+      if (degraded) {
+        const methodRow = activeRows.length ? activeRows[0] || {} : {};
+        const warning = document.createElement("div");
+        warning.className = "warning-banner";
+        const source = String(methodRow.baseline_source || "unknown");
+        const model = String(methodRow.baseline_model || "unknown");
+        const scopeLabel = String(state.activeDuplicateScope || "unknown").replace(/_/g, " ");
+        warning.textContent =
+          "Duplicate baseline degraded for " +
+          scopeLabel +
+          " scope. Source=" +
+          source +
+          ", model=" +
+          model +
+          ". Interpret duplicate expectations descriptively.";
+        container.appendChild(warning);
+      }
+    }
     let tableNames = Object.keys(detectorTables).sort();
     if (isOffHoursFocusOnly && analysis.id === "off_hours") {
       const preferred = [
@@ -6774,13 +6860,14 @@
     }
 
     const rawRows = getChartRows(mount.chartId);
-    if (!rawRows.length) {
+    const duplicateScopedRows = filterRowsByDuplicateCollisionControls(mount.chartId, rawRows);
+    if (!duplicateScopedRows.length) {
       setEmptyForChart(mount.chartId, true);
       setChartNote(mount.chartId, "");
       return;
     }
 
-    const bucketSelection = filterRowsByBucket(rawRows, mount.chartId);
+    const bucketSelection = filterRowsByBucket(duplicateScopedRows, mount.chartId);
     const zoomSelection = filterRowsByLinkedZoom(mount, bucketSelection.rows);
     const rows = zoomSelection.rows;
     mount.activeBucket = bucketSelection.bucket;
@@ -6935,6 +7022,135 @@
       }
       renderChartMount(mount);
     });
+  }
+
+  function filterRowsByDuplicateCollisionControls(chartId, rows) {
+    const subset = Array.isArray(rows) ? rows : [];
+    if (!subset.length) {
+      return subset;
+    }
+    if (chartId === "duplicates_exact_bucket_concentration") {
+      const scoped = subset.filter(
+        (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
+      );
+      const scopedFallback = scoped.length ? scoped : subset;
+      const metered = scopedFallback.filter(
+        (row) => String(row.metric || "") === String(state.activeDuplicateMetric || "")
+      );
+      return metered.length ? metered : scopedFallback;
+    }
+    if (chartId === "duplicates_exact_metric_diagnostics") {
+      const scoped = subset.filter(
+        (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
+      );
+      return scoped.length ? scoped : subset;
+    }
+    return subset;
+  }
+
+  async function rerenderDuplicateCollisionCharts() {
+    const targets = new Set([
+      "duplicates_exact_bucket_concentration",
+      "duplicates_exact_metric_diagnostics",
+    ]);
+    const renders = [];
+    chartMounts.forEach((mount, chartId) => {
+      if (!mount || !targets.has(chartId)) {
+        return;
+      }
+      renders.push(renderChartMount(mount));
+    });
+    await Promise.all(renders);
+  }
+
+  function initDuplicateCollisionControls() {
+    const panel = document.getElementById("duplicate-collision-panel");
+    const scopeSelect = document.getElementById("duplicate-scope-select");
+    const metricSelect = document.getElementById("duplicate-metric-select");
+    if (!panel || !scopeSelect || !metricSelect) {
+      return;
+    }
+
+    const scopeOptions = duplicateScopeOptions.length
+      ? duplicateScopeOptions
+      : [state.defaultDuplicateScope];
+    const metricOptions = duplicateMetricOptions.length
+      ? duplicateMetricOptions
+      : [state.defaultDuplicateMetric];
+    if (!scopeOptions.length || !metricOptions.length) {
+      panel.classList.add("hidden");
+      return;
+    }
+    panel.classList.remove("hidden");
+
+    let savedScope = "";
+    let savedMetric = "";
+    try {
+      savedScope = String(window.localStorage.getItem("testifier_audit_dup_scope") || "").trim();
+      savedMetric = String(window.localStorage.getItem("testifier_audit_dup_metric") || "").trim();
+    } catch (_error) {}
+    const queryScope = parseDuplicateOptionFromQueryParams(
+      ["dup_scope", "duplicate_scope"],
+      scopeOptions
+    );
+    const queryMetric = parseDuplicateOptionFromQueryParams(
+      ["dup_metric", "duplicate_metric"],
+      metricOptions
+    );
+    state.activeDuplicateScope = queryScope
+      ? queryScope
+      : scopeOptions.includes(savedScope)
+        ? savedScope
+        : state.defaultDuplicateScope;
+    state.activeDuplicateMetric = queryMetric
+      ? queryMetric
+      : metricOptions.includes(savedMetric)
+        ? savedMetric
+        : state.defaultDuplicateMetric;
+    if (!scopeOptions.includes(state.activeDuplicateScope)) {
+      state.activeDuplicateScope = scopeOptions[0];
+    }
+    if (!metricOptions.includes(state.activeDuplicateMetric)) {
+      state.activeDuplicateMetric = metricOptions[0];
+    }
+
+    scopeSelect.innerHTML = "";
+    scopeOptions.forEach((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value.replace(/_/g, " ");
+      scopeSelect.appendChild(option);
+    });
+    scopeSelect.value = state.activeDuplicateScope;
+
+    metricSelect.innerHTML = "";
+    metricOptions.forEach((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value.replace(/_/g, " ");
+      metricSelect.appendChild(option);
+    });
+    metricSelect.value = state.activeDuplicateMetric;
+
+    const onChange = () => {
+      state.activeDuplicateScope = scopeSelect.value;
+      state.activeDuplicateMetric = metricSelect.value;
+      try {
+        window.localStorage.setItem("testifier_audit_dup_scope", state.activeDuplicateScope);
+        window.localStorage.setItem("testifier_audit_dup_metric", state.activeDuplicateMetric);
+      } catch (_error) {}
+      syncControlOverridesToUrl();
+      runWithBusyIndicator("Applying duplicate collision view...", async () => {
+        await rerenderDuplicateCollisionCharts();
+        const duplicateSection = document.querySelector('[data-analysis-id="duplicates_exact"]');
+        const duplicateAnalysis = analysisById.get("duplicates_exact");
+        if (duplicateSection && duplicateAnalysis) {
+          renderTablesForAnalysis(duplicateSection, duplicateAnalysis);
+        }
+      });
+    };
+    scopeSelect.addEventListener("change", onChange);
+    metricSelect.addEventListener("change", onChange);
   }
 
   function initBucketTabs() {
@@ -7647,6 +7863,7 @@
   }
   initSidebarToggle();
   initBucketTabs();
+  initDuplicateCollisionControls();
   initZoomControls();
   initSidebarToc();
   await runWithBusyIndicator("Loading report sections...", async () => {

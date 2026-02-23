@@ -57,6 +57,18 @@ names:
 name_analysis:
   primary_name_key: "medium"
   sensitivity_name_keys: ["strict", "nickname"]
+  collision_metrics: ["repeated_group_rows", "excess_rows", "pairs"]
+  collision_primary_metric: "repeated_group_rows"
+  collision_key_mode: "strict"
+  collision_baseline_source: "vrdb_full_histogram"
+  collision_baseline_model: "multinomial"
+  collision_uncertainty_mode: "monte_carlo"
+  collision_scope_primary: "matched_only"
+  collision_scope_overlays: ["full_hearing"]
+  collision_baseline_failure_policy: "fail"
+  collision_stratification: "none"
+  per_name_significance_model: "binomial_tail"
+  per_name_display_limit: 1000
   exclude_non_person_from_inference: true
   monte_carlo_draws: 20000
   position_permutation_draws: 10000

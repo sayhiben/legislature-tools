@@ -404,12 +404,16 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert '"off_hours_summary_compare", "off_hours_control_timeline"' in js_text
     assert "scheduleZoomSync(" in js_text
     assert "parseLinkedZoomFromQueryParams" in js_text
+    assert "parseDuplicateOptionFromQueryParams" in js_text
     assert "initializeLinkedZoomOnLoad()" in js_text
     assert "setChartLoading(" in js_text
     assert "is-loading" in css_text
     assert "state.zoom" in js_text
     assert 'id="zoom-sync-panel"' in rendered
     assert 'id="zoom-reset-button"' in rendered
+    assert 'id="duplicate-collision-panel"' in rendered
+    assert 'id="duplicate-scope-select"' in rendered
+    assert 'id="duplicate-metric-select"' in rendered
     assert 'id="report-timezone-summary"' in rendered
     assert "All times in this report are shown in " in js_text
     assert "updateZoomRangeLabel" in js_text

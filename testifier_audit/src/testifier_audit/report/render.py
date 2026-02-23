@@ -2847,6 +2847,26 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 },
             ],
         ),
+        "duplicates_exact_metric_diagnostics": {
+            "summary": "Observed versus expected diagnostics across collision metrics.",
+            "items": [
+                {
+                    "label": "Metric",
+                    "description": (
+                        "pairs = same-name unordered pairs; excess_rows = n - unique names; "
+                        "repeated_group_rows = rows in names appearing >=2 times."
+                    ),
+                },
+                {
+                    "label": "Observed vs expected",
+                    "description": "Each row compares observed metric value to model expectation.",
+                },
+                {
+                    "label": "Uncertainty",
+                    "description": "P-values and expected quantiles use the configured baseline model/method.",
+                },
+            ],
+        },
         "duplicates_exact_per_name_anomalies": {
             "summary": "Per-name anomaly ranking with p/q values.",
             "items": [
@@ -4226,43 +4246,151 @@ def _build_interactive_chart_payload_v2(
         ],
     )
 
-    dup_exact_bucket = _with_expected_columns(
-        table_map.get(_table_key("duplicates_exact", "duplicate_by_bucket"), pd.DataFrame()),
+    dup_exact_methods = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "collision_methods"), pd.DataFrame()),
         [
+            "scope",
+            "baseline_source",
+            "baseline_model",
+            "uncertainty_model",
+            "n_used",
+            "N_used",
+            "metric_primary",
+            "metrics_reported",
+            "baseline_degraded",
+            "fallback_policy",
+            "collision_key_mode",
+            "normalization_version_hash",
+            "stratification",
+            "censored",
+        ],
+    )
+    primary_dup_scope = (
+        str(dup_exact_methods["scope"].iloc[0]).strip() if not dup_exact_methods.empty else "full_hearing"
+    )
+    primary_dup_metric = (
+        str(dup_exact_methods["metric_primary"].iloc[0]).strip()
+        if not dup_exact_methods.empty
+        else "repeated_group_rows"
+    )
+    duplicate_scope_options = sorted(
+        {
+            str(value).strip()
+            for value in dup_exact_methods.get("scope", pd.Series(dtype=str)).tolist()
+            if str(value).strip()
+        }
+    )
+    if not duplicate_scope_options:
+        duplicate_scope_options = [primary_dup_scope]
+
+    dup_exact_collision_overview = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "collision_overview"), pd.DataFrame()),
+        [
+            "scope",
+            "metric",
+            "observed",
+            "expected",
+            "expected_p05",
+            "expected_p50",
+            "expected_p95",
+            "z_score",
+            "p_value",
+            "n_used",
+            "N_used",
+        ],
+    )
+    duplicate_metric_options = sorted(
+        {
+            str(value).strip()
+            for value in dup_exact_collision_overview.get("metric", pd.Series(dtype=str)).tolist()
+            if str(value).strip()
+        }
+    )
+    if not duplicate_metric_options:
+        duplicate_metric_options = [primary_dup_metric]
+    dup_exact_metric_diagnostics = dup_exact_collision_overview[
+        dup_exact_collision_overview["scope"].astype(str).str.len() > 0
+    ].copy()
+
+    dup_exact_collision_bucket = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "collision_by_bucket"), pd.DataFrame()),
+        [
+            "scope",
+            "metric",
             "bucket_start",
             "bucket_minutes",
-            "n_rows",
+            "n_bucket",
+            "n_used",
+            "N_used",
             "n_unique_names",
             "n_pro",
             "n_con",
-            "duplicate_rows",
-            "duplicate_row_rate",
-            "expected_duplicate_rows",
-            "excess_duplicate_rows",
+            "observed",
+            "expected",
+            "expected_p05",
+            "expected_p95",
+            "z_score",
+            "p_value",
+            "excess",
+            "baseline_model",
+            "baseline_source",
+            "baseline_degraded",
+            "is_low_power",
+            "inference_status",
         ],
     )
+    dup_exact_bucket = pd.DataFrame()
+    if not dup_exact_collision_bucket.empty:
+        dup_exact_bucket = dup_exact_collision_bucket.rename(
+            columns={
+                "n_bucket": "n_rows",
+                "observed": "duplicate_rows",
+                "expected": "expected_duplicate_rows",
+                "excess": "excess_duplicate_rows",
+            }
+        ).copy()
+        dup_exact_bucket["duplicate_row_rate"] = (
+            dup_exact_bucket["duplicate_rows"] / dup_exact_bucket["n_rows"]
+        ).where(dup_exact_bucket["n_rows"] > 0, 0.0)
     if dup_exact_bucket.empty:
-        legacy_dup_exact_bucket = _with_expected_columns(
-            table_map.get(_table_key("duplicates_exact", "repeated_same_bucket"), pd.DataFrame()),
-            ["bucket_start", "bucket_minutes", "n", "n_pro", "n_con"],
+        dup_exact_bucket = _with_expected_columns(
+            table_map.get(_table_key("duplicates_exact", "duplicate_by_bucket"), pd.DataFrame()),
+            [
+                "bucket_start",
+                "bucket_minutes",
+                "n_rows",
+                "n_unique_names",
+                "n_pro",
+                "n_con",
+                "duplicate_rows",
+                "duplicate_row_rate",
+                "expected_duplicate_rows",
+                "excess_duplicate_rows",
+            ],
         )
-        if not legacy_dup_exact_bucket.empty:
-            dup_exact_bucket = (
-                legacy_dup_exact_bucket.groupby(["bucket_start", "bucket_minutes"], dropna=False)
-                .agg(
-                    n_rows=("n", "sum"),
-                    n_pro=("n_pro", "sum"),
-                    n_con=("n_con", "sum"),
-                    duplicate_rows=("n", "sum"),
-                )
-                .reset_index()
+        if dup_exact_bucket.empty:
+            legacy_dup_exact_bucket = _with_expected_columns(
+                table_map.get(_table_key("duplicates_exact", "repeated_same_bucket"), pd.DataFrame()),
+                ["bucket_start", "bucket_minutes", "n", "n_pro", "n_con"],
             )
-            dup_exact_bucket["n_unique_names"] = pd.NA
-            dup_exact_bucket["duplicate_row_rate"] = (
-                dup_exact_bucket["duplicate_rows"] / dup_exact_bucket["n_rows"]
-            ).where(dup_exact_bucket["n_rows"] > 0, 0.0)
-            dup_exact_bucket["expected_duplicate_rows"] = pd.NA
-            dup_exact_bucket["excess_duplicate_rows"] = dup_exact_bucket["duplicate_rows"]
+            if not legacy_dup_exact_bucket.empty:
+                dup_exact_bucket = (
+                    legacy_dup_exact_bucket.groupby(["bucket_start", "bucket_minutes"], dropna=False)
+                    .agg(
+                        n_rows=("n", "sum"),
+                        n_pro=("n_pro", "sum"),
+                        n_con=("n_con", "sum"),
+                        duplicate_rows=("n", "sum"),
+                    )
+                    .reset_index()
+                )
+                dup_exact_bucket["n_unique_names"] = pd.NA
+                dup_exact_bucket["duplicate_row_rate"] = (
+                    dup_exact_bucket["duplicate_rows"] / dup_exact_bucket["n_rows"]
+                ).where(dup_exact_bucket["n_rows"] > 0, 0.0)
+                dup_exact_bucket["expected_duplicate_rows"] = pd.NA
+                dup_exact_bucket["excess_duplicate_rows"] = dup_exact_bucket["duplicate_rows"]
+
     dup_exact_per_name = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_anomalies"), pd.DataFrame()),
         [
@@ -4283,14 +4411,43 @@ def _build_interactive_chart_payload_v2(
         ],
     )
     if dup_exact_per_name.empty:
-        dup_exact_per_name = _with_expected_columns(
-            table_map.get(_table_key("duplicates_exact", "top_repeated_names"), pd.DataFrame()),
-            ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
+        per_name_display = _with_expected_columns(
+            table_map.get(_table_key("duplicates_exact", "per_name_display"), pd.DataFrame()),
+            [
+                "scope",
+                "display_name",
+                "canonical_name",
+                "observed_count",
+                "n_pro",
+                "n_con",
+                "time_span_minutes",
+                "expected_count",
+                "p_value",
+                "q_value",
+                "is_significant",
+            ],
         )
-        dup_exact_per_name["expected_count"] = pd.NA
-        dup_exact_per_name["p_value"] = pd.NA
-        dup_exact_per_name["q_value"] = pd.NA
-        dup_exact_per_name["is_significant"] = False
+        if not per_name_display.empty:
+            per_name_display = per_name_display[
+                per_name_display["scope"].astype(str) == primary_dup_scope
+            ].copy()
+            dup_exact_per_name = per_name_display.rename(columns={"observed_count": "n"})
+        else:
+            dup_exact_per_name = _with_expected_columns(
+                table_map.get(_table_key("duplicates_exact", "top_repeated_names"), pd.DataFrame()),
+                ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
+            )
+        dup_exact_per_name["expected_count"] = dup_exact_per_name.get("expected_count", pd.Series(dtype=float))
+        dup_exact_per_name["p_value"] = dup_exact_per_name.get("p_value", pd.Series(dtype=float)).fillna(pd.NA)
+        dup_exact_per_name["q_value"] = dup_exact_per_name.get("q_value", pd.Series(dtype=float)).fillna(pd.NA)
+        is_significant_series = (
+            dup_exact_per_name["is_significant"]
+            if "is_significant" in dup_exact_per_name.columns
+            else pd.Series(pd.NA, index=dup_exact_per_name.index, dtype="object")
+        )
+        dup_exact_per_name["is_significant"] = (
+            pd.to_numeric(is_significant_series, errors="coerce").fillna(0).astype(bool)
+        )
         dup_exact_per_name["within_5m_pairs"] = 0
         dup_exact_per_name["within_15m_pairs"] = 0
         dup_exact_per_name["temporal_p_value_within_5m"] = pd.NA
@@ -4329,6 +4486,7 @@ def _build_interactive_chart_payload_v2(
     dup_exact_temporal_burst = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "temporal_burst_signals"), pd.DataFrame()),
         [
+            "scope",
             "canonical_name",
             "within_5m_pairs",
             "within_15m_pairs",
@@ -4339,6 +4497,12 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_within_15m",
         ],
     )
+    if not dup_exact_temporal_burst.empty and "scope" in dup_exact_temporal_burst.columns:
+        scoped_temporal = dup_exact_temporal_burst[
+            dup_exact_temporal_burst["scope"].astype(str) == primary_dup_scope
+        ].copy()
+        if not scoped_temporal.empty:
+            dup_exact_temporal_burst = scoped_temporal
     dup_exact_swing_impact = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "swing_impact_scenarios"), pd.DataFrame()),
         [
@@ -5545,16 +5709,40 @@ def _build_interactive_chart_payload_v2(
         columns=[
             "bucket_start",
             "bucket_minutes",
+            "scope",
+            "metric",
             "n_rows",
             "n_unique_names",
             "duplicate_rows",
             "duplicate_row_rate",
             "expected_duplicate_rows",
             "excess_duplicate_rows",
+            "n_used",
+            "N_used",
+            "baseline_model",
+            "baseline_source",
+            "baseline_degraded",
             "n_pro",
             "n_con",
         ],
-        max_rows=25_000,
+        max_rows=100_000,
+    )
+    charts["duplicates_exact_metric_diagnostics"] = _records_from_frame(
+        dup_exact_metric_diagnostics.sort_values(["scope", "metric"]),
+        columns=[
+            "scope",
+            "metric",
+            "observed",
+            "expected",
+            "expected_p05",
+            "expected_p50",
+            "expected_p95",
+            "z_score",
+            "p_value",
+            "n_used",
+            "N_used",
+        ],
+        max_rows=50,
     )
     charts["duplicates_exact_per_name_anomalies"] = _records_from_frame(
         dup_exact_per_name.sort_values(["q_value", "p_value", "n"], ascending=[True, True, False]),
@@ -6269,6 +6457,62 @@ def _build_interactive_chart_payload_v2(
     process_markers = hearing_context_panel.get("process_markers", [])
     evidence_taxonomy = default_evidence_taxonomy()
     methodology = build_methodology_content(evidence_taxonomy=evidence_taxonomy)
+    if "dup_exact_methods" in locals() and isinstance(dup_exact_methods, pd.DataFrame) and not dup_exact_methods.empty:
+        baseline_models = sorted(
+            {
+                str(value)
+                for value in dup_exact_methods.get("baseline_model", pd.Series(dtype=str)).tolist()
+                if str(value).strip()
+            }
+        )
+        baseline_sources = sorted(
+            {
+                str(value)
+                for value in dup_exact_methods.get("baseline_source", pd.Series(dtype=str)).tolist()
+                if str(value).strip()
+            }
+        )
+        degraded = bool(
+            pd.to_numeric(
+                dup_exact_methods.get("baseline_degraded", pd.Series(dtype=float)),
+                errors="coerce",
+            )
+            .fillna(0.0)
+            .astype(float)
+            .gt(0.0)
+            .any()
+        )
+        methodology["definitions"].append(
+            {
+                "term": "Duplicate baseline runtime",
+                "definition": (
+                    "Duplicate-collision expectations were generated from runtime-selected "
+                    f"sources/models: sources={','.join(baseline_sources) or 'unknown'}, "
+                    f"models={','.join(baseline_models) or 'unknown'}."
+                ),
+            }
+        )
+        if degraded:
+            methodology["caveats"].append(
+                "Duplicate-collision baseline degraded during runtime; review methods metadata before inference."
+            )
+        methodology["duplicate_runtime"] = _records_from_frame(
+            dup_exact_methods,
+            columns=[
+                "scope",
+                "baseline_source",
+                "baseline_model",
+                "uncertainty_model",
+                "n_used",
+                "N_used",
+                "metric_primary",
+                "baseline_degraded",
+                "fallback_policy",
+                "collision_key_mode",
+                "stratification",
+            ],
+            max_rows=20,
+        )
     theme_options = default_theme_options()
     color_semantics = default_color_semantics()
 
@@ -6299,6 +6543,10 @@ def _build_interactive_chart_payload_v2(
             "color_semantics": color_semantics,
             "dedup_modes": list(DEDUP_MODES),
             "default_dedup_mode": resolved_default_dedup_mode,
+            "duplicate_collision_scope_default": primary_dup_scope,
+            "duplicate_collision_metric_default": primary_dup_metric,
+            "duplicate_collision_scope_options": duplicate_scope_options,
+            "duplicate_collision_metric_options": duplicate_metric_options,
             "timezone": timezone_name,
             "timezone_label": timezone_name,
             "process_markers": process_markers,

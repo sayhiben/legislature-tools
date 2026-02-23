@@ -37,8 +37,12 @@ ALLOWED_NAME_KEY_COLUMNS = frozenset(
         "canonical_key_medium",
         "canonical_key_loose",
         "canonical_key_nickname",
+        "collision_key_strict",
+        "collision_key_medium",
+        "collision_key_loose",
     }
 )
+ALLOWED_STRATIFICATION_MODES = frozenset({"none", "birth_decade"})
 
 
 @dataclass(frozen=True)
@@ -77,6 +81,29 @@ def _load_psycopg():
     return psycopg, sql
 
 
+def _validated_stratification_mode(stratification: str) -> str:
+    value = str(stratification or "none").strip().lower()
+    if value not in ALLOWED_STRATIFICATION_MODES:
+        allowed = ", ".join(sorted(ALLOWED_STRATIFICATION_MODES))
+        raise ValueError(f"Unsupported stratification mode: {stratification!r}. Allowed: {allowed}.")
+    return value
+
+
+def _stratification_sql_expression(stratification: str, sql):
+    mode = _validated_stratification_mode(stratification)
+    if mode == "none":
+        return sql.SQL("'all'")
+    if mode == "birth_decade":
+        return sql.SQL(
+            "CASE "
+            "WHEN birth_year ~ '^[0-9]{4}$' THEN SUBSTRING(birth_year, 1, 3) || '0s' "
+            "ELSE 'unknown' "
+            "END"
+        )
+    # Keep this explicit for readability if new modes are added later.
+    raise ValueError(f"Unsupported stratification mode: {stratification!r}")
+
+
 def _fallback_voter_key(frame: pd.DataFrame) -> pd.Series:
     basis = (
         frame["canonical_last"].fillna("")
@@ -111,6 +138,9 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
                 "canonical_key_medium",
                 "canonical_key_loose",
                 "canonical_key_nickname",
+                "collision_key_strict",
+                "collision_key_medium",
+                "collision_key_loose",
                 "source_file",
                 "source_hash",
             ]
@@ -162,6 +192,9 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
     out["canonical_key_medium"] = out["canonical_last"] + "|" + out["canonical_first"]
     out["canonical_key_loose"] = out["canonical_last"] + "|" + out["canonical_first"].str[:1]
     out["canonical_key_nickname"] = out["canonical_key_medium"]
+    out["collision_key_strict"] = out["canonical_key_strict"]
+    out["collision_key_medium"] = out["canonical_key_medium"]
+    out["collision_key_loose"] = out["canonical_key_loose"]
     out["source_file"] = source_file
 
     fingerprint = (
@@ -246,6 +279,9 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
           canonical_key_medium TEXT NOT NULL DEFAULT '',
           canonical_key_loose TEXT NOT NULL DEFAULT '',
           canonical_key_nickname TEXT NOT NULL DEFAULT '',
+          collision_key_strict TEXT NOT NULL DEFAULT '',
+          collision_key_medium TEXT NOT NULL DEFAULT '',
+          collision_key_loose TEXT NOT NULL DEFAULT '',
           source_file TEXT NOT NULL,
           source_hash TEXT NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -276,6 +312,18 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
         ),
         sql.SQL(
             "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_key_nickname TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS collision_key_strict TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS collision_key_medium TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS collision_key_loose TEXT "
             "NOT NULL DEFAULT ''"
         ),
     )
@@ -312,6 +360,24 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
             idx_key_nickname=sql.Identifier(f"{table_name}_canonical_key_nickname_idx"),
             table_name=sql.Identifier(table_name),
         ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_collision_strict} ON {table_name} (collision_key_strict)"
+        ).format(
+            idx_collision_strict=sql.Identifier(f"{table_name}_collision_key_strict_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_collision_medium} ON {table_name} (collision_key_medium)"
+        ).format(
+            idx_collision_medium=sql.Identifier(f"{table_name}_collision_key_medium_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_collision_loose} ON {table_name} (collision_key_loose)"
+        ).format(
+            idx_collision_loose=sql.Identifier(f"{table_name}_collision_key_loose_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
     )
     backfill_new_keys = sql.SQL(
         """
@@ -337,6 +403,18 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
             NULLIF(TRIM(canonical_key_nickname), ''),
             COALESCE(canonical_name, '')
           ),
+          collision_key_medium = COALESCE(
+            NULLIF(TRIM(collision_key_medium), ''),
+            COALESCE(canonical_key_medium, '')
+          ),
+          collision_key_loose = COALESCE(
+            NULLIF(TRIM(collision_key_loose), ''),
+            COALESCE(canonical_key_loose, '')
+          ),
+          collision_key_strict = COALESCE(
+            NULLIF(TRIM(collision_key_strict), ''),
+            COALESCE(canonical_key_strict, '')
+          ),
           canonical_key_strict = COALESCE(
             NULLIF(TRIM(canonical_key_strict), ''),
             COALESCE(canonical_last, '')
@@ -357,7 +435,10 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
           canonical_key_medium = ''
           OR canonical_key_loose = ''
           OR canonical_key_nickname = ''
-          OR canonical_key_strict = '';
+          OR canonical_key_strict = ''
+          OR collision_key_medium = ''
+          OR collision_key_loose = ''
+          OR collision_key_strict = '';
         """
     ).format(table_name=sql.Identifier(table_name))
     with conn.cursor() as cursor:
@@ -393,6 +474,9 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           canonical_key_medium,
           canonical_key_loose,
           canonical_key_nickname,
+          collision_key_strict,
+          collision_key_medium,
+          collision_key_loose,
           source_file,
           source_hash
         )
@@ -414,6 +498,9 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           %(canonical_key_medium)s,
           %(canonical_key_loose)s,
           %(canonical_key_nickname)s,
+          %(collision_key_strict)s,
+          %(collision_key_medium)s,
+          %(collision_key_loose)s,
           %(source_file)s,
           %(source_hash)s
         )
@@ -435,6 +522,9 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           canonical_key_medium = EXCLUDED.canonical_key_medium,
           canonical_key_loose = EXCLUDED.canonical_key_loose,
           canonical_key_nickname = EXCLUDED.canonical_key_nickname,
+          collision_key_strict = EXCLUDED.collision_key_strict,
+          collision_key_medium = EXCLUDED.collision_key_medium,
+          collision_key_loose = EXCLUDED.collision_key_loose,
           source_file = EXCLUDED.source_file,
           source_hash = EXCLUDED.source_hash,
           updated_at = NOW()
@@ -719,6 +809,92 @@ def fetch_voter_name_key_frequencies(
     if not rows:
         return pd.DataFrame(columns=[resolved_column, "n_registry_rows"])
     return pd.DataFrame(rows, columns=[resolved_column, "n_registry_rows"])
+
+
+def fetch_voter_name_key_count_histogram(
+    db_url: str,
+    table_name: str,
+    *,
+    key_column: str = "canonical_key_medium",
+    active_only: bool = True,
+) -> pd.DataFrame:
+    resolved_column = _validated_name_key_column(key_column)
+    psycopg, sql = _load_psycopg()
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+            where_clause = sql.SQL("TRUE")
+            if active_only:
+                where_clause = sql.SQL("LOWER(status_code) = 'active'")
+            query = sql.SQL(
+                "WITH key_counts AS ("
+                "  SELECT {key_column} AS key_value, COUNT(*)::BIGINT AS name_count "
+                "  FROM {table_name} "
+                "  WHERE {where_clause} "
+                "  GROUP BY {key_column}"
+                ") "
+                "SELECT name_count::BIGINT AS name_count, "
+                "       COUNT(*)::BIGINT AS n_keys "
+                "FROM key_counts "
+                "GROUP BY name_count "
+                "ORDER BY name_count"
+            ).format(
+                key_column=sql.Identifier(resolved_column),
+                table_name=sql.Identifier(table_name),
+                where_clause=where_clause,
+            )
+            cursor.execute(query)
+            rows = cursor.fetchall()
+    if not rows:
+        return pd.DataFrame(columns=["name_count", "n_keys", "N"])
+    out = pd.DataFrame(rows, columns=["name_count", "n_keys"])
+    out["name_count"] = pd.to_numeric(out["name_count"], errors="coerce").fillna(0).astype(int)
+    out["n_keys"] = pd.to_numeric(out["n_keys"], errors="coerce").fillna(0).astype(int)
+    out = out[(out["name_count"] > 0) & (out["n_keys"] > 0)].copy()
+    n_population = int((out["name_count"] * out["n_keys"]).sum())
+    out["N"] = n_population
+    return out.sort_values("name_count").reset_index(drop=True)
+
+
+def fetch_voter_name_key_stratum_frequencies(
+    db_url: str,
+    table_name: str,
+    *,
+    key_column: str = "canonical_key_medium",
+    stratification: str = "birth_decade",
+    active_only: bool = True,
+) -> pd.DataFrame:
+    resolved_column = _validated_name_key_column(key_column)
+    psycopg, sql = _load_psycopg()
+    strat_expr = _stratification_sql_expression(stratification, sql)
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+            where_clause = sql.SQL("TRUE")
+            if active_only:
+                where_clause = sql.SQL("LOWER(status_code) = 'active'")
+            query = sql.SQL(
+                "SELECT {key_column} AS name_key, "
+                "{strat_expr} AS stratum, "
+                "COUNT(*)::BIGINT AS n_registry_rows "
+                "FROM {table_name} "
+                "WHERE {where_clause} "
+                "GROUP BY {key_column}, {strat_expr}"
+            ).format(
+                key_column=sql.Identifier(resolved_column),
+                strat_expr=strat_expr,
+                table_name=sql.Identifier(table_name),
+                where_clause=where_clause,
+            )
+            cursor.execute(query)
+            rows = cursor.fetchall()
+    if not rows:
+        return pd.DataFrame(columns=["name_key", "stratum", "n_registry_rows"])
+    out = pd.DataFrame(rows, columns=["name_key", "stratum", "n_registry_rows"])
+    out["name_key"] = out["name_key"].fillna("").astype(str).str.strip()
+    out["stratum"] = out["stratum"].fillna("unknown").astype(str).str.strip()
+    out["n_registry_rows"] = (
+        pd.to_numeric(out["n_registry_rows"], errors="coerce").fillna(0).astype(int)
+    )
+    return out[(out["name_key"] != "") & (out["n_registry_rows"] > 0)].reset_index(drop=True)
 
 
 def count_registry_rows(db_url: str, table_name: str, active_only: bool = True) -> int:

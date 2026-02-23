@@ -62,6 +62,27 @@ _METHODOLOGY_DEFINITIONS: tuple[dict[str, str], ...] = (
         ),
     },
     {
+        "term": "Duplicate metric: pairs",
+        "definition": (
+            "Same-name pair count: sum_g C(X_g, 2). This scales with C(n,2) and is sensitive "
+            "to concentrated name frequencies."
+        ),
+    },
+    {
+        "term": "Duplicate metric: excess rows",
+        "definition": (
+            "Rows beyond first occurrences: sum_g (X_g - 1)_+ = n - U. This is not the same as "
+            "rows in repeated groups."
+        ),
+    },
+    {
+        "term": "Duplicate metric: repeated-group rows",
+        "definition": (
+            "Rows that belong to names observed at least twice: sum_g X_g * 1[X_g >= 2]. "
+            "This is the duplicate-row headline metric."
+        ),
+    },
+    {
         "term": "Score tiering",
         "definition": (
             "Triage score thresholds and support requirements that separate high, medium, "

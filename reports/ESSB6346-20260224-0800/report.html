@@ -30,7 +30,7 @@
           <div class="sidebar-header">
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title">Testifier Audit Report</h1>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-22T16:42:07.637068-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-22T22:12:50.899561-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -69,6 +69,27 @@
                 </button>
               </p>
               <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
+            </div>
+            <div class="sidebar-control-group hidden" id="duplicate-collision-panel">
+              <p class="sidebar-control-label">
+                Duplicate Collision
+                <button
+                  class="help-tip"
+                  type="button"
+                  data-tooltip="Choose duplicate scope/metric for the duplicate-name charts and diagnostics."
+                  aria-label="Duplicate collision controls help"
+                >
+                  ?
+                </button>
+              </p>
+              <div class="sidebar-control-row">
+                <label class="tiny-note" for="duplicate-scope-select">Scope</label>
+                <select id="duplicate-scope-select" class="control-button"></select>
+              </div>
+              <div class="sidebar-control-row">
+                <label class="tiny-note" for="duplicate-metric-select">Metric</label>
+                <select id="duplicate-metric-select" class="control-button"></select>
+              </div>
             </div>
             <div class="sidebar-control-group hidden" id="zoom-sync-panel">
               <div class="sidebar-control-row">
@@ -639,6 +660,31 @@ Low-power Windows                </div>
 </details>
 
         <div class="analysis-detail-grid">
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Exact Metric Diagnostics</h3>
+              <p class="tiny-note"><code>duplicates_exact_metric_diagnostics</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_metric_diagnostics" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_metric_diagnostics">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_metric_diagnostics"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Observed versus expected diagnostics across collision metrics. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Metric, Observed vs expected, Uncertainty.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Observed versus expected diagnostics across collision metrics.</p>
+        <ul>
+            <li><strong>Metric:</strong> pairs = same-name unordered pairs; excess_rows = n - unique names; repeated_group_rows = rows in names appearing >=2 times.</li>
+            <li><strong>Observed vs expected:</strong> Each row compares observed metric value to model expectation.</li>
+            <li><strong>Uncertainty:</strong> P-values and expected quantiles use the configured baseline model/method.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
             <article class="detail-card">
               <h3 class="detail-title">Duplicates Exact Per Name Anomalies</h3>
               <p class="tiny-note"><code>duplicates_exact_per_name_anomalies</code></p>

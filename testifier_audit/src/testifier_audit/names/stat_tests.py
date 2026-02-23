@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 import pandas as pd
-from scipy.stats import fisher_exact
+from scipy.stats import binom, fisher_exact, hypergeom
 
 from testifier_audit.proportion_stats import wilson_interval
 
@@ -104,3 +104,51 @@ def fisher_pairwise_rate_test(
         "right_wilson_low": float(right_low[0]),
         "right_wilson_high": float(right_high[0]),
     }
+
+
+def binomial_tail_p_value(
+    *,
+    observed_successes: int,
+    total_trials: int,
+    success_probability: float,
+) -> float:
+    k = int(max(int(observed_successes), 0))
+    n = int(max(int(total_trials), 0))
+    p = float(min(max(success_probability, 0.0), 1.0))
+    if n <= 0:
+        return 1.0
+    if k <= 0:
+        return 1.0
+    if k > n:
+        return 0.0
+    value = float(binom.sf(k - 1, n, p))
+    if not np.isfinite(value):
+        return 1.0
+    return float(min(max(value, 0.0), 1.0))
+
+
+def hypergeometric_tail_p_value(
+    *,
+    observed_successes: int,
+    population_size: int,
+    population_successes: int,
+    sample_size: int,
+) -> float:
+    k = int(max(int(observed_successes), 0))
+    n_population = int(max(int(population_size), 0))
+    k_population = int(max(int(population_successes), 0))
+    n_sample = int(max(int(sample_size), 0))
+    if n_population <= 0 or n_sample <= 0:
+        return 1.0
+    if n_sample > n_population:
+        return 0.0
+    k_population = min(k_population, n_population)
+    max_observable = min(n_sample, k_population)
+    if k <= 0:
+        return 1.0
+    if k > max_observable:
+        return 0.0
+    value = float(hypergeom.sf(k - 1, n_population, k_population, n_sample))
+    if not np.isfinite(value):
+        return 1.0
+    return float(min(max(value, 0.0), 1.0))

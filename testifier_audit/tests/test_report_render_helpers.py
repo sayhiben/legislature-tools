@@ -449,6 +449,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "fallbackColorSemantics" in js_text
     assert "resolveColorSemanticTheme(" in js_text
     assert "semanticTokenCache" in js_text
+    assert "renderDuplicateTopNameTiming(" in js_text
     assert "volumeBarOpacity: surfaceTheme === \"dark\" ? 0.42 : 0.4" in js_text
     assert "shadowColor: theme.shadowColor" in js_text
     assert "shadowColor: \"rgba(0,0,0,0.35)\"" not in js_text
@@ -458,6 +459,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "Wilson high (tested)" in js_text
     assert "Robust lower-tail alert" in js_text
     assert "Robust upper-tail alert" in js_text
+    assert "duplicates_exact_top_name_timing" in rendered
     assert "SPC-only flag" in js_text
     assert "FDR-only flag" in js_text
     assert "simpleBarCategoricalChartIds" in js_text

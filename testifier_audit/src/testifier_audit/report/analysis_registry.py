@@ -178,8 +178,8 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         detail_chart_ids=(
             "duplicates_exact_metric_diagnostics",
             "duplicates_exact_per_name_anomalies",
+            "duplicates_exact_top_name_timing",
             "duplicates_exact_position_concentration",
-            "duplicates_exact_null_distribution",
             "duplicates_exact_temporal_burst",
             "duplicates_exact_swing_impact",
         ),

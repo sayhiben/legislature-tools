@@ -31,6 +31,95 @@ def _build_submission_frame(name_counts: dict[str, int]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _build_top_name_timing_frame() -> pd.DataFrame:
+    base = pd.Timestamp("2026-02-01 00:00:00")
+    rows = [
+        {
+            "id": 1,
+            "canonical_name": "DOE|ROBERT",
+            "name_display": "DOE, ROBERT",
+            "collision_key_medium": "DOE|ROBERT",
+            "canonical_key_nickname": "DOE|ROBERT",
+            "collision_key_loose": "DOE|B",
+            "position_normalized": "Pro",
+            "timestamp": base + pd.Timedelta(minutes=0),
+        },
+        {
+            "id": 2,
+            "canonical_name": "DOE|ROBERT",
+            "name_display": "DOE, ROBERT",
+            "collision_key_medium": "DOE|ROBERT",
+            "canonical_key_nickname": "DOE|ROBERT",
+            "collision_key_loose": "DOE|B",
+            "position_normalized": "Con",
+            "timestamp": base + pd.Timedelta(minutes=1),
+        },
+        {
+            "id": 3,
+            "canonical_name": "DOE|BOB",
+            "name_display": "DOE, BOB",
+            "collision_key_medium": "DOE|BOB",
+            "canonical_key_nickname": "DOE|ROBERT",
+            "collision_key_loose": "DOE|B",
+            "position_normalized": "Pro",
+            "timestamp": base + pd.Timedelta(minutes=2),
+        },
+        {
+            "id": 4,
+            "canonical_name": "DOE|BOB",
+            "name_display": "DOE, BOB",
+            "collision_key_medium": "DOE|BOB",
+            "canonical_key_nickname": "DOE|ROBERT",
+            "collision_key_loose": "DOE|B",
+            "position_normalized": "Con",
+            "timestamp": base + pd.Timedelta(minutes=3),
+        },
+        {
+            "id": 5,
+            "canonical_name": "DOE|BEN",
+            "name_display": "DOE, BEN",
+            "collision_key_medium": "DOE|BEN",
+            "canonical_key_nickname": "DOE|BEN",
+            "collision_key_loose": "DOE|B",
+            "position_normalized": "Pro",
+            "timestamp": base + pd.Timedelta(minutes=4),
+        },
+        {
+            "id": 6,
+            "canonical_name": "DOE|BEN",
+            "name_display": "DOE, BEN",
+            "collision_key_medium": "DOE|BEN",
+            "canonical_key_nickname": "DOE|BEN",
+            "collision_key_loose": "DOE|B",
+            "position_normalized": "Con",
+            "timestamp": base + pd.Timedelta(minutes=4, seconds=30),
+        },
+        {
+            "id": 7,
+            "canonical_name": "LEE|ALICE",
+            "name_display": "LEE, ALICE",
+            "collision_key_medium": "LEE|ALICE",
+            "canonical_key_nickname": "LEE|ALICE",
+            "collision_key_loose": "LEE|A",
+            "position_normalized": "Pro",
+            "timestamp": base + pd.Timedelta(minutes=10),
+        },
+        {
+            "id": 8,
+            "canonical_name": "LEE|ALICE",
+            "name_display": "LEE, ALICE",
+            "collision_key_medium": "LEE|ALICE",
+            "canonical_key_nickname": "LEE|ALICE",
+            "collision_key_loose": "LEE|A",
+            "position_normalized": "Con",
+            "timestamp": base + pd.Timedelta(minutes=11),
+        },
+    ]
+    frame = pd.DataFrame(rows)
+    frame["minute_bucket"] = pd.to_datetime(frame["timestamp"], errors="coerce").dt.floor("min")
+    return frame
+
+
 def test_collision_baseline_failure_policy_fail_and_degrade() -> None:
     frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 3, "BROWN|AVA": 2})
 
@@ -249,3 +338,83 @@ def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
     overview = result.tables["collision_overview"]
     matched = overview[overview["scope"] == "matched_only"].copy()
     assert not matched.empty
+
+
+def test_collision_monte_carlo_draw_budget_scales_with_bucket_size() -> None:
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        monte_carlo_draws=20_000,
+    )
+    assert detector._collision_monte_carlo_draw_budget(n_rows=0, hard_cap=250) == 0
+    assert detector._collision_monte_carlo_draw_budget(n_rows=1, hard_cap=250) == 0
+    assert detector._collision_monte_carlo_draw_budget(n_rows=2, hard_cap=250) == 64
+    assert detector._collision_monte_carlo_draw_budget(n_rows=4, hard_cap=250) == 50
+    assert detector._collision_monte_carlo_draw_budget(n_rows=100, hard_cap=250) == 125
+    assert detector._collision_monte_carlo_draw_budget(n_rows=400, hard_cap=250) == 250
+
+    budgets = [
+        detector._collision_monte_carlo_draw_budget(n_rows=n_rows, hard_cap=250)
+        for n_rows in (2, 5, 10, 20, 40, 80, 100, 200)
+    ]
+    assert budgets[1:] == sorted(budgets[1:])
+    assert all(48 <= value <= 250 for value in budgets[1:])
+
+
+def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing() -> None:
+    frame = _build_top_name_timing_frame()
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[1, 5],
+        collision_uncertainty_mode="analytic_only",
+    )
+    result = detector.run(df=frame, features={})
+    timing = result.tables["top_name_timing_by_mode"]
+
+    required = {
+        "scope",
+        "match_mode",
+        "match_label",
+        "match_definition",
+        "rank",
+        "name_key",
+        "display_name",
+        "total_repeated_rows",
+        "bucket_start",
+        "bucket_minutes",
+        "duplicate_rows",
+        "n_pro",
+        "n_con",
+        "first_seen",
+        "last_seen",
+    }
+    assert required.issubset(timing.columns)
+    assert not timing.empty
+    assert set(timing["match_mode"]) == {"exact", "medium", "loose"}
+    assert (timing["duplicate_rows"] >= 2).all()
+
+    exact_names = set(timing[timing["match_mode"] == "exact"]["name_key"])
+    medium_names = set(timing[timing["match_mode"] == "medium"]["name_key"])
+    loose_names = set(timing[timing["match_mode"] == "loose"]["name_key"])
+    assert exact_names == {"DOE|ROBERT", "DOE|BOB", "DOE|BEN", "LEE|ALICE"}
+    assert medium_names == {"DOE|ROBERT", "DOE|BEN", "LEE|ALICE"}
+    assert loose_names == {"DOE|B", "LEE|A"}
+
+    medium_top = timing[(timing["match_mode"] == "medium") & (timing["name_key"] == "DOE|ROBERT")]
+    assert int(medium_top["total_repeated_rows"].max()) == 4
+    loose_top = timing[(timing["match_mode"] == "loose") & (timing["name_key"] == "DOE|B")]
+    assert int(loose_top["total_repeated_rows"].max()) == 6
+
+    for match_mode in ("exact", "medium", "loose"):
+        mode_ranked = (
+            timing[timing["match_mode"] == match_mode][
+                ["name_key", "rank", "total_repeated_rows"]
+            ]
+            .drop_duplicates()
+            .sort_values(["rank", "name_key"])
+        )
+        assert len(mode_ranked) <= 10
+        expected_ranks = list(range(1, len(mode_ranked) + 1))
+        assert mode_ranked["rank"].astype(int).tolist() == expected_ranks
+        totals = mode_ranked["total_repeated_rows"].astype(int).tolist()
+        assert totals == sorted(totals, reverse=True)

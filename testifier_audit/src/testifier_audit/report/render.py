@@ -2727,36 +2727,54 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ),
             "items": [
                 {
-                    "label": "Bar height",
+                    "label": "Column",
                     "description": (
-                        "Count of tested windows meeting each detection channel "
-                        "(SPC 99.8% breach, two-sided FDR, union/intersection, robust alert)."
+                        "Each column is a count of tested windows for one channel label on the x-axis."
                     ),
                 },
                 {
-                    "label": "X-axis channel",
+                    "label": "Channel meaning",
                     "description": (
-                        "Channel labels are ordered from denominator context to stricter "
-                        "intersection/robust criteria."
+                        "Tested off-hours windows = denominator; Primary 99.8% breach = SPC extreme tail; "
+                        "Primary two-sided FDR-significant = multiplicity-adjusted test hits; "
+                        "Any primary flag channel = SPC OR FDR; Both primary flag channels = SPC AND FDR; "
+                        "Robust primary alerts = AND criteria plus material effect-size gate."
+                    ),
+                },
+                {
+                    "label": "Reading order",
+                    "description": (
+                        "Columns are ordered from broad denominator context to stricter overlap criteria."
                     ),
                 },
             ],
         },
         "off_hours_model_fit_diagnostics": {
-            "summary": "Model-fit coverage diagnostics by off-hours bucket size.",
+            "summary": "Model-fit availability by off-hours bucket size (counts plus fraction).",
             "items": [
                 {
-                    "label": "Bar height",
+                    "label": "Total windows (bar)",
                     "description": (
-                        "Fraction of windows in each bucket size where model-based expected "
-                        "rates were available."
+                        "Count of windows evaluated for that bucket size."
+                    ),
+                },
+                {
+                    "label": "Model-available windows (bar)",
+                    "description": (
+                        "Subset of total windows where model-based expected rates were available."
+                    ),
+                },
+                {
+                    "label": "Model-available fraction (line)",
+                    "description": (
+                        "Available windows divided by total windows for each bucket size."
                     ),
                 },
                 {
                     "label": "X-axis bucket",
                     "description": (
-                        "Bucket size in minutes; use with table diagnostics for fit method, "
-                        "row support, and convergence context."
+                        "Bucket size in minutes; combine with table diagnostics for method, support, "
+                        "convergence, and AIC context."
                     ),
                 },
             ],
@@ -2851,19 +2869,31 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             "summary": "Observed versus expected diagnostics across collision metrics.",
             "items": [
                 {
-                    "label": "Metric",
+                    "label": "Metric columns",
                     "description": (
                         "pairs = same-name unordered pairs; excess_rows = n - unique names; "
                         "repeated_group_rows = rows in names appearing >=2 times."
                     ),
                 },
                 {
-                    "label": "Observed vs expected",
-                    "description": "Each row compares observed metric value to model expectation.",
+                    "label": "Observed",
+                    "description": (
+                        "Bar height is the observed value for each metric in the selected duplicate scope."
+                    ),
                 },
                 {
-                    "label": "Uncertainty",
-                    "description": "P-values and expected quantiles use the configured baseline model/method.",
+                    "label": "Expected and quantiles",
+                    "description": (
+                        "Use tooltip/table columns `expected`, `expected_p05`, `expected_p50`, and "
+                        "`expected_p95` to compare where observed lands under the baseline."
+                    ),
+                },
+                {
+                    "label": "Significance columns",
+                    "description": (
+                        "`z_score` and `p_value` indicate standardized effect size and tail probability "
+                        "for each metric; interpret with `n_used`/`N_used` support context."
+                    ),
                 },
             ],
         },
@@ -2881,12 +2911,58 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {"label": "X-axis", "description": "Canonical/display names sorted by q then count."},
             ],
         },
+        "duplicates_exact_top_name_timing": {
+            "summary": (
+                "Top-10 duplicate names by match tier with bucketed timing concentration "
+                "(exact, nickname-root, and first-initial tiers)."
+            ),
+            "items": [
+                {
+                    "label": "Facet rows",
+                    "description": (
+                        "Three stacked facets show match tiers: exact (last+first), medium "
+                        "(last+nickname root), and loose (last+first initial)."
+                    ),
+                },
+                {
+                    "label": "Cell intensity",
+                    "description": (
+                        "Color intensity is duplicate rows for that name in the bucket. "
+                        "Darker cells indicate stronger short-window concentration."
+                    ),
+                },
+                {
+                    "label": "Y-axis order",
+                    "description": (
+                        "Names are ranked within each facet by total repeated rows "
+                        "(rank 1 = most repeated)."
+                    ),
+                },
+                {
+                    "label": "Tooltip context",
+                    "description": (
+                        "Tooltips include tier definition, rank, bucket span, Pro/Con split, "
+                        "bucket duplicate rows, and total repeated rows."
+                    ),
+                },
+            ],
+        },
         "duplicates_exact_position_concentration": {
             "summary": "Position concentration test (Pro vs Con duplicate burden).",
             "items": [
                 {
-                    "label": "Bar height",
-                    "description": "Rate difference in duplicate-row burden between compared positions.",
+                    "label": "Left/Right rate bars",
+                    "description": (
+                        "Two bars per pair show duplicate-row rate in each compared position "
+                        "(left label vs right label)."
+                    ),
+                },
+                {
+                    "label": "Pair tooltip diagnostics",
+                    "description": (
+                        "Tooltips include `rate_difference`, confidence bounds, `rate_ratio`, and "
+                        "`permutation_p_value_one_sided` for effect-size and uncertainty context."
+                    ),
                 },
                 {"label": "X-axis", "description": "Position comparison pair."},
             ],
@@ -2902,13 +2978,29 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_exact_temporal_burst": {
-            "summary": "Temporal corroboration for repeated names.",
+            "summary": "Top repeated names ranked by short-window burst intensity.",
             "items": [
                 {
-                    "label": "Bar height",
-                    "description": "Within-5-minute repeated-pair count for each repeated name.",
+                    "label": "Bar height (within_5m_pairs)",
+                    "description": (
+                        "Count of repeated same-name pairs that occur within 5 minutes "
+                        "for each name."
+                    ),
                 },
-                {"label": "X-axis", "description": "Canonical name."},
+                {
+                    "label": "Bar order",
+                    "description": (
+                        "Left-to-right order is descending `within_5m_pairs` (ties break on lower "
+                        "temporal p-values)."
+                    ),
+                },
+                {
+                    "label": "Intended use",
+                    "description": (
+                        "Shows whether duplicate pressure is temporally compressed rather than spread "
+                        "uniformly across the hearing window."
+                    ),
+                },
             ],
         },
         "duplicates_exact_swing_impact": {
@@ -2922,13 +3014,13 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_near_cluster_timeline": timebar(
-            summary="Near-duplicate cluster activity over time.",
-            primary_label="Records",
-            primary_desc="Line shows total records represented by active clusters.",
+            summary="Near-duplicate cluster activity over time at the selected bucket size.",
+            primary_label="Cluster records",
+            primary_desc="Line shows total near-duplicate records in each selected time bucket.",
             include_low_power=False,
             include_wilson=False,
-            volume_label="Cluster size",
-            volume_desc="Bar height is cluster size at cluster first-seen time.",
+            volume_label="Active clusters",
+            volume_desc="Bar height is the number of clusters active in each selected bucket.",
         ),
         "duplicates_near_cluster_size": {
             "summary": "Cluster-size distribution.",
@@ -2941,17 +3033,27 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_near_similarity": {
-            "summary": "Similarity levels among near-duplicate pairs.",
+            "summary": "Distribution of near-duplicate similarity scores (binned histogram).",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Similarity score for candidate name pairs.",
+                    "description": "Count of near-duplicate edges falling in each similarity bin.",
                 },
-                {"label": "X-axis", "description": "Left-hand name label from each pair sample."},
+                {
+                    "label": "X-axis bin",
+                    "description": "Similarity-score range (for example 90-94, 95-99).",
+                },
+                {
+                    "label": "Intended use",
+                    "description": (
+                        "Use this to judge whether the edge set is concentrated near the threshold "
+                        "or dominated by very-high-similarity pairs."
+                    ),
+                },
             ],
         },
         "duplicates_near_time_concentration": {
-            "summary": "Near-duplicate cluster time concentration.",
+            "summary": "Near-duplicate cluster time concentration for the selected bucket size.",
             "items": [
                 {
                     "label": "Bar height",
@@ -2960,7 +3062,10 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                         "for each near-duplicate cluster."
                     ),
                 },
-                {"label": "X-axis", "description": "Near-duplicate cluster identifier."},
+                {
+                    "label": "X-axis",
+                    "description": "Near-duplicate cluster identifier ranked by peak bucket share.",
+                },
             ],
         },
         "sortedness_bucket_ratio": timebar(
@@ -3129,7 +3234,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "voter_registry_unmatched_names": {
-            "summary": "Most frequent names unmatched to WA active voter file.",
+            "summary": "Top unmatched names by row count (chart shows top 10; table retains full tail).",
             "items": [
                 {
                     "label": "Bar height",
@@ -3282,6 +3387,249 @@ def _with_expected_columns(frame: pd.DataFrame, expected: list[str]) -> pd.DataF
         if column not in working.columns:
             working[column] = pd.NA
     return working
+
+
+def _build_near_duplicate_bucket_profiles(
+    concentration: pd.DataFrame,
+    *,
+    bucket_minutes: list[int] | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    timeline_expected = [
+        "bucket_start",
+        "bucket_minutes",
+        "n_records",
+        "n_clusters",
+        "n_pro",
+        "n_con",
+    ]
+    concentration_expected = [
+        "cluster_id",
+        "bucket_minutes",
+        "n_active_buckets",
+        "peak_bucket_start",
+        "peak_bucket_records",
+        "peak_bucket_fraction",
+        "concentration_hhi",
+    ]
+    if concentration.empty:
+        return (
+            _with_expected_columns(pd.DataFrame(), timeline_expected),
+            _with_expected_columns(pd.DataFrame(), concentration_expected),
+        )
+
+    working = concentration.copy()
+    working["cluster_id"] = working.get("cluster_id", pd.Series(dtype=str)).fillna("").astype(str)
+    working["minute_bucket"] = pd.to_datetime(working.get("minute_bucket"), errors="coerce")
+    working["n_records"] = pd.to_numeric(working.get("n_records"), errors="coerce").fillna(0.0)
+    working["n_pro"] = pd.to_numeric(working.get("n_pro"), errors="coerce").fillna(0.0)
+    working["n_con"] = pd.to_numeric(working.get("n_con"), errors="coerce").fillna(0.0)
+    working = working[
+        (working["cluster_id"] != "")
+        & working["minute_bucket"].notna()
+        & (working["n_records"] > 0)
+    ].copy()
+    if working.empty:
+        return (
+            _with_expected_columns(pd.DataFrame(), timeline_expected),
+            _with_expected_columns(pd.DataFrame(), concentration_expected),
+        )
+
+    windows = sorted(
+        {
+            int(value)
+            for value in (bucket_minutes or BASELINE_PROFILE_BUCKET_MINUTES)
+            if int(value) > 0
+        }
+    )
+    if not windows:
+        return (
+            _with_expected_columns(pd.DataFrame(), timeline_expected),
+            _with_expected_columns(pd.DataFrame(), concentration_expected),
+        )
+
+    timeline_frames: list[pd.DataFrame] = []
+    concentration_frames: list[pd.DataFrame] = []
+    for minutes in windows:
+        bucketed = working.copy()
+        bucketed["bucket_start"] = bucketed["minute_bucket"].dt.floor(f"{int(minutes)}min")
+        bucketed["bucket_minutes"] = int(minutes)
+
+        timeline = (
+            bucketed.groupby(["bucket_minutes", "bucket_start"], dropna=True)
+            .agg(
+                n_records=("n_records", "sum"),
+                n_clusters=("cluster_id", "nunique"),
+                n_pro=("n_pro", "sum"),
+                n_con=("n_con", "sum"),
+            )
+            .reset_index()
+            .sort_values(["bucket_minutes", "bucket_start"])
+        )
+        if not timeline.empty:
+            timeline_frames.append(timeline)
+
+        bucket_cluster = (
+            bucketed.groupby(["bucket_minutes", "cluster_id", "bucket_start"], dropna=True)
+            .agg(n_records=("n_records", "sum"))
+            .reset_index()
+        )
+        if bucket_cluster.empty:
+            continue
+        totals = (
+            bucket_cluster.groupby(["bucket_minutes", "cluster_id"], dropna=True)["n_records"]
+            .transform("sum")
+            .replace(0.0, np.nan)
+        )
+        bucket_cluster["bucket_fraction"] = (
+            pd.to_numeric(bucket_cluster["n_records"], errors="coerce") / totals
+        ).fillna(0.0)
+        peak_rows = (
+            bucket_cluster.sort_values(
+                ["bucket_minutes", "cluster_id", "bucket_fraction", "n_records", "bucket_start"],
+                ascending=[True, True, False, False, True],
+            )
+            .groupby(["bucket_minutes", "cluster_id"], as_index=False)
+            .head(1)
+            .loc[
+                :,
+                ["bucket_minutes", "cluster_id", "bucket_start", "n_records", "bucket_fraction"],
+            ]
+            .rename(
+                columns={
+                    "bucket_start": "peak_bucket_start",
+                    "n_records": "peak_bucket_records",
+                    "bucket_fraction": "peak_bucket_fraction",
+                }
+            )
+        )
+        bucket_summary = (
+            bucket_cluster.groupby(["bucket_minutes", "cluster_id"], dropna=True)
+            .agg(
+                n_active_buckets=("bucket_start", "nunique"),
+                concentration_hhi=(
+                    "bucket_fraction",
+                    lambda series: float(
+                        (
+                            pd.to_numeric(series, errors="coerce").fillna(0.0).astype(float) ** 2
+                        ).sum()
+                    ),
+                ),
+            )
+            .reset_index()
+            .merge(peak_rows, on=["bucket_minutes", "cluster_id"], how="left")
+            .sort_values(
+                ["bucket_minutes", "peak_bucket_fraction", "peak_bucket_records", "cluster_id"],
+                ascending=[True, False, False, True],
+            )
+        )
+        concentration_frames.append(bucket_summary)
+
+    timeline_combined = (
+        pd.concat(timeline_frames, ignore_index=True)
+        if timeline_frames
+        else pd.DataFrame(columns=timeline_expected)
+    )
+    if not timeline_combined.empty:
+        for column_name in ("bucket_minutes", "n_records", "n_clusters", "n_pro", "n_con"):
+            timeline_combined[column_name] = (
+                pd.to_numeric(timeline_combined[column_name], errors="coerce")
+                .fillna(0)
+                .astype(int)
+            )
+        timeline_combined = timeline_combined.sort_values(
+            ["bucket_minutes", "bucket_start"]
+        ).reset_index(drop=True)
+
+    concentration_combined = (
+        pd.concat(concentration_frames, ignore_index=True)
+        if concentration_frames
+        else pd.DataFrame(columns=concentration_expected)
+    )
+    if not concentration_combined.empty:
+        concentration_combined["bucket_minutes"] = (
+            pd.to_numeric(concentration_combined["bucket_minutes"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        concentration_combined["n_active_buckets"] = (
+            pd.to_numeric(concentration_combined["n_active_buckets"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        concentration_combined["peak_bucket_records"] = (
+            pd.to_numeric(concentration_combined["peak_bucket_records"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        concentration_combined["peak_bucket_fraction"] = (
+            pd.to_numeric(concentration_combined["peak_bucket_fraction"], errors="coerce")
+            .fillna(0.0)
+            .astype(float)
+        )
+        concentration_combined["concentration_hhi"] = (
+            pd.to_numeric(concentration_combined["concentration_hhi"], errors="coerce")
+            .fillna(0.0)
+            .astype(float)
+        )
+        concentration_combined = concentration_combined.sort_values(
+            ["bucket_minutes", "peak_bucket_fraction", "peak_bucket_records", "cluster_id"],
+            ascending=[True, False, False, True],
+        ).reset_index(drop=True)
+
+    return (
+        _with_expected_columns(timeline_combined, timeline_expected),
+        _with_expected_columns(concentration_combined, concentration_expected),
+    )
+
+
+def _build_near_duplicate_similarity_histogram(
+    edges: pd.DataFrame,
+    *,
+    bin_width: int = 5,
+) -> pd.DataFrame:
+    expected = [
+        "similarity_bin",
+        "similarity_bin_start",
+        "similarity_bin_end",
+        "n_pairs",
+        "share_pairs",
+    ]
+    if edges.empty or "similarity" not in edges.columns:
+        return _with_expected_columns(pd.DataFrame(), expected)
+
+    scores = pd.to_numeric(edges["similarity"], errors="coerce").dropna().astype(float)
+    if scores.empty:
+        return _with_expected_columns(pd.DataFrame(), expected)
+
+    width = max(1, int(bin_width))
+    min_score = int(math.floor(float(scores.min()) / width) * width)
+    max_score = int(math.ceil(float(scores.max()) / width) * width)
+    if max_score <= min_score:
+        max_score = min_score + width
+    bins = np.arange(min_score, max_score + width, width, dtype=int)
+    if len(bins) < 2:
+        bins = np.array([min_score, min_score + width], dtype=int)
+
+    histogram = pd.cut(scores, bins=bins, right=False, include_lowest=True).value_counts(sort=False)
+    total = float(len(scores))
+    rows: list[dict[str, Any]] = []
+    for interval, count in histogram.items():
+        if not isinstance(interval, pd.Interval):
+            continue
+        start = int(interval.left)
+        end = int(interval.right)
+        rows.append(
+            {
+                "similarity_bin": f"{start}-{max(start, end - 1)}",
+                "similarity_bin_start": start,
+                "similarity_bin_end": end,
+                "n_pairs": int(count),
+                "share_pairs": float(count / total) if total > 0 else 0.0,
+            }
+        )
+
+    summary = pd.DataFrame(rows).sort_values("similarity_bin_start").reset_index(drop=True)
+    return _with_expected_columns(summary, expected)
 
 
 def _build_bucketed_baseline_profiles(
@@ -4452,6 +4800,26 @@ def _build_interactive_chart_payload_v2(
         dup_exact_per_name["within_15m_pairs"] = 0
         dup_exact_per_name["temporal_p_value_within_5m"] = pd.NA
         dup_exact_per_name["temporal_p_value_min_gap"] = pd.NA
+    dup_exact_top_name_timing = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "top_name_timing_by_mode"), pd.DataFrame()),
+        [
+            "scope",
+            "match_mode",
+            "match_label",
+            "match_definition",
+            "rank",
+            "name_key",
+            "display_name",
+            "total_repeated_rows",
+            "bucket_start",
+            "bucket_minutes",
+            "duplicate_rows",
+            "n_pro",
+            "n_con",
+            "first_seen",
+            "last_seen",
+        ],
+    )
 
     dup_exact_position_tests = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "position_concentration_tests"), pd.DataFrame()),
@@ -4542,6 +4910,72 @@ def _build_interactive_chart_payload_v2(
             "peak_bucket_fraction",
             "concentration_hhi",
         ],
+    )
+    dup_near_concentration_detail = _with_expected_columns(
+        table_map.get(_table_key("duplicates_near", "cluster_time_concentration"), pd.DataFrame()),
+        [
+            "cluster_id",
+            "minute_bucket",
+            "n_records",
+            "n_pro",
+            "n_con",
+            "bucket_fraction",
+        ],
+    )
+    dup_near_bucket_timeline, dup_near_bucket_concentration = _build_near_duplicate_bucket_profiles(
+        dup_near_concentration_detail,
+        bucket_minutes=BASELINE_PROFILE_BUCKET_MINUTES,
+    )
+    if dup_near_bucket_timeline.empty and not dup_near_clusters.empty:
+        legacy_timeline = dup_near_clusters.copy()
+        legacy_timeline["bucket_start"] = pd.to_datetime(
+            legacy_timeline.get("first_seen"), errors="coerce"
+        ).dt.floor("min")
+        legacy_timeline["bucket_minutes"] = 1
+        legacy_timeline["n_clusters"] = 1
+        legacy_timeline["n_records"] = pd.to_numeric(
+            legacy_timeline.get("n_records"), errors="coerce"
+        ).fillna(0)
+        legacy_timeline["n_pro"] = pd.to_numeric(legacy_timeline.get("n_pro"), errors="coerce").fillna(
+            0
+        )
+        legacy_timeline["n_con"] = pd.to_numeric(legacy_timeline.get("n_con"), errors="coerce").fillna(
+            0
+        )
+        legacy_timeline = (
+            legacy_timeline.dropna(subset=["bucket_start"])
+            .groupby(["bucket_minutes", "bucket_start"], dropna=True)
+            .agg(
+                n_records=("n_records", "sum"),
+                n_clusters=("n_clusters", "sum"),
+                n_pro=("n_pro", "sum"),
+                n_con=("n_con", "sum"),
+            )
+            .reset_index()
+            .sort_values(["bucket_minutes", "bucket_start"])
+        )
+        dup_near_bucket_timeline = _with_expected_columns(
+            legacy_timeline,
+            ["bucket_start", "bucket_minutes", "n_records", "n_clusters", "n_pro", "n_con"],
+        )
+    if dup_near_bucket_concentration.empty and not dup_near_concentration.empty:
+        legacy_concentration = dup_near_concentration.copy()
+        legacy_concentration["bucket_minutes"] = 1
+        dup_near_bucket_concentration = _with_expected_columns(
+            legacy_concentration,
+            [
+                "cluster_id",
+                "bucket_minutes",
+                "n_active_buckets",
+                "peak_bucket_start",
+                "peak_bucket_records",
+                "peak_bucket_fraction",
+                "concentration_hhi",
+            ],
+        )
+    dup_near_similarity_hist = _build_near_duplicate_similarity_histogram(
+        dup_near_edges,
+        bin_width=5,
     )
 
     sorted_bucket = _with_expected_columns(
@@ -5762,7 +6196,30 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_within_5m",
             "temporal_p_value_min_gap",
         ],
-        max_rows=500,
+        max_rows=10,
+    )
+    charts["duplicates_exact_top_name_timing"] = _records_from_frame(
+        dup_exact_top_name_timing.sort_values(
+            ["match_mode", "rank", "bucket_minutes", "bucket_start", "name_key"]
+        ),
+        columns=[
+            "scope",
+            "match_mode",
+            "match_label",
+            "match_definition",
+            "rank",
+            "name_key",
+            "display_name",
+            "total_repeated_rows",
+            "bucket_start",
+            "bucket_minutes",
+            "duplicate_rows",
+            "n_pro",
+            "n_con",
+            "first_seen",
+            "last_seen",
+        ],
+        max_rows=100_000,
     )
     charts["duplicates_exact_position_concentration"] = _records_from_frame(
         dup_exact_position_tests.assign(
@@ -5805,8 +6262,13 @@ def _build_interactive_chart_payload_v2(
     )
     charts["duplicates_exact_temporal_burst"] = _records_from_frame(
         dup_exact_temporal_burst.sort_values(
-            ["temporal_p_value_within_5m", "temporal_p_value_min_gap", "within_5m_pairs"],
-            ascending=[True, True, False],
+            [
+                "within_5m_pairs",
+                "temporal_p_value_within_5m",
+                "temporal_p_value_min_gap",
+                "canonical_name",
+            ],
+            ascending=[False, True, True, True],
         ),
         columns=[
             "canonical_name",
@@ -5818,7 +6280,7 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_within_5m",
             "temporal_p_value_within_15m",
         ],
-        max_rows=2_000,
+        max_rows=10,
     )
     charts["duplicates_exact_swing_impact"] = _records_from_frame(
         dup_exact_swing_impact,
@@ -5836,18 +6298,16 @@ def _build_interactive_chart_payload_v2(
     charts["duplicates_exact_position_switch"] = charts["duplicates_exact_per_name_anomalies"]
 
     charts["duplicates_near_cluster_timeline"] = _records_from_frame(
-        dup_near_clusters.sort_values("first_seen"),
+        dup_near_bucket_timeline.sort_values(["bucket_minutes", "bucket_start"]),
         columns=[
-            "cluster_id",
-            "first_seen",
-            "last_seen",
-            "cluster_size",
+            "bucket_start",
+            "bucket_minutes",
+            "n_clusters",
             "n_records",
             "n_pro",
             "n_con",
-            "time_span_minutes",
         ],
-        max_rows=25_000,
+        max_rows=50_000,
     )
     if not dup_near_clusters.empty and "cluster_size" in dup_near_clusters.columns:
         cluster_size_summary = (
@@ -5865,17 +6325,24 @@ def _build_interactive_chart_payload_v2(
         max_rows=1_000,
     )
     charts["duplicates_near_similarity"] = _records_from_frame(
-        dup_near_edges.sort_values("similarity", ascending=False),
-        columns=["similarity", "left_display_name", "right_display_name", "block_key"],
-        max_rows=5_000,
+        dup_near_similarity_hist.sort_values("similarity_bin_start"),
+        columns=[
+            "similarity_bin",
+            "similarity_bin_start",
+            "similarity_bin_end",
+            "n_pairs",
+            "share_pairs",
+        ],
+        max_rows=200,
     )
     charts["duplicates_near_time_concentration"] = _records_from_frame(
-        dup_near_concentration.sort_values(
-            ["peak_bucket_fraction", "peak_bucket_records"],
-            ascending=[False, False],
+        dup_near_bucket_concentration.sort_values(
+            ["bucket_minutes", "peak_bucket_fraction", "peak_bucket_records"],
+            ascending=[True, False, False],
         ),
         columns=[
             "cluster_id",
+            "bucket_minutes",
             "n_active_buckets",
             "peak_bucket_start",
             "peak_bucket_records",
@@ -6100,7 +6567,7 @@ def _build_interactive_chart_payload_v2(
             "best_similarity_score",
             "candidate_pool_size",
         ],
-        max_rows=1_000,
+        max_rows=10,
     )
     charts["voter_registry_pairwise_tests"] = _records_from_frame(
         voter_pairwise.assign(
@@ -6338,7 +6805,10 @@ def _build_interactive_chart_payload_v2(
         "changepoints": [],
         "off_hours": _extract_bucket_options(off_hours_window_control),
         "duplicates_exact": _extract_bucket_options(dup_exact_bucket),
-        "duplicates_near": [],
+        "duplicates_near": _extract_bucket_options(
+            dup_near_bucket_timeline,
+            dup_near_bucket_concentration,
+        ),
         "sortedness": _extract_bucket_options(sorted_bucket, sorted_summary),
         "rare_names": _extract_bucket_options(rare_unique_ratio, rare_rarity),
         "org_anomalies": _extract_bucket_options(org_blank_rates, org_position_rates),

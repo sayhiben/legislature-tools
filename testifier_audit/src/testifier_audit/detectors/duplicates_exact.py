@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from hashlib import sha1
 from pathlib import Path
 from typing import Literal
@@ -43,6 +44,26 @@ _KEY_TO_COLUMN = {
 }
 _MATCHED_OUTCOMES = {"matched_unique", "matched_ambiguous"}
 _ALLOWED_STRATIFICATIONS = {"none", "birth_decade"}
+_TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
+    {
+        "match_mode": "exact",
+        "key_column": "collision_key_medium",
+        "match_label": "Exact (last + first)",
+        "match_definition": "Exact match on last-name and first-name tokens.",
+    },
+    {
+        "match_mode": "medium",
+        "key_column": "canonical_key_nickname",
+        "match_label": "Medium (last + nickname root)",
+        "match_definition": "Matches last-name with nickname-root first-name normalization.",
+    },
+    {
+        "match_mode": "loose",
+        "key_column": "collision_key_loose",
+        "match_label": "Loose (last + first initial)",
+        "match_definition": "Matches last-name with first-name initial only.",
+    },
+)
 
 
 def _safe_str_series(series: pd.Series) -> pd.Series:
@@ -177,6 +198,17 @@ class DuplicatesExactDetector(Detector):
         counts = np.bincount(valid_subset_ids, minlength=n_keys)
         duplicate_rows = int(counts[counts >= 2].sum())
         return duplicate_rows, int(valid_subset_ids.size)
+
+    def _collision_monte_carlo_draw_budget(self, *, n_rows: int, hard_cap: int) -> int:
+        requested = int(min(max(int(self.monte_carlo_draws), 0), max(int(hard_cap), 0)))
+        n = int(max(int(n_rows), 0))
+        if requested <= 0 or n <= 1:
+            return 0
+        if n <= 3:
+            return int(min(requested, 64))
+        scale = min(1.0, max(0.20, math.sqrt(float(n) / 400.0)))
+        budget = int(round(float(requested) * scale))
+        return int(min(requested, max(48, budget)))
 
     def _resolved_collision_key_column(self, frame: pd.DataFrame) -> str:
         configured = _KEY_TO_COLUMN.get(self.collision_key_mode, "canonical_key_strict")
@@ -799,6 +831,7 @@ class DuplicatesExactDetector(Detector):
         per_name_tests_frames: list[pd.DataFrame] = []
         per_name_display_frames: list[pd.DataFrame] = []
         temporal_frames: list[pd.DataFrame] = []
+        top_name_timing_frames: list[pd.DataFrame] = []
         stratified_sensitivity_frames: list[pd.DataFrame] = []
         legacy_null_distribution = pd.DataFrame()
         legacy_duplicate_by_bucket = pd.DataFrame()
@@ -865,6 +898,104 @@ class DuplicatesExactDetector(Detector):
             scope_frame = scope_frames.get(scope, pd.DataFrame(columns=infer.columns)).copy()
             scope_frame[key_column] = _safe_str_series(scope_frame.get(key_column, pd.Series(dtype=str)))
             scope_frame = scope_frame[scope_frame[key_column] != ""].copy()
+
+            scope_top_name_timing: list[pd.DataFrame] = []
+            for mode_spec in _TOP_NAME_TIMING_MATCH_MODES:
+                mode_key_column = str(mode_spec.get("key_column", "")).strip()
+                if not mode_key_column or mode_key_column not in scope_frame.columns:
+                    continue
+                mode_frame = scope_frame.copy()
+                mode_frame["name_key"] = _safe_str_series(mode_frame[mode_key_column])
+                mode_frame = mode_frame[mode_frame["name_key"] != ""].copy()
+                if mode_frame.empty:
+                    continue
+                mode_frame["display_name_mode"] = _safe_str_series(
+                    mode_frame.get("name_display", mode_frame["name_key"])
+                )
+
+                mode_totals = (
+                    mode_frame.groupby("name_key", dropna=False)
+                    .agg(
+                        total_repeated_rows=("id", "count"),
+                        display_name=("display_name_mode", "first"),
+                    )
+                    .reset_index()
+                )
+                mode_totals = mode_totals[mode_totals["total_repeated_rows"] >= 2].copy()
+                if mode_totals.empty:
+                    continue
+                mode_totals = mode_totals.sort_values(
+                    ["total_repeated_rows", "display_name", "name_key"],
+                    ascending=[False, True, True],
+                ).head(10)
+                mode_totals = mode_totals.reset_index(drop=True)
+                mode_totals["rank"] = mode_totals.index.astype(int) + 1
+
+                top_keys = set(mode_totals["name_key"].astype(str).tolist())
+                if not top_keys:
+                    continue
+                mode_top = mode_frame[mode_frame["name_key"].isin(top_keys)].copy()
+                for bucket_minutes in self.bucket_minutes:
+                    bucket_start = pd.to_datetime(mode_top["minute_bucket"], errors="coerce").dt.floor(
+                        f"{int(bucket_minutes)}min"
+                    )
+                    mode_bucketed = mode_top.assign(bucket_start=bucket_start).dropna(
+                        subset=["bucket_start"]
+                    )
+                    if mode_bucketed.empty:
+                        continue
+
+                    bucket_counts = (
+                        mode_bucketed.groupby(["name_key", "bucket_start"], dropna=False)
+                        .agg(
+                            duplicate_rows=("id", "count"),
+                            n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
+                            n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                            first_seen=("timestamp", "min"),
+                            last_seen=("timestamp", "max"),
+                        )
+                        .reset_index()
+                    )
+                    bucket_counts = bucket_counts[bucket_counts["duplicate_rows"] >= 2].copy()
+                    if bucket_counts.empty:
+                        continue
+
+                    merged = bucket_counts.merge(
+                        mode_totals[["name_key", "display_name", "total_repeated_rows", "rank"]],
+                        on="name_key",
+                        how="inner",
+                    )
+                    if merged.empty:
+                        continue
+                    merged["scope"] = scope
+                    merged["match_mode"] = str(mode_spec.get("match_mode", ""))
+                    merged["match_label"] = str(mode_spec.get("match_label", ""))
+                    merged["match_definition"] = str(mode_spec.get("match_definition", ""))
+                    merged["bucket_minutes"] = int(bucket_minutes)
+                    scope_top_name_timing.append(
+                        merged[
+                            [
+                                "scope",
+                                "match_mode",
+                                "match_label",
+                                "match_definition",
+                                "rank",
+                                "name_key",
+                                "display_name",
+                                "total_repeated_rows",
+                                "bucket_start",
+                                "bucket_minutes",
+                                "duplicate_rows",
+                                "n_pro",
+                                "n_con",
+                                "first_seen",
+                                "last_seen",
+                            ]
+                        ].copy()
+                    )
+            if scope_top_name_timing:
+                top_name_timing_frames.append(pd.concat(scope_top_name_timing, ignore_index=True))
+
             grouped = (
                 scope_frame.groupby(key_column, dropna=False)
                 .agg(
@@ -959,6 +1090,10 @@ class DuplicatesExactDetector(Detector):
                 expected_metrics = expected_metrics_unstratified
 
             if self.collision_uncertainty_mode == "monte_carlo":
+                scope_max_draws = self._collision_monte_carlo_draw_budget(
+                    n_rows=n_scope,
+                    hard_cap=1000,
+                )
                 if (
                     effective_scope_stratification != "none"
                     and not stratified_probabilities.empty
@@ -976,7 +1111,7 @@ class DuplicatesExactDetector(Detector):
                             stratum_weights=stratified_sampling_weights,
                             stratum_keys=stratified_sampling_keys,
                             stratum_probabilities=stratified_sampling_probabilities,
-                            max_draws=min(self.monte_carlo_draws, 1000),
+                            max_draws=scope_max_draws,
                         )
                     else:
                         if stratified_null_histogram.empty:
@@ -991,7 +1126,7 @@ class DuplicatesExactDetector(Detector):
                             rng=rng,
                             baseline_model="multinomial",
                             n_population=n_population if n_population > 0 else None,
-                            max_draws=min(self.monte_carlo_draws, 1000),
+                            max_draws=scope_max_draws,
                         )
                 else:
                     null_samples = simulate_collision_null_from_histogram(
@@ -1001,7 +1136,7 @@ class DuplicatesExactDetector(Detector):
                         rng=rng,
                         baseline_model=self.collision_baseline_model,
                         n_population=n_population if n_population > 0 else None,
-                        max_draws=min(self.monte_carlo_draws, 1000),
+                        max_draws=scope_max_draws,
                     )
             else:
                 null_samples = pd.DataFrame()
@@ -1177,6 +1312,10 @@ class DuplicatesExactDetector(Detector):
                     metric_values = collision_metrics_from_counts(group_counts)
                     n_bucket = int(len(group_frame))
                     if n_bucket not in metric_summary_by_n:
+                        bucket_max_draws = self._collision_monte_carlo_draw_budget(
+                            n_rows=n_bucket,
+                            hard_cap=250,
+                        )
                         if effective_scope_stratification != "none" and not stratified_probabilities.empty:
                             if self.collision_baseline_model == "multinomial":
                                 expected_for_n = expected_collision_metrics_from_probabilities(
@@ -1211,7 +1350,7 @@ class DuplicatesExactDetector(Detector):
                                         stratum_weights=stratified_sampling_weights,
                                         stratum_keys=stratified_sampling_keys,
                                         stratum_probabilities=stratified_sampling_probabilities,
-                                        max_draws=min(self.monte_carlo_draws, 250),
+                                        max_draws=bucket_max_draws,
                                     )
                                 else:
                                     null_for_n = simulate_collision_null_from_histogram(
@@ -1228,7 +1367,7 @@ class DuplicatesExactDetector(Detector):
                                         rng=rng,
                                         baseline_model="multinomial",
                                         n_population=n_population if n_population > 0 else None,
-                                        max_draws=min(self.monte_carlo_draws, 250),
+                                        max_draws=bucket_max_draws,
                                     )
                             else:
                                 null_for_n = pd.DataFrame()
@@ -1247,7 +1386,7 @@ class DuplicatesExactDetector(Detector):
                                     rng=rng,
                                     baseline_model=self.collision_baseline_model,
                                     n_population=n_population if n_population > 0 else None,
-                                    max_draws=min(self.monte_carlo_draws, 250),
+                                    max_draws=bucket_max_draws,
                                 )
                                 if self.collision_uncertainty_mode == "monte_carlo"
                                 else pd.DataFrame()
@@ -1578,6 +1717,13 @@ class DuplicatesExactDetector(Detector):
             if temporal_frames
             else pd.DataFrame()
         )
+        top_name_timing_by_mode = (
+            pd.concat(top_name_timing_frames, ignore_index=True).sort_values(
+                ["scope", "match_mode", "rank", "bucket_minutes", "bucket_start", "name_key"]
+            )
+            if top_name_timing_frames
+            else pd.DataFrame()
+        )
 
         primary_scope_overview = collision_overview[
             collision_overview["scope"] == self.collision_scope_primary
@@ -1619,6 +1765,7 @@ class DuplicatesExactDetector(Detector):
                 "per_name_tests": per_name_tests,
                 "per_name_display": per_name_display,
                 "temporal_burst_signals": temporal_burst,
+                "top_name_timing_by_mode": top_name_timing_by_mode,
                 # Legacy compatibility tables retained while render contracts migrate.
                 "duplicate_metrics_overview": legacy_overview,
                 "duplicate_by_bucket": legacy_duplicate_by_bucket,

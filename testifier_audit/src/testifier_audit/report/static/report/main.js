@@ -4928,6 +4928,278 @@
     return true;
   }
 
+  function renderDuplicatePositionConcentration(mount, rows) {
+    const theme = currentChartTheme();
+    const subset = rows
+      .map((row) => {
+        const fallbackLabel =
+          String(row.position_left || "").trim() + " vs " + String(row.position_right || "").trim();
+        const pairLabel =
+          row.pair_label !== undefined && row.pair_label !== null && String(row.pair_label).trim()
+            ? String(row.pair_label)
+            : fallbackLabel.trim();
+        const leftRate = toFiniteNumberOrNull(row.left_duplicate_row_rate);
+        const rightRate = toFiniteNumberOrNull(row.right_duplicate_row_rate);
+        const rateDifference = toFiniteNumberOrNull(row.rate_difference);
+        if (!pairLabel || (leftRate === null && rightRate === null && rateDifference === null)) {
+          return null;
+        }
+        return {
+          raw: row,
+          pairLabel: pairLabel,
+          leftPosition: String(row.position_left || "left"),
+          rightPosition: String(row.position_right || "right"),
+          leftRate: leftRate,
+          rightRate: rightRate,
+          rateDifference: rateDifference,
+          absDifference: Math.abs(rateDifference !== null ? rateDifference : 0),
+        };
+      })
+      .filter((row) => row !== null)
+      .sort((left, right) => right.absDifference - left.absDifference)
+      .slice(0, 10);
+    if (!subset.length) {
+      return false;
+    }
+
+    const bucketLabel = bucketLabelFromValue(mount.activeBucket);
+    const rateValues = subset
+      .flatMap((row) => [row.leftRate, row.rightRate])
+      .filter((value) => value !== null);
+    const boundedRates =
+      rateValues.length && rateValues.every((value) => value >= 0 && value <= 1);
+    const leftSeriesName = "Left position rate";
+    const rightSeriesName = "Right position rate";
+
+    const option = {
+      animation: false,
+      legend: {
+        top: 0,
+        data: [leftSeriesName, rightSeriesName],
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          if (!entries.length) {
+            return "";
+          }
+          const dataIndex = Number(toNumber(entries[0].dataIndex || 0));
+          const row = subset[Math.max(0, Math.min(subset.length - 1, dataIndex))];
+          const lines = ["<strong>Pair:</strong> " + escapeHtml(row.pairLabel)];
+          if (bucketLabel) {
+            lines.push("<strong>Bucket:</strong> " + bucketLabel);
+          }
+          lines.push(
+            "<strong>" +
+              escapeHtml(row.leftPosition) +
+              " rate:</strong> " +
+              formatTooltipValue(row.leftRate)
+          );
+          lines.push(
+            "<strong>" +
+              escapeHtml(row.rightPosition) +
+              " rate:</strong> " +
+              formatTooltipValue(row.rightRate)
+          );
+          if (row.rateDifference !== null) {
+            lines.push(
+              "<strong>Rate difference (left - right):</strong> " +
+                formatTooltipValue(row.rateDifference)
+            );
+          }
+          const ciLow = toFiniteNumberOrNull(row.raw.rate_difference_ci_low);
+          const ciHigh = toFiniteNumberOrNull(row.raw.rate_difference_ci_high);
+          if (ciLow !== null || ciHigh !== null) {
+            lines.push(
+              "<strong>Rate difference CI:</strong> [" +
+                formatTooltipValue(ciLow) +
+                ", " +
+                formatTooltipValue(ciHigh) +
+                "]"
+            );
+          }
+          const rateRatio = toFiniteNumberOrNull(row.raw.rate_ratio);
+          if (rateRatio !== null) {
+            lines.push("<strong>Rate ratio:</strong> " + formatTooltipValue(rateRatio));
+          }
+          const permP = toFiniteNumberOrNull(row.raw.permutation_p_value_one_sided);
+          if (permP !== null) {
+            lines.push("<strong>Permutation p (one-sided):</strong> " + formatTooltipValue(permP));
+          }
+          return lines.join("<br/>");
+        },
+      },
+      grid: { left: 64, right: 24, top: 48, bottom: 88 },
+      xAxis: {
+        type: "category",
+        name: "Position comparison pair",
+        data: subset.map((row) => row.pairLabel),
+        axisLabel: { interval: 0, rotate: 30, color: theme.axisText },
+      },
+      yAxis: {
+        type: "value",
+        name: boundedRates ? "Duplicate row rate" : "Duplicate burden rate",
+        axisLabel: { color: theme.axisText },
+        min: boundedRates ? 0 : null,
+        max: boundedRates ? 1 : null,
+      },
+      series: [
+        {
+          name: leftSeriesName,
+          type: "bar",
+          data: subset.map((row) => row.leftRate),
+          itemStyle: { color: theme.alertLower, opacity: 0.86 },
+        },
+        {
+          name: rightSeriesName,
+          type: "bar",
+          data: subset.map((row) => row.rightRate),
+          itemStyle: { color: theme.alertUpper, opacity: 0.82 },
+        },
+      ],
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
+  function renderOffHoursModelFitDiagnostics(mount, rows) {
+    const theme = currentChartTheme();
+    const subset = rows
+      .map((row) => {
+        const bucketMinutes = toFiniteNumberOrNull(row.bucket_minutes);
+        const totalRaw = toFiniteNumberOrNull(row.model_fit_window_count);
+        const availableRaw = toFiniteNumberOrNull(row.model_fit_available_windows);
+        const fractionRaw = toFiniteNumberOrNull(row.model_fit_available_fraction);
+        if (
+          bucketMinutes === null ||
+          (totalRaw === null && availableRaw === null && fractionRaw === null)
+        ) {
+          return null;
+        }
+        return {
+          raw: row,
+          bucketMinutes: bucketMinutes,
+          totalRaw: totalRaw,
+          availableRaw: availableRaw,
+          fractionRaw: fractionRaw,
+          totalCount: totalRaw === null ? 0 : totalRaw,
+          availableCount: availableRaw === null ? 0 : availableRaw,
+        };
+      })
+      .filter((row) => row !== null)
+      .sort((left, right) => left.bucketMinutes - right.bucketMinutes)
+      .slice(0, 24);
+    if (!subset.length) {
+      return false;
+    }
+
+    const categories = subset.map((row) => String(Math.round(row.bucketMinutes)) + "m");
+    const hasFractionSeries = subset.some((row) => row.fractionRaw !== null);
+    const lineSeriesName = "Model-available fraction";
+    const series = [
+      {
+        name: "Total windows",
+        type: "bar",
+        yAxisIndex: 0,
+        data: subset.map((row) => row.totalCount),
+        itemStyle: { color: theme.volumeBar, opacity: 0.64 },
+      },
+      {
+        name: "Model-available windows",
+        type: "bar",
+        yAxisIndex: 0,
+        data: subset.map((row) => row.availableCount),
+        itemStyle: { color: theme.barAccent, opacity: 0.86 },
+      },
+    ];
+    if (hasFractionSeries) {
+      series.push({
+        name: lineSeriesName,
+        type: "line",
+        yAxisIndex: 1,
+        data: subset.map((row) => row.fractionRaw),
+        showSymbol: true,
+        symbolSize: 6,
+        lineStyle: { color: theme.primaryLine, width: 1.8, opacity: 0.9 },
+        itemStyle: { color: theme.primaryLine },
+      });
+    }
+
+    const option = {
+      animation: false,
+      legend: {
+        top: 0,
+        data: series.map((entry) => entry.name),
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          if (!entries.length) {
+            return "";
+          }
+          const dataIndex = Number(toNumber(entries[0].dataIndex || 0));
+          const row = subset[Math.max(0, Math.min(subset.length - 1, dataIndex))];
+          const lines = ["<strong>Bucket:</strong> " + escapeHtml(categories[dataIndex] || "")];
+          lines.push(
+            "<strong>Total windows:</strong> " + formatTooltipValue(row.totalRaw)
+          );
+          lines.push(
+            "<strong>Model-available windows:</strong> " + formatTooltipValue(row.availableRaw)
+          );
+          lines.push(
+            "<strong>Model-available fraction:</strong> " + formatTooltipValue(row.fractionRaw)
+          );
+          const method = String(row.raw.model_fit_method || "").trim();
+          if (method) {
+            lines.push("<strong>Model fit method:</strong> " + escapeHtml(method));
+          }
+          const converged = toFiniteNumberOrNull(row.raw.model_fit_converged);
+          if (converged !== null) {
+            lines.push("<strong>Model converged:</strong> " + (converged > 0 ? "yes" : "no"));
+          }
+          return lines.join("<br/>");
+        },
+      },
+      grid: { left: 64, right: 66, top: 54, bottom: 84 },
+      xAxis: {
+        type: "category",
+        name: "Bucket (minutes)",
+        data: categories,
+        axisLabel: { interval: 0, rotate: 0, color: theme.axisText },
+      },
+      yAxis: [
+        {
+          type: "value",
+          name: "Window count",
+          min: 0,
+          axisLabel: { color: theme.axisText },
+        },
+        {
+          type: "value",
+          name: "Available fraction",
+          min: 0,
+          max: 1,
+          axisLabel: {
+            color: theme.axisText,
+            formatter: (value) => formatPercent(value),
+          },
+          splitLine: { show: false },
+        },
+      ],
+      series: series,
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
   function renderScatter(mount, rows, xField, yField, colorField, sizeField) {
     const theme = currentChartTheme();
     const subset = rows
@@ -5043,6 +5315,307 @@
     return true;
   }
 
+  function renderDuplicateTopNameTiming(mount, rows) {
+    const theme = currentChartTheme();
+    const facetDefinitions = [
+      {
+        mode: "exact",
+        label: "Exact (last + first)",
+        fallbackDefinition: "Exact match on last-name and first-name tokens.",
+      },
+      {
+        mode: "medium",
+        label: "Medium (last + nickname root)",
+        fallbackDefinition:
+          "Matches last-name with nickname-root first-name normalization.",
+      },
+      {
+        mode: "loose",
+        label: "Loose (last + first initial)",
+        fallbackDefinition: "Matches last-name with first-name initial only.",
+      },
+    ];
+
+    const normalizeMode = (value) => String(value || "").trim().toLowerCase();
+    const byMode = new Map();
+    facetDefinitions.forEach((facet) => {
+      byMode.set(facet.mode, []);
+    });
+    rows.forEach((row) => {
+      const mode = normalizeMode(row.match_mode);
+      if (byMode.has(mode)) {
+        byMode.get(mode).push(row);
+      }
+    });
+
+    const facets = facetDefinitions
+      .map((facet) => {
+        const subset = byMode.get(facet.mode) || [];
+        if (!subset.length) {
+          return null;
+        }
+        const keyedNames = new Map();
+        subset.forEach((row) => {
+          const nameKey = String(row.name_key || "").trim();
+          if (!nameKey) {
+            return;
+          }
+          const rank = toFiniteNumberOrNull(row.rank);
+          const numericRank = rank === null ? Number.POSITIVE_INFINITY : Math.round(rank);
+          const displayName = String(row.display_name || row.name_key || "").trim();
+          const existing = keyedNames.get(nameKey);
+          if (
+            !existing ||
+            numericRank < existing.rank ||
+            (numericRank === existing.rank && displayName.localeCompare(existing.displayName) < 0)
+          ) {
+            keyedNames.set(nameKey, {
+              key: nameKey,
+              rank: numericRank,
+              displayName: displayName,
+              totalRepeatedRows: toFiniteNumberOrNull(row.total_repeated_rows),
+            });
+          }
+        });
+        const names = Array.from(keyedNames.values())
+          .sort((left, right) => {
+            const rankDelta = left.rank - right.rank;
+            if (rankDelta !== 0) {
+              return rankDelta;
+            }
+            return left.displayName.localeCompare(right.displayName);
+          })
+          .slice(0, 10);
+        if (!names.length) {
+          return null;
+        }
+        const labelByKey = new Map(
+          names.map((entry) => [
+            entry.key,
+            Number.isFinite(entry.rank)
+              ? String(entry.rank) + ". " + entry.displayName
+              : entry.displayName,
+          ])
+        );
+        const yCategories = names.map((entry) => labelByKey.get(entry.key) || entry.displayName);
+
+        const data = subset
+          .map((row) => {
+            const key = String(row.name_key || "").trim();
+            if (!labelByKey.has(key)) {
+              return null;
+            }
+            const timestamp = toEpochMillis(row.bucket_start);
+            const duplicateRows = toFiniteNumberOrNull(row.duplicate_rows);
+            if (timestamp === null || duplicateRows === null) {
+              return null;
+            }
+            return {
+              value: [timestamp, labelByKey.get(key), duplicateRows],
+              name_key: key,
+              display_name: String(row.display_name || key),
+              rank: toFiniteNumberOrNull(row.rank),
+              total_repeated_rows: toFiniteNumberOrNull(row.total_repeated_rows),
+              bucket_minutes: toFiniteNumberOrNull(row.bucket_minutes),
+              duplicate_rows: duplicateRows,
+              n_pro: toFiniteNumberOrNull(row.n_pro),
+              n_con: toFiniteNumberOrNull(row.n_con),
+              match_label: String(row.match_label || facet.label),
+              match_definition: String(
+                row.match_definition || facet.fallbackDefinition || ""
+              ),
+            };
+          })
+          .filter((value) => value !== null);
+        if (!data.length) {
+          return null;
+        }
+
+        return {
+          mode: facet.mode,
+          label: facet.label,
+          definition: String(
+            (subset[0] && subset[0].match_definition) || facet.fallbackDefinition || ""
+          ),
+          data: data,
+          yCategories: yCategories,
+        };
+      })
+      .filter((facet) => facet !== null);
+
+    if (!facets.length) {
+      return false;
+    }
+
+    const allValues = facets.flatMap((facet) =>
+      facet.data.map((entry) => toNumber(entry.value[2]))
+    );
+    const minValue = allValues.length ? Math.min(...allValues) : 0;
+    const maxRaw = allValues.length ? Math.max(...allValues) : 1;
+    const maxValue = maxRaw > minValue ? maxRaw : minValue + 1;
+
+    const facetCount = facets.length;
+    const topStart = 9;
+    const gap = 4;
+    const bottomLimit = 92;
+    const usable = bottomLimit - topStart - gap * (facetCount - 1);
+    const facetHeight = Math.max(14, usable / facetCount);
+
+    const grids = [];
+    const xAxes = [];
+    const yAxes = [];
+    const series = [];
+    const titles = [];
+    facets.forEach((facet, index) => {
+      const facetTop = topStart + index * (facetHeight + gap);
+      grids.push({
+        left: 198,
+        right: 36,
+        top: String(facetTop) + "%",
+        height: String(facetHeight) + "%",
+      });
+      titles.push({
+        text: facet.label,
+        left: 198,
+        top: String(Math.max(0, facetTop - 4)) + "%",
+        textStyle: {
+          fontSize: 12,
+          fontWeight: 700,
+          color: theme.axisName,
+        },
+      });
+      xAxes.push({
+        type: "time",
+        gridIndex: index,
+        axisLabel: {
+          show: index === facetCount - 1,
+          color: theme.axisText,
+          formatter: (value) => formatEpochMillis(value),
+        },
+        axisLine: { lineStyle: { color: theme.axisLine } },
+        splitLine: { show: false },
+        name: index === facetCount - 1 ? "Time (" + reportTimezoneLabel + ")" : "",
+        nameLocation: "middle",
+        nameGap: 52,
+        nameTextStyle: { color: theme.axisName, fontWeight: 600 },
+      });
+      yAxes.push({
+        type: "category",
+        gridIndex: index,
+        data: facet.yCategories,
+        inverse: true,
+        axisLabel: {
+          color: theme.axisText,
+          formatter: (value) => {
+            const text = String(value || "");
+            return text.length > 34 ? text.slice(0, 31) + "..." : text;
+          },
+        },
+        axisLine: { lineStyle: { color: theme.axisLine } },
+        axisTick: { show: false },
+      });
+      series.push({
+        name: facet.label,
+        type: "heatmap",
+        xAxisIndex: index,
+        yAxisIndex: index,
+        data: facet.data,
+        progressive: 0,
+        itemStyle: {
+          borderColor: theme.gridLine,
+          borderWidth: 0.6,
+        },
+        emphasis: {
+          itemStyle: {
+            borderColor: theme.axisName,
+            borderWidth: 1.0,
+          },
+        },
+      });
+    });
+
+    const option = {
+      animation: false,
+      title: titles,
+      grid: grids,
+      xAxis: xAxes,
+      yAxis: yAxes,
+      visualMap: {
+        min: minValue,
+        max: maxValue,
+        calculable: true,
+        orient: "horizontal",
+        left: "center",
+        bottom: 10,
+        text: ["Duplicate rows", ""],
+        textStyle: { color: theme.axisText },
+        inRange: { color: theme.heatmapVolume },
+      },
+      tooltip: {
+        trigger: "item",
+        appendToBody: true,
+        confine: false,
+        formatter: (params) => {
+          const raw = params && typeof params.data === "object" ? params.data : {};
+          const value = Array.isArray(params.value) ? params.value : [];
+          const timestamp = toFiniteNumberOrNull(value[0]);
+          const rank = toFiniteNumberOrNull(raw.rank);
+          const duplicateRows = toFiniteNumberOrNull(raw.duplicate_rows);
+          const totalRepeatedRows = toFiniteNumberOrNull(raw.total_repeated_rows);
+          const bucketMinutes = toFiniteNumberOrNull(raw.bucket_minutes);
+          const nPro = toFiniteNumberOrNull(raw.n_pro);
+          const nCon = toFiniteNumberOrNull(raw.n_con);
+          const definition = String(raw.match_definition || "").trim();
+          const bucketEnd =
+            timestamp !== null && bucketMinutes !== null
+              ? formatEpochMillis(timestamp + Math.max(1, Math.round(bucketMinutes)) * 60 * 1000 - 1)
+              : "";
+          const lines = [
+            "<strong>" + escapeHtml(String(raw.match_label || params.seriesName || "")) + "</strong>",
+            "<strong>Name:</strong> " + escapeHtml(String(raw.display_name || raw.name_key || "")),
+          ];
+          if (rank !== null) {
+            lines.push("<strong>Rank:</strong> " + Number(rank).toLocaleString());
+          }
+          if (timestamp !== null) {
+            lines.push("<strong>Bucket:</strong> " + formatEpochMillis(timestamp));
+            if (bucketEnd) {
+              lines.push("<strong>Bucket end:</strong> " + bucketEnd);
+            }
+          }
+          if (duplicateRows !== null) {
+            lines.push(
+              "<strong>Duplicate rows (bucket):</strong> " + Number(duplicateRows).toLocaleString()
+            );
+          }
+          if (totalRepeatedRows !== null) {
+            lines.push(
+              "<strong>Total repeated rows (name):</strong> " + Number(totalRepeatedRows).toLocaleString()
+            );
+          }
+          if (nPro !== null || nCon !== null) {
+            lines.push(
+              "<strong>Pro/Con:</strong> " +
+                Number(nPro || 0).toLocaleString() +
+                "/" +
+                Number(nCon || 0).toLocaleString()
+            );
+          }
+          if (definition) {
+            lines.push("<strong>Tier definition:</strong> " + escapeHtml(definition));
+          }
+          return lines.join("<br/>");
+        },
+      },
+      series: series,
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
   function renderAutoChart(mount, rows) {
     if (!rows.length) {
       return false;
@@ -5101,13 +5674,7 @@
       );
     }
     if (mount.chartId === "off_hours_model_fit_diagnostics") {
-      return renderSimpleBar(
-        mount,
-        rows,
-        "bucket_minutes",
-        "model_fit_available_fraction",
-        "Model-available fraction"
-      );
+      return renderOffHoursModelFitDiagnostics(mount, rows);
     }
 
     const timeOverrides = {
@@ -5252,11 +5819,11 @@
         barAxisName: "Total rows",
       },
       duplicates_near_cluster_timeline: {
-        timeField: "first_seen",
-        barField: "cluster_size",
+        timeField: "bucket_start",
+        barField: "n_clusters",
         lineField: "n_records",
-        lineAxisName: "Records",
-        barAxisName: "Cluster size",
+        lineAxisName: "Near-duplicate records",
+        barAxisName: "Active clusters",
       },
       sortedness_bucket_ratio: {
         timeField: "bucket_start",
@@ -5333,7 +5900,7 @@
       return renderScatter(mount, rows, "n_total", "anomaly_score", "anomaly_score_percentile", "n_total");
     }
     if (mount.chartId === "duplicates_near_similarity") {
-      return renderSimpleBar(mount, rows, "left_display_name", "similarity", "similarity");
+      return renderSimpleBar(mount, rows, "similarity_bin", "n_pairs", "pair count");
     }
     if (mount.chartId === "composite_evidence_flags") {
       return renderSimpleBar(mount, rows, "flag", "count", "count");
@@ -5389,6 +5956,9 @@
     if (mount.chartId === "duplicates_exact_per_name_anomalies") {
       return renderSimpleBar(mount, rows, "display_name", "n", "repeat count");
     }
+    if (mount.chartId === "duplicates_exact_top_name_timing") {
+      return renderDuplicateTopNameTiming(mount, rows);
+    }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
       return renderSimpleBar(mount, rows, "metric", "observed", "observed");
     }
@@ -5396,8 +5966,7 @@
       return renderSimpleBar(mount, rows, "display_name", "n", "count");
     }
     if (mount.chartId === "duplicates_exact_position_concentration") {
-      const xField = rows.length && rows[0].pair_label !== undefined ? "pair_label" : "position_left";
-      return renderSimpleBar(mount, rows, xField, "rate_difference", "rate difference");
+      return renderDuplicatePositionConcentration(mount, rows);
     }
     if (mount.chartId === "duplicates_exact_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "duplicate_rows", "duplicate rows");
@@ -6441,6 +7010,12 @@
     const windowQueue = Array.isArray(view.window_evidence_queue) ? view.window_evidence_queue : [];
     const recordQueue = Array.isArray(view.record_evidence_queue) ? view.record_evidence_queue : [];
     const clusterQueue = Array.isArray(view.cluster_evidence_queue) ? view.cluster_evidence_queue : [];
+    const drilldownHint = document.getElementById("window-drilldown-hint");
+    if (drilldownHint) {
+      drilldownHint.textContent = windowQueue.length
+        ? "Select a window row in Triage to focus linked charts and inspect causative rows, duplicate names, near-duplicate clusters, and rarity-context comparison."
+        : "No window evidence rows are available for the current triage lens. Switch lens or use chart zoom/click markers for manual context.";
+    }
 
     const windowHost = document.getElementById("triage-window-queue-host");
     const recordHost = document.getElementById("triage-record-queue-host");
@@ -6545,6 +7120,11 @@
       renderWindowDrilldown(nextActiveWindow);
     } else {
       renderWindowDrilldown(null);
+      const selectionLabel = document.getElementById("window-drilldown-selection");
+      if (selectionLabel) {
+        selectionLabel.textContent =
+          "No window evidence rows are available for the current triage lens.";
+      }
     }
 
     if (!investigationActionsBound) {
@@ -7045,6 +7625,12 @@
       );
       return scoped.length ? scoped : subset;
     }
+    if (chartId === "duplicates_exact_top_name_timing") {
+      const scoped = subset.filter(
+        (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
+      );
+      return scoped.length ? scoped : subset;
+    }
     return subset;
   }
 
@@ -7052,6 +7638,7 @@
     const targets = new Set([
       "duplicates_exact_bucket_concentration",
       "duplicates_exact_metric_diagnostics",
+      "duplicates_exact_top_name_timing",
     ]);
     const renders = [];
     chartMounts.forEach((mount, chartId) => {

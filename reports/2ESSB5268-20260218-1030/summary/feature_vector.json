@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "report_id": "2ESSB5268-20260218-1030",
-  "generated_at_utc": "2026-02-23T00:25:25.796202+00:00",
+  "generated_at_utc": "2026-02-23T21:23:45.182577+00:00",
   "lens": "side_by_side",
   "date_range_start": "2026-02-11T17:47:00-08:00",
   "date_range_end": "2026-02-18T09:18:00-08:00",
@@ -10,7 +10,7 @@
     "overall_pro_rate": 0.9539170506912442,
     "overall_con_rate": 0.04608294930875576,
     "window_queue_size": 0,
-    "record_queue_size": 29,
+    "record_queue_size": 208,
     "cluster_queue_size": 0,
     "window_high_count": 0,
     "window_medium_count": 0,
@@ -27,35 +27,35 @@
   },
   "top_repeated_names": [
     {
-      "canonical_name": "JUSTIN|TREVOR",
+      "canonical_name": "HUFNAGEL|EARL||",
+      "display_name": "HUFNAGEL, EARL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "JUSTIN|TREVOR||",
       "display_name": "JUSTIN, TREVOR",
       "n_records": 2,
       "n_pro": 2,
       "n_con": 0
     },
     {
-      "canonical_name": "KARTHER|MADELYN",
+      "canonical_name": "KARTHER|MADELYN||",
       "display_name": "KARTHER, MADELYN",
       "n_records": 2,
       "n_pro": 2,
       "n_con": 0
     },
     {
-      "canonical_name": "KLEIN|KAMI",
-      "display_name": "KLEIN, KAMI",
-      "n_records": 2,
-      "n_pro": 2,
-      "n_con": 0
-    },
-    {
-      "canonical_name": "KLUDT|MICHELLE",
+      "canonical_name": "KLUDT|MICHELLE||",
       "display_name": "KLUDT, MICHELLE",
       "n_records": 2,
       "n_pro": 2,
       "n_con": 0
     },
     {
-      "canonical_name": "RHUE|ERIKA",
+      "canonical_name": "RHUE|ERIKA||",
       "display_name": "RHUE, ERIKA",
       "n_records": 2,
       "n_pro": 2,
@@ -68,7 +68,7 @@
   "overall_pro_rate": 0.9539170506912442,
   "overall_con_rate": 0.04608294930875576,
   "window_queue_size": 0,
-  "record_queue_size": 29,
+  "record_queue_size": 208,
   "cluster_queue_size": 0,
   "window_high_count": 0,
   "window_medium_count": 0,

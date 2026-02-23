@@ -1,11 +1,11 @@
 {
-  "candidate_blocks": 13256,
-  "max_cluster_size": 15,
+  "candidate_blocks": 15533,
+  "max_cluster_size": 16,
   "max_concentration_hhi": 0.6800000000000002,
   "max_peak_bucket_fraction": 0.8,
-  "n_clusters": 1599,
+  "n_clusters": 2058,
   "n_clusters_supporting_primary_name_anomaly": 0,
-  "n_high_concentration_clusters": 876,
-  "n_similarity_edges": 2043,
+  "n_high_concentration_clusters": 1063,
+  "n_similarity_edges": 2652,
   "n_skipped_blocks": 0
 }

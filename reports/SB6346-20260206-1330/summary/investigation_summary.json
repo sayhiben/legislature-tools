@@ -8,39 +8,39 @@
   "top_swing_windows": [],
   "top_repeated_names": [
     {
-      "display_name": "HARSHAW, NORM",
-      "canonical_name": "HARSHAW|NORM",
-      "n_records": 40,
-      "n_pro": 0,
-      "n_con": 40
-    },
-    {
       "display_name": "HUFFMAN, TRACY",
-      "canonical_name": "HUFFMAN|TRACY",
+      "canonical_name": "HUFFMAN|TRACY||",
       "n_records": 34,
       "n_pro": 0,
       "n_con": 34
     },
     {
       "display_name": "BACKOUS, KATHLEEN",
-      "canonical_name": "BACKOUS|KATHLEEN",
+      "canonical_name": "BACKOUS|KATHLEEN||",
       "n_records": 29,
       "n_pro": 0,
       "n_con": 29
     },
     {
       "display_name": "YONKMAN, MIKE",
-      "canonical_name": "YONKMAN|MIKE",
+      "canonical_name": "YONKMAN|MIKE||",
       "n_records": 20,
       "n_pro": 0,
       "n_con": 20
     },
     {
       "display_name": "DURHAM, RHONDA",
-      "canonical_name": "DURHAM|RHONDA",
+      "canonical_name": "DURHAM|RHONDA||",
       "n_records": 17,
       "n_pro": 0,
       "n_con": 17
+    },
+    {
+      "display_name": "HARSHAW, NORMAN",
+      "canonical_name": "HARSHAW|NORMAN||",
+      "n_records": 16,
+      "n_pro": 0,
+      "n_con": 16
     }
   ],
   "top_near_dup_clusters": [

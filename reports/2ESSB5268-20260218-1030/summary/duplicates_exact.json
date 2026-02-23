@@ -1,15 +1,18 @@
 {
-  "baseline_source": "wa_active_observed_key_slice",
+  "N_used": 5088115,
+  "baseline_degraded": false,
+  "baseline_model": "multinomial",
+  "baseline_source": "vrdb_full_histogram",
   "bh_fdr_q": 0.1,
+  "collision_scope_primary": "matched_only",
   "duplicate_pairs": 7.0,
-  "duplicate_row_rate": 0.06542056074766354,
+  "duplicate_row_rate": 0.07253886010362694,
   "duplicate_rows": 14,
-  "max_repeat_count": 2,
-  "n_low_power_positions": 1,
-  "n_records": 214,
-  "n_repeated_names": 7,
-  "n_significant_per_name": 6,
-  "n_unique_names": 207,
-  "name_key": "medium",
-  "primary_low_power": false
+  "n_records": 193,
+  "n_significant_per_name": 186,
+  "n_unique_names": 186,
+  "n_used": 193,
+  "name_key": "strict",
+  "primary_low_power": true,
+  "stratification": "none"
 }

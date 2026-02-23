@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "report_id": "ESSB6346-20260224-0800",
-  "generated_at_utc": "2026-02-23T09:21:44.019878+00:00",
+  "generated_at_utc": "2026-02-23T21:28:03.027807+00:00",
   "lens": "side_by_side",
   "date_range_start": "2026-02-18T16:08:00-08:00",
-  "date_range_end": "2026-02-22T12:23:00-08:00",
+  "date_range_end": "2026-02-23T13:20:00-08:00",
   "metrics": {
-    "total_submissions": 97022,
-    "overall_pro_rate": 0.07104574220279937,
-    "overall_con_rate": 0.9262744532167962,
+    "total_submissions": 116760,
+    "overall_pro_rate": 0.07960774237752655,
+    "overall_con_rate": 0.9176515930113053,
     "window_queue_size": 0,
     "record_queue_size": 250,
     "cluster_queue_size": 250,
@@ -20,79 +20,79 @@
     "window_top_abs_z": null,
     "window_top_dup_fraction": null,
     "window_min_q_value": null,
-    "top_name_max_records": 116,
-    "top_cluster_max_records": 31,
-    "off_hours_ratio": 0.05348271526045639,
-    "dedup_drop_fraction": 0.006338768526725897
+    "top_name_max_records": 141,
+    "top_cluster_max_records": 35,
+    "off_hours_ratio": 0.05114765330592669,
+    "dedup_drop_fraction": 0.00631209318259678
   },
   "top_repeated_names": [
     {
       "canonical_name": "HUFFMAN|TRACY||",
       "display_name": "HUFFMAN, TRACY",
-      "n_records": 116,
+      "n_records": 141,
       "n_pro": 0,
-      "n_con": 116
+      "n_con": 141
     },
     {
       "canonical_name": "KESSELRING|BEVERLY||",
       "display_name": "KESSELRING, BEVERLY",
-      "n_records": 64,
+      "n_records": 68,
       "n_pro": 0,
-      "n_con": 64
-    },
-    {
-      "canonical_name": "KESSELRING|JERRY||",
-      "display_name": "KESSELRING, JERRY",
-      "n_records": 40,
-      "n_pro": 0,
-      "n_con": 40
+      "n_con": 68
     },
     {
       "canonical_name": "BACKOUS|KATHLEEN||",
       "display_name": "BACKOUS, KATHLEEN",
-      "n_records": 38,
+      "n_records": 41,
       "n_pro": 0,
-      "n_con": 38
+      "n_con": 41
+    },
+    {
+      "canonical_name": "KESSELRING|JERRY||",
+      "display_name": "KESSELRING, JERRY",
+      "n_records": 41,
+      "n_pro": 0,
+      "n_con": 41
     },
     {
       "canonical_name": "DURHAM|RHONDA||",
       "display_name": "DURHAM, RHONDA",
-      "n_records": 29,
+      "n_records": 36,
       "n_pro": 0,
-      "n_con": 29
+      "n_con": 36
     }
   ],
   "top_near_dup_clusters": [
     {
       "cluster_id": "cluster_0001",
-      "cluster_size": 15,
-      "n_records": 31
+      "cluster_size": 16,
+      "n_records": 35
     },
     {
       "cluster_id": "cluster_0003",
-      "cluster_size": 10,
-      "n_records": 17
-    },
-    {
-      "cluster_id": "cluster_0004",
-      "cluster_size": 9,
-      "n_records": 15
+      "cluster_size": 11,
+      "n_records": 25
     },
     {
       "cluster_id": "cluster_0005",
-      "cluster_size": 8,
-      "n_records": 12
+      "cluster_size": 10,
+      "n_records": 20
     },
     {
       "cluster_id": "cluster_0002",
+      "cluster_size": 11,
+      "n_records": 14
+    },
+    {
+      "cluster_id": "cluster_0004",
       "cluster_size": 11,
       "n_records": 11
     }
   ],
   "material_quality_metric_count": 0,
-  "total_submissions": 97022,
-  "overall_pro_rate": 0.07104574220279937,
-  "overall_con_rate": 0.9262744532167962,
+  "total_submissions": 116760,
+  "overall_pro_rate": 0.07960774237752655,
+  "overall_con_rate": 0.9176515930113053,
   "window_queue_size": 0,
   "record_queue_size": 250,
   "cluster_queue_size": 250,

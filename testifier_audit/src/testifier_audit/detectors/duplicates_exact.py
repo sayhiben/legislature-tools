@@ -210,6 +210,23 @@ class DuplicatesExactDetector(Detector):
         budget = int(round(float(requested) * scale))
         return int(min(requested, max(48, budget)))
 
+    def _bucket_monte_carlo_draw_budget(
+        self,
+        *,
+        n_rows: int,
+        expected_primary_metric: float,
+        hard_cap: int,
+    ) -> int:
+        n = int(max(int(n_rows), 0))
+        if n <= 1:
+            return 0
+        # Buckets that are guaranteed low-power should avoid expensive null simulation.
+        if n < self.low_power_min_unique_names:
+            return 0
+        if float(expected_primary_metric) < self.low_power_min_expected_duplicates:
+            return 0
+        return self._collision_monte_carlo_draw_budget(n_rows=n, hard_cap=hard_cap)
+
     def _resolved_collision_key_column(self, frame: pd.DataFrame) -> str:
         configured = _KEY_TO_COLUMN.get(self.collision_key_mode, "canonical_key_strict")
         if configured in frame.columns:
@@ -675,6 +692,34 @@ class DuplicatesExactDetector(Detector):
         if all_times.size == 0:
             return pd.DataFrame()
         all_minutes = all_times.astype("datetime64[m]").astype(np.int64)
+        draws = min(self.temporal_permutation_draws, 1000)
+        if draws <= 0:
+            return pd.DataFrame()
+
+        temporal_null_cache: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+
+        def _cached_temporal_null(sample_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+            cached = temporal_null_cache.get(sample_size)
+            if cached is not None:
+                return cached
+            min_gap_null = np.empty(draws, dtype=np.int64)
+            within_5_null = np.empty(draws, dtype=np.int64)
+            within_15_null = np.empty(draws, dtype=np.int64)
+            for draw_idx in range(draws):
+                sampled = np.sort(rng.choice(all_minutes, size=sample_size, replace=False))
+                sampled_gaps = np.diff(sampled)
+                if sampled_gaps.size:
+                    min_gap_null[draw_idx] = int(sampled_gaps.min())
+                    within_5_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 5))
+                    within_15_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 15))
+                else:
+                    min_gap_null[draw_idx] = 0
+                    within_5_null[draw_idx] = 0
+                    within_15_null[draw_idx] = 0
+            out = (min_gap_null, within_5_null, within_15_null)
+            temporal_null_cache[sample_size] = out
+            return out
+
         for key, group in working.groupby(key_column, dropna=False):
             times = pd.to_datetime(group["timestamp"], errors="coerce").dropna().to_numpy(dtype="datetime64[m]")
             if times.size < 2:
@@ -686,27 +731,18 @@ class DuplicatesExactDetector(Detector):
             within_15 = int(np.sum(gaps <= 15))
             span_minutes = int(minutes.max() - minutes.min()) if minutes.size else 0
 
-            min_gap_null: list[int] = []
-            within_5_null: list[int] = []
-            within_15_null: list[int] = []
-            draws = min(self.temporal_permutation_draws, 1000)
             sample_size = int(len(minutes))
-            for _ in range(draws):
-                sampled = np.sort(rng.choice(all_minutes, size=sample_size, replace=False))
-                sampled_gaps = np.diff(sampled)
-                min_gap_null.append(int(sampled_gaps.min()) if sampled_gaps.size else 0)
-                within_5_null.append(int(np.sum(sampled_gaps <= 5)))
-                within_15_null.append(int(np.sum(sampled_gaps <= 15)))
+            min_gap_null, within_5_null, within_15_null = _cached_temporal_null(sample_size)
             p_value_min_gap = (
-                float((np.sum(np.asarray(min_gap_null) <= min_gap) + 1) / (draws + 1)) if draws else 1.0
+                float((np.sum(min_gap_null <= min_gap) + 1) / (draws + 1)) if draws else 1.0
             )
             p_value_within_5 = (
-                float((np.sum(np.asarray(within_5_null) >= within_5) + 1) / (draws + 1))
+                float((np.sum(within_5_null >= within_5) + 1) / (draws + 1))
                 if draws
                 else 1.0
             )
             p_value_within_15 = (
-                float((np.sum(np.asarray(within_15_null) >= within_15) + 1) / (draws + 1))
+                float((np.sum(within_15_null >= within_15) + 1) / (draws + 1))
                 if draws
                 else 1.0
             )
@@ -1312,10 +1348,6 @@ class DuplicatesExactDetector(Detector):
                     metric_values = collision_metrics_from_counts(group_counts)
                     n_bucket = int(len(group_frame))
                     if n_bucket not in metric_summary_by_n:
-                        bucket_max_draws = self._collision_monte_carlo_draw_budget(
-                            n_rows=n_bucket,
-                            hard_cap=250,
-                        )
                         if effective_scope_stratification != "none" and not stratified_probabilities.empty:
                             if self.collision_baseline_model == "multinomial":
                                 expected_for_n = expected_collision_metrics_from_probabilities(
@@ -1331,12 +1363,21 @@ class DuplicatesExactDetector(Detector):
                                 expected_for_n = expected_collision_metrics(
                                     n_rows=n_bucket,
                                     histogram=stratified_null_histogram,
-                                    baseline_model=self.collision_baseline_model,
-                                    n_population=n_population if n_population > 0 else None,
-                                )
+                                        baseline_model=self.collision_baseline_model,
+                                        n_population=n_population if n_population > 0 else None,
+                                    )
+                            expected_primary_for_n = float(
+                                expected_for_n.get(self.collision_primary_metric, 0.0)
+                            )
+                            bucket_max_draws = self._bucket_monte_carlo_draw_budget(
+                                n_rows=n_bucket,
+                                expected_primary_metric=expected_primary_for_n,
+                                hard_cap=250,
+                            )
                             if (
                                 self.collision_uncertainty_mode == "monte_carlo"
                                 and self.collision_baseline_model == "multinomial"
+                                and bucket_max_draws > 0
                             ):
                                 if (
                                     stratified_sampling_weights.size > 0
@@ -1378,6 +1419,14 @@ class DuplicatesExactDetector(Detector):
                                 baseline_model=self.collision_baseline_model,
                                 n_population=n_population if n_population > 0 else None,
                             )
+                            expected_primary_for_n = float(
+                                expected_for_n.get(self.collision_primary_metric, 0.0)
+                            )
+                            bucket_max_draws = self._bucket_monte_carlo_draw_budget(
+                                n_rows=n_bucket,
+                                expected_primary_metric=expected_primary_for_n,
+                                hard_cap=250,
+                            )
                             null_for_n = (
                                 simulate_collision_null_from_histogram(
                                     n_rows=n_bucket,
@@ -1389,6 +1438,7 @@ class DuplicatesExactDetector(Detector):
                                     max_draws=bucket_max_draws,
                                 )
                                 if self.collision_uncertainty_mode == "monte_carlo"
+                                and bucket_max_draws > 0
                                 else pd.DataFrame()
                             )
                         summary_for_n = summarize_collision_observed_vs_null(

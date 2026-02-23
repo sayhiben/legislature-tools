@@ -361,6 +361,84 @@ def test_collision_monte_carlo_draw_budget_scales_with_bucket_size() -> None:
     assert all(48 <= value <= 250 for value in budgets[1:])
 
 
+def test_bucket_monte_carlo_draw_budget_skips_guaranteed_low_power() -> None:
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        monte_carlo_draws=20_000,
+        low_power_min_unique_names=25,
+        low_power_min_expected_duplicates=5.0,
+    )
+    assert (
+        detector._bucket_monte_carlo_draw_budget(
+            n_rows=10,
+            expected_primary_metric=10.0,
+            hard_cap=250,
+        )
+        == 0
+    )
+    assert (
+        detector._bucket_monte_carlo_draw_budget(
+            n_rows=40,
+            expected_primary_metric=2.0,
+            hard_cap=250,
+        )
+        == 0
+    )
+    expected = detector._collision_monte_carlo_draw_budget(n_rows=40, hard_cap=250)
+    assert (
+        detector._bucket_monte_carlo_draw_budget(
+            n_rows=40,
+            expected_primary_metric=8.0,
+            hard_cap=250,
+        )
+        == expected
+    )
+
+
+def test_low_power_bucket_skips_bucket_level_null_simulation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame(
+        {
+            "DOE|JANE": 4,
+            "SMITH|JOHN": 4,
+            "LEE|ALICE": 4,
+            "BROWN|KAI": 4,
+        }
+    )
+    simulated_n_rows: list[int] = []
+
+    def _fake_simulate_collision_null(**kwargs) -> pd.DataFrame:
+        simulated_n_rows.append(int(kwargs.get("n_rows", 0)))
+        return pd.DataFrame(
+            {
+                "pairs": [0.0],
+                "excess_rows": [0.0],
+                "repeated_group_rows": [0.0],
+            }
+        )
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "simulate_collision_null_from_histogram",
+        _fake_simulate_collision_null,
+    )
+
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[1],
+        collision_uncertainty_mode="monte_carlo",
+        monte_carlo_draws=300,
+        low_power_min_unique_names=25,
+    )
+    detector.run(df=frame, features={})
+
+    assert simulated_n_rows
+    assert len(simulated_n_rows) == 2
+    assert set(simulated_n_rows) == {len(frame)}
+
+
 def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing() -> None:
     frame = _build_top_name_timing_frame()
     detector = DuplicatesExactDetector(

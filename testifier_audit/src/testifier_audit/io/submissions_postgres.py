@@ -243,6 +243,8 @@ def ensure_submission_schema(conn, table_name: str) -> None:
         );
         CREATE INDEX IF NOT EXISTS {idx_source_file} ON {table_name} (source_file);
         CREATE INDEX IF NOT EXISTS {idx_source_row_number} ON {table_name} (source_row_number);
+        CREATE INDEX IF NOT EXISTS {idx_source_file_source_row_number}
+          ON {table_name} (source_file, source_row_number);
         CREATE INDEX IF NOT EXISTS {idx_minute_bucket} ON {table_name} (minute_bucket);
         CREATE INDEX IF NOT EXISTS {idx_position_normalized} ON {table_name} (position_normalized);
         CREATE INDEX IF NOT EXISTS {idx_org_blank} ON {table_name} (organization_is_blank);
@@ -251,6 +253,9 @@ def ensure_submission_schema(conn, table_name: str) -> None:
         table_name=sql.Identifier(table_name),
         idx_source_file=sql.Identifier(f"{table_name}_source_file_idx"),
         idx_source_row_number=sql.Identifier(f"{table_name}_source_row_number_idx"),
+        idx_source_file_source_row_number=sql.Identifier(
+            f"{table_name}_source_file_source_row_number_idx"
+        ),
         idx_minute_bucket=sql.Identifier(f"{table_name}_minute_bucket_idx"),
         idx_position_normalized=sql.Identifier(f"{table_name}_position_normalized_idx"),
         idx_org_blank=sql.Identifier(f"{table_name}_organization_is_blank_idx"),

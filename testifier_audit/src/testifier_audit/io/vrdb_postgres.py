@@ -332,6 +332,12 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
             idx_canonical=sql.Identifier(f"{table_name}_canonical_name_idx"),
             table_name=sql.Identifier(table_name),
         ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_canonical_last} ON {table_name} (canonical_last)"
+        ).format(
+            idx_canonical_last=sql.Identifier(f"{table_name}_canonical_last_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
         sql.SQL("CREATE INDEX IF NOT EXISTS {idx_status} ON {table_name} (status_code)").format(
             idx_status=sql.Identifier(f"{table_name}_status_code_idx"),
             table_name=sql.Identifier(table_name),

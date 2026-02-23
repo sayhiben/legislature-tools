@@ -254,6 +254,10 @@ def test_ensure_submission_schema_executes_create_statement(
     statement, _params = cursor.executed[0]
     assert "CREATE TABLE IF NOT EXISTS" in statement
     assert '"public_submissions"' in statement
+    assert (
+        'CREATE INDEX IF NOT EXISTS "public_submissions_source_file_source_row_number_idx"'
+        in statement
+    )
 
 
 def test_upsert_submission_rows_handles_empty_and_non_empty_payload(

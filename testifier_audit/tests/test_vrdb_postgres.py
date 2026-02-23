@@ -252,6 +252,10 @@ def test_ensure_voter_registry_schema_executes_create_statement(
         'CREATE INDEX IF NOT EXISTS "voter_registry_canonical_key_medium_idx"' in stmt
         for stmt in statements
     )
+    assert any(
+        'CREATE INDEX IF NOT EXISTS "voter_registry_canonical_last_idx"' in stmt
+        for stmt in statements
+    )
     assert any("SET" in stmt and "canonical_key_strict" in stmt for stmt in statements)
 
 

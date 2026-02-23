@@ -100,36 +100,54 @@ class VoterRegistryMatchDetector(Detector):
     def _normalize_candidate_lookup(candidates: pd.DataFrame) -> dict[str, list[dict[str, object]]]:
         if candidates.empty:
             return {}
-        working = candidates.copy()
-        split_names = _safe_str_series(working.get("canonical_name", pd.Series(dtype=str))).str.split(
-            "|", n=1, expand=True
-        )
-        if "canonical_last" not in working.columns:
-            working["canonical_last"] = split_names[0] if not split_names.empty else ""
-        if "canonical_first" not in working.columns:
-            working["canonical_first"] = (
-                split_names[1] if split_names.shape[1] > 1 else ""
-            )
-        working["canonical_last"] = _safe_str_series(working["canonical_last"])
-        working["canonical_first"] = _safe_str_series(working["canonical_first"])
-        working["canonical_name"] = _safe_str_series(working["canonical_name"])
-        if "n_registry_rows" not in working.columns:
-            working["n_registry_rows"] = 0
-        working["n_registry_rows"] = (
-            pd.to_numeric(working["n_registry_rows"], errors="coerce").fillna(0).astype(int)
-        )
+
+        if "canonical_name" not in candidates.columns:
+            return {}
+
+        has_last_col = "canonical_last" in candidates.columns
+        has_first_col = "canonical_first" in candidates.columns
+        has_count_col = "n_registry_rows" in candidates.columns
 
         lookup: dict[str, list[dict[str, object]]] = {}
-        for row in working.itertuples(index=False):
-            last = str(getattr(row, "canonical_last", "") or "").strip()
+        for row in candidates.itertuples(index=False):
             canonical_name = str(getattr(row, "canonical_name", "") or "").strip()
-            if not last or not canonical_name:
+            if not canonical_name:
                 continue
+
+            if "|" in canonical_name:
+                parsed_last, parsed_first = canonical_name.split("|", 1)
+                parsed_last = parsed_last.strip()
+                parsed_first = parsed_first.strip()
+            else:
+                parsed_last = canonical_name
+                parsed_first = ""
+
+            last = str(getattr(row, "canonical_last", "") or "").strip() if has_last_col else parsed_last
+            first = (
+                str(getattr(row, "canonical_first", "") or "").strip()
+                if has_first_col
+                else parsed_first
+            )
+            if not last:
+                continue
+
+            registry_rows = 0
+            if has_count_col:
+                raw_rows = getattr(row, "n_registry_rows", 0)
+                try:
+                    if pd.notna(raw_rows):
+                        registry_rows = int(raw_rows)
+                except Exception:
+                    try:
+                        registry_rows = int(float(raw_rows))
+                    except Exception:
+                        registry_rows = 0
+
             lookup.setdefault(last, []).append(
                 {
                     "canonical_name": canonical_name,
-                    "canonical_first": str(getattr(row, "canonical_first", "") or "").strip(),
-                    "n_registry_rows": int(getattr(row, "n_registry_rows", 0) or 0),
+                    "canonical_first": first,
+                    "n_registry_rows": registry_rows,
                 }
             )
         return lookup
@@ -456,11 +474,12 @@ class VoterRegistryMatchDetector(Detector):
                 if value and value != "|"
             }
         )
+        submission_name_parts = [split_canonical_name(value) for value in submission_names]
         submission_last_names = sorted(
             {
-                split_canonical_name(value)[0]
-                for value in submission_names
-                if split_canonical_name(value)[0]
+                last_name
+                for last_name, _first_name in submission_name_parts
+                if last_name
             }
         )
 

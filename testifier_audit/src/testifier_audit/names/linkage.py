@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pandas as pd
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, process
 
 from testifier_audit.names.nickname_map import nickname_root
 
@@ -31,11 +31,63 @@ def classify_name_linkage(
     nickname_map: dict[str, str],
     thresholds: LinkageThresholds,
 ) -> pd.DataFrame:
+    candidate_index: dict[
+        str,
+        dict[str, object],
+    ] = {}
+    for raw_last_name, raw_candidates in candidate_lookup_by_last.items():
+        last_name = str(raw_last_name or "").strip()
+        if not last_name:
+            continue
+        prepared_candidates: list[dict[str, object]] = []
+        prepared_by_root: dict[str, list[dict[str, object]]] = {}
+        candidate_firsts: list[str] = []
+        for candidate in raw_candidates:
+            candidate_first = str(candidate.get("canonical_first", "") or "").strip()
+            if not candidate_first:
+                continue
+            candidate_name = str(candidate.get("canonical_name", "") or "").strip()
+            if not candidate_name:
+                continue
+            registry_rows_raw = candidate.get("n_registry_rows", 0)
+            try:
+                registry_rows = int(registry_rows_raw or 0)
+            except (TypeError, ValueError):
+                registry_rows = 0
+            first_root = nickname_root(candidate_first, nickname_map)
+            prepared = {
+                "canonical_name": candidate_name,
+                "canonical_first": candidate_first,
+                "n_registry_rows": registry_rows,
+            }
+            prepared_candidates.append(prepared)
+            candidate_firsts.append(candidate_first)
+            if first_root:
+                prepared_by_root.setdefault(first_root, []).append(prepared)
+        candidate_index[last_name] = {
+            "pool_size": len(raw_candidates),
+            "candidates": prepared_candidates,
+            "candidate_firsts": candidate_firsts,
+            "by_root": prepared_by_root,
+        }
+
     rows: list[dict[str, object]] = []
     for canonical_name in submission_names:
         last_name, first_name = split_canonical_name(canonical_name)
         first_root = nickname_root(first_name, nickname_map)
-        candidates = candidate_lookup_by_last.get(last_name, [])
+        candidate_bundle = candidate_index.get(last_name)
+        if candidate_bundle:
+            candidate_pool_size = int(candidate_bundle["pool_size"])
+            candidates = candidate_bundle["candidates"]
+            candidate_firsts = candidate_bundle["candidate_firsts"]
+            nickname_candidates = (
+                candidate_bundle["by_root"].get(first_root, []) if first_root else []
+            )
+        else:
+            candidate_pool_size = 0
+            candidates = []
+            candidate_firsts = []
+            nickname_candidates = []
         caveats: list[str] = []
 
         if canonical_name in exact_lookup:
@@ -51,20 +103,12 @@ def classify_name_linkage(
                     "matched_registry_name": canonical_name,
                     "matched_registry_rows": registry_rows,
                     "best_similarity_score": 1.0,
-                    "candidate_pool_size": len(candidates),
+                    "candidate_pool_size": candidate_pool_size,
                     "is_ambiguous": primary_outcome == "matched_ambiguous",
                     "match_caveat": "",
                 }
             )
             continue
-
-        nickname_candidates = []
-        for candidate in candidates:
-            candidate_first = str(candidate.get("canonical_first", "") or "").strip()
-            if not candidate_first:
-                continue
-            if nickname_root(candidate_first, nickname_map) == first_root and first_root:
-                nickname_candidates.append(candidate)
 
         if nickname_candidates:
             best = nickname_candidates[0]
@@ -82,7 +126,7 @@ def classify_name_linkage(
                     "matched_registry_name": matched_registry_name,
                     "matched_registry_rows": matched_registry_rows,
                     "best_similarity_score": 1.0,
-                    "candidate_pool_size": len(candidates),
+                    "candidate_pool_size": candidate_pool_size,
                     "is_ambiguous": ambiguous,
                     "match_caveat": "nickname_equivalent",
                 }
@@ -100,7 +144,7 @@ def classify_name_linkage(
                     "matched_registry_name": "",
                     "matched_registry_rows": 0,
                     "best_similarity_score": None,
-                    "candidate_pool_size": len(candidates),
+                    "candidate_pool_size": candidate_pool_size,
                     "is_ambiguous": False,
                     "match_caveat": "missing_first_name_token",
                 }
@@ -118,27 +162,29 @@ def classify_name_linkage(
                     "matched_registry_name": "",
                     "matched_registry_rows": 0,
                     "best_similarity_score": None,
-                    "candidate_pool_size": 0,
+                    "candidate_pool_size": candidate_pool_size,
                     "is_ambiguous": False,
                     "match_caveat": "no_last_name_candidates",
                 }
             )
             continue
 
-        scored_candidates: list[dict[str, object]] = []
-        for candidate in candidates:
-            candidate_first = str(candidate.get("canonical_first", "") or "").strip()
-            if not candidate_first:
-                continue
-            score = float(fuzz.ratio(first_name, candidate_first))
-            scored_candidates.append(
-                {
-                    "canonical_name": str(candidate.get("canonical_name", "") or ""),
-                    "n_registry_rows": int(candidate.get("n_registry_rows", 0) or 0),
-                    "score": score,
-                }
-            )
-        if not scored_candidates:
+        best_candidate: dict[str, object] | None = None
+        if candidate_firsts:
+            top_matches = process.extract(first_name, candidate_firsts, scorer=fuzz.ratio, limit=2)
+            if top_matches:
+                best_index = int(top_matches[0][2])
+                best_candidate = candidates[best_index]
+                best_score = float(top_matches[0][1])
+                second_best_score = float(top_matches[1][1]) if len(top_matches) > 1 else None
+            else:
+                best_score = -1.0
+                second_best_score = None
+        else:
+            best_score = -1.0
+            second_best_score = None
+
+        if best_candidate is None:
             rows.append(
                 {
                     "canonical_name": canonical_name,
@@ -149,22 +195,18 @@ def classify_name_linkage(
                     "matched_registry_name": "",
                     "matched_registry_rows": 0,
                     "best_similarity_score": None,
-                    "candidate_pool_size": len(candidates),
+                    "candidate_pool_size": candidate_pool_size,
                     "is_ambiguous": False,
                     "match_caveat": "no_first_name_candidates",
                 }
             )
             continue
-        scored_candidates.sort(key=lambda item: float(item["score"]), reverse=True)
-        best = scored_candidates[0]
-        second_best = scored_candidates[1] if len(scored_candidates) > 1 else None
-        best_score = float(best["score"])
-        second_best_score = float(second_best["score"]) if second_best else None
+
         is_ambiguous = bool(
             second_best_score is not None
             and abs(best_score - second_best_score) <= float(thresholds.ambiguous_score_gap)
         )
-        matched_registry_rows = int(best.get("n_registry_rows", 0) or 0)
+        matched_registry_rows = int(best_candidate.get("n_registry_rows", 0) or 0)
 
         match_tier = "unmatched"
         if best_score >= float(thresholds.strong_fuzzy_min_score):
@@ -200,12 +242,12 @@ def classify_name_linkage(
                 "primary_outcome": primary_outcome,
                 "balanced_outcome": balanced_outcome,
                 "broad_outcome": broad_outcome,
-                "matched_registry_name": str(best.get("canonical_name", "") or "")
+                "matched_registry_name": str(best_candidate.get("canonical_name", "") or "")
                 if match_tier != "unmatched"
                 else "",
                 "matched_registry_rows": matched_registry_rows if match_tier != "unmatched" else 0,
                 "best_similarity_score": best_score / 100.0 if match_tier != "unmatched" else None,
-                "candidate_pool_size": len(candidates),
+                "candidate_pool_size": candidate_pool_size,
                 "is_ambiguous": is_ambiguous,
                 "match_caveat": ",".join(caveats),
             }

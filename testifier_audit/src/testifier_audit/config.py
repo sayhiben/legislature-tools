@@ -80,6 +80,21 @@ class NamesConfig(BaseModel):
     phonetic: str = "double_metaphone"
 
 
+class NameAnalysisConfig(BaseModel):
+    primary_name_key: Literal["strict", "medium", "loose", "nickname"] = "medium"
+    sensitivity_name_keys: list[Literal["strict", "medium", "loose", "nickname"]] = Field(
+        default_factory=lambda: ["strict", "nickname"]
+    )
+    exclude_non_person_from_inference: bool = True
+    monte_carlo_draws: int = Field(default=20_000, ge=100)
+    position_permutation_draws: int = Field(default=10_000, ge=100)
+    temporal_permutation_draws: int = Field(default=5_000, ge=100)
+    bh_fdr_q: float = Field(default=0.10, gt=0.0, lt=1.0)
+    low_power_min_unique_names: int = Field(default=25, ge=1)
+    low_power_min_expected_duplicates: float = Field(default=5.0, ge=0.0)
+    max_per_name_rows: int = Field(default=1000, ge=10)
+
+
 class RarityConfig(BaseModel):
     enabled: bool = False
     first_name_frequency_path: str | None = None
@@ -101,6 +116,11 @@ class VoterRegistryConfig(BaseModel):
     table_name: str = "voter_registry"
     active_only: bool = True
     match_bucket_minutes: int = Field(default=30, ge=1)
+    primary_match_mode: Literal["conservative"] = "conservative"
+    strong_fuzzy_min_score: float = Field(default=92.0, ge=0.0, le=100.0)
+    weak_fuzzy_min_score: float = Field(default=84.0, ge=0.0, le=100.0)
+    ambiguous_score_gap: float = Field(default=2.0, ge=0.0, le=100.0)
+    pairwise_alpha: float = Field(default=0.05, gt=0.0, lt=1.0)
 
 
 class MultivariateAnomalyConfig(BaseModel):
@@ -145,6 +165,7 @@ class AppConfig(BaseModel):
     changepoints: ChangePointConfig = Field(default_factory=ChangePointConfig)
     periodicity: PeriodicityConfig = Field(default_factory=PeriodicityConfig)
     names: NamesConfig = Field(default_factory=NamesConfig)
+    name_analysis: NameAnalysisConfig = Field(default_factory=NameAnalysisConfig)
     rarity: RarityConfig = Field(default_factory=RarityConfig)
     input: InputConfig = Field(default_factory=InputConfig)
     voter_registry: VoterRegistryConfig = Field(default_factory=VoterRegistryConfig)

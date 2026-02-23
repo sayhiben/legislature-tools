@@ -6,7 +6,43 @@
   "overall_con_rate": 0.04608294930875576,
   "top_burst_windows": [],
   "top_swing_windows": [],
-  "top_repeated_names": [],
+  "top_repeated_names": [
+    {
+      "display_name": "RHUE, ERIKA",
+      "canonical_name": "RHUE|ERIKA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "display_name": "KLUDT, MICHELLE",
+      "canonical_name": "KLUDT|MICHELLE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "display_name": "JUSTIN, TREVOR",
+      "canonical_name": "JUSTIN|TREVOR",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "display_name": "KARTHER, MADELYN",
+      "canonical_name": "KARTHER|MADELYN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "display_name": "KLEIN, KAMI",
+      "canonical_name": "KLEIN|KAMI",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
   "top_near_dup_clusters": [],
   "off_hours_summary": {
     "total": 217.0,
@@ -81,7 +117,7 @@
   },
   "queue_counts": {
     "window": 0,
-    "record": 0,
+    "record": 29,
     "cluster": 0
   },
   "window_tier_counts": {

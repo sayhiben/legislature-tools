@@ -37,6 +37,19 @@ def default_detectors(config: AppConfig) -> list[Detector]:
         DuplicatesExactDetector(
             top_n=config.thresholds.top_duplicate_names,
             bucket_minutes=bucket_minutes,
+            primary_name_key=config.name_analysis.primary_name_key,
+            sensitivity_name_keys=list(config.name_analysis.sensitivity_name_keys),
+            exclude_non_person_from_inference=config.name_analysis.exclude_non_person_from_inference,
+            monte_carlo_draws=config.name_analysis.monte_carlo_draws,
+            position_permutation_draws=config.name_analysis.position_permutation_draws,
+            temporal_permutation_draws=config.name_analysis.temporal_permutation_draws,
+            bh_fdr_q=config.name_analysis.bh_fdr_q,
+            low_power_min_unique_names=config.name_analysis.low_power_min_unique_names,
+            low_power_min_expected_duplicates=config.name_analysis.low_power_min_expected_duplicates,
+            max_per_name_rows=config.name_analysis.max_per_name_rows,
+            voter_db_url=config.voter_registry.db_url,
+            voter_table_name=config.voter_registry.table_name,
+            voter_active_only=config.voter_registry.active_only,
         ),
         DuplicatesNearDetector(
             similarity_threshold=config.thresholds.near_dup_similarity_threshold,
@@ -96,6 +109,12 @@ def default_detectors(config: AppConfig) -> list[Detector]:
                 set(bucket_minutes + [config.voter_registry.match_bucket_minutes])
             ),
             active_only=config.voter_registry.active_only,
+            primary_match_mode=config.voter_registry.primary_match_mode,
+            strong_fuzzy_min_score=config.voter_registry.strong_fuzzy_min_score,
+            weak_fuzzy_min_score=config.voter_registry.weak_fuzzy_min_score,
+            ambiguous_score_gap=config.voter_registry.ambiguous_score_gap,
+            pairwise_alpha=config.voter_registry.pairwise_alpha,
+            nickname_map_path=config.names.nickname_map_path,
         ),
         MultivariateAnomaliesDetector(
             enabled=config.multivariate_anomaly.enabled,

@@ -4602,7 +4602,11 @@
 
   const simpleBarCategoricalChartIds = new Set([
     "composite_evidence_flags",
+    "duplicates_exact_swing_impact",
     "off_hours_primary_flag_channels",
+    "voter_registry_linkage_by_position_rows",
+    "voter_registry_linkage_by_position_unique",
+    "voter_registry_sensitivity_modes",
     "voter_registry_match_tiers",
     "voter_registry_match_by_position",
   ]);
@@ -4611,8 +4615,11 @@
     "baseline_name_length_distribution",
     "changepoints_hour_hist",
     "changepoints_magnitude",
+    "duplicates_exact_per_name_anomalies",
+    "duplicates_exact_temporal_burst",
     "duplicates_exact_top_names",
     "duplicates_exact_position_switch",
+    "duplicates_exact_position_concentration",
     "duplicates_near_cluster_size",
     "duplicates_near_similarity",
     "duplicates_near_time_concentration",
@@ -4625,26 +4632,32 @@
     "periodicity_spectrum",
     "rare_names_weird_scores",
     "sortedness_minute_spikes",
+    "voter_registry_pairwise_tests",
     "voter_registry_unmatched_names",
   ]);
   const simpleBarNullDiagnosticChartIds = new Set([
     "bursts_null_distribution",
     "bursts_significance_by_window",
+    "duplicates_exact_null_distribution",
     "procon_swings_null_distribution",
     "periodicity_rolling_fano",
   ]);
   const simpleBarRatioReferenceChartIds = new Set([
     "composite_high_priority",
+    "duplicates_exact_position_concentration",
+    "voter_registry_pairwise_tests",
     "periodicity_autocorr",
     "procon_swings_time_of_day_profile",
     "sortedness_bucket_summary",
     "sortedness_kendall_tau_summary",
   ]);
   const simpleBarDirectionalReferenceChartIds = new Set([
+    "duplicates_exact_position_concentration",
     "periodicity_autocorr",
     "procon_swings_time_of_day_profile",
     "sortedness_bucket_summary",
     "sortedness_kendall_tau_summary",
+    "voter_registry_pairwise_tests",
   ]);
 
   function renderSimpleBar(mount, rows, xField, yField, title) {
@@ -4755,10 +4768,12 @@
     } else if (simpleBarRatioReferenceChartIds.has(mount.chartId)) {
       const referenceByChartId = {
         composite_high_priority: 0.8,
+        duplicates_exact_position_concentration: 0.0,
         periodicity_autocorr: 0.0,
         procon_swings_time_of_day_profile: 0.5,
         sortedness_bucket_summary: 0.5,
         sortedness_kendall_tau_summary: 0.0,
+        voter_registry_pairwise_tests: 0.0,
       };
       const referenceValue = Object.prototype.hasOwnProperty.call(referenceByChartId, mount.chartId)
         ? referenceByChartId[mount.chartId]
@@ -5141,17 +5156,12 @@
       voter_registry_match_rates: {
         timeField: "bucket_start",
         barField: "n_total",
-        lineField: "match_rate",
+        lineField: "matched_rate",
         lineLow: "match_rate_wilson_low",
         lineHigh: "match_rate_wilson_high",
-        extraLines: [
-          "exact_match_rate",
-          "strong_fuzzy_match_rate",
-          "weak_fuzzy_match_rate",
-          "mean_match_confidence",
-        ],
+        extraLines: ["unmatched_rate"],
         lowPowerField: "is_low_power",
-        lineAxisName: "Match rate",
+        lineAxisName: "Matched rate",
         lineMin: 0,
         lineMax: 1,
       },
@@ -5179,9 +5189,11 @@
       },
       duplicates_exact_bucket_concentration: {
         timeField: "bucket_start",
-        barField: "n",
-        lineField: null,
-        barAxisName: "Duplicate count",
+        barField: "n_rows",
+        lineField: "duplicate_rows",
+        extraLines: ["expected_duplicate_rows", "excess_duplicate_rows"],
+        lineAxisName: "Duplicate rows",
+        barAxisName: "Total rows",
       },
       duplicates_near_cluster_timeline: {
         timeField: "first_seen",
@@ -5212,11 +5224,12 @@
       voter_registry_position_buckets: {
         timeField: "bucket_start",
         barField: "n_total",
-        lineField: "match_rate",
+        lineField: "matched_rate",
         lineLow: "match_rate_wilson_low",
         lineHigh: "match_rate_wilson_high",
+        extraLines: ["unmatched_rate"],
         lowPowerField: "is_low_power",
-        lineAxisName: "Match rate",
+        lineAxisName: "Matched rate",
         lineMin: 0,
         lineMax: 1,
       },
@@ -5317,8 +5330,24 @@
     if (mount.chartId === "duplicates_exact_top_names") {
       return renderSimpleBar(mount, rows, "display_name", "n", "count");
     }
+    if (mount.chartId === "duplicates_exact_per_name_anomalies") {
+      return renderSimpleBar(mount, rows, "display_name", "n", "repeat count");
+    }
     if (mount.chartId === "duplicates_exact_position_switch") {
       return renderSimpleBar(mount, rows, "display_name", "n", "count");
+    }
+    if (mount.chartId === "duplicates_exact_position_concentration") {
+      const xField = rows.length && rows[0].pair_label !== undefined ? "pair_label" : "position_left";
+      return renderSimpleBar(mount, rows, xField, "rate_difference", "rate difference");
+    }
+    if (mount.chartId === "duplicates_exact_null_distribution") {
+      return renderSimpleBar(mount, rows, "iteration", "duplicate_rows", "duplicate rows");
+    }
+    if (mount.chartId === "duplicates_exact_temporal_burst") {
+      return renderSimpleBar(mount, rows, "canonical_name", "within_5m_pairs", "within 5m pairs");
+    }
+    if (mount.chartId === "duplicates_exact_swing_impact") {
+      return renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share");
     }
     if (mount.chartId === "duplicates_near_cluster_size") {
       return renderSimpleBar(mount, rows, "cluster_size", "n_clusters", "clusters");
@@ -5359,11 +5388,27 @@
     if (mount.chartId === "voter_registry_match_by_position") {
       return renderSimpleBar(mount, rows, "position_normalized", "match_rate", "match rate");
     }
+    if (mount.chartId === "voter_registry_linkage_by_position_rows") {
+      return renderSimpleBar(mount, rows, "position_normalized", "unmatched_rate", "unmatched rate");
+    }
+    if (mount.chartId === "voter_registry_linkage_by_position_unique") {
+      return renderSimpleBar(mount, rows, "position_normalized", "unmatched_rate", "unmatched rate");
+    }
+    if (mount.chartId === "voter_registry_pairwise_tests") {
+      return renderSimpleBar(mount, rows, "pair_label", "rate_difference", "rate difference");
+    }
+    if (mount.chartId === "voter_registry_sensitivity_modes") {
+      return renderSimpleBar(mount, rows, "mode", "unmatched_rate_rows", "unmatched rate");
+    }
     if (mount.chartId === "voter_registry_unmatched_names") {
       return renderSimpleBar(mount, rows, "canonical_name", "n_records", "count");
     }
     if (mount.chartId === "voter_registry_match_tiers") {
-      return renderSimpleBar(mount, rows, "match_tier", "record_rate", "record rate");
+      const yField = rows.length && rows[0].record_rate !== undefined
+        ? "record_rate"
+        : "unmatched_rate_rows";
+      const xField = rows.length && rows[0].match_tier !== undefined ? "match_tier" : "mode";
+      return renderSimpleBar(mount, rows, xField, yField, "record rate");
     }
     if (mount.chartId === "procon_swings_time_of_day_profile") {
       return renderSimpleBar(mount, rows, "slot_start_minute", "pro_rate", "pro rate");

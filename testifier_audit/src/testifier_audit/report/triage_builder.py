@@ -535,6 +535,21 @@ def build_investigation_view(
         _table(table_map, "duplicates_exact.top_repeated_names"),
         ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
     )
+    dup_exact_anomalies = _with_columns(
+        _table(table_map, "duplicates_exact.per_name_anomalies"),
+        [
+            "display_name",
+            "canonical_name",
+            "n",
+            "n_pro",
+            "n_con",
+            "time_span_minutes",
+            "p_value",
+            "q_value",
+            "is_significant",
+            "inference_status",
+        ],
+    )
     dup_near_clusters = _with_columns(
         _table(table_map, "duplicates_near.cluster_summary"),
         [
@@ -546,6 +561,16 @@ def build_investigation_view(
             "first_seen",
             "last_seen",
             "time_span_minutes",
+        ],
+    )
+    voter_unmatched = _with_columns(
+        _table(table_map, "voter_registry_match.unmatched_names"),
+        [
+            "canonical_name",
+            "n_rows",
+            "n_pro",
+            "n_con",
+            "top_caveat",
         ],
     )
     rarity_by_minute = _with_columns(
@@ -966,16 +991,22 @@ def build_investigation_view(
     window_rows = window_rows[: max(1, int(top_n_windows))]
 
     # Record evidence queue (name-level)
-    max_repeat = _to_float(pd.to_numeric(dup_exact_top["n"], errors="coerce").max()) or 1.0
+    dup_exact_source = (
+        dup_exact_anomalies.copy()
+        if not dup_exact_anomalies.empty
+        else dup_exact_top.copy()
+    )
+    max_repeat = _to_float(pd.to_numeric(dup_exact_source["n"], errors="coerce").max()) or 1.0
     weirdness_scale = _to_float(
         pd.to_numeric(weird_names["weirdness_score"], errors="coerce").quantile(0.95)
     )
     if weirdness_scale is None or weirdness_scale <= 0:
         weirdness_scale = 1.0
+    max_unmatched = _to_float(pd.to_numeric(voter_unmatched["n_rows"], errors="coerce").max()) or 1.0
 
     record_entries: dict[str, dict[str, Any]] = {}
 
-    for row in dup_exact_top.itertuples(index=False):
+    for row in dup_exact_source.itertuples(index=False):
         canonical_name = str(getattr(row, "canonical_name", "") or "").strip()
         if not canonical_name:
             continue
@@ -995,7 +1026,38 @@ def build_investigation_view(
             },
         )
         repeat_count = int(_to_float(getattr(row, "n", None)) or 0)
+        p_value = _to_float(getattr(row, "p_value", None))
+        q_value = _to_float(getattr(row, "q_value", None))
+        inference_raw = getattr(row, "inference_status", "")
+        inference_status = (
+            ""
+            if pd.isna(inference_raw)
+            else str(inference_raw).strip().lower()
+        )
         entry["n_records"] = max(int(entry["n_records"]), repeat_count)
+        if p_value is not None or q_value is not None:
+            significance = 1.0 - max(
+                0.0,
+                min(
+                    1.0,
+                    q_value if q_value is not None else (p_value if p_value is not None else 1.0),
+                ),
+            )
+            entry["contributors"].append(
+                EvidenceSignal(
+                    signal_id=f"repeat_stat:{canonical_name}",
+                    detector="duplicates_exact",
+                    evidence_kind="stat_fdr",
+                    signal_score=_clamp_unit_interval(significance),
+                    support_n=max(0, repeat_count),
+                    effect_size=float(repeat_count),
+                    p_value=p_value,
+                    q_value=q_value,
+                    is_low_power=inference_status == "descriptive_only"
+                    or repeat_count < resolved_thresholds.min_support_n,
+                    explanation_hint="data_quality_artifact",
+                )
+            )
         repeat_score = _clamp_unit_interval(float(repeat_count) / max_repeat)
         entry["contributors"].append(
             EvidenceSignal(
@@ -1007,6 +1069,44 @@ def build_investigation_view(
                 effect_size=float(repeat_count),
                 is_low_power=repeat_count < resolved_thresholds.min_support_n,
                 explanation_hint="data_quality_artifact",
+            )
+        )
+
+    for row in voter_unmatched.itertuples(index=False):
+        canonical_name = str(getattr(row, "canonical_name", "") or "").strip()
+        if not canonical_name:
+            continue
+        unmatched_count = int(_to_float(getattr(row, "n_rows", None)) or 0)
+        if unmatched_count <= 0:
+            continue
+        entry = record_entries.setdefault(
+            canonical_name,
+            {
+                "record_id": canonical_name,
+                "canonical_name": canonical_name,
+                "display_name": canonical_name,
+                "n_records": unmatched_count,
+                "n_pro": int(_to_float(getattr(row, "n_pro", None)) or 0),
+                "n_con": int(_to_float(getattr(row, "n_con", None)) or 0),
+                "time_span_minutes": None,
+                "weirdness_score": None,
+                "contributors": [],
+            },
+        )
+        entry["n_records"] = max(int(entry["n_records"]), unmatched_count)
+        unmatched_score = _clamp_unit_interval(float(unmatched_count) / max_unmatched)
+        caveat = str(getattr(row, "top_caveat", "") or "").strip()
+        caveat_flags = (caveat,) if caveat else ()
+        entry["contributors"].append(
+            EvidenceSignal(
+                signal_id=f"voter_unmatched:{canonical_name}",
+                detector="voter_registry_match",
+                evidence_kind="heuristic",
+                signal_score=unmatched_score,
+                support_n=max(0, unmatched_count),
+                is_low_power=unmatched_count < resolved_thresholds.min_support_n,
+                caveat_flags=caveat_flags,
+                explanation_hint="insufficient_evidence",
             )
         )
 
@@ -1240,6 +1340,7 @@ def build_investigation_view(
             for row in swing_preview.itertuples(index=False)
         ]
 
+    top_repeated_source = dup_exact_top if not dup_exact_top.empty else dup_exact_source
     summary["top_repeated_names"] = [
         {
             "display_name": str(row.get("display_name") or ""),
@@ -1248,7 +1349,7 @@ def build_investigation_view(
             "n_pro": int(_to_float(row.get("n_pro")) or 0),
             "n_con": int(_to_float(row.get("n_con")) or 0),
         }
-        for row in dup_exact_top.head(5).to_dict(orient="records")
+        for row in top_repeated_source.head(5).to_dict(orient="records")
     ]
     summary["top_near_dup_clusters"] = [
         {

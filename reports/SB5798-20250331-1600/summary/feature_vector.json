@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "report_id": "SB5798-20250331-1600",
-  "generated_at_utc": "2026-02-22T06:34:21.268703+00:00",
+  "generated_at_utc": "2026-02-23T00:49:16.045970+00:00",
   "lens": "side_by_side",
   "date_range_start": "2025-03-26T16:23:00-07:00",
   "date_range_end": "2025-03-31T14:59:00-07:00",
@@ -10,8 +10,8 @@
     "overall_pro_rate": 0.0475937486164608,
     "overall_con_rate": 0.9488865276486474,
     "window_queue_size": 0,
-    "record_queue_size": 0,
-    "cluster_queue_size": 0,
+    "record_queue_size": 250,
+    "cluster_queue_size": 250,
     "window_high_count": 0,
     "window_medium_count": 0,
     "window_watch_count": 0,
@@ -20,20 +20,82 @@
     "window_top_abs_z": null,
     "window_top_dup_fraction": null,
     "window_min_q_value": null,
-    "top_name_max_records": 0,
-    "top_cluster_max_records": 0,
+    "top_name_max_records": 39,
+    "top_cluster_max_records": 14,
     "off_hours_ratio": 0.045933501571700536,
     "dedup_drop_fraction": 0.005268517288705893
   },
-  "top_repeated_names": [],
-  "top_near_dup_clusters": [],
+  "top_repeated_names": [
+    {
+      "canonical_name": "BACKOUS|KATHLEEN",
+      "display_name": "BACKOUS, KATHLEEN",
+      "n_records": 39,
+      "n_pro": 0,
+      "n_con": 39
+    },
+    {
+      "canonical_name": "ROUBAL|SANDRA",
+      "display_name": "ROUBAL, SANDRA",
+      "n_records": 18,
+      "n_pro": 0,
+      "n_con": 18
+    },
+    {
+      "canonical_name": "PURSLEY|JODI",
+      "display_name": "PURSLEY, JODI",
+      "n_records": 16,
+      "n_pro": 0,
+      "n_con": 16
+    },
+    {
+      "canonical_name": "VANDER HOUWEN|CAROL",
+      "display_name": "VANDER HOUWEN, CAROL",
+      "n_records": 16,
+      "n_pro": 0,
+      "n_con": 16
+    },
+    {
+      "canonical_name": "PALADY|CHERYL",
+      "display_name": "PALADY, CHERYL",
+      "n_records": 15,
+      "n_pro": 0,
+      "n_con": 15
+    }
+  ],
+  "top_near_dup_clusters": [
+    {
+      "cluster_id": "cluster_0001",
+      "cluster_size": 7,
+      "n_records": 14
+    },
+    {
+      "cluster_id": "cluster_0002",
+      "cluster_size": 6,
+      "n_records": 10
+    },
+    {
+      "cluster_id": "cluster_0003",
+      "cluster_size": 5,
+      "n_records": 8
+    },
+    {
+      "cluster_id": "cluster_0005",
+      "cluster_size": 5,
+      "n_records": 7
+    },
+    {
+      "cluster_id": "cluster_0004",
+      "cluster_size": 5,
+      "n_records": 5
+    }
+  ],
   "material_quality_metric_count": 0,
   "total_submissions": 45174,
   "overall_pro_rate": 0.0475937486164608,
   "overall_con_rate": 0.9488865276486474,
   "window_queue_size": 0,
-  "record_queue_size": 0,
-  "cluster_queue_size": 0,
+  "record_queue_size": 250,
+  "cluster_queue_size": 250,
   "window_high_count": 0,
   "window_medium_count": 0,
   "window_watch_count": 0

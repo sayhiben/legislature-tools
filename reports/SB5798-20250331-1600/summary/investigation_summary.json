@@ -6,8 +6,80 @@
   "overall_con_rate": 0.9488865276486474,
   "top_burst_windows": [],
   "top_swing_windows": [],
-  "top_repeated_names": [],
-  "top_near_dup_clusters": [],
+  "top_repeated_names": [
+    {
+      "display_name": "BACKOUS, KATHLEEN",
+      "canonical_name": "BACKOUS|KATHLEEN",
+      "n_records": 39,
+      "n_pro": 0,
+      "n_con": 39
+    },
+    {
+      "display_name": "ROUBAL, SANDRA",
+      "canonical_name": "ROUBAL|SANDRA",
+      "n_records": 18,
+      "n_pro": 0,
+      "n_con": 18
+    },
+    {
+      "display_name": "VANDER HOUWEN, CAROL",
+      "canonical_name": "VANDER HOUWEN|CAROL",
+      "n_records": 16,
+      "n_pro": 0,
+      "n_con": 16
+    },
+    {
+      "display_name": "PURSLEY, JODI",
+      "canonical_name": "PURSLEY|JODI",
+      "n_records": 16,
+      "n_pro": 0,
+      "n_con": 16
+    },
+    {
+      "display_name": "PALADY, CHERYL",
+      "canonical_name": "PALADY|CHERYL",
+      "n_records": 15,
+      "n_pro": 0,
+      "n_con": 15
+    }
+  ],
+  "top_near_dup_clusters": [
+    {
+      "cluster_id": "cluster_0001",
+      "cluster_size": 7,
+      "n_records": 14,
+      "first_seen": "2025-03-29T07:05:00-07:00",
+      "last_seen": "2025-03-31T14:54:00-07:00"
+    },
+    {
+      "cluster_id": "cluster_0002",
+      "cluster_size": 6,
+      "n_records": 10,
+      "first_seen": "2025-03-27T07:25:00-07:00",
+      "last_seen": "2025-03-31T13:50:00-07:00"
+    },
+    {
+      "cluster_id": "cluster_0003",
+      "cluster_size": 5,
+      "n_records": 8,
+      "first_seen": "2025-03-29T07:02:00-07:00",
+      "last_seen": "2025-03-31T13:36:00-07:00"
+    },
+    {
+      "cluster_id": "cluster_0005",
+      "cluster_size": 5,
+      "n_records": 7,
+      "first_seen": "2025-03-27T19:29:00-07:00",
+      "last_seen": "2025-03-31T08:56:00-07:00"
+    },
+    {
+      "cluster_id": "cluster_0004",
+      "cluster_size": 5,
+      "n_records": 5,
+      "first_seen": "2025-03-30T07:13:00-07:00",
+      "last_seen": "2025-03-31T10:06:00-07:00"
+    }
+  ],
   "off_hours_summary": {
     "total": 45174.0,
     "off_hours": 2075.0,
@@ -81,8 +153,8 @@
   },
   "queue_counts": {
     "window": 0,
-    "record": 0,
-    "cluster": 0
+    "record": 250,
+    "cluster": 250
   },
   "window_tier_counts": {
     "high": 0,

@@ -1834,18 +1834,18 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
         ],
         "voter_registry_match": [
             (
-                "Interpret voter linkage through probabilistic tiers (exact, strong "
-                "fuzzy, weak fuzzy, unmatched); avoid binary matched/unmatched "
-                "framing in isolation."
+                "Interpret primary linkage through conservative outcomes "
+                "(matched unique, matched ambiguous, unmatched) and keep unmatched "
+                "language scoped to the WA active voter file."
             ),
             (
-                "Sustained drops in exact/strong tiers with growth in weak/unmatched "
-                "tiers are stronger when low-power flags are absent and adjacent "
-                "windows corroborate the shift."
+                "Compare unmatched-rate differences at both row and unique-name units; "
+                "pairwise tests are strongest when support is adequate and adjacent "
+                "windows corroborate the pattern."
             ),
             (
-                "Treat voter linkage as supporting evidence only: combine with other "
-                "detector signals before drawing investigative conclusions."
+                "Use balanced and broad sensitivity panels to assess how strong/weak "
+                "fuzzy assumptions move outcomes before interpreting directional claims."
             ),
         ],
         "periodicity": [
@@ -2041,12 +2041,12 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             "extended_low": "more complete organization capture across participation streams",
         },
         "voter_registry_match": {
-            "primary_metric": "probabilistic voter-linkage tier composition and confidence",
-            "momentary_high": "brief concentration in exact or strong-fuzzy linkage tiers",
-            "momentary_low": "short-lived weak/unmatched tier growth in sparse buckets",
-            "extended_high": "stable overlap with exact/strong linkage tiers across windows",
+            "primary_metric": "conservative matched/unmatched composition with uncertainty accounting",
+            "momentary_high": "brief matched concentration that may reflect clean registry overlap",
+            "momentary_low": "short-lived unmatched growth in sparse buckets",
+            "extended_high": "stable conservative matched coverage across windows",
             "extended_low": (
-                "persistent weak/unmatched tier dominance requiring normalization and source review"
+                "persistent unmatched dominance requiring normalization and source review"
             ),
         },
         "periodicity": {
@@ -2829,35 +2829,76 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_exact_bucket_concentration": timebar(
-            summary="Exact-duplicate concentration over time.",
-            primary_label="Duplicate count",
-            primary_desc="Bars show count of repeated canonical names in each bucket.",
+            summary="Exact-duplicate observed versus expected burden over time.",
+            primary_label="Observed duplicate rows",
+            primary_desc="Line shows observed duplicate-row burden in each bucket.",
             include_low_power=False,
             include_wilson=False,
-            volume_label="Duplicate count",
-            volume_desc="Exact duplicate occurrences per bucket.",
+            volume_label="Rows",
+            volume_desc="Total rows in each bucket.",
+            extra=[
+                {
+                    "label": "Expected duplicate rows",
+                    "description": "Model baseline expectation from active-voter name frequencies.",
+                },
+                {
+                    "label": "Excess duplicate rows",
+                    "description": "Observed minus expected duplicate burden (floored at zero).",
+                },
+            ],
         ),
-        "duplicates_exact_top_names": {
-            "summary": "Most repeated exact names.",
+        "duplicates_exact_per_name_anomalies": {
+            "summary": "Per-name anomaly ranking with p/q values.",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Total repeated occurrences for each display name.",
+                    "description": "Repeat count for each canonical/display name in this hearing.",
                 },
-                {"label": "X-axis", "description": "Top repeated display names."},
+                {
+                    "label": "Significance",
+                    "description": "Lower q-values indicate stronger excess-versus-baseline evidence.",
+                },
+                {"label": "X-axis", "description": "Canonical/display names sorted by q then count."},
             ],
         },
-        "duplicates_exact_position_switch": {
-            "summary": "Repeated names with side switching.",
+        "duplicates_exact_position_concentration": {
+            "summary": "Position concentration test (Pro vs Con duplicate burden).",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": (
-                        "Total records for repeated names appearing in multiple "
-                        "positions."
-                    ),
+                    "description": "Rate difference in duplicate-row burden between compared positions.",
                 },
-                {"label": "X-axis", "description": "Display names exhibiting pro/con switching."},
+                {"label": "X-axis", "description": "Position comparison pair."},
+            ],
+        },
+        "duplicates_exact_null_distribution": {
+            "summary": "Monte Carlo null distribution for duplicate burden metrics.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Simulated duplicate burden metric under active-voter baseline.",
+                },
+                {"label": "X-axis", "description": "Simulation iteration."},
+            ],
+        },
+        "duplicates_exact_temporal_burst": {
+            "summary": "Temporal corroboration for repeated names.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Within-5-minute repeated-pair count for each repeated name.",
+                },
+                {"label": "X-axis", "description": "Canonical name."},
+            ],
+        },
+        "duplicates_exact_swing_impact": {
+            "summary": "Sensitivity scenarios for effective Pro/Con counts.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Effective pro share under each collision-adjustment scenario.",
+                },
+                {"label": "X-axis", "description": "Scenario (raw, strict dedupe, excess-adjusted)."},
             ],
         },
         "duplicates_near_cluster_timeline": timebar(
@@ -3032,72 +3073,74 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "voter_registry_match_rates": timebar(
-            summary="Probabilistic voter-linkage tier trend over time.",
-            primary_label="Match rate",
-            primary_desc=(
-                "Overall linked share per bucket using exact + fuzzy probabilistic linkage tiers."
-            ),
+            summary="Conservative voter-linkage trend (matched vs unmatched).",
+            primary_label="Matched rate",
+            primary_desc=("Share of rows classified as matched under conservative primary linkage."),
             include_wilson=True,
             extra=[
                 {
-                    "label": "Exact match rate",
-                    "description": "Share of records in the exact linkage tier.",
+                    "label": "Unmatched rate",
+                    "description": "Share of rows unmatched to WA active voter file.",
                 },
                 {
-                    "label": "Strong fuzzy match rate",
-                    "description": "Share of records in the strong-fuzzy linkage tier.",
-                },
-                {
-                    "label": "Weak fuzzy match rate",
-                    "description": "Share of records in the weak-fuzzy linkage tier.",
-                },
-                {
-                    "label": "Mean match confidence",
-                    "description": (
-                        "Average probabilistic linkage confidence for records in bucket."
-                    ),
+                    "label": "Matched ambiguous rate",
+                    "description": "Share of rows mapped to ambiguous matched outcomes.",
                 },
             ],
         ),
-        "voter_registry_match_by_position": {
-            "summary": "Match rate by position grouping.",
+        "voter_registry_linkage_by_position_rows": {
+            "summary": "Unmatched-rate profile by position (row-level unit).",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Registry match rate for each position label.",
+                    "description": "Unmatched rate for each position using row-level counts.",
                 },
                 {"label": "X-axis", "description": "Normalized position label."},
             ],
         },
-        "voter_registry_unmatched_names": {
-            "summary": "Most frequent unmatched names.",
+        "voter_registry_linkage_by_position_unique": {
+            "summary": "Unmatched-rate profile by position (unique-name unit).",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Count of unmatched records for each canonical name.",
+                    "description": "Unmatched rate for each dominant position among unique names.",
+                },
+                {"label": "X-axis", "description": "Dominant position label for unique names."},
+            ],
+        },
+        "voter_registry_unmatched_names": {
+            "summary": "Most frequent names unmatched to WA active voter file.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Count of unmatched rows for each canonical name.",
                 },
                 {"label": "X-axis", "description": "Canonical unmatched name values."},
             ],
         },
-        "voter_registry_match_tiers": {
-            "summary": "Probabilistic voter-linkage tier composition.",
+        "voter_registry_pairwise_tests": {
+            "summary": "Pairwise unmatched-rate tests across positions.",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Share of records in each probabilistic linkage tier.",
+                    "description": "Unmatched-rate difference between compared position pairs.",
                 },
                 {
                     "label": "X-axis",
-                    "description": "Linkage tiers: exact, strong fuzzy, weak fuzzy, unmatched.",
+                    "description": "Pair label (left vs right) by inference unit.",
                 },
             ],
         },
-        "voter_registry_position_buckets": timebar(
-            summary="Position-specific match rates across time.",
-            primary_label="Match rate",
-            primary_desc="Per-position registry match share by bucket.",
-            include_wilson=True,
-        ),
+        "voter_registry_sensitivity_modes": {
+            "summary": "Conservative, balanced, and broad linkage sensitivity panel.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Unmatched rate under each linkage mode.",
+                },
+                {"label": "X-axis", "description": "Linkage mode."},
+            ],
+        },
         "periodicity_clockface": {
             "summary": "Clock-face minute concentration.",
             "items": [
@@ -4184,24 +4227,125 @@ def _build_interactive_chart_payload_v2(
     )
 
     dup_exact_bucket = _with_expected_columns(
-        table_map.get(_table_key("duplicates_exact", "repeated_same_bucket"), pd.DataFrame()),
-        ["bucket_start", "bucket_minutes", "canonical_name", "n", "n_pro", "n_con"],
+        table_map.get(_table_key("duplicates_exact", "duplicate_by_bucket"), pd.DataFrame()),
+        [
+            "bucket_start",
+            "bucket_minutes",
+            "n_rows",
+            "n_unique_names",
+            "n_pro",
+            "n_con",
+            "duplicate_rows",
+            "duplicate_row_rate",
+            "expected_duplicate_rows",
+            "excess_duplicate_rows",
+        ],
     )
-    dup_exact_top = _with_expected_columns(
-        table_map.get(_table_key("duplicates_exact", "top_repeated_names"), pd.DataFrame()),
-        ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
-    )
-    dup_exact_switch = _with_expected_columns(
-        table_map.get(_table_key("duplicates_exact", "position_switching_names"), pd.DataFrame()),
+    if dup_exact_bucket.empty:
+        legacy_dup_exact_bucket = _with_expected_columns(
+            table_map.get(_table_key("duplicates_exact", "repeated_same_bucket"), pd.DataFrame()),
+            ["bucket_start", "bucket_minutes", "n", "n_pro", "n_con"],
+        )
+        if not legacy_dup_exact_bucket.empty:
+            dup_exact_bucket = (
+                legacy_dup_exact_bucket.groupby(["bucket_start", "bucket_minutes"], dropna=False)
+                .agg(
+                    n_rows=("n", "sum"),
+                    n_pro=("n_pro", "sum"),
+                    n_con=("n_con", "sum"),
+                    duplicate_rows=("n", "sum"),
+                )
+                .reset_index()
+            )
+            dup_exact_bucket["n_unique_names"] = pd.NA
+            dup_exact_bucket["duplicate_row_rate"] = (
+                dup_exact_bucket["duplicate_rows"] / dup_exact_bucket["n_rows"]
+            ).where(dup_exact_bucket["n_rows"] > 0, 0.0)
+            dup_exact_bucket["expected_duplicate_rows"] = pd.NA
+            dup_exact_bucket["excess_duplicate_rows"] = dup_exact_bucket["duplicate_rows"]
+    dup_exact_per_name = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "per_name_anomalies"), pd.DataFrame()),
         [
             "display_name",
             "canonical_name",
             "n",
             "n_pro",
             "n_con",
-            "first_seen",
-            "last_seen",
             "time_span_minutes",
+            "expected_count",
+            "p_value",
+            "q_value",
+            "is_significant",
+            "within_5m_pairs",
+            "within_15m_pairs",
+            "temporal_p_value_within_5m",
+            "temporal_p_value_min_gap",
+        ],
+    )
+    if dup_exact_per_name.empty:
+        dup_exact_per_name = _with_expected_columns(
+            table_map.get(_table_key("duplicates_exact", "top_repeated_names"), pd.DataFrame()),
+            ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
+        )
+        dup_exact_per_name["expected_count"] = pd.NA
+        dup_exact_per_name["p_value"] = pd.NA
+        dup_exact_per_name["q_value"] = pd.NA
+        dup_exact_per_name["is_significant"] = False
+        dup_exact_per_name["within_5m_pairs"] = 0
+        dup_exact_per_name["within_15m_pairs"] = 0
+        dup_exact_per_name["temporal_p_value_within_5m"] = pd.NA
+        dup_exact_per_name["temporal_p_value_min_gap"] = pd.NA
+
+    dup_exact_position_tests = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "position_concentration_tests"), pd.DataFrame()),
+        [
+            "position_left",
+            "position_right",
+            "left_duplicate_row_rate",
+            "right_duplicate_row_rate",
+            "rate_difference",
+            "rate_difference_ci_low",
+            "rate_difference_ci_high",
+            "rate_ratio",
+            "permutation_p_value_one_sided",
+            "left_is_low_power",
+            "right_is_low_power",
+        ],
+    )
+    dup_exact_null_distribution = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "null_distribution"), pd.DataFrame()),
+        [
+            "iteration",
+            "duplicate_rows",
+            "duplicate_row_rate",
+            "duplicate_pairs",
+            "n_names_ge2",
+            "n_names_ge3",
+            "n_names_ge5",
+            "n_names_ge10",
+            "max_count",
+        ],
+    )
+    dup_exact_temporal_burst = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "temporal_burst_signals"), pd.DataFrame()),
+        [
+            "canonical_name",
+            "within_5m_pairs",
+            "within_15m_pairs",
+            "min_gap_minutes",
+            "time_span_minutes",
+            "temporal_p_value_min_gap",
+            "temporal_p_value_within_5m",
+            "temporal_p_value_within_15m",
+        ],
+    )
+    dup_exact_swing_impact = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "swing_impact_scenarios"), pd.DataFrame()),
+        [
+            "scenario",
+            "n_pro_effective",
+            "n_con_effective",
+            "pro_share",
         ],
     )
 
@@ -4372,57 +4516,97 @@ def _build_interactive_chart_payload_v2(
             "bucket_start",
             "bucket_minutes",
             "n_total",
-            "match_rate",
-            "exact_match_rate",
-            "strong_fuzzy_match_rate",
-            "weak_fuzzy_match_rate",
-            "expected_match_rate",
-            "mean_match_confidence",
-            "matched_confidence_mean",
-            "match_rate_wilson_low",
-            "match_rate_wilson_high",
-            "pro_match_rate",
-            "pro_match_rate_wilson_low",
-            "pro_match_rate_wilson_high",
-            "con_match_rate",
-            "con_match_rate_wilson_low",
-            "con_match_rate_wilson_high",
-            "n_exact_matches",
-            "n_strong_fuzzy_matches",
-            "n_weak_fuzzy_matches",
-            "n_ambiguous_fuzzy_matches",
+            "n_matched_unique",
+            "n_matched_ambiguous",
+            "n_unmatched",
+            "matched_rate",
+            "unmatched_rate",
+            "matched_rate_wilson_low",
+            "matched_rate_wilson_high",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
             "is_low_power",
-            "pro_is_low_power",
-            "con_is_low_power",
+            "n_pro",
+            "n_con",
         ],
     )
-    voter_position = _with_expected_columns(
-        table_map.get(_table_key("voter_registry_match", "match_by_position"), pd.DataFrame()),
+    voter_position_rows = _with_expected_columns(
+        table_map.get(_table_key("voter_registry_match", "linkage_by_position_rows"), pd.DataFrame()),
         [
             "position_normalized",
             "n_total",
-            "n_matches",
+            "n_matched_unique",
+            "n_matched_ambiguous",
             "n_unmatched",
-            "match_rate",
-            "exact_match_rate",
-            "strong_fuzzy_match_rate",
-            "weak_fuzzy_match_rate",
-            "expected_matches",
-            "expected_match_rate",
-            "mean_match_confidence",
-            "matched_confidence_mean",
-            "match_rate_wilson_low",
-            "match_rate_wilson_high",
-            "n_exact_matches",
-            "n_strong_fuzzy_matches",
-            "n_weak_fuzzy_matches",
-            "n_ambiguous_fuzzy_matches",
+            "matched_rate",
+            "unmatched_rate",
+            "matched_rate_wilson_low",
+            "matched_rate_wilson_high",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
             "is_low_power",
+        ],
+    )
+    voter_position_unique = _with_expected_columns(
+        table_map.get(_table_key("voter_registry_match", "linkage_by_position_unique"), pd.DataFrame()),
+        [
+            "position_normalized",
+            "n_total",
+            "n_matched_unique",
+            "n_matched_ambiguous",
+            "n_unmatched",
+            "matched_rate",
+            "unmatched_rate",
+            "matched_rate_wilson_low",
+            "matched_rate_wilson_high",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
+            "is_low_power",
+        ],
+    )
+    voter_pairwise = _with_expected_columns(
+        table_map.get(_table_key("voter_registry_match", "position_pairwise_tests"), pd.DataFrame()),
+        [
+            "unit",
+            "position_left",
+            "position_right",
+            "left_n_total",
+            "left_n_unmatched",
+            "left_unmatched_rate",
+            "right_n_total",
+            "right_n_unmatched",
+            "right_unmatched_rate",
+            "rate_difference",
+            "odds_ratio",
+            "p_value",
+            "alpha",
+            "is_significant",
+            "inference_status",
+        ],
+    )
+    voter_sensitivity_modes = _with_expected_columns(
+        table_map.get(_table_key("voter_registry_match", "sensitivity_modes"), pd.DataFrame()),
+        [
+            "mode",
+            "n_rows",
+            "n_unmatched_rows",
+            "unmatched_rate_rows",
+            "n_unique_names",
+            "n_unmatched_unique",
+            "unmatched_rate_unique",
         ],
     )
     voter_unmatched = _with_expected_columns(
         table_map.get(_table_key("voter_registry_match", "unmatched_names"), pd.DataFrame()),
-        ["canonical_name", "n_records"],
+        [
+            "canonical_name",
+            "n_rows",
+            "n_pro",
+            "n_con",
+            "top_caveat",
+            "best_similarity_score",
+            "candidate_pool_size",
+        ],
     )
     voter_bucket_position = _with_expected_columns(
         table_map.get(
@@ -4434,34 +4618,31 @@ def _build_interactive_chart_payload_v2(
             "bucket_minutes",
             "position_normalized",
             "n_total",
-            "match_rate",
-            "exact_match_rate",
-            "strong_fuzzy_match_rate",
-            "weak_fuzzy_match_rate",
-            "expected_matches",
-            "expected_match_rate",
-            "mean_match_confidence",
-            "matched_confidence_mean",
-            "match_rate_wilson_low",
-            "match_rate_wilson_high",
-            "n_exact_matches",
-            "n_strong_fuzzy_matches",
-            "n_weak_fuzzy_matches",
-            "n_ambiguous_fuzzy_matches",
+            "n_matched_unique",
+            "n_matched_ambiguous",
+            "n_unmatched",
+            "matched_rate",
+            "unmatched_rate",
+            "matched_rate_wilson_low",
+            "matched_rate_wilson_high",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
             "is_low_power",
         ],
     )
-    voter_tier_summary = _with_expected_columns(
-        table_map.get(_table_key("voter_registry_match", "match_tier_summary"), pd.DataFrame()),
-        [
-            "match_tier",
-            "n_records",
-            "record_rate",
-            "mean_match_confidence",
-            "min_match_confidence",
-            "max_match_confidence",
-        ],
-    )
+
+    # Compatibility aliases used by shared chart helpers/front-end logic.
+    for frame in (voter_bucket, voter_position_rows, voter_position_unique, voter_bucket_position):
+        if not frame.empty:
+            if "match_rate" not in frame.columns and "matched_rate" in frame.columns:
+                frame["match_rate"] = frame["matched_rate"]
+            if "match_rate_wilson_low" not in frame.columns and "matched_rate_wilson_low" in frame.columns:
+                frame["match_rate_wilson_low"] = frame["matched_rate_wilson_low"]
+            if "match_rate_wilson_high" not in frame.columns and "matched_rate_wilson_high" in frame.columns:
+                frame["match_rate_wilson_high"] = frame["matched_rate_wilson_high"]
+
+    if "n_records" not in voter_unmatched.columns and "n_rows" in voter_unmatched.columns:
+        voter_unmatched["n_records"] = voter_unmatched["n_rows"]
 
     periodic_clockface = _with_expected_columns(
         table_map.get(_table_key("periodicity", "clockface_distribution"), pd.DataFrame()),
@@ -4582,7 +4763,6 @@ def _build_interactive_chart_payload_v2(
         (pro_rate_changepoints, "change_minute"),
         (off_hours_window_control, "bucket_start"),
         (dup_exact_bucket, "bucket_start"),
-        (dup_exact_switch, "first_seen"),
         (dup_near_clusters, "first_seen"),
         (sorted_bucket, "bucket_start"),
         (sorted_minute, "minute_bucket"),
@@ -5365,32 +5545,107 @@ def _build_interactive_chart_payload_v2(
         columns=[
             "bucket_start",
             "bucket_minutes",
-            "canonical_name",
-            "n",
+            "n_rows",
+            "n_unique_names",
+            "duplicate_rows",
+            "duplicate_row_rate",
+            "expected_duplicate_rows",
+            "excess_duplicate_rows",
             "n_pro",
             "n_con",
         ],
         max_rows=25_000,
     )
-    charts["duplicates_exact_top_names"] = _records_from_frame(
-        dup_exact_top.sort_values("n", ascending=False),
-        columns=["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
-        max_rows=500,
-    )
-    charts["duplicates_exact_position_switch"] = _records_from_frame(
-        dup_exact_switch.sort_values("n", ascending=False),
+    charts["duplicates_exact_per_name_anomalies"] = _records_from_frame(
+        dup_exact_per_name.sort_values(["q_value", "p_value", "n"], ascending=[True, True, False]),
         columns=[
             "display_name",
             "canonical_name",
             "n",
             "n_pro",
             "n_con",
-            "first_seen",
-            "last_seen",
             "time_span_minutes",
+            "expected_count",
+            "p_value",
+            "q_value",
+            "is_significant",
+            "within_5m_pairs",
+            "within_15m_pairs",
+            "temporal_p_value_within_5m",
+            "temporal_p_value_min_gap",
         ],
         max_rows=500,
     )
+    charts["duplicates_exact_position_concentration"] = _records_from_frame(
+        dup_exact_position_tests.assign(
+            pair_label=(
+                dup_exact_position_tests["position_left"].astype(str)
+                + " vs "
+                + dup_exact_position_tests["position_right"].astype(str)
+            )
+        ).sort_values("permutation_p_value_one_sided"),
+        columns=[
+            "pair_label",
+            "position_left",
+            "position_right",
+            "left_duplicate_row_rate",
+            "right_duplicate_row_rate",
+            "rate_difference",
+            "rate_difference_ci_low",
+            "rate_difference_ci_high",
+            "rate_ratio",
+            "permutation_p_value_one_sided",
+            "left_is_low_power",
+            "right_is_low_power",
+        ],
+        max_rows=500,
+    )
+    charts["duplicates_exact_null_distribution"] = _records_from_frame(
+        dup_exact_null_distribution.sort_values("iteration"),
+        columns=[
+            "iteration",
+            "duplicate_rows",
+            "duplicate_row_rate",
+            "duplicate_pairs",
+            "n_names_ge2",
+            "n_names_ge3",
+            "n_names_ge5",
+            "n_names_ge10",
+            "max_count",
+        ],
+        max_rows=25_000,
+    )
+    charts["duplicates_exact_temporal_burst"] = _records_from_frame(
+        dup_exact_temporal_burst.sort_values(
+            ["temporal_p_value_within_5m", "temporal_p_value_min_gap", "within_5m_pairs"],
+            ascending=[True, True, False],
+        ),
+        columns=[
+            "canonical_name",
+            "within_5m_pairs",
+            "within_15m_pairs",
+            "min_gap_minutes",
+            "time_span_minutes",
+            "temporal_p_value_min_gap",
+            "temporal_p_value_within_5m",
+            "temporal_p_value_within_15m",
+        ],
+        max_rows=2_000,
+    )
+    charts["duplicates_exact_swing_impact"] = _records_from_frame(
+        dup_exact_swing_impact,
+        columns=[
+            "scenario",
+            "n_pro_effective",
+            "n_con_effective",
+            "pro_share",
+        ],
+        max_rows=20,
+    )
+
+    # Compatibility aliases retained during contract migration.
+    charts["duplicates_exact_top_names"] = charts["duplicates_exact_per_name_anomalies"]
+    charts["duplicates_exact_position_switch"] = charts["duplicates_exact_per_name_anomalies"]
 
     charts["duplicates_near_cluster_timeline"] = _records_from_frame(
         dup_near_clusters.sort_values("first_seen"),
@@ -5595,60 +5850,112 @@ def _build_interactive_chart_payload_v2(
             "bucket_start",
             "bucket_minutes",
             "n_total",
-            "match_rate",
-            "exact_match_rate",
-            "strong_fuzzy_match_rate",
-            "weak_fuzzy_match_rate",
-            "expected_match_rate",
-            "mean_match_confidence",
-            "matched_confidence_mean",
+            "n_matched_unique",
+            "n_matched_ambiguous",
+            "n_unmatched",
+            "matched_rate",
+            "unmatched_rate",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
-            "pro_match_rate",
-            "pro_match_rate_wilson_low",
-            "pro_match_rate_wilson_high",
-            "con_match_rate",
-            "con_match_rate_wilson_low",
-            "con_match_rate_wilson_high",
-            "n_exact_matches",
-            "n_strong_fuzzy_matches",
-            "n_weak_fuzzy_matches",
-            "n_ambiguous_fuzzy_matches",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
             "is_low_power",
-            "pro_is_low_power",
-            "con_is_low_power",
+            "n_pro",
+            "n_con",
         ],
         max_rows=25_000,
     )
-    charts["voter_registry_match_by_position"] = _records_from_frame(
-        voter_position.sort_values("position_normalized"),
+    charts["voter_registry_linkage_by_position_rows"] = _records_from_frame(
+        voter_position_rows.sort_values("position_normalized"),
         columns=[
             "position_normalized",
             "n_total",
-            "n_matches",
+            "n_matched_unique",
+            "n_matched_ambiguous",
             "n_unmatched",
-            "match_rate",
-            "exact_match_rate",
-            "strong_fuzzy_match_rate",
-            "weak_fuzzy_match_rate",
-            "expected_matches",
-            "expected_match_rate",
-            "mean_match_confidence",
-            "matched_confidence_mean",
+            "matched_rate",
+            "unmatched_rate",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
-            "n_exact_matches",
-            "n_strong_fuzzy_matches",
-            "n_weak_fuzzy_matches",
-            "n_ambiguous_fuzzy_matches",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
+            "is_low_power",
+        ],
+        max_rows=100,
+    )
+    charts["voter_registry_linkage_by_position_unique"] = _records_from_frame(
+        voter_position_unique.sort_values("position_normalized"),
+        columns=[
+            "position_normalized",
+            "n_total",
+            "n_matched_unique",
+            "n_matched_ambiguous",
+            "n_unmatched",
+            "matched_rate",
+            "unmatched_rate",
+            "match_rate_wilson_low",
+            "match_rate_wilson_high",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
             "is_low_power",
         ],
         max_rows=100,
     )
     charts["voter_registry_unmatched_names"] = _records_from_frame(
         voter_unmatched.sort_values("n_records", ascending=False),
-        columns=["canonical_name", "n_records"],
+        columns=[
+            "canonical_name",
+            "n_records",
+            "n_pro",
+            "n_con",
+            "top_caveat",
+            "best_similarity_score",
+            "candidate_pool_size",
+        ],
         max_rows=1_000,
+    )
+    charts["voter_registry_pairwise_tests"] = _records_from_frame(
+        voter_pairwise.assign(
+            pair_label=(
+                voter_pairwise["unit"].astype(str)
+                + ": "
+                + voter_pairwise["position_left"].astype(str)
+                + " vs "
+                + voter_pairwise["position_right"].astype(str)
+            )
+        ).sort_values(["unit", "p_value", "pair_label"]),
+        columns=[
+            "unit",
+            "pair_label",
+            "position_left",
+            "position_right",
+            "left_n_total",
+            "left_n_unmatched",
+            "left_unmatched_rate",
+            "right_n_total",
+            "right_n_unmatched",
+            "right_unmatched_rate",
+            "rate_difference",
+            "odds_ratio",
+            "p_value",
+            "alpha",
+            "is_significant",
+            "inference_status",
+        ],
+        max_rows=250,
+    )
+    charts["voter_registry_sensitivity_modes"] = _records_from_frame(
+        voter_sensitivity_modes.sort_values("mode"),
+        columns=[
+            "mode",
+            "n_rows",
+            "n_unmatched_rows",
+            "unmatched_rate_rows",
+            "n_unique_names",
+            "n_unmatched_unique",
+            "unmatched_rate_unique",
+        ],
+        max_rows=20,
     )
     charts["voter_registry_position_buckets"] = _records_from_frame(
         voter_bucket_position.sort_values(
@@ -5659,42 +5966,22 @@ def _build_interactive_chart_payload_v2(
             "bucket_minutes",
             "position_normalized",
             "n_total",
-            "match_rate",
-            "exact_match_rate",
-            "strong_fuzzy_match_rate",
-            "weak_fuzzy_match_rate",
-            "expected_matches",
-            "expected_match_rate",
-            "mean_match_confidence",
-            "matched_confidence_mean",
+            "n_matched_unique",
+            "n_matched_ambiguous",
+            "n_unmatched",
+            "matched_rate",
+            "unmatched_rate",
             "match_rate_wilson_low",
             "match_rate_wilson_high",
-            "n_exact_matches",
-            "n_strong_fuzzy_matches",
-            "n_weak_fuzzy_matches",
-            "n_ambiguous_fuzzy_matches",
+            "unmatched_rate_wilson_low",
+            "unmatched_rate_wilson_high",
             "is_low_power",
         ],
         max_rows=25_000,
     )
-    _voter_tier_order = {"exact": 0, "strong_fuzzy": 1, "weak_fuzzy": 2, "unmatched": 3}
-    charts["voter_registry_match_tiers"] = _records_from_frame(
-        voter_tier_summary.assign(
-            _tier_order=voter_tier_summary["match_tier"]
-            .map(_voter_tier_order)
-            .fillna(99)
-            .astype(int)
-        ).sort_values(["_tier_order", "match_tier"]),
-        columns=[
-            "match_tier",
-            "n_records",
-            "record_rate",
-            "mean_match_confidence",
-            "min_match_confidence",
-            "max_match_confidence",
-        ],
-        max_rows=20,
-    )
+    # Compatibility aliases retained during contract migration.
+    charts["voter_registry_match_by_position"] = charts["voter_registry_linkage_by_position_rows"]
+    charts["voter_registry_match_tiers"] = charts["voter_registry_sensitivity_modes"]
 
     charts["periodicity_clockface"] = _records_from_frame(
         periodic_clockface.sort_values("minute_of_hour"),
@@ -5986,7 +6273,7 @@ def _build_interactive_chart_payload_v2(
     color_semantics = default_color_semantics()
 
     payload = {
-        "version": 3,
+        "version": 4,
         "analysis_catalog": analysis_catalog,
         "charts": charts,
         "chart_legend_docs": chart_legend_docs,

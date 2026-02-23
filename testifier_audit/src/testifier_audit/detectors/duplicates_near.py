@@ -333,6 +333,95 @@ class DuplicatesNearDetector(Detector):
             .astype(float)
         )
 
+        exact_per_name = features.get("duplicates_exact.per_name_anomalies")
+        if isinstance(exact_per_name, pd.DataFrame) and not exact_per_name.empty:
+            exact_working = exact_per_name.copy()
+            exact_working["canonical_name"] = (
+                exact_working.get("canonical_name", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            if "is_significant" in exact_working.columns:
+                significant_mask = exact_working["is_significant"].fillna(False).astype(bool)
+            elif {"q_value", "q"}.intersection(set(exact_working.columns)):
+                q_col = "q_value" if "q_value" in exact_working.columns else "q"
+                significant_mask = (
+                    pd.to_numeric(exact_working[q_col], errors="coerce").fillna(1.0) <= 0.10
+                )
+            else:
+                significant_mask = pd.Series(False, index=exact_working.index)
+            significant_names = set(exact_working.loc[significant_mask, "canonical_name"])
+            tested_names = set(exact_working["canonical_name"])
+            q_lookup: dict[str, float] = {}
+            if "q_value" in exact_working.columns:
+                q_lookup = (
+                    exact_working[["canonical_name", "q_value"]]
+                    .dropna(subset=["canonical_name"])
+                    .drop_duplicates(subset=["canonical_name"], keep="first")
+                    .set_index("canonical_name")["q_value"]
+                    .astype(float)
+                    .to_dict()
+                )
+            cluster_overlap = (
+                cluster_members.groupby("cluster_id", dropna=False)["canonical_name"]
+                .agg(list)
+                .reset_index()
+            )
+            cluster_overlap["n_primary_significant_members"] = cluster_overlap[
+                "canonical_name"
+            ].map(
+                lambda members: int(sum(1 for value in members if value in significant_names))
+            )
+            cluster_overlap["n_primary_tested_members"] = cluster_overlap["canonical_name"].map(
+                lambda members: int(sum(1 for value in members if value in tested_names))
+            )
+            cluster_overlap["supports_primary_name_anomaly"] = (
+                cluster_overlap["n_primary_significant_members"] > 0
+            )
+            cluster_overlap["primary_min_q_value"] = cluster_overlap["canonical_name"].map(
+                lambda members: min(
+                    [float(q_lookup[value]) for value in members if value in q_lookup],
+                    default=1.0,
+                )
+            )
+            cluster_summary = cluster_summary.merge(
+                cluster_overlap[
+                    [
+                        "cluster_id",
+                        "n_primary_significant_members",
+                        "n_primary_tested_members",
+                        "supports_primary_name_anomaly",
+                        "primary_min_q_value",
+                    ]
+                ],
+                on="cluster_id",
+                how="left",
+            )
+        else:
+            cluster_summary["n_primary_significant_members"] = 0
+            cluster_summary["n_primary_tested_members"] = 0
+            cluster_summary["supports_primary_name_anomaly"] = False
+            cluster_summary["primary_min_q_value"] = 1.0
+
+        cluster_summary["n_primary_significant_members"] = (
+            pd.to_numeric(cluster_summary["n_primary_significant_members"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        cluster_summary["n_primary_tested_members"] = (
+            pd.to_numeric(cluster_summary["n_primary_tested_members"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        cluster_summary["supports_primary_name_anomaly"] = (
+            cluster_summary["supports_primary_name_anomaly"].fillna(False).astype(bool)
+        )
+        cluster_summary["primary_min_q_value"] = (
+            pd.to_numeric(cluster_summary["primary_min_q_value"], errors="coerce")
+            .fillna(1.0)
+            .astype(float)
+        )
+
         summary = {
             "candidate_blocks": int(len(candidate_blocks)),
             "n_similarity_edges": int(len(edges)),
@@ -349,6 +438,11 @@ class DuplicatesNearDetector(Detector):
             else 0.0,
             "n_high_concentration_clusters": int(
                 (cluster_summary["peak_bucket_fraction"] >= 0.5).sum()
+            )
+            if not cluster_summary.empty
+            else 0,
+            "n_clusters_supporting_primary_name_anomaly": int(
+                cluster_summary["supports_primary_name_anomaly"].sum()
             )
             if not cluster_summary.empty
             else 0,

@@ -102,27 +102,89 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
                 ),
                 "bucket_minutes": [30, 30],
                 "n_total": [22, 19],
-                "match_rate": [0.9, 0.84],
-                "exact_match_rate": [0.72, 0.66],
-                "strong_fuzzy_match_rate": [0.12, 0.11],
-                "weak_fuzzy_match_rate": [0.06, 0.07],
-                "expected_match_rate": [0.84, 0.79],
-                "mean_match_confidence": [0.84, 0.79],
-                "match_rate_wilson_low": [0.75, 0.64],
-                "match_rate_wilson_high": [0.98, 0.94],
-                "pro_match_rate": [0.86, 0.8],
-                "con_match_rate": [0.94, 0.87],
+                "n_matched_unique": [17, 13],
+                "n_matched_ambiguous": [2, 2],
+                "n_unmatched": [3, 4],
+                "matched_rate": [0.86, 0.79],
+                "unmatched_rate": [0.14, 0.21],
+                "matched_rate_wilson_low": [0.67, 0.59],
+                "matched_rate_wilson_high": [0.95, 0.90],
+                "unmatched_rate_wilson_low": [0.05, 0.10],
+                "unmatched_rate_wilson_high": [0.33, 0.41],
+                "is_low_power": [False, False],
+                "n_pro": [10, 8],
+                "n_con": [12, 11],
+            }
+        ),
+        "voter_registry_match.linkage_by_position_rows": pd.DataFrame(
+            {
+                "position_normalized": ["Con", "Pro"],
+                "n_total": [21, 20],
+                "n_matched_unique": [15, 15],
+                "n_matched_ambiguous": [2, 2],
+                "n_unmatched": [4, 3],
+                "matched_rate": [0.81, 0.85],
+                "unmatched_rate": [0.19, 0.15],
+                "matched_rate_wilson_low": [0.62, 0.65],
+                "matched_rate_wilson_high": [0.92, 0.95],
+                "unmatched_rate_wilson_low": [0.08, 0.05],
+                "unmatched_rate_wilson_high": [0.38, 0.35],
                 "is_low_power": [False, False],
             }
         ),
-        "voter_registry_match.match_tier_summary": pd.DataFrame(
+        "voter_registry_match.linkage_by_position_unique": pd.DataFrame(
             {
-                "match_tier": ["exact", "strong_fuzzy", "weak_fuzzy", "unmatched"],
-                "n_records": [28, 4, 2, 5],
-                "record_rate": [0.72, 0.1, 0.05, 0.13],
-                "mean_match_confidence": [1.0, 0.88, 0.66, 0.0],
-                "min_match_confidence": [1.0, 0.82, 0.57, 0.0],
-                "max_match_confidence": [1.0, 0.95, 0.74, 0.0],
+                "position_normalized": ["Con", "Pro"],
+                "n_total": [18, 16],
+                "n_matched_unique": [12, 12],
+                "n_matched_ambiguous": [1, 1],
+                "n_unmatched": [5, 3],
+                "matched_rate": [0.72, 0.81],
+                "unmatched_rate": [0.28, 0.19],
+                "matched_rate_wilson_low": [0.49, 0.57],
+                "matched_rate_wilson_high": [0.88, 0.93],
+                "unmatched_rate_wilson_low": [0.12, 0.07],
+                "unmatched_rate_wilson_high": [0.51, 0.43],
+                "is_low_power": [False, False],
+            }
+        ),
+        "voter_registry_match.position_pairwise_tests": pd.DataFrame(
+            {
+                "unit": ["rows", "unique_names"],
+                "position_left": ["Pro", "Pro"],
+                "position_right": ["Con", "Con"],
+                "left_n_total": [20, 16],
+                "left_n_unmatched": [3, 3],
+                "left_unmatched_rate": [0.15, 0.19],
+                "right_n_total": [21, 18],
+                "right_n_unmatched": [4, 5],
+                "right_unmatched_rate": [0.19, 0.28],
+                "rate_difference": [-0.04, -0.09],
+                "odds_ratio": [0.75, 0.62],
+                "p_value": [0.62, 0.41],
+                "alpha": [0.05, 0.05],
+                "is_significant": [False, False],
+                "inference_status": ["tested", "tested"],
+            }
+        ),
+        "voter_registry_match.sensitivity_modes": pd.DataFrame(
+            {
+                "mode": ["balanced", "broad", "conservative"],
+                "n_rows": [41, 41, 41],
+                "n_unmatched_rows": [6, 4, 7],
+                "unmatched_rate_rows": [0.15, 0.10, 0.17],
+                "n_unique_names": [34, 34, 34],
+                "n_unmatched_unique": [6, 4, 7],
+                "unmatched_rate_unique": [0.18, 0.12, 0.21],
+            }
+        ),
+        "voter_registry_match.unmatched_names": pd.DataFrame(
+            {
+                "canonical_name": ["SMITH|JOHN", "BROWN|AVA"],
+                "n_rows": [4, 3],
+                "n_pro": [2, 1],
+                "n_con": [2, 2],
+                "top_caveat": ["below_similarity_threshold", "no_last_name_candidates"],
             }
         ),
     }
@@ -135,7 +197,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
 
     payload = _build_interactive_chart_payload_v2(table_map=table_map, detector_summaries=summaries)
 
-    assert payload["version"] == 3
+    assert payload["version"] == 4
     assert isinstance(payload["analysis_catalog"], list)
     assert isinstance(payload["charts"], dict)
     assert isinstance(payload["controls"], dict)
@@ -168,12 +230,10 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
 
     voter_rates = payload["charts"]["voter_registry_match_rates"]
     assert voter_rates
-    assert "exact_match_rate" in voter_rates[0]
-    assert "strong_fuzzy_match_rate" in voter_rates[0]
-    assert "weak_fuzzy_match_rate" in voter_rates[0]
-    assert "expected_match_rate" in voter_rates[0]
-    assert "mean_match_confidence" in voter_rates[0]
-    assert payload["charts"]["voter_registry_match_tiers"]
+    assert "matched_rate" in voter_rates[0]
+    assert "unmatched_rate" in voter_rates[0]
+    assert "n_matched_unique" in voter_rates[0]
+    assert payload["charts"]["voter_registry_sensitivity_modes"]
 
     controls = payload["controls"]
     assert "global_bucket_options" in controls

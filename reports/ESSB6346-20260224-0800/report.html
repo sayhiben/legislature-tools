@@ -30,7 +30,7 @@
           <div class="sidebar-header">
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title">Testifier Audit Report</h1>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-22T12:36:26.176078-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-22T16:42:07.637068-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -144,7 +144,13 @@
           </div>
         </aside>
 
-        <main id="toc-content" class="report-main">
+        <main id="toc-content" class="report-main">            <nav class="workflow-tabs panel" aria-label="Investigation tabs">
+              <a class="workflow-tab" href="#triage">Triage</a>
+              <a class="workflow-tab" href="#window-drilldown">Window Drilldown</a>
+              <a class="workflow-tab" href="#name-cluster-forensics">Name/Cluster Forensics</a>
+              <a class="workflow-tab" href="#methodology">Methodology</a>
+            </nav>
+
           <section id="zoom-active-banner" class="zoom-active-banner hidden" role="status" aria-live="polite" aria-atomic="true">
             <div class="zoom-active-banner-copy">
               <p class="zoom-active-banner-title">Filtered Timeline View</p>
@@ -161,7 +167,9 @@
           <section id="section-overview" class="report-section panel">
             <h2 id="overview" class="toc-heading">How To Use This Report</h2>
               <p>
-                This temporary focused view shows only the off-hours shift anomaly analysis so methodology and chart behavior can be refined in isolation.
+                This report is investigation-first. Start in <strong>Triage</strong> to rank windows/records/clusters, then move to
+                <strong>Window Drilldown</strong> for linked chart context and supporting evidence, and use
+                <strong>Name/Cluster Forensics</strong> before final interpretation.
               </p>
             <aside class="definition-callout">
               <p>
@@ -174,36 +182,170 @@
               </p>
             </aside>
             <p class="tiny-note" id="report-timezone-summary"></p>
-              <div id="off-hours-evidence-tier" class="offhours-evidence-tier hidden"></div>
-              <div id="off-hours-inference-banner" class="warning-banner hidden"></div>
             <section class="kpi-grid">
               <article class="kpi-card">
                 <div class="kpi-label">
-Off-Hours Records                </div>
+Artifacts Tracked                </div>
                 <div class="kpi-value" id="kpi-artifacts">0</div>
                 <div class="kpi-meta" id="kpi-artifacts-meta"></div>
               </article>
               <article class="kpi-card">
                 <div class="kpi-label">
-Analyses Shown                </div>
+Detectors Run                </div>
                 <div class="kpi-value" id="kpi-detectors">0</div>
                 <div class="kpi-meta" id="kpi-detectors-meta"></div>
               </article>
               <article class="kpi-card">
                 <div class="kpi-label">
-Robust Primary Alerts                </div>
+Flagged/Significant Windows                </div>
                 <div class="kpi-value" id="kpi-flagged">0</div>
                 <div class="kpi-meta" id="kpi-flagged-meta"></div>
               </article>
               <article class="kpi-card">
                 <div class="kpi-label">
-Primary-Bucket Low-Power Off-Hours                </div>
+Low-power Windows                </div>
                 <div class="kpi-value" id="kpi-low-power">0</div>
                 <div class="kpi-meta" id="kpi-low-power-meta"></div>
               </article>
             </section>
           </section>
 
+          <section id="section-triage" class="report-section panel">
+            <h2 id="triage" class="toc-heading">Triage</h2>
+            <p class="tiny-note">
+              Prioritize windows first, then record and cluster evidence. Click a window row to sync drilldown context.
+            </p>
+            <div class="triage-lens-controls">
+              <label for="triage-dedup-mode" class="triage-lens-label">Triage lens</label>
+              <select id="triage-dedup-mode" class="triage-lens-select"></select>
+              <span id="triage-dedup-note" class="tiny-note"></span>
+            </div>
+            <section class="kpi-grid">
+              <article class="kpi-card">
+                <div class="kpi-label">Total submissions</div>
+                <div class="kpi-value" id="triage-total-submissions">0</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Date range</div>
+                <div class="kpi-value" id="triage-date-range">-</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Overall Pro / Con</div>
+                <div class="kpi-value" id="triage-overall-procon">-</div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Top-tier windows</div>
+                <div class="kpi-value" id="triage-top-tier-count">0</div>
+              </article>
+            </section>
+            <div id="data-quality-summary" class="warning-banner"></div>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Data Quality Warnings</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-warning-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Raw vs Dedup Metrics</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-dedup-metrics-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Cross-Hearing Comparator</h3>
+                <p id="cross-hearing-comparator-summary" class="tiny-note"></p>
+                <div class="table-wrap">
+                  <div id="cross-hearing-comparator-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Hearing Context Metadata</h3>
+                <p id="hearing-context-summary" class="tiny-note"></p>
+                <div class="table-wrap">
+                  <div id="hearing-context-metadata-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Deadline Ramp Metrics</h3>
+                <div class="table-wrap">
+                  <div id="hearing-deadline-ramp-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Stance By Deadline Window</h3>
+                <div class="table-wrap">
+                  <div id="hearing-stance-by-deadline-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+            <div class="triage-actions">
+              <button id="download-selected-window-rows" class="control-button" type="button">
+                download selected window rows
+              </button>
+              <button id="download-top-evidence-windows" class="control-button" type="button">
+                download top evidence windows
+              </button>
+              <button id="download-top-evidence-records" class="control-button" type="button">
+                download top evidence records
+              </button>
+            </div>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">window_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-window-queue-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">record_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-record-queue-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">cluster_evidence_queue</h3>
+                <div class="table-wrap">
+                  <div id="triage-cluster-queue-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="section-window-drilldown" class="report-section panel">
+            <h2 id="window-drilldown" class="toc-heading">Window Drilldown</h2>
+            <p class="tiny-note">
+              Click a queue row to focus linked charts and inspect causative rows, duplicate names, near-dup clusters, and
+              rarity-context comparison.
+            </p>
+            <p id="window-drilldown-selection" class="tiny-note"></p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Causative Rows</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-causative-rows-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Exact Dup Names (Window)</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-dup-names-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Near-Dup Clusters (Window)</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-clusters-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Runs + Weirdness Comparison</h3>
+                <div class="table-wrap">
+                  <div id="drilldown-runs-weirdness-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
 
 <section id="analysis-root" class="report-section">
     <section
@@ -442,7 +584,572 @@ Primary-Bucket Low-Power Off-Hours                </div>
 
       <div class="analysis-tables" data-analysis-tables-for="off_hours"></div>
     </section>
-</section>
+    <section
+      class="analysis-section"
+      id="section-duplicates_exact"
+      data-analysis-id="duplicates_exact"
+      data-analysis-status="ready"
+      data-analysis-detector="duplicates_exact"
+    >
+      <div class="analysis-header">
+        <h2 id="analysis-duplicates_exact" class="toc-heading">Exact Duplicate Names</h2>
+      </div>
+
+      <div class="analysis-hero-block">
+        <div class="chart-host chart-host-hero" data-chart-id="duplicates_exact_bucket_concentration" data-chart-role="hero"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_bucket_concentration">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_bucket_concentration"></p>
+        <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Exact-duplicate observed versus expected burden over time. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Rows, Observed duplicate rows, Expected duplicate rows, Excess duplicate rows.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Exact-duplicate observed versus expected burden over time.</p>
+        <ul>
+            <li><strong>Rows:</strong> Total rows in each bucket.</li>
+            <li><strong>Observed duplicate rows:</strong> Line shows observed duplicate-row burden in each bucket.</li>
+            <li><strong>Expected duplicate rows:</strong> Model baseline expectation from active-voter name frequencies.</li>
+            <li><strong>Excess duplicate rows:</strong> Observed minus expected duplicate burden (floored at zero).</li>
+        </ul>
+  </div>
+</details>
+
+      </div>
+
+      <details class="analysis-help-card">
+  <summary>Analysis Help</summary>
+  <div class="analysis-help-body">
+      <p><strong>What is this?</strong> Exact Duplicate Names focuses on exact repeated-name concentration. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
+      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
+      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
+      <p><strong>What do I look for?</strong> Excess duplicate burden with low p/q values, corroborating temporal burst evidence, and position concentration differences that persist across neighboring windows. Short bursts of repeated names in tiny windows may occur during legitimate group actions; concern rises when concentration repeats across multiple larger buckets. Names that appear repeatedly while switching pro/con positions are higher-priority review targets because they indicate inconsistent stance representation under one canonical identity. Persistent duplicate concentration during otherwise stable baseline periods can imply scripted submissions or queue replay effects rather than organic participation. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate household/shared-name collisions or small coordinated batches. Momentary lows can indicate normal diversity of distinct names in organic intake. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
+      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate repeat-name patterns likely to influence authenticity and weighting assumptions. Extended lows can indicate healthy name diversity with limited exact repetition pressure. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
+      <ul>
+          <li>Short bursts of repeated names in tiny windows may occur during legitimate group actions; concern rises when concentration repeats across multiple larger buckets.</li>
+          <li>Names that appear repeatedly while switching pro/con positions are higher-priority review targets because they indicate inconsistent stance representation under one canonical identity.</li>
+          <li>Persistent duplicate concentration during otherwise stable baseline periods can imply scripted submissions or queue replay effects rather than organic participation.</li>
+      </ul>
+    <p><strong>Common benign causes:</strong> Common names and legitimate coordinated outreach can elevate duplicate pressure.</p>
+  </div>
+</details>
+
+        <div class="analysis-detail-grid">
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Exact Per Name Anomalies</h3>
+              <p class="tiny-note"><code>duplicates_exact_per_name_anomalies</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_per_name_anomalies" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_per_name_anomalies">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_per_name_anomalies"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Per-name anomaly ranking with p/q values. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, Significance, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Per-name anomaly ranking with p/q values.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Repeat count for each canonical/display name in this hearing.</li>
+            <li><strong>Significance:</strong> Lower q-values indicate stronger excess-versus-baseline evidence.</li>
+            <li><strong>X-axis:</strong> Canonical/display names sorted by q then count.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Exact Position Concentration</h3>
+              <p class="tiny-note"><code>duplicates_exact_position_concentration</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_position_concentration" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_position_concentration">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_position_concentration"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Position concentration test (Pro vs Con duplicate burden). This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Position concentration test (Pro vs Con duplicate burden).</p>
+        <ul>
+            <li><strong>Bar height:</strong> Rate difference in duplicate-row burden between compared positions.</li>
+            <li><strong>X-axis:</strong> Position comparison pair.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Exact Null Distribution</h3>
+              <p class="tiny-note"><code>duplicates_exact_null_distribution</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_null_distribution" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_null_distribution">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_null_distribution"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Monte Carlo null distribution for duplicate burden metrics. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Monte Carlo null distribution for duplicate burden metrics.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Simulated duplicate burden metric under active-voter baseline.</li>
+            <li><strong>X-axis:</strong> Simulation iteration.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Exact Temporal Burst</h3>
+              <p class="tiny-note"><code>duplicates_exact_temporal_burst</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_temporal_burst" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_temporal_burst">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_temporal_burst"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Temporal corroboration for repeated names. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Temporal corroboration for repeated names.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Within-5-minute repeated-pair count for each repeated name.</li>
+            <li><strong>X-axis:</strong> Canonical name.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Exact Swing Impact</h3>
+              <p class="tiny-note"><code>duplicates_exact_swing_impact</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_swing_impact" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_swing_impact">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_swing_impact"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Sensitivity scenarios for effective Pro/Con counts. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Sensitivity scenarios for effective Pro/Con counts.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Effective pro share under each collision-adjustment scenario.</li>
+            <li><strong>X-axis:</strong> Scenario (raw, strict dedupe, excess-adjusted).</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+        </div>
+
+      <div class="analysis-tables" data-analysis-tables-for="duplicates_exact"></div>
+    </section>
+    <section
+      class="analysis-section"
+      id="section-duplicates_near"
+      data-analysis-id="duplicates_near"
+      data-analysis-status="ready"
+      data-analysis-detector="duplicates_near"
+    >
+      <div class="analysis-header">
+        <h2 id="analysis-duplicates_near" class="toc-heading">Near-Duplicate Clusters</h2>
+      </div>
+
+      <div class="analysis-hero-block">
+        <div class="chart-host chart-host-hero" data-chart-id="duplicates_near_cluster_timeline" data-chart-role="hero"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_near_cluster_timeline">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_cluster_timeline"></p>
+        <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Near-duplicate cluster activity over time. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Cluster size, Records.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Near-duplicate cluster activity over time.</p>
+        <ul>
+            <li><strong>Cluster size:</strong> Bar height is cluster size at cluster first-seen time.</li>
+            <li><strong>Records:</strong> Line shows total records represented by active clusters.</li>
+        </ul>
+  </div>
+</details>
+
+      </div>
+
+      <details class="analysis-help-card">
+  <summary>Analysis Help</summary>
+  <div class="analysis-help-body">
+      <p><strong>What is this?</strong> Near-Duplicate Clusters focuses on near-duplicate cluster growth and similarity structure. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
+      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
+      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
+      <p><strong>What do I look for?</strong> Large or fast-forming clusters with high edge similarity scores. Many small near-duplicate clusters are often benign typo/transliteration noise; stronger signals are rapid growth of large clusters in compressed time spans. High similarity edges among many distinct names during high-volume windows can indicate templated naming patterns or normalization collisions that warrant manual spot checks. Extended periods where cluster size and record counts rise together can point to coordinated intake streams, especially when aligned with burst and swing flags. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate short typo/transliteration bursts around outreach windows. Momentary lows can indicate periods where naming variation is naturally broader. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
+      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate templated or normalization-colliding naming behavior over sustained windows. Extended lows can indicate low cluster cohesion and reduced near-duplicate pressure. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
+      <ul>
+          <li>Many small near-duplicate clusters are often benign typo/transliteration noise; stronger signals are rapid growth of large clusters in compressed time spans.</li>
+          <li>High similarity edges among many distinct names during high-volume windows can indicate templated naming patterns or normalization collisions that warrant manual spot checks.</li>
+          <li>Extended periods where cluster size and record counts rise together can point to coordinated intake streams, especially when aligned with burst and swing flags.</li>
+      </ul>
+    <p><strong>Common benign causes:</strong> Typos, OCR noise, and multilingual transliteration can inflate near-duplicate clusters.</p>
+  </div>
+</details>
+
+        <div class="analysis-detail-grid">
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Near Cluster Size</h3>
+              <p class="tiny-note"><code>duplicates_near_cluster_size</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_near_cluster_size" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_near_cluster_size">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_cluster_size"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Cluster-size distribution. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Cluster-size distribution.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Number of clusters observed at each cluster size.</li>
+            <li><strong>X-axis:</strong> Cluster size (count of names).</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Near Time Concentration</h3>
+              <p class="tiny-note"><code>duplicates_near_time_concentration</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_near_time_concentration" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_near_time_concentration">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_time_concentration"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Near-duplicate cluster time concentration. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Near-duplicate cluster time concentration.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Peak time-bucket share of records for each near-duplicate cluster.</li>
+            <li><strong>X-axis:</strong> Near-duplicate cluster identifier.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Duplicates Near Similarity</h3>
+              <p class="tiny-note"><code>duplicates_near_similarity</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="duplicates_near_similarity" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="duplicates_near_similarity">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_similarity"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Similarity levels among near-duplicate pairs. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Similarity levels among near-duplicate pairs.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Similarity score for candidate name pairs.</li>
+            <li><strong>X-axis:</strong> Left-hand name label from each pair sample.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+        </div>
+
+      <div class="analysis-tables" data-analysis-tables-for="duplicates_near"></div>
+    </section>
+    <section
+      class="analysis-section"
+      id="section-voter_registry_match"
+      data-analysis-id="voter_registry_match"
+      data-analysis-status="ready"
+      data-analysis-detector="voter_registry_match"
+    >
+      <div class="analysis-header">
+        <h2 id="analysis-voter_registry_match" class="toc-heading">Registered Voter Match</h2>
+      </div>
+
+      <div class="analysis-hero-block">
+        <div class="chart-host chart-host-hero" data-chart-id="voter_registry_match_rates" data-chart-role="hero"></div>
+<p class="empty-message hidden" data-chart-empty-for="voter_registry_match_rates">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="voter_registry_match_rates"></p>
+        <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Conservative voter-linkage trend (matched vs unmatched). This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Volume, Matched rate, Wilson low / Wilson high, Unmatched rate, Matched ambiguous rate, Low-power.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Conservative voter-linkage trend (matched vs unmatched).</p>
+        <ul>
+            <li><strong>Volume:</strong> Bars show record volume in each time bucket.</li>
+            <li><strong>Matched rate:</strong> Share of rows classified as matched under conservative primary linkage.</li>
+            <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
+            <li><strong>Unmatched rate:</strong> Share of rows unmatched to WA active voter file.</li>
+            <li><strong>Matched ambiguous rate:</strong> Share of rows mapped to ambiguous matched outcomes.</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
+        </ul>
+  </div>
+</details>
+
+      </div>
+
+      <details class="analysis-help-card">
+  <summary>Analysis Help</summary>
+  <div class="analysis-help-body">
+      <p><strong>What is this?</strong> Registered Voter Match focuses on conservative matched/unmatched composition with uncertainty accounting. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
+      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
+      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
+      <p><strong>What do I look for?</strong> Sustained unmatched-rate differences across positions at both row and unique-name units, then compare balanced and broad sensitivity modes. Interpret primary linkage through conservative outcomes (matched unique, matched ambiguous, unmatched) and keep unmatched language scoped to the WA active voter file. Compare unmatched-rate differences at both row and unique-name units; pairwise tests are strongest when support is adequate and adjacent windows corroborate the pattern. Use balanced and broad sensitivity panels to assess how strong/weak fuzzy assumptions move outcomes before interpreting directional claims. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate brief matched concentration that may reflect clean registry overlap. Momentary lows can indicate short-lived unmatched growth in sparse buckets. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
+      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate stable conservative matched coverage across windows. Extended lows can indicate persistent unmatched dominance requiring normalization and source review. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
+      <ul>
+          <li>Interpret primary linkage through conservative outcomes (matched unique, matched ambiguous, unmatched) and keep unmatched language scoped to the WA active voter file.</li>
+          <li>Compare unmatched-rate differences at both row and unique-name units; pairwise tests are strongest when support is adequate and adjacent windows corroborate the pattern.</li>
+          <li>Use balanced and broad sensitivity panels to assess how strong/weak fuzzy assumptions move outcomes before interpreting directional claims.</li>
+      </ul>
+    <p><strong>Common benign causes:</strong> Name normalization gaps, registration recency, and non-registered participants can raise unmatched rates.</p>
+  </div>
+</details>
+
+        <div class="analysis-detail-grid">
+            <article class="detail-card">
+              <h3 class="detail-title">Voter Registry Linkage By Position Rows</h3>
+              <p class="tiny-note"><code>voter_registry_linkage_by_position_rows</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="voter_registry_linkage_by_position_rows" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="voter_registry_linkage_by_position_rows">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="voter_registry_linkage_by_position_rows"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Unmatched-rate profile by position (row-level unit). This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Unmatched-rate profile by position (row-level unit).</p>
+        <ul>
+            <li><strong>Bar height:</strong> Unmatched rate for each position using row-level counts.</li>
+            <li><strong>X-axis:</strong> Normalized position label.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Voter Registry Linkage By Position Unique</h3>
+              <p class="tiny-note"><code>voter_registry_linkage_by_position_unique</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="voter_registry_linkage_by_position_unique" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="voter_registry_linkage_by_position_unique">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="voter_registry_linkage_by_position_unique"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Unmatched-rate profile by position (unique-name unit). This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Unmatched-rate profile by position (unique-name unit).</p>
+        <ul>
+            <li><strong>Bar height:</strong> Unmatched rate for each dominant position among unique names.</li>
+            <li><strong>X-axis:</strong> Dominant position label for unique names.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Voter Registry Pairwise Tests</h3>
+              <p class="tiny-note"><code>voter_registry_pairwise_tests</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="voter_registry_pairwise_tests" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="voter_registry_pairwise_tests">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="voter_registry_pairwise_tests"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Pairwise unmatched-rate tests across positions. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Pairwise unmatched-rate tests across positions.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Unmatched-rate difference between compared position pairs.</li>
+            <li><strong>X-axis:</strong> Pair label (left vs right) by inference unit.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Voter Registry Sensitivity Modes</h3>
+              <p class="tiny-note"><code>voter_registry_sensitivity_modes</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="voter_registry_sensitivity_modes" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="voter_registry_sensitivity_modes">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="voter_registry_sensitivity_modes"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Conservative, balanced, and broad linkage sensitivity panel. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Conservative, balanced, and broad linkage sensitivity panel.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Unmatched rate under each linkage mode.</li>
+            <li><strong>X-axis:</strong> Linkage mode.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Voter Registry Unmatched Names</h3>
+              <p class="tiny-note"><code>voter_registry_unmatched_names</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="voter_registry_unmatched_names" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="voter_registry_unmatched_names">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="voter_registry_unmatched_names"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Most frequent names unmatched to WA active voter file. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Most frequent names unmatched to WA active voter file.</p>
+        <ul>
+            <li><strong>Bar height:</strong> Count of unmatched rows for each canonical name.</li>
+            <li><strong>X-axis:</strong> Canonical unmatched name values.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+        </div>
+
+      <div class="analysis-tables" data-analysis-tables-for="voter_registry_match"></div>
+    </section>
+</section>          <section id="section-name-cluster-forensics" class="report-section panel">
+            <h2 id="name-cluster-forensics" class="toc-heading">Name/Cluster Forensics</h2>
+            <p class="tiny-note">
+              High-frequency names and compressed near-duplicate clusters are shown here for rapid adjudication.
+            </p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Top Repeated Names</h3>
+                <div class="table-wrap">
+                  <div id="forensics-top-names-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Top Near-Dup Clusters</h3>
+                <div class="table-wrap">
+                  <div id="forensics-top-clusters-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="section-methodology" class="report-section panel">
+            <h2 id="methodology" class="toc-heading">Methodology</h2>
+            <p>
+              Queue tiers combine statistically controlled contributors (when available) with heuristic contributors.
+              Low-support items are explicitly caveated and cannot be promoted to high tier.
+            </p>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Definitions</h3>
+                <div class="table-wrap">
+                  <div id="methodology-definitions-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Tests and Calibrations Used</h3>
+                <div class="table-wrap">
+                  <div id="methodology-tests-used-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Evidence Taxonomy</h3>
+                <div class="table-wrap">
+                  <div id="methodology-evidence-taxonomy-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Multiple Testing Policy</h3>
+                <ul id="methodology-multiple-testing-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Interpretation Caveats</h3>
+                <ul id="methodology-caveats-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Interpretation Guidance</h3>
+                <ul id="methodology-guidance-list" class="methodology-list"></ul>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Ethical Guardrails</h3>
+                <div class="table-wrap">
+                  <div id="methodology-guardrails-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
+                <p class="tiny-note">
+                  Artifact/table row counts are retained for reproducibility and moved here to keep triage focused on actionable evidence.
+                </p>
+                <div class="table-wrap">
+                  <div id="methodology-artifact-rows-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <footer class="panel report-attribution">
             <p class="subtle">
               Interactive charts are powered by

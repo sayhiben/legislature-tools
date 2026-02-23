@@ -1,0 +1,15 @@
+{
+  "baseline_source": "wa_active_observed_key_slice",
+  "bh_fdr_q": 0.1,
+  "duplicate_pairs": 7.0,
+  "duplicate_row_rate": 0.06542056074766354,
+  "duplicate_rows": 14,
+  "max_repeat_count": 2,
+  "n_low_power_positions": 1,
+  "n_records": 214,
+  "n_repeated_names": 7,
+  "n_significant_per_name": 6,
+  "n_unique_names": 207,
+  "name_key": "medium",
+  "primary_low_power": false
+}

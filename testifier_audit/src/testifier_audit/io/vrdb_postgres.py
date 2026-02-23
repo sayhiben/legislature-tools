@@ -29,7 +29,16 @@ SUFFIX_COLUMN_CANDIDATES = ("NameSuffix", "Suffix", "name_suffix")
 BIRTH_YEAR_COLUMN_CANDIDATES = ("Birthyear", "BirthYear", "birth_year")
 STATUS_COLUMN_CANDIDATES = ("StatusCode", "status_code", "Status")
 IMPORT_KIND_VRDB = "vrdb_extract"
-VRDB_IMPORTER_VERSION = "vrdb_extract_v1"
+VRDB_IMPORTER_VERSION = "vrdb_extract_v2"
+ALLOWED_NAME_KEY_COLUMNS = frozenset(
+    {
+        "canonical_name",
+        "canonical_key_strict",
+        "canonical_key_medium",
+        "canonical_key_loose",
+        "canonical_key_nickname",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -96,6 +105,12 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
                 "canonical_first",
                 "canonical_last",
                 "canonical_name",
+                "canonical_middle_initial",
+                "canonical_suffix",
+                "canonical_key_strict",
+                "canonical_key_medium",
+                "canonical_key_loose",
+                "canonical_key_nickname",
                 "source_file",
                 "source_hash",
             ]
@@ -131,6 +146,22 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
     out["canonical_first"] = out["first_name"].map(normalize_name_token)
     out["canonical_last"] = out["last_name"].map(normalize_name_token)
     out["canonical_name"] = out["canonical_last"] + "|" + out["canonical_first"]
+    out["canonical_middle_initial"] = (
+        out["middle_name"].map(normalize_name_token).str[:1].fillna("").astype(str)
+    )
+    out["canonical_suffix"] = out["name_suffix"].map(normalize_name_token)
+    out["canonical_key_strict"] = (
+        out["canonical_last"]
+        + "|"
+        + out["canonical_first"]
+        + "|"
+        + out["canonical_middle_initial"]
+        + "|"
+        + out["canonical_suffix"]
+    )
+    out["canonical_key_medium"] = out["canonical_last"] + "|" + out["canonical_first"]
+    out["canonical_key_loose"] = out["canonical_last"] + "|" + out["canonical_first"].str[:1]
+    out["canonical_key_nickname"] = out["canonical_key_medium"]
     out["source_file"] = source_file
 
     fingerprint = (
@@ -195,7 +226,7 @@ def _iter_vrdb_chunks(path: Path, chunk_size: int) -> Iterable[pd.DataFrame]:
 
 def ensure_voter_registry_schema(conn, table_name: str) -> None:
     _psycopg, sql = _load_psycopg()
-    statement = sql.SQL(
+    create_table_statement = sql.SQL(
         """
         CREATE TABLE IF NOT EXISTS {table_name} (
           voter_key TEXT PRIMARY KEY,
@@ -209,21 +240,133 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
           canonical_first TEXT NOT NULL,
           canonical_last TEXT NOT NULL,
           canonical_name TEXT NOT NULL,
+          canonical_middle_initial TEXT NOT NULL DEFAULT '',
+          canonical_suffix TEXT NOT NULL DEFAULT '',
+          canonical_key_strict TEXT NOT NULL DEFAULT '',
+          canonical_key_medium TEXT NOT NULL DEFAULT '',
+          canonical_key_loose TEXT NOT NULL DEFAULT '',
+          canonical_key_nickname TEXT NOT NULL DEFAULT '',
           source_file TEXT NOT NULL,
           source_hash TEXT NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
-        CREATE INDEX IF NOT EXISTS {idx_canonical} ON {table_name} (canonical_name);
-        CREATE INDEX IF NOT EXISTS {idx_status} ON {table_name} (status_code);
         """
-    ).format(
-        table_name=sql.Identifier(table_name),
-        idx_canonical=sql.Identifier(f"{table_name}_canonical_name_idx"),
-        idx_status=sql.Identifier(f"{table_name}_status_code_idx"),
+    ).format(table_name=sql.Identifier(table_name))
+    add_missing_columns = (
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_middle_initial TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_suffix TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_key_strict TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_key_medium TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_key_loose TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_key_nickname TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
     )
+    add_missing_indexes = (
+        sql.SQL("CREATE INDEX IF NOT EXISTS {idx_canonical} ON {table_name} (canonical_name)").format(
+            idx_canonical=sql.Identifier(f"{table_name}_canonical_name_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL("CREATE INDEX IF NOT EXISTS {idx_status} ON {table_name} (status_code)").format(
+            idx_status=sql.Identifier(f"{table_name}_status_code_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_key_strict} ON {table_name} (canonical_key_strict)"
+        ).format(
+            idx_key_strict=sql.Identifier(f"{table_name}_canonical_key_strict_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_key_medium} ON {table_name} (canonical_key_medium)"
+        ).format(
+            idx_key_medium=sql.Identifier(f"{table_name}_canonical_key_medium_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_key_loose} ON {table_name} (canonical_key_loose)"
+        ).format(
+            idx_key_loose=sql.Identifier(f"{table_name}_canonical_key_loose_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_key_nickname} ON {table_name} (canonical_key_nickname)"
+        ).format(
+            idx_key_nickname=sql.Identifier(f"{table_name}_canonical_key_nickname_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+    )
+    backfill_new_keys = sql.SQL(
+        """
+        UPDATE {table_name}
+        SET
+          canonical_middle_initial = COALESCE(
+            NULLIF(TRIM(canonical_middle_initial), ''),
+            LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
+          ),
+          canonical_suffix = COALESCE(
+            NULLIF(TRIM(canonical_suffix), ''),
+            COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
+          ),
+          canonical_key_medium = COALESCE(
+            NULLIF(TRIM(canonical_key_medium), ''),
+            COALESCE(canonical_name, '')
+          ),
+          canonical_key_loose = COALESCE(
+            NULLIF(TRIM(canonical_key_loose), ''),
+            COALESCE(canonical_last, '') || '|' || LEFT(COALESCE(canonical_first, ''), 1)
+          ),
+          canonical_key_nickname = COALESCE(
+            NULLIF(TRIM(canonical_key_nickname), ''),
+            COALESCE(canonical_name, '')
+          ),
+          canonical_key_strict = COALESCE(
+            NULLIF(TRIM(canonical_key_strict), ''),
+            COALESCE(canonical_last, '')
+            || '|'
+            || COALESCE(canonical_first, '')
+            || '|'
+            || COALESCE(
+              NULLIF(TRIM(canonical_middle_initial), ''),
+              LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
+            )
+            || '|'
+            || COALESCE(
+              NULLIF(TRIM(canonical_suffix), ''),
+              COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
+            )
+          )
+        WHERE
+          canonical_key_medium = ''
+          OR canonical_key_loose = ''
+          OR canonical_key_nickname = ''
+          OR canonical_key_strict = '';
+        """
+    ).format(table_name=sql.Identifier(table_name))
     with conn.cursor() as cursor:
-        cursor.execute(statement)
+        cursor.execute(create_table_statement)
+        for alter_stmt in add_missing_columns:
+            cursor.execute(alter_stmt.format(table_name=sql.Identifier(table_name)))
+        for index_stmt in add_missing_indexes:
+            cursor.execute(index_stmt)
+        cursor.execute(backfill_new_keys)
 
 
 def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
@@ -244,6 +387,12 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           canonical_first,
           canonical_last,
           canonical_name,
+          canonical_middle_initial,
+          canonical_suffix,
+          canonical_key_strict,
+          canonical_key_medium,
+          canonical_key_loose,
+          canonical_key_nickname,
           source_file,
           source_hash
         )
@@ -259,6 +408,12 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           %(canonical_first)s,
           %(canonical_last)s,
           %(canonical_name)s,
+          %(canonical_middle_initial)s,
+          %(canonical_suffix)s,
+          %(canonical_key_strict)s,
+          %(canonical_key_medium)s,
+          %(canonical_key_loose)s,
+          %(canonical_key_nickname)s,
           %(source_file)s,
           %(source_hash)s
         )
@@ -274,6 +429,12 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           canonical_first = EXCLUDED.canonical_first,
           canonical_last = EXCLUDED.canonical_last,
           canonical_name = EXCLUDED.canonical_name,
+          canonical_middle_initial = EXCLUDED.canonical_middle_initial,
+          canonical_suffix = EXCLUDED.canonical_suffix,
+          canonical_key_strict = EXCLUDED.canonical_key_strict,
+          canonical_key_medium = EXCLUDED.canonical_key_medium,
+          canonical_key_loose = EXCLUDED.canonical_key_loose,
+          canonical_key_nickname = EXCLUDED.canonical_key_nickname,
           source_file = EXCLUDED.source_file,
           source_hash = EXCLUDED.source_hash,
           updated_at = NOW()
@@ -395,38 +556,66 @@ def _chunk_values(values: list[str], chunk_size: int = 10_000) -> Iterable[list[
         yield values[idx : idx + chunk_size]
 
 
+def _validated_name_key_column(column: str) -> str:
+    normalized = str(column or "").strip()
+    if normalized not in ALLOWED_NAME_KEY_COLUMNS:
+        raise ValueError(
+            f"Unsupported name key column: {normalized!r}. "
+            f"Expected one of: {', '.join(sorted(ALLOWED_NAME_KEY_COLUMNS))}"
+        )
+    return normalized
+
+
+def fetch_matching_voter_keys(
+    db_url: str,
+    table_name: str,
+    key_values: list[str],
+    *,
+    key_column: str = "canonical_name",
+    active_only: bool = True,
+) -> pd.DataFrame:
+    resolved_column = _validated_name_key_column(key_column)
+    if not key_values:
+        return pd.DataFrame(columns=[resolved_column, "n_registry_rows"])
+
+    psycopg, sql = _load_psycopg()
+    rows: list[tuple[str, int]] = []
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+            for chunk in _chunk_values(key_values, chunk_size=10_000):
+                where_clause = sql.SQL("{} = ANY(%s)").format(sql.Identifier(resolved_column))
+                if active_only:
+                    where_clause = sql.SQL("{} AND LOWER(status_code) = 'active'").format(
+                        where_clause
+                    )
+                query = sql.SQL(
+                    "SELECT {key_column}, COUNT(*)::INT AS n_registry_rows "
+                    "FROM {table_name} WHERE {where_clause} GROUP BY {key_column}"
+                ).format(
+                    key_column=sql.Identifier(resolved_column),
+                    table_name=sql.Identifier(table_name),
+                    where_clause=where_clause,
+                )
+                cursor.execute(query, (chunk,))
+                rows.extend(cursor.fetchall())
+    if not rows:
+        return pd.DataFrame(columns=[resolved_column, "n_registry_rows"])
+    return pd.DataFrame(rows, columns=[resolved_column, "n_registry_rows"])
+
+
 def fetch_matching_voter_names(
     db_url: str,
     table_name: str,
     canonical_names: list[str],
     active_only: bool = True,
 ) -> pd.DataFrame:
-    if not canonical_names:
-        return pd.DataFrame(columns=["canonical_name", "n_registry_rows"])
-
-    psycopg, sql = _load_psycopg()
-    rows: list[tuple[str, int]] = []
-    with psycopg.connect(db_url) as conn:
-        with conn.cursor() as cursor:
-            for chunk in _chunk_values(canonical_names, chunk_size=10_000):
-                where_clause = sql.SQL("canonical_name = ANY(%s)")
-                if active_only:
-                    where_clause = sql.SQL("{} AND LOWER(status_code) = 'active'").format(
-                        where_clause
-                    )
-                query = sql.SQL(
-                    "SELECT canonical_name, COUNT(*)::INT AS n_registry_rows "
-                    "FROM {table_name} WHERE {where_clause} GROUP BY canonical_name"
-                ).format(
-                    table_name=sql.Identifier(table_name),
-                    where_clause=where_clause,
-                )
-                cursor.execute(query, (chunk,))
-                rows.extend(cursor.fetchall())
-
-    if not rows:
-        return pd.DataFrame(columns=["canonical_name", "n_registry_rows"])
-    return pd.DataFrame(rows, columns=["canonical_name", "n_registry_rows"])
+    return fetch_matching_voter_keys(
+        db_url=db_url,
+        table_name=table_name,
+        key_values=canonical_names,
+        key_column="canonical_name",
+        active_only=active_only,
+    )
 
 
 def fetch_voter_candidates_by_last_name(
@@ -441,12 +630,16 @@ def fetch_voter_candidates_by_last_name(
                 "canonical_last",
                 "canonical_first",
                 "canonical_name",
+                "canonical_middle_initial",
+                "canonical_suffix",
+                "canonical_key_strict",
+                "canonical_key_medium",
                 "n_registry_rows",
             ]
         )
 
     psycopg, sql = _load_psycopg()
-    rows: list[tuple[str, str, str, int]] = []
+    rows: list[tuple[str, str, str, str, str, str, str, int]] = []
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
             for chunk in _chunk_values(canonical_lasts, chunk_size=10_000):
@@ -457,9 +650,13 @@ def fetch_voter_candidates_by_last_name(
                     )
                 query = sql.SQL(
                     "SELECT canonical_last, canonical_first, canonical_name, "
+                    "canonical_middle_initial, canonical_suffix, canonical_key_strict, "
+                    "canonical_key_medium, "
                     "COUNT(*)::INT AS n_registry_rows "
                     "FROM {table_name} WHERE {where_clause} "
-                    "GROUP BY canonical_last, canonical_first, canonical_name"
+                    "GROUP BY canonical_last, canonical_first, canonical_name, "
+                    "canonical_middle_initial, canonical_suffix, canonical_key_strict, "
+                    "canonical_key_medium"
                 ).format(
                     table_name=sql.Identifier(table_name),
                     where_clause=where_clause,
@@ -473,13 +670,55 @@ def fetch_voter_candidates_by_last_name(
                 "canonical_last",
                 "canonical_first",
                 "canonical_name",
+                "canonical_middle_initial",
+                "canonical_suffix",
+                "canonical_key_strict",
+                "canonical_key_medium",
                 "n_registry_rows",
             ]
         )
     return pd.DataFrame(
         rows,
-        columns=["canonical_last", "canonical_first", "canonical_name", "n_registry_rows"],
+        columns=[
+            "canonical_last",
+            "canonical_first",
+            "canonical_name",
+            "canonical_middle_initial",
+            "canonical_suffix",
+            "canonical_key_strict",
+            "canonical_key_medium",
+            "n_registry_rows",
+        ],
     )
+
+
+def fetch_voter_name_key_frequencies(
+    db_url: str,
+    table_name: str,
+    *,
+    key_column: str = "canonical_key_medium",
+    active_only: bool = True,
+) -> pd.DataFrame:
+    resolved_column = _validated_name_key_column(key_column)
+    psycopg, sql = _load_psycopg()
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cursor:
+            where_clause = sql.SQL("TRUE")
+            if active_only:
+                where_clause = sql.SQL("LOWER(status_code) = 'active'")
+            query = sql.SQL(
+                "SELECT {key_column}, COUNT(*)::INT AS n_registry_rows "
+                "FROM {table_name} WHERE {where_clause} GROUP BY {key_column}"
+            ).format(
+                key_column=sql.Identifier(resolved_column),
+                table_name=sql.Identifier(table_name),
+                where_clause=where_clause,
+            )
+            cursor.execute(query)
+            rows = cursor.fetchall()
+    if not rows:
+        return pd.DataFrame(columns=[resolved_column, "n_registry_rows"])
+    return pd.DataFrame(rows, columns=[resolved_column, "n_registry_rows"])
 
 
 def count_registry_rows(db_url: str, table_name: str, active_only: bool = True) -> int:

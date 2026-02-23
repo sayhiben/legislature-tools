@@ -234,10 +234,20 @@ def test_ensure_voter_registry_schema_executes_create_statement(
 
     ensure_voter_registry_schema(conn=conn, table_name="voter_registry")
 
-    assert len(cursor.executed) == 1
+    assert len(cursor.executed) >= 1
     statement, _params = cursor.executed[0]
     assert "CREATE TABLE IF NOT EXISTS" in statement
     assert '"voter_registry"' in statement
+    statements = [entry[0] for entry in cursor.executed]
+    assert any(
+        "ADD COLUMN IF NOT EXISTS canonical_key_medium TEXT NOT NULL DEFAULT ''" in stmt
+        for stmt in statements
+    )
+    assert any(
+        'CREATE INDEX IF NOT EXISTS "voter_registry_canonical_key_medium_idx"' in stmt
+        for stmt in statements
+    )
+    assert any("SET" in stmt and "canonical_key_strict" in stmt for stmt in statements)
 
 
 def test_upsert_vrdb_rows_handles_empty_and_non_empty_payload(

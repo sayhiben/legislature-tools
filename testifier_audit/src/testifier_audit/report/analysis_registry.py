@@ -40,12 +40,12 @@ ANALYSES_TO_PERFORM: tuple[str, ...] = (
     # "procon_swings",
     # "changepoints",
     "off_hours",
-    # "duplicates_exact",
-    # "duplicates_near",
+    "duplicates_exact",
+    "duplicates_near",
     # "sortedness",
     # "rare_names",
     # "org_anomalies",
-    # "voter_registry_match",
+    "voter_registry_match",
     # "periodicity",
     # "multivariate_anomalies",
     # "composite_score",
@@ -175,17 +175,23 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         title="Exact Duplicate Names",
         detector="duplicates_exact",
         hero_chart_id="duplicates_exact_bucket_concentration",
-        detail_chart_ids=("duplicates_exact_top_names", "duplicates_exact_position_switch"),
+        detail_chart_ids=(
+            "duplicates_exact_per_name_anomalies",
+            "duplicates_exact_position_concentration",
+            "duplicates_exact_null_distribution",
+            "duplicates_exact_temporal_burst",
+            "duplicates_exact_swing_impact",
+        ),
         how_to_read=(
-            "Bucket-level duplicate concentration highlights repeated identical names "
-            "within narrow windows."
+            "Interpret exact-name collisions as observed-versus-expected burden under an "
+            "active-voter baseline with explicit uncertainty and power context."
         ),
         what_to_look_for=(
-            "High duplicate concentration with frequent position switching for the same "
-            "canonical name."
+            "Excess duplicate burden with low p/q values, corroborating temporal burst evidence, "
+            "and position concentration differences that persist across neighboring windows."
         ),
         common_benign_causes=(
-            "Common household names and family submissions may elevate duplicate counts."
+            "Common names and legitimate coordinated outreach can elevate duplicate pressure."
         ),
     ),
     AnalysisDefinition(
@@ -277,22 +283,23 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         detector="voter_registry_match",
         hero_chart_id="voter_registry_match_rates",
         detail_chart_ids=(
-            "voter_registry_match_by_position",
-            "voter_registry_match_tiers",
+            "voter_registry_linkage_by_position_rows",
+            "voter_registry_linkage_by_position_unique",
+            "voter_registry_pairwise_tests",
+            "voter_registry_sensitivity_modes",
             "voter_registry_unmatched_names",
-            "voter_registry_position_buckets",
         ),
         how_to_read=(
-            "Voter linkage uses probabilistic tiers (exact/strong fuzzy/weak fuzzy/unmatched); "
-            "interpret tier shifts with confidence and support context."
+            "Primary linkage uses a conservative outcome taxonomy "
+            "(matched unique/matched ambiguous/unmatched) with uncertainty surfaced directly."
         ),
         what_to_look_for=(
-            "Material and sustained tier-composition shifts with adequate support, especially when "
-            "exact+strong tiers decline while weak/unmatched tiers increase."
+            "Sustained unmatched-rate differences across positions at both row and unique-name "
+            "units, then compare balanced and broad sensitivity modes."
         ),
         common_benign_causes=(
-            "Name normalization variance and registration recency can reduce observed "
-            "match rates."
+            "Name normalization gaps, registration recency, and non-registered participants can "
+            "raise unmatched rates."
         ),
     ),
     AnalysisDefinition(

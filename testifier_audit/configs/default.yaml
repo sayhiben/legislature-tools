@@ -54,6 +54,18 @@ names:
   nickname_map_path: "configs/nicknames.csv"
   phonetic: "double_metaphone"
 
+name_analysis:
+  primary_name_key: "medium"
+  sensitivity_name_keys: ["strict", "nickname"]
+  exclude_non_person_from_inference: true
+  monte_carlo_draws: 20000
+  position_permutation_draws: 10000
+  temporal_permutation_draws: 5000
+  bh_fdr_q: 0.10
+  low_power_min_unique_names: 25
+  low_power_min_expected_duplicates: 5.0
+  max_per_name_rows: 1000
+
 rarity:
   enabled: false
   first_name_frequency_path:
@@ -73,6 +85,11 @@ voter_registry:
   table_name: "voter_registry"
   active_only: true
   match_bucket_minutes: 30
+  primary_match_mode: "conservative"
+  strong_fuzzy_min_score: 92.0
+  weak_fuzzy_min_score: 84.0
+  ambiguous_score_gap: 2.0
+  pairwise_alpha: 0.05
 
 multivariate_anomaly:
   enabled: true

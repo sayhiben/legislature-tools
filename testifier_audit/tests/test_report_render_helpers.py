@@ -281,6 +281,10 @@ def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path)
         assert 'data-analysis-id="composite_score"' not in rendered
         assert 'data-analysis-id="rare_names"' not in rendered
         assert 'data-analysis-id="periodicity"' not in rendered
+    elif _configured_focus_analysis_ids():
+        assert "Composite Evidence Score" not in rendered
+        assert "Exact Duplicate Names" in rendered
+        assert "Registered Voter Match" in rendered
     else:
         assert "Composite Evidence Score" in rendered
         assert "Rare / Unique Names" in rendered
@@ -513,7 +517,6 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "renderHearingContextPanel()" in js_text
     assert "buildProcessMarkerLines()" in js_text
     assert "voter_registry_match_tiers" in js_text
-    assert "probabilistic supporting context only" in payload_text
     assert "statistical irregularity requiring review" in payload_text
     assert 'summary.textContent = "artifact_rows"' not in js_text
 

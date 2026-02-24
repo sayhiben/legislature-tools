@@ -426,7 +426,7 @@ def test_payload_color_semantics_cover_key_chart_families() -> None:
     assert charts["off_hours_control_timeline"]
     assert charts["off_hours_funnel_plot"]
     assert charts["off_hours_date_hour_primary_residual_heatmap"]
-    assert charts["off_hours_model_fit_diagnostics"]
+    assert "off_hours_model_fit_diagnostics" not in charts
     assert charts["overview_position_volume_by_bucket"]
 
     timeline_row = charts["off_hours_control_timeline"][0]
@@ -447,10 +447,6 @@ def test_payload_color_semantics_cover_key_chart_families() -> None:
     heatmap_row = charts["off_hours_date_hour_primary_residual_heatmap"][0]
     assert heatmap_row["z_score_primary"] == -2.6
     assert "n_windows_primary_alert" in heatmap_row
-
-    model_fit_row = charts["off_hours_model_fit_diagnostics"][0]
-    assert model_fit_row["model_fit_available_fraction"] == 0.9
-    assert model_fit_row["model_fit_converged"] == 1.0
 
     overview_volume_row = charts["overview_position_volume_by_bucket"][0]
     assert overview_volume_row["n_other_position"] == 20.0
@@ -905,20 +901,6 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
         }
         for index in range(15)
     ]
-    temporal_rows = [
-        {
-            "scope": "matched_only",
-            "canonical_name": f"NAME|{index:02d}",
-            "within_5m_pairs": 100 - index,
-            "within_15m_pairs": 130 - index,
-            "min_gap_minutes": float(index + 1),
-            "time_span_minutes": 120.0 + index,
-            "temporal_p_value_min_gap": 0.001 + index * 0.002,
-            "temporal_p_value_within_5m": 0.001 + index * 0.001,
-            "temporal_p_value_within_15m": 0.002 + index * 0.001,
-        }
-        for index in range(15)
-    ]
     payload = _build_interactive_chart_payload_v2(
         table_map={
             "artifacts.counts_per_minute": pd.DataFrame(
@@ -990,7 +972,6 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
                 ]
             ),
             "duplicates_exact.per_name_display": pd.DataFrame(per_name_rows),
-            "duplicates_exact.temporal_burst_signals": pd.DataFrame(temporal_rows),
             "duplicates_exact.null_distribution": pd.DataFrame(
                 {
                     "iteration": [1, 2, 3],
@@ -1009,13 +990,7 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
     )
 
     per_name_chart = payload["charts"]["duplicates_exact_per_name_anomalies"]
-    temporal_chart = payload["charts"]["duplicates_exact_temporal_burst"]
     assert len(per_name_chart) == 15
-    assert len(temporal_chart) == 15
-    assert [row["within_5m_pairs"] for row in temporal_chart] == sorted(
-        [row["within_5m_pairs"] for row in temporal_chart],
-        reverse=True,
-    )
 
     by_id = {entry["id"]: entry for entry in payload["analysis_catalog"]}
     duplicates_exact_entry = by_id.get("duplicates_exact")
@@ -1025,6 +1000,7 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
         assert "duplicates_exact_top_name_timing_medium" not in duplicates_exact_entry["detail_chart_ids"]
         assert "duplicates_exact_top_name_timing_loose" not in duplicates_exact_entry["detail_chart_ids"]
     assert isinstance(payload["charts"]["duplicates_exact_top_name_timing_exact"], list)
+    assert "duplicates_exact_temporal_burst" not in payload["charts"]
     assert "duplicates_exact_top_name_timing_medium" not in payload["charts"]
     assert "duplicates_exact_top_name_timing_loose" not in payload["charts"]
     assert payload["charts"]["duplicates_exact_null_distribution"]

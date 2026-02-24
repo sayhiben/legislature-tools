@@ -14,44 +14,6 @@
               <div id="off-hours-evidence-tier" class="offhours-evidence-tier hidden"></div>
               <div id="off-hours-inference-banner" class="warning-banner hidden"></div>
             {% endif %}
-
-            <div class="analysis-detail-grid">
-              <article class="detail-card">
-                <h3 class="detail-title">Position Volume By Bucket</h3>
-                <p class="tiny-note"><code>overview_position_volume_by_bucket</code></p>
-                {{ chart_host.render_chart_host("overview_position_volume_by_bucket", "detail", "chart-host-detail") }}
-                {% set overview_bucket_help = interactive_charts.chart_help_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_help_docs else None %}
-                {% set overview_bucket_legend = interactive_charts.chart_legend_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_legend_docs else None %}
-                {{ chart_help.render_chart_help(overview_bucket_help, overview_bucket_legend) }}
-              </article>
-
-              <article class="detail-card">
-                <h3 class="detail-title">Position Heatmap</h3>
-                <p class="tiny-note"><code>off_hours_date_hour_pro_heatmap</code></p>
-                {{ chart_host.render_chart_host("off_hours_date_hour_pro_heatmap", "detail", "chart-host-detail") }}
-                {% set position_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_pro_heatmap") if interactive_charts.chart_help_docs else None %}
-                {% set position_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_pro_heatmap") if interactive_charts.chart_legend_docs else None %}
-                {{ chart_help.render_chart_help(position_heatmap_help, position_heatmap_legend) }}
-              </article>
-
-              <article class="detail-card">
-                <h3 class="detail-title">Position Residual Heatmap</h3>
-                <p class="tiny-note"><code>off_hours_date_hour_primary_residual_heatmap</code></p>
-                {{ chart_host.render_chart_host("off_hours_date_hour_primary_residual_heatmap", "detail", "chart-host-detail") }}
-                {% set residual_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_primary_residual_heatmap") if interactive_charts.chart_help_docs else None %}
-                {% set residual_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_primary_residual_heatmap") if interactive_charts.chart_legend_docs else None %}
-                {{ chart_help.render_chart_help(residual_heatmap_help, residual_heatmap_legend) }}
-              </article>
-
-              <article class="detail-card">
-                <h3 class="detail-title">Volume Heatmap</h3>
-                <p class="tiny-note"><code>off_hours_date_hour_volume_heatmap</code></p>
-                {{ chart_host.render_chart_host("off_hours_date_hour_volume_heatmap", "detail", "chart-host-detail") }}
-                {% set volume_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_volume_heatmap") if interactive_charts.chart_help_docs else None %}
-                {% set volume_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_volume_heatmap") if interactive_charts.chart_legend_docs else None %}
-                {{ chart_help.render_chart_help(volume_heatmap_help, volume_heatmap_legend) }}
-              </article>
-            </div>
             {% if not off_hours_focus_only %}
             <h3>Triage</h3>
             <p class="tiny-note">
@@ -123,15 +85,44 @@
                   <div id="forensics-top-names-host" class="table-host table-host-compact"></div>
                 </div>
               </article>
-              <article class="detail-card detail-card-compact">
-                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
-                <p class="tiny-note">
-                  Artifact/table row counts are retained for reproducibility.
-                </p>
-                <div class="table-wrap">
-                  <div id="methodology-artifact-rows-host" class="table-host table-host-compact"></div>
-                </div>
-              </article>
             </div>
             {% endif %}
+
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Position Volume By Bucket</h3>
+                <p class="tiny-note"><code>overview_position_volume_by_bucket</code></p>
+                {{ chart_host.render_chart_host("overview_position_volume_by_bucket", "detail", "chart-host-detail") }}
+                {% set overview_bucket_help = interactive_charts.chart_help_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_help_docs else None %}
+                {% set overview_bucket_legend = interactive_charts.chart_legend_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(overview_bucket_help, overview_bucket_legend) }}
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Position Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_pro_heatmap</code></p>
+                {{ chart_host.render_chart_host("off_hours_date_hour_pro_heatmap", "detail", "chart-host-detail") }}
+                {% set position_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_pro_heatmap") if interactive_charts.chart_help_docs else None %}
+                {% set position_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_pro_heatmap") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(position_heatmap_help, position_heatmap_legend) }}
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Position Residual Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_primary_residual_heatmap</code></p>
+                {{ chart_host.render_chart_host("off_hours_date_hour_primary_residual_heatmap", "detail", "chart-host-detail") }}
+                {% set residual_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_primary_residual_heatmap") if interactive_charts.chart_help_docs else None %}
+                {% set residual_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_primary_residual_heatmap") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(residual_heatmap_help, residual_heatmap_legend) }}
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Volume Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_volume_heatmap</code></p>
+                {{ chart_host.render_chart_host("off_hours_date_hour_volume_heatmap", "detail", "chart-host-detail") }}
+                {% set volume_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_volume_heatmap") if interactive_charts.chart_help_docs else None %}
+                {% set volume_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_volume_heatmap") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(volume_heatmap_help, volume_heatmap_legend) }}
+              </article>
+            </div>
           </section>

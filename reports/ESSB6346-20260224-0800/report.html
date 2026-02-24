@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T00:19:25.807882-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T00:39:49.601897-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -188,6 +188,77 @@
             <h2 id="overview" class="toc-heading">Overview</h2>
             <h3>How to use this report</h3>
             <p class="tiny-note" id="report-timezone-summary"></p>
+            <h3>Triage</h3>
+            <p class="tiny-note">
+              Use this section for quality checks, hearing context, and top repeated-name/cluster summaries.
+            </p>
+            <section class="kpi-grid">
+              <article class="kpi-card">
+                <div class="kpi-label">Total submissions</div>
+                <div class="kpi-value" id="triage-total-submissions">0</div>
+                <div class="kpi-meta" id="triage-total-procon-meta"></div>
+                <div id="triage-procon-pie" class="kpi-microchart kpi-microchart-pie"></div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Date range</div>
+                <div class="kpi-value" id="triage-date-range">-</div>
+                <div class="kpi-meta" id="triage-date-range-meta"></div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Duplicate Names</div>
+                <div class="kpi-value" id="triage-duplicate-names-total">0</div>
+                <div class="kpi-meta" id="triage-duplicate-names-meta"></div>
+                <div
+                  id="triage-duplicate-position-bars"
+                  class="kpi-microchart kpi-microchart-bars"
+                ></div>
+              </article>
+              <article class="kpi-card">
+                <div class="kpi-label">Registered Voter Match</div>
+                <div class="kpi-value" id="triage-voter-match-rate">-</div>
+                <div class="kpi-meta" id="triage-voter-match-meta"></div>
+                <div
+                  id="triage-voter-match-position-bars"
+                  class="kpi-microchart kpi-microchart-bars"
+                ></div>
+              </article>
+            </section>
+            <div id="data-quality-summary" class="warning-banner"></div>
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Data Quality Warnings</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-warning-host" class="table-host"></div>
+                </div>
+              </article>
+              <article class="detail-card">
+                <h3 class="detail-title">Raw vs Dedup Metrics</h3>
+                <div class="table-wrap">
+                  <div id="data-quality-dedup-metrics-host" class="table-host"></div>
+                </div>
+              </article>
+            </div>
+            <div class="analysis-detail-grid analysis-detail-grid-compact">
+              <article class="detail-card detail-card-compact">
+                <h3 class="detail-title">Hearing Context Metadata</h3>
+                <p id="hearing-context-summary" class="tiny-note"></p>
+                <div class="table-wrap">
+                  <div id="hearing-context-metadata-host" class="structured-host structured-host-compact"></div>
+                </div>
+              </article>
+              <article class="detail-card detail-card-compact">
+                <h3 class="detail-title">Deadline Ramp Metrics</h3>
+                <div class="table-wrap">
+                  <div id="hearing-deadline-ramp-host" class="structured-host structured-host-compact"></div>
+                </div>
+              </article>
+              <article class="detail-card detail-card-compact">
+                <h3 class="detail-title">Top Repeated Names</h3>
+                <div class="table-wrap">
+                  <div id="forensics-top-names-host" class="table-host table-host-compact"></div>
+                </div>
+              </article>
+            </div>
 
             <div class="analysis-detail-grid">
               <article class="detail-card">
@@ -292,86 +363,6 @@
 
               </article>
             </div>
-            <h3>Triage</h3>
-            <p class="tiny-note">
-              Use this section for quality checks, hearing context, and top repeated-name/cluster summaries.
-            </p>
-            <section class="kpi-grid">
-              <article class="kpi-card">
-                <div class="kpi-label">Total submissions</div>
-                <div class="kpi-value" id="triage-total-submissions">0</div>
-                <div class="kpi-meta" id="triage-total-procon-meta"></div>
-                <div id="triage-procon-pie" class="kpi-microchart kpi-microchart-pie"></div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">Date range</div>
-                <div class="kpi-value" id="triage-date-range">-</div>
-                <div class="kpi-meta" id="triage-date-range-meta"></div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">Duplicate Names</div>
-                <div class="kpi-value" id="triage-duplicate-names-total">0</div>
-                <div class="kpi-meta" id="triage-duplicate-names-meta"></div>
-                <div
-                  id="triage-duplicate-position-bars"
-                  class="kpi-microchart kpi-microchart-bars"
-                ></div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">Registered Voter Match</div>
-                <div class="kpi-value" id="triage-voter-match-rate">-</div>
-                <div class="kpi-meta" id="triage-voter-match-meta"></div>
-                <div
-                  id="triage-voter-match-position-bars"
-                  class="kpi-microchart kpi-microchart-bars"
-                ></div>
-              </article>
-            </section>
-            <div id="data-quality-summary" class="warning-banner"></div>
-            <div class="analysis-detail-grid">
-              <article class="detail-card">
-                <h3 class="detail-title">Data Quality Warnings</h3>
-                <div class="table-wrap">
-                  <div id="data-quality-warning-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Raw vs Dedup Metrics</h3>
-                <div class="table-wrap">
-                  <div id="data-quality-dedup-metrics-host" class="table-host"></div>
-                </div>
-              </article>
-            </div>
-            <div class="analysis-detail-grid analysis-detail-grid-compact">
-              <article class="detail-card detail-card-compact">
-                <h3 class="detail-title">Hearing Context Metadata</h3>
-                <p id="hearing-context-summary" class="tiny-note"></p>
-                <div class="table-wrap">
-                  <div id="hearing-context-metadata-host" class="structured-host structured-host-compact"></div>
-                </div>
-              </article>
-              <article class="detail-card detail-card-compact">
-                <h3 class="detail-title">Deadline Ramp Metrics</h3>
-                <div class="table-wrap">
-                  <div id="hearing-deadline-ramp-host" class="structured-host structured-host-compact"></div>
-                </div>
-              </article>
-              <article class="detail-card detail-card-compact">
-                <h3 class="detail-title">Top Repeated Names</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-names-host" class="table-host table-host-compact"></div>
-                </div>
-              </article>
-              <article class="detail-card detail-card-compact">
-                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
-                <p class="tiny-note">
-                  Artifact/table row counts are retained for reproducibility.
-                </p>
-                <div class="table-wrap">
-                  <div id="methodology-artifact-rows-host" class="table-host table-host-compact"></div>
-                </div>
-              </article>
-            </div>
           </section>
 <section id="analysis-root" class="report-section">
     <section
@@ -416,7 +407,7 @@
       <p><strong>What is this?</strong> Duplicate Names focuses on exact repeated-name concentration. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
       <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
       <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
-      <p><strong>What do I look for?</strong> Excess duplicate burden with low p/q values, corroborating temporal burst evidence, and position concentration differences that persist across neighboring windows. Short bursts of repeated names in tiny windows may occur during legitimate group actions; concern rises when concentration repeats across multiple larger buckets. Names that appear repeatedly while switching pro/con positions are higher-priority review targets because they indicate inconsistent stance representation under one canonical identity. Persistent duplicate concentration during otherwise stable baseline periods can imply scripted submissions or queue replay effects rather than organic participation. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What do I look for?</strong> Excess duplicate burden with low p/q values, and position concentration differences that persist across neighboring windows. Short bursts of repeated names in tiny windows may occur during legitimate group actions; concern rises when concentration repeats across multiple larger buckets. Names that appear repeatedly while switching pro/con positions are higher-priority review targets because they indicate inconsistent stance representation under one canonical identity. Persistent duplicate concentration during otherwise stable baseline periods can imply scripted submissions or queue replay effects rather than organic participation. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
       <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate household/shared-name collisions or small coordinated batches. Momentary lows can indicate normal diversity of distinct names in organic intake. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
       <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate repeat-name patterns likely to influence authenticity and weighting assumptions. Extended lows can indicate healthy name diversity with limited exact repetition pressure. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
       <ul>
@@ -530,32 +521,7 @@
 </details>
 
             </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Duplicates Exact Temporal Burst</h3>
-              <p class="tiny-note"><code>duplicates_exact_temporal_burst</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_temporal_burst" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_temporal_burst">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_temporal_burst"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Top repeated names ranked by short-window burst intensity. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height (within_5m_pairs), Bar order, Intended use.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Top repeated names ranked by short-window burst intensity.</p>
-        <ul>
-            <li><strong>Bar height (within_5m_pairs):</strong> Count of repeated same-name pairs that occur within 5 minutes for each name.</li>
-            <li><strong>Bar order:</strong> Left-to-right order is descending `within_5m_pairs` (ties break on lower temporal p-values).</li>
-            <li><strong>Intended use:</strong> Shows whether duplicate pressure is temporally compressed rather than spread uniformly across the hearing window.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
+            <article class="detail-card detail-card-half">
               <h3 class="detail-title">Duplicates Exact Swing Impact</h3>
               <p class="tiny-note"><code>duplicates_exact_swing_impact</code></p>
               <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_swing_impact" data-chart-role="detail"></div>
@@ -900,32 +866,6 @@
             <li><strong>Column:</strong> Each column is a count of tested windows for one channel label on the x-axis.</li>
             <li><strong>Channel meaning:</strong> Tested off-hours windows = denominator; Primary 99.8% breach = SPC extreme tail; Primary two-sided FDR-significant = multiplicity-adjusted test hits; Any primary flag channel = SPC OR FDR; Both primary flag channels = SPC AND FDR; Robust primary alerts = AND criteria plus material effect-size gate.</li>
             <li><strong>Reading order:</strong> Columns are ordered from broad denominator context to stricter overlap criteria.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Model Fit Diagnostics</h3>
-              <p class="tiny-note"><code>off_hours_model_fit_diagnostics</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_model_fit_diagnostics" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_model_fit_diagnostics">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_model_fit_diagnostics"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Model-fit availability by off-hours bucket size (counts plus fraction). This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Total windows (bar), Model-available windows (bar), Model-available fraction (line), X-axis bucket.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Model-fit availability by off-hours bucket size (counts plus fraction).</p>
-        <ul>
-            <li><strong>Total windows (bar):</strong> Count of windows evaluated for that bucket size.</li>
-            <li><strong>Model-available windows (bar):</strong> Subset of total windows where model-based expected rates were available.</li>
-            <li><strong>Model-available fraction (line):</strong> Available windows divided by total windows for each bucket size.</li>
-            <li><strong>X-axis bucket:</strong> Bucket size in minutes; combine with table diagnostics for method, support, convergence, and AIC context.</li>
         </ul>
   </div>
 </details>

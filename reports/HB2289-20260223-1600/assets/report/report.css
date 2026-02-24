@@ -824,7 +824,7 @@ code {
 
 .kpi-mini-bars-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) var(--kpi-bars-value-width, 6ch);
   align-items: center;
   gap: 0.34rem;
 }
@@ -851,6 +851,9 @@ code {
   color: var(--ink-muted);
   font-size: 0.72rem;
   line-height: 1.1;
+  text-align: right;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
 }
 
 .offhours-evidence-tier {
@@ -1186,6 +1189,11 @@ code {
   border-radius: 10px;
   background: var(--surface-alt);
   padding: 0.66rem;
+}
+
+.detail-card.detail-card-half {
+  justify-self: start;
+  width: min(100%, 52rem);
 }
 
 .detail-card.detail-card-compact {

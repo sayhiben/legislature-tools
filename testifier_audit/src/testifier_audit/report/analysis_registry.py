@@ -123,7 +123,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "off_hours_funnel_plot",
             "off_hours_primary_residual_timeline",
             "off_hours_primary_flag_channels",
-            "off_hours_model_fit_diagnostics",
         ),
         how_to_read=(
             "Use the off-hours control timeline to compare observed pro share with "
@@ -151,7 +150,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "duplicates_exact_per_name_anomalies",
             "duplicates_exact_top_name_timing_exact",
             "duplicates_exact_position_concentration",
-            "duplicates_exact_temporal_burst",
             "duplicates_exact_swing_impact",
         ),
         how_to_read=(
@@ -159,7 +157,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "configured baseline with explicit uncertainty and power context."
         ),
         what_to_look_for=(
-            "Excess duplicate burden with low p/q values, corroborating temporal burst evidence, "
+            "Excess duplicate burden with low p/q values, "
             "and position concentration differences that persist across neighboring windows."
         ),
         common_benign_causes=(

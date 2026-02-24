@@ -476,6 +476,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "Robust lower-tail alert" in js_text
     assert "Robust upper-tail alert" in js_text
     assert "duplicates_exact_top_name_timing_exact" in rendered
+    assert "duplicates_exact_swing_impact" in rendered
+    assert 'class="detail-card detail-card-half"' in rendered
     assert "duplicates_exact_top_name_timing_medium" not in rendered
     assert "duplicates_exact_top_name_timing_loose" not in rendered
     assert "overview_position_volume_by_bucket" in rendered
@@ -521,7 +523,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert "sparseWhenLowSupport: true" in js_text
         assert "off_hours_primary_residual_timeline" in js_text
         assert "off_hours_primary_flag_channels" in js_text
-        assert "off_hours_model_fit_diagnostics" in js_text
+        assert "off_hours_model_fit_diagnostics" not in js_text
         assert "off_hours_date_hour_primary_residual_heatmap" in js_text
         assert "highlightOffHoursAxis: true" in js_text
         assert "model_fit_diagnostics" in js_text
@@ -536,7 +538,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert 'id="hearing-context-metadata-host"' in rendered
         assert 'id="hearing-deadline-ramp-host"' in rendered
         assert 'id="hearing-stance-by-deadline-host"' not in rendered
-        assert 'id="methodology-artifact-rows-host"' in rendered
+        assert 'id="methodology-artifact-rows-host"' not in rendered
         assert 'id="methodology-definitions-host"' in rendered
         assert 'id="methodology-tests-used-host"' in rendered
         assert 'id="methodology-guardrails-host"' in rendered
@@ -597,6 +599,10 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert '"Total Sign-ins"' in js_text
     assert '"# Pro"' in js_text
     assert '"# Con"' in js_text
+    assert 'field: "# Sign-ins"' in js_text
+    assert 'field: "# Pro"' in js_text
+    assert 'field: "# Con"' in js_text
+    assert js_text.count('sorter: "number"') >= 3
 
 
 def test_render_report_table_semantic_rules_and_cell_background_normalization(

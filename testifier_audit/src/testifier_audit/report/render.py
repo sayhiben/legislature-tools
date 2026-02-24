@@ -2795,36 +2795,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 },
             ],
         },
-        "off_hours_model_fit_diagnostics": {
-            "summary": "Model-fit availability by off-hours bucket size (counts plus fraction).",
-            "items": [
-                {
-                    "label": "Total windows (bar)",
-                    "description": (
-                        "Count of windows evaluated for that bucket size."
-                    ),
-                },
-                {
-                    "label": "Model-available windows (bar)",
-                    "description": (
-                        "Subset of total windows where model-based expected rates were available."
-                    ),
-                },
-                {
-                    "label": "Model-available fraction (line)",
-                    "description": (
-                        "Available windows divided by total windows for each bucket size."
-                    ),
-                },
-                {
-                    "label": "X-axis bucket",
-                    "description": (
-                        "Bucket size in minutes; combine with table diagnostics for method, support, "
-                        "convergence, and AIC context."
-                    ),
-                },
-            ],
-        },
         "overview_position_volume_by_bucket": {
             "summary": "Stacked pro/con/other volume by time bucket.",
             "items": [
@@ -3032,32 +3002,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Simulated duplicate burden metric under the configured baseline.",
                 },
                 {"label": "X-axis", "description": "Simulation iteration."},
-            ],
-        },
-        "duplicates_exact_temporal_burst": {
-            "summary": "Top repeated names ranked by short-window burst intensity.",
-            "items": [
-                {
-                    "label": "Bar height (within_5m_pairs)",
-                    "description": (
-                        "Count of repeated same-name pairs that occur within 5 minutes "
-                        "for each name."
-                    ),
-                },
-                {
-                    "label": "Bar order",
-                    "description": (
-                        "Left-to-right order is descending `within_5m_pairs` (ties break on lower "
-                        "temporal p-values)."
-                    ),
-                },
-                {
-                    "label": "Intended use",
-                    "description": (
-                        "Shows whether duplicate pressure is temporally compressed rather than spread "
-                        "uniformly across the hearing window."
-                    ),
-                },
             ],
         },
         "duplicates_exact_swing_impact": {
@@ -4258,22 +4202,6 @@ def _build_interactive_chart_payload_v2(
             "primary_model_fit_aic",
         ],
     )
-    off_hours_model_fit_diagnostics = _with_expected_columns(
-        table_map.get(_table_key("off_hours", "model_fit_diagnostics"), pd.DataFrame()),
-        [
-            "bucket_minutes",
-            "model_fit_method",
-            "model_fit_rows",
-            "model_fit_unique_days",
-            "model_fit_unique_hours",
-            "model_fit_converged",
-            "model_fit_aic",
-            "model_fit_used_harmonics",
-            "model_fit_window_count",
-            "model_fit_available_windows",
-            "model_fit_available_fraction",
-        ],
-    )
     off_hours_flag_channels = _with_expected_columns(
         table_map.get(_table_key("off_hours", "flag_channel_summary"), pd.DataFrame()),
         [
@@ -4543,26 +4471,6 @@ def _build_interactive_chart_payload_v2(
             "max_count",
         ],
     )
-    dup_exact_temporal_burst = _with_expected_columns(
-        table_map.get(_table_key("duplicates_exact", "temporal_burst_signals"), pd.DataFrame()),
-        [
-            "scope",
-            "canonical_name",
-            "within_5m_pairs",
-            "within_15m_pairs",
-            "min_gap_minutes",
-            "time_span_minutes",
-            "temporal_p_value_min_gap",
-            "temporal_p_value_within_5m",
-            "temporal_p_value_within_15m",
-        ],
-    )
-    if not dup_exact_temporal_burst.empty and "scope" in dup_exact_temporal_burst.columns:
-        scoped_temporal = dup_exact_temporal_burst[
-            dup_exact_temporal_burst["scope"].astype(str) == primary_dup_scope
-        ].copy()
-        if not scoped_temporal.empty:
-            dup_exact_temporal_burst = scoped_temporal
     dup_exact_swing_impact = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "swing_impact_scenarios"), pd.DataFrame()),
         [
@@ -5758,23 +5666,6 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=50,
     )
-    charts["off_hours_model_fit_diagnostics"] = _records_from_frame(
-        off_hours_model_fit_diagnostics.sort_values(["bucket_minutes"]),
-        columns=[
-            "bucket_minutes",
-            "model_fit_method",
-            "model_fit_rows",
-            "model_fit_unique_days",
-            "model_fit_unique_hours",
-            "model_fit_converged",
-            "model_fit_aic",
-            "model_fit_used_harmonics",
-            "model_fit_window_count",
-            "model_fit_available_windows",
-            "model_fit_available_fraction",
-        ],
-        max_rows=200,
-    )
     charts["off_hours_date_hour_pro_heatmap"] = _records_from_frame(
         off_hours_date_hour.sort_values(["date", "hour"]),
         columns=[
@@ -6073,28 +5964,6 @@ def _build_interactive_chart_payload_v2(
             "max_count",
         ],
         max_rows=25_000,
-    )
-    charts["duplicates_exact_temporal_burst"] = _records_from_frame(
-        dup_exact_temporal_burst.sort_values(
-            [
-                "within_5m_pairs",
-                "temporal_p_value_within_5m",
-                "temporal_p_value_min_gap",
-                "canonical_name",
-            ],
-            ascending=[False, True, True, True],
-        ),
-        columns=[
-            "canonical_name",
-            "within_5m_pairs",
-            "within_15m_pairs",
-            "min_gap_minutes",
-            "time_span_minutes",
-            "temporal_p_value_min_gap",
-            "temporal_p_value_within_5m",
-            "temporal_p_value_within_15m",
-        ],
-        max_rows=15,
     )
     charts["duplicates_exact_swing_impact"] = _records_from_frame(
         dup_exact_swing_impact,

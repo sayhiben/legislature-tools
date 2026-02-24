@@ -1161,8 +1161,8 @@
         ? options.valueFormatter
         : (value) => String(value);
 
-    const list = document.createElement("div");
-    list.className = "kpi-mini-bars";
+    const preparedRows = [];
+    let maxValueChars = 0;
     rows.forEach((row) => {
       const labelText = String((row || {}).label || "").trim();
       if (!labelText) {
@@ -1172,6 +1172,32 @@
       const width = Math.max(0, Math.min(100, (value / maxValue) * 100));
       const color =
         typeof row.color === "string" && row.color.trim() ? row.color.trim() : kpiPositionColor(labelText);
+      const valueText = String(formatter(value));
+      maxValueChars = Math.max(maxValueChars, valueText.length);
+      preparedRows.push({
+        labelText: labelText,
+        value: value,
+        width: width,
+        color: color,
+        valueText: valueText,
+      });
+    });
+
+    if (!preparedRows.length) {
+      return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "kpi-mini-bars";
+    list.style.setProperty(
+      "--kpi-bars-value-width",
+      String(Math.max(4, Math.min(12, maxValueChars))) + "ch"
+    );
+    preparedRows.forEach((row) => {
+      const labelText = row.labelText;
+      const value = row.value;
+      const width = row.width;
+      const color = row.color;
 
       const wrapper = document.createElement("div");
       wrapper.className = "kpi-mini-bars-row";
@@ -1192,7 +1218,7 @@
 
       const valueLabel = document.createElement("span");
       valueLabel.className = "kpi-mini-bars-value";
-      valueLabel.textContent = formatter(value);
+      valueLabel.textContent = row.valueText;
       wrapper.appendChild(valueLabel);
 
       list.appendChild(wrapper);
@@ -5457,12 +5483,10 @@
     "changepoints_magnitude",
     "duplicates_exact_per_name_anomalies",
     "duplicates_exact_metric_diagnostics",
-    "duplicates_exact_temporal_burst",
     "duplicates_exact_top_names",
     "duplicates_exact_position_switch",
     "duplicates_exact_position_concentration",
     "off_hours_hourly_profile",
-    "off_hours_model_fit_diagnostics",
     "off_hours_summary_compare",
     "org_anomalies_bursts",
     "org_anomalies_top_orgs",
@@ -5841,140 +5865,6 @@
           itemStyle: { color: theme.alertUpper, opacity: 0.82 },
         },
       ],
-    };
-    mount.chart.setOption(ensureReadableAxes(option, mount), true);
-    mount.isTimeSeries = false;
-    mount.isAbsoluteTime = false;
-    return true;
-  }
-
-  function renderOffHoursModelFitDiagnostics(mount, rows) {
-    const theme = currentChartTheme();
-    const subset = rows
-      .map((row) => {
-        const bucketMinutes = toFiniteNumberOrNull(row.bucket_minutes);
-        const totalRaw = toFiniteNumberOrNull(row.model_fit_window_count);
-        const availableRaw = toFiniteNumberOrNull(row.model_fit_available_windows);
-        const fractionRaw = toFiniteNumberOrNull(row.model_fit_available_fraction);
-        if (
-          bucketMinutes === null ||
-          (totalRaw === null && availableRaw === null && fractionRaw === null)
-        ) {
-          return null;
-        }
-        return {
-          raw: row,
-          bucketMinutes: bucketMinutes,
-          totalRaw: totalRaw,
-          availableRaw: availableRaw,
-          fractionRaw: fractionRaw,
-          totalCount: totalRaw === null ? 0 : totalRaw,
-          availableCount: availableRaw === null ? 0 : availableRaw,
-        };
-      })
-      .filter((row) => row !== null)
-      .sort((left, right) => left.bucketMinutes - right.bucketMinutes)
-      .slice(0, 24);
-    if (!subset.length) {
-      return false;
-    }
-
-    const categories = subset.map((row) => String(Math.round(row.bucketMinutes)) + "m");
-    const hasFractionSeries = subset.some((row) => row.fractionRaw !== null);
-    const lineSeriesName = "Model-available fraction";
-    const series = [
-      {
-        name: "Total windows",
-        type: "bar",
-        yAxisIndex: 0,
-        data: subset.map((row) => row.totalCount),
-        itemStyle: { color: theme.volumeBar, opacity: 0.64 },
-      },
-      {
-        name: "Model-available windows",
-        type: "bar",
-        yAxisIndex: 0,
-        data: subset.map((row) => row.availableCount),
-        itemStyle: { color: theme.barAccent, opacity: 0.86 },
-      },
-    ];
-    if (hasFractionSeries) {
-      series.push({
-        name: lineSeriesName,
-        type: "line",
-        yAxisIndex: 1,
-        data: subset.map((row) => row.fractionRaw),
-        showSymbol: true,
-        symbolSize: 6,
-        lineStyle: { color: theme.primaryLine, width: 1.8, opacity: 0.9 },
-        itemStyle: { color: theme.primaryLine },
-      });
-    }
-
-    const option = {
-      animation: false,
-      legend: {
-        top: 0,
-        data: series.map((entry) => entry.name),
-      },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "shadow" },
-        formatter: (params) => {
-          const entries = Array.isArray(params) ? params : [params];
-          if (!entries.length) {
-            return "";
-          }
-          const dataIndex = Number(toNumber(entries[0].dataIndex || 0));
-          const row = subset[Math.max(0, Math.min(subset.length - 1, dataIndex))];
-          const lines = ["<strong>Bucket:</strong> " + escapeHtml(categories[dataIndex] || "")];
-          lines.push(
-            "<strong>Total windows:</strong> " + formatTooltipValue(row.totalRaw)
-          );
-          lines.push(
-            "<strong>Model-available windows:</strong> " + formatTooltipValue(row.availableRaw)
-          );
-          lines.push(
-            "<strong>Model-available fraction:</strong> " + formatTooltipValue(row.fractionRaw)
-          );
-          const method = String(row.raw.model_fit_method || "").trim();
-          if (method) {
-            lines.push("<strong>Model fit method:</strong> " + escapeHtml(method));
-          }
-          const converged = toFiniteNumberOrNull(row.raw.model_fit_converged);
-          if (converged !== null) {
-            lines.push("<strong>Model converged:</strong> " + (converged > 0 ? "yes" : "no"));
-          }
-          return lines.join("<br/>");
-        },
-      },
-      grid: { left: 64, right: 66, top: 54, bottom: 84 },
-      xAxis: {
-        type: "category",
-        name: "Bucket (minutes)",
-        data: categories,
-        axisLabel: { interval: 0, rotate: 0, color: theme.axisText },
-      },
-      yAxis: [
-        {
-          type: "value",
-          name: "Window count",
-          min: 0,
-          axisLabel: { color: theme.axisText },
-        },
-        {
-          type: "value",
-          name: "Available fraction",
-          min: 0,
-          max: 1,
-          axisLabel: {
-            color: theme.axisText,
-            formatter: (value) => formatPercent(value),
-          },
-          splitLine: { show: false },
-        },
-      ],
-      series: series,
     };
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
     mount.isTimeSeries = false;
@@ -6563,9 +6453,6 @@
         "Window count"
       );
     }
-    if (mount.chartId === "off_hours_model_fit_diagnostics") {
-      return renderOffHoursModelFitDiagnostics(mount, rows);
-    }
     if (mount.chartId === "overview_position_volume_by_bucket") {
       return renderOverviewPositionVolumeByBucket(mount, rows);
     }
@@ -6863,9 +6750,6 @@
     }
     if (mount.chartId === "duplicates_exact_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "duplicate_rows", "duplicate rows");
-    }
-    if (mount.chartId === "duplicates_exact_temporal_burst") {
-      return renderSimpleBar(mount, rows, "canonical_name", "within_5m_pairs", "within 5m pairs");
     }
     if (mount.chartId === "duplicates_exact_swing_impact") {
       return renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share");
@@ -8067,9 +7951,27 @@
       rowClick: onRowClick,
       columns: [
         { title: "Name", field: "Name", headerFilter: "input", minWidth: 230 },
-        { title: "# Sign-ins", field: "# Sign-ins", headerFilter: "input", hozAlign: "right" },
-        { title: "# Pro", field: "# Pro", headerFilter: "input", hozAlign: "right" },
-        { title: "# Con", field: "# Con", headerFilter: "input", hozAlign: "right" },
+        {
+          title: "# Sign-ins",
+          field: "# Sign-ins",
+          headerFilter: "input",
+          hozAlign: "right",
+          sorter: "number",
+        },
+        {
+          title: "# Pro",
+          field: "# Pro",
+          headerFilter: "input",
+          hozAlign: "right",
+          sorter: "number",
+        },
+        {
+          title: "# Con",
+          field: "# Con",
+          headerFilter: "input",
+          hozAlign: "right",
+          sorter: "number",
+        },
         {
           title: "Submission period",
           field: "Submission period",
@@ -8127,15 +8029,22 @@
     setTextById("triage-date-range", range.value);
     setTextById("triage-date-range-meta", range.meta);
 
-    const duplicateRows = tablePreviewRows("duplicates_exact", "per_name_display");
+    const duplicateRowsFull = tablePreviewRows("duplicates_exact", "per_name_tests");
+    const duplicateRowsDisplay = tablePreviewRows("duplicates_exact", "per_name_display");
     const topRepeatedNames = Array.isArray(summary.top_repeated_names) ? summary.top_repeated_names : [];
-    const duplicateSourceRows = duplicateRows.length ? duplicateRows : topRepeatedNames;
+    const duplicateSourceRows = duplicateRowsFull.length
+      ? duplicateRowsFull
+      : duplicateRowsDisplay.length
+        ? duplicateRowsDisplay
+        : topRepeatedNames;
     setTextById("triage-duplicate-names-total", duplicateSourceRows.length.toLocaleString());
     setTextById(
       "triage-duplicate-names-meta",
-      duplicateRows.length
-        ? "Repeated canonical names in duplicates table."
-        : "Fallback from triage summary (top repeated names only)."
+      duplicateRowsFull.length
+        ? "All repeated names from duplicates test rows."
+        : duplicateRowsDisplay.length
+          ? "Repeated canonical names from display-limited duplicates table."
+          : "Fallback from triage summary (top repeated names only)."
     );
     renderKpiMiniBars("triage-duplicate-position-bars", duplicatePositionCounts(duplicateSourceRows), {
       valueFormatter: (value) => Math.round(value).toLocaleString(),
@@ -8294,7 +8203,6 @@
     const summary = view.triage_summary || {};
     const forensicsNamesHost = document.getElementById("forensics-top-names-host");
     const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
-    const artifactRowsHost = document.getElementById("methodology-artifact-rows-host");
 
     const topNames = Array.isArray(summary.top_repeated_names)
       ? summary.top_repeated_names
@@ -8328,23 +8236,6 @@
       tableKey: "methodology.evidence_taxonomy",
     });
 
-    const artifactRows = Object.entries(reportData.artifact_rows || {})
-      .map((entry) => ({
-        artifact: entry[0],
-        rows: toNumber(entry[1]),
-      }))
-      .sort((left, right) => {
-        const rowDelta = Number(toNumber(right.rows)) - Number(toNumber(left.rows));
-        if (rowDelta !== 0) {
-          return rowDelta;
-        }
-        return String(left.artifact).localeCompare(String(right.artifact));
-      });
-    mountTable(artifactRowsHost, artifactRows, {
-      paginationSize: 10,
-      maxHeight: "300px",
-      tableKey: "report.artifact_rows",
-    });
     renderMethodologyPanel();
   }
 

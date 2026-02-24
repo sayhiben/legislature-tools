@@ -28,8 +28,11 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     duplicates_exact = next(entry for entry in definitions if entry["id"] == "duplicates_exact")
     assert duplicates_exact["title"] == "Duplicate Names"
     assert "duplicates_exact_top_name_timing_exact" in duplicates_exact["detail_chart_ids"]
+    assert "duplicates_exact_temporal_burst" not in duplicates_exact["detail_chart_ids"]
     assert "duplicates_exact_top_name_timing_medium" not in duplicates_exact["detail_chart_ids"]
     assert "duplicates_exact_top_name_timing_loose" not in duplicates_exact["detail_chart_ids"]
+    off_hours = next(entry for entry in definitions if entry["id"] == "off_hours")
+    assert "off_hours_model_fit_diagnostics" not in off_hours["detail_chart_ids"]
 
 
 def test_analysis_status_reports_ready_when_any_chart_has_rows() -> None:

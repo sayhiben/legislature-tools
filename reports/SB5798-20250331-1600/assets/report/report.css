@@ -1193,7 +1193,7 @@ code {
 
 .detail-card.detail-card-half {
   justify-self: start;
-  width: min(100%, 52rem);
+  width: min(100%, calc((100% - 0.82rem) / 2));
 }
 
 .detail-card.detail-card-compact {
@@ -2092,6 +2092,10 @@ tr.duplicate-name-inline-detail-row > td {
 
   .analysis-detail-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-card.detail-card-half {
+    width: 100%;
   }
 
   .chart-host-hero {

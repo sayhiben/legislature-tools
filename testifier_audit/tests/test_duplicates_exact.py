@@ -502,7 +502,8 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     assert required.issubset(timing.columns)
     assert not timing.empty
     assert set(timing["match_mode"]) == {"strict", "loose"}
-    assert (timing["duplicate_rows"] >= 2).all()
+    assert (timing["duplicate_rows"] >= 1).all()
+    assert (timing["duplicate_rows"] == 1).any()
     assert (timing["n_other"] >= 0).all()
     assert (
         timing["n_pro"].astype(int)

@@ -6415,7 +6415,7 @@
           }
           if (duplicateRows !== null) {
             lines.push(
-              "<strong>Duplicate rows (bucket):</strong> " + Number(duplicateRows).toLocaleString()
+              "<strong>Total submissions (bucket):</strong> " + Number(duplicateRows).toLocaleString()
             );
           }
           if (positionRows !== null) {
@@ -6428,7 +6428,7 @@
           }
           if (totalRepeatedRows !== null) {
             lines.push(
-              "<strong>Total repeated rows (name):</strong> " + Number(totalRepeatedRows).toLocaleString()
+              "<strong>Total sign-ins (name):</strong> " + Number(totalRepeatedRows).toLocaleString()
             );
           }
           if (nPro !== null || nCon !== null || nOther !== null) {
@@ -7756,7 +7756,7 @@
         normalizeReportMatchMode(row.matchMode, state.defaultDuplicateMatchMode || "strict") ===
         normalizeReportMatchMode(state.activeDuplicateMatchMode, state.defaultDuplicateMatchMode || "strict")
     );
-    const activeRows = modeRows.length ? modeRows : scopeCandidates;
+    const activeRows = modeRows;
     activeRows.sort((left, right) => {
       const signInDelta = toNumber(right.signIns) - toNumber(left.signIns);
       if (signInDelta !== 0) {
@@ -7791,37 +7791,6 @@
       lookup.set(key, list);
     };
 
-    const repeatedRowsRaw = Array.isArray(detectorTables.repeated_same_bucket)
-      ? detectorTables.repeated_same_bucket
-      : [];
-    const repeatedRowsSelection = filterRowsByDuplicateTableBucket(
-      "repeated_same_bucket",
-      repeatedRowsRaw
-    );
-    repeatedRowsSelection.rows.forEach((row) => {
-      const lookupKey = normalizeDuplicateNameLookupKey((row || {}).canonical_name);
-      const timestamp = toEpochMillis((row || {}).bucket_start);
-      const nTotal = toFiniteNumberOrNull((row || {}).n);
-      if (!lookupKey || timestamp === null || nTotal === null || nTotal <= 0) {
-        return;
-      }
-      const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
-      const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
-      const reportedOther = toFiniteNumberOrNull((row || {}).n_unknown);
-      const nOther =
-        reportedOther === null
-          ? Math.max(0, Math.round(nTotal) - nPro - nCon)
-          : Math.max(0, Math.round(reportedOther));
-      addEntry(lookupKey, {
-        timestamp: timestamp,
-        nTotal: Math.max(1, Math.round(nTotal)),
-        nPro: nPro,
-        nCon: nCon,
-        nOther: nOther,
-        bucketMinutes: toFiniteNumberOrNull((row || {}).bucket_minutes),
-      });
-    });
-
     const topTimingRaw = Array.isArray(detectorTables.top_name_timing_by_mode)
       ? detectorTables.top_name_timing_by_mode
       : [];
@@ -7839,11 +7808,15 @@
         state.activeDuplicateMatchMode,
         state.defaultDuplicateMatchMode || "strict"
       );
+      const rowKind = String((row || {}).row_kind || "").trim().toLowerCase();
+      if (rowKind === "name_rank") {
+        return false;
+      }
       return !matchMode || matchMode === activeMode;
     });
     topTimingRows.forEach((row) => {
       const lookupKey = normalizeDuplicateNameLookupKey((row || {}).name_key || (row || {}).canonical_name);
-      if (!lookupKey || (lookup.get(lookupKey) || []).length) {
+      if (!lookupKey) {
         return;
       }
       const timestamp = toEpochMillis((row || {}).bucket_start);
@@ -7868,6 +7841,41 @@
       });
     });
 
+    let repeatedBucketNote = "";
+    if (!topTimingRows.length) {
+      const repeatedRowsRaw = Array.isArray(detectorTables.repeated_same_bucket)
+        ? detectorTables.repeated_same_bucket
+        : [];
+      const repeatedRowsSelection = filterRowsByDuplicateTableBucket(
+        "repeated_same_bucket",
+        repeatedRowsRaw
+      );
+      repeatedBucketNote = repeatedRowsSelection.note || "";
+      repeatedRowsSelection.rows.forEach((row) => {
+        const lookupKey = normalizeDuplicateNameLookupKey((row || {}).canonical_name);
+        const timestamp = toEpochMillis((row || {}).bucket_start);
+        const nTotal = toFiniteNumberOrNull((row || {}).n);
+        if (!lookupKey || timestamp === null || nTotal === null || nTotal <= 0) {
+          return;
+        }
+        const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
+        const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
+        const reportedOther = toFiniteNumberOrNull((row || {}).n_unknown);
+        const nOther =
+          reportedOther === null
+            ? Math.max(0, Math.round(nTotal) - nPro - nCon)
+            : Math.max(0, Math.round(reportedOther));
+        addEntry(lookupKey, {
+          timestamp: timestamp,
+          nTotal: Math.max(1, Math.round(nTotal)),
+          nPro: nPro,
+          nCon: nCon,
+          nOther: nOther,
+          bucketMinutes: toFiniteNumberOrNull((row || {}).bucket_minutes),
+        });
+      });
+    }
+
     lookup.forEach((entries, key) => {
       entries.sort((left, right) => toNumber(left.timestamp) - toNumber(right.timestamp));
       const deduped = [];
@@ -7891,7 +7899,7 @@
 
     return {
       rowsByLookupKey: lookup,
-      bucketNote: repeatedRowsSelection.note || topTimingSelection.note || "",
+      bucketNote: topTimingSelection.note || repeatedBucketNote || "",
     };
   }
 
@@ -8045,7 +8053,7 @@
               Number(toNumber(raw.n_other)).toLocaleString()
           );
           lines.push(
-            "<strong>Total repeated rows (bucket):</strong> " +
+            "<strong>Total submissions (bucket):</strong> " +
               Number(toNumber(raw.n_total)).toLocaleString()
           );
           return lines.join("<br/>");
@@ -8271,14 +8279,14 @@
 
       if (!timelineRows.length) {
         scaffold.note.textContent =
-          "No repeated-bucket timing points are available for this name at the current bucket view" +
+          "No submission timing points are available for this name at the current bucket view" +
           (bucketLabel ? " (" + bucketLabel + ")" : "") +
           ".";
         scaffold.chartHost.classList.add("hidden");
         disposeDuplicateInlineTimingChart(scaffold.chartHost);
       } else {
         scaffold.note.textContent =
-          "Timing row shows bucket-level repeated sign-ins for this name" +
+          "Timing row shows bucket-level sign-ins for this duplicate name (including single-submission buckets)" +
           (bucketLabel ? " at " + bucketLabel : "") +
           " (" +
           reportTimezoneLabel +
@@ -8388,7 +8396,8 @@
 
     const duplicateRowsFull = tablePreviewRows("duplicates_exact", "per_name_tests");
     const duplicateRowsDisplay = tablePreviewRows("duplicates_exact", "per_name_display");
-    const duplicateRowsByMode = tablePreviewRows("duplicates_exact", "per_name_duplicates_by_mode").filter(
+    const duplicateRowsByModeAll = tablePreviewRows("duplicates_exact", "per_name_duplicates_by_mode");
+    const duplicateRowsByMode = duplicateRowsByModeAll.filter(
       (row) =>
         normalizeReportMatchMode(
           (row || {}).match_mode,
@@ -8399,8 +8408,11 @@
           state.defaultDuplicateMatchMode || "strict"
         )
     );
+    const duplicateRowsByModeHasMode = duplicateRowsByModeAll.some((row) =>
+      Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
+    );
     const topRepeatedNames = Array.isArray(summary.top_repeated_names) ? summary.top_repeated_names : [];
-    const duplicateSourceRows = duplicateRowsByMode.length
+    const duplicateSourceRows = duplicateRowsByModeHasMode
       ? duplicateRowsByMode
       : duplicateRowsFull.length
         ? duplicateRowsFull
@@ -8410,7 +8422,7 @@
     setTextById("triage-duplicate-names-total", duplicateSourceRows.length.toLocaleString());
     setTextById(
       "triage-duplicate-names-meta",
-      duplicateRowsByMode.length
+      duplicateRowsByModeHasMode
         ? "Repeated names using " +
           (normalizeReportMatchMode(state.activeDuplicateMatchMode, "strict") === "loose"
             ? "loose"
@@ -8427,12 +8439,17 @@
     });
 
     const voterOverviewRows = tablePreviewRows("voter_registry_match", "linkage_overview");
+    const voterOverviewHasMode = voterOverviewRows.some((row) =>
+      Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
+    );
     const voterOverviewPreferred = voterOverviewRows.find(
       (row) =>
         normalizeReportMatchMode((row || {}).match_mode, state.defaultVoterMatchMode || "loose") ===
         normalizeReportMatchMode(state.activeVoterMatchMode, state.defaultVoterMatchMode || "loose")
     );
-    const voterOverview = voterOverviewPreferred || (voterOverviewRows.length ? voterOverviewRows[0] || {} : {});
+    const voterOverview = voterOverviewHasMode
+      ? voterOverviewPreferred || {}
+      : voterOverviewPreferred || (voterOverviewRows.length ? voterOverviewRows[0] || {} : {});
     const matchedRate = toFiniteNumberOrNull(
       voterOverview.matched_rate_rows !== undefined
         ? voterOverview.matched_rate_rows
@@ -8455,12 +8472,18 @@
         ? matchedRows.toLocaleString() + " / " + totalRows.toLocaleString() + " matched rows."
         : "Voter match data unavailable for this run."
     );
-    const voterPositionRows = tablePreviewRows("voter_registry_match", "linkage_by_position_rows")
-      .filter(
-        (row) =>
-          normalizeReportMatchMode((row || {}).match_mode, state.defaultVoterMatchMode || "loose") ===
-          normalizeReportMatchMode(state.activeVoterMatchMode, state.defaultVoterMatchMode || "loose")
-      )
+    const voterPositionRowsSource = tablePreviewRows("voter_registry_match", "linkage_by_position_rows");
+    const voterPositionRowsHasMode = voterPositionRowsSource.some((row) =>
+      Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
+    );
+    const voterPositionRows = (voterPositionRowsHasMode
+      ? voterPositionRowsSource.filter(
+          (row) =>
+            normalizeReportMatchMode((row || {}).match_mode, state.defaultVoterMatchMode || "loose") ===
+            normalizeReportMatchMode(state.activeVoterMatchMode, state.defaultVoterMatchMode || "loose")
+        )
+      : voterPositionRowsSource
+    )
       .filter((row) => String((row || {}).unit || "rows").toLowerCase() === "rows")
       .map((row) => {
         const label = String((row || {}).position_normalized || "Unknown");
@@ -8807,7 +8830,10 @@
             )
           );
         });
-        if (modeScopedRows.length && modeScopedRows.length !== rows.length) {
+        const hasModeRows = rows.some((row) =>
+          Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
+        );
+        if (hasModeRows) {
           rows = modeScopedRows;
         }
       }
@@ -8824,7 +8850,10 @@
             )
           );
         });
-        if (modeScopedRows.length && modeScopedRows.length !== rows.length) {
+        const hasModeRows = rows.some((row) =>
+          Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
+        );
+        if (hasModeRows) {
           rows = modeScopedRows;
         }
       }
@@ -9094,10 +9123,9 @@
         return candidateRows;
       }
       const normalizedTarget = normalizeReportMatchMode(targetMode, fallbackMode);
-      const filtered = candidateRows.filter(
+      return candidateRows.filter(
         (row) => normalizeReportMatchMode((row || {}).match_mode, fallbackMode) === normalizedTarget
       );
-      return filtered.length ? filtered : candidateRows;
     };
     if (chartId === "duplicates_exact_bucket_concentration") {
       const scoped = subset.filter(

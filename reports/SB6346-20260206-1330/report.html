@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T01:45:36.470485-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T11:00:55.645769-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -493,17 +493,17 @@
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Exact-match top duplicate names shown as time points sized by per-position duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
+      <p><strong>What is this?</strong> Top duplicate names shown as time points sized by per-position submission rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
       <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
       <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
       <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Y-axis order, Tooltip context.</p>
       <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
       <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> Exact-match top duplicate names shown as time points sized by per-position duplicate rows.</p>
+      <p><strong>Legend guide:</strong> Top duplicate names shown as time points sized by per-position submission rows.</p>
         <ul>
-            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top exact-match name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales duplicate rows for that position in the bucket.</li>
-            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated) and paginated 10 at a time up to the top 50 names.</li>
-            <li><strong>Tooltip context:</strong> Tooltips include exact-tier definition, rank, bucket span, Pro/Con split, bucket duplicate rows, and total repeated rows.</li>
+            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales submission rows for that position in the bucket. Names are eligible only when they have at least one duplicate in the hearing.</li>
+            <li><strong>Y-axis order:</strong> Names are ranked by total sign-ins among duplicate-eligible names (rank 1 = highest) and paginated 10 at a time up to the top 50 names.</li>
+            <li><strong>Tooltip context:</strong> Tooltips include match definition, rank, bucket span, Pro/Con split, bucket submission rows, and total sign-ins for the name.</li>
         </ul>
   </div>
 </details>

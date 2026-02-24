@@ -1077,6 +1077,337 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_10() -> None:
     assert chart_rows[0]["display_name"] == "NAME, 00"
 
 
+def test_voter_registry_match_rates_preserve_mode_bucket_rows_without_cross_join() -> None:
+    match_by_bucket = pd.DataFrame(
+        [
+            {
+                "match_mode": "strict",
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 1,
+                "n_total": 10,
+                "n_matched_unique": 3,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 6,
+                "matched_rate": 0.4,
+                "unmatched_rate": 0.6,
+                "matched_rate_wilson_low": 0.2,
+                "matched_rate_wilson_high": 0.6,
+                "unmatched_rate_wilson_low": 0.4,
+                "unmatched_rate_wilson_high": 0.8,
+                "is_low_power": False,
+                "n_pro": 4,
+                "n_con": 6,
+            },
+            {
+                "match_mode": "strict",
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "n_total": 20,
+                "n_matched_unique": 9,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 10,
+                "matched_rate": 0.5,
+                "unmatched_rate": 0.5,
+                "matched_rate_wilson_low": 0.3,
+                "matched_rate_wilson_high": 0.7,
+                "unmatched_rate_wilson_low": 0.3,
+                "unmatched_rate_wilson_high": 0.7,
+                "is_low_power": False,
+                "n_pro": 10,
+                "n_con": 10,
+            },
+            {
+                "match_mode": "loose",
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 1,
+                "n_total": 10,
+                "n_matched_unique": 7,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 2,
+                "matched_rate": 0.8,
+                "unmatched_rate": 0.2,
+                "matched_rate_wilson_low": 0.6,
+                "matched_rate_wilson_high": 0.9,
+                "unmatched_rate_wilson_low": 0.1,
+                "unmatched_rate_wilson_high": 0.4,
+                "is_low_power": False,
+                "n_pro": 4,
+                "n_con": 6,
+            },
+            {
+                "match_mode": "loose",
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "n_total": 20,
+                "n_matched_unique": 15,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 4,
+                "matched_rate": 0.8,
+                "unmatched_rate": 0.2,
+                "matched_rate_wilson_low": 0.6,
+                "matched_rate_wilson_high": 0.9,
+                "unmatched_rate_wilson_low": 0.1,
+                "unmatched_rate_wilson_high": 0.4,
+                "is_low_power": False,
+                "n_pro": 10,
+                "n_con": 10,
+            },
+        ]
+    )
+    match_by_bucket_position = pd.DataFrame(
+        [
+            {
+                "match_mode": "strict",
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 1,
+                "position_normalized": "Pro",
+                "n_total": 4,
+                "n_matched_unique": 1,
+                "n_matched_ambiguous": 0,
+                "n_unmatched": 3,
+                "matched_rate": 0.10,
+                "unmatched_rate": 0.90,
+                "matched_rate_wilson_low": 0.01,
+                "matched_rate_wilson_high": 0.30,
+                "unmatched_rate_wilson_low": 0.70,
+                "unmatched_rate_wilson_high": 0.99,
+                "is_low_power": False,
+            },
+            {
+                "match_mode": "strict",
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 1,
+                "position_normalized": "Con",
+                "n_total": 6,
+                "n_matched_unique": 2,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 3,
+                "matched_rate": 0.20,
+                "unmatched_rate": 0.80,
+                "matched_rate_wilson_low": 0.05,
+                "matched_rate_wilson_high": 0.45,
+                "unmatched_rate_wilson_low": 0.55,
+                "unmatched_rate_wilson_high": 0.95,
+                "is_low_power": False,
+            },
+            {
+                "match_mode": "strict",
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Pro",
+                "n_total": 10,
+                "n_matched_unique": 4,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 5,
+                "matched_rate": 0.25,
+                "unmatched_rate": 0.75,
+                "matched_rate_wilson_low": 0.10,
+                "matched_rate_wilson_high": 0.50,
+                "unmatched_rate_wilson_low": 0.50,
+                "unmatched_rate_wilson_high": 0.90,
+                "is_low_power": False,
+            },
+            {
+                "match_mode": "strict",
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Con",
+                "n_total": 10,
+                "n_matched_unique": 5,
+                "n_matched_ambiguous": 0,
+                "n_unmatched": 5,
+                "matched_rate": 0.35,
+                "unmatched_rate": 0.65,
+                "matched_rate_wilson_low": 0.15,
+                "matched_rate_wilson_high": 0.55,
+                "unmatched_rate_wilson_low": 0.45,
+                "unmatched_rate_wilson_high": 0.85,
+                "is_low_power": False,
+            },
+            {
+                "match_mode": "loose",
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 1,
+                "position_normalized": "Pro",
+                "n_total": 4,
+                "n_matched_unique": 3,
+                "n_matched_ambiguous": 0,
+                "n_unmatched": 1,
+                "matched_rate": 0.80,
+                "unmatched_rate": 0.20,
+                "matched_rate_wilson_low": 0.45,
+                "matched_rate_wilson_high": 0.97,
+                "unmatched_rate_wilson_low": 0.03,
+                "unmatched_rate_wilson_high": 0.55,
+                "is_low_power": False,
+            },
+            {
+                "match_mode": "loose",
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 1,
+                "position_normalized": "Con",
+                "n_total": 6,
+                "n_matched_unique": 4,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 1,
+                "matched_rate": 0.90,
+                "unmatched_rate": 0.10,
+                "matched_rate_wilson_low": 0.60,
+                "matched_rate_wilson_high": 0.99,
+                "unmatched_rate_wilson_low": 0.01,
+                "unmatched_rate_wilson_high": 0.40,
+                "is_low_power": False,
+            },
+            {
+                "match_mode": "loose",
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Pro",
+                "n_total": 10,
+                "n_matched_unique": 8,
+                "n_matched_ambiguous": 0,
+                "n_unmatched": 2,
+                "matched_rate": 0.85,
+                "unmatched_rate": 0.15,
+                "matched_rate_wilson_low": 0.55,
+                "matched_rate_wilson_high": 0.97,
+                "unmatched_rate_wilson_low": 0.03,
+                "unmatched_rate_wilson_high": 0.45,
+                "is_low_power": False,
+            },
+            {
+                "match_mode": "loose",
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Con",
+                "n_total": 10,
+                "n_matched_unique": 7,
+                "n_matched_ambiguous": 1,
+                "n_unmatched": 2,
+                "matched_rate": 0.95,
+                "unmatched_rate": 0.05,
+                "matched_rate_wilson_low": 0.70,
+                "matched_rate_wilson_high": 0.99,
+                "unmatched_rate_wilson_low": 0.01,
+                "unmatched_rate_wilson_high": 0.30,
+                "is_low_power": False,
+            },
+        ]
+    )
+
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                    "n_total": [10],
+                    "n_pro": [4],
+                    "n_con": [6],
+                    "pro_rate": [0.4],
+                    "pro_rate_wilson_low": [0.2],
+                    "pro_rate_wilson_high": [0.6],
+                    "is_low_power": [False],
+                    "n_unique_names": [8],
+                    "unique_ratio": [0.8],
+                }
+            ),
+            "voter_registry_match.match_by_bucket": match_by_bucket,
+            "voter_registry_match.match_by_bucket_position": match_by_bucket_position,
+        },
+        detector_summaries={},
+    )
+
+    rate_rows = payload["charts"]["voter_registry_match_rates"]
+    assert len(rate_rows) == 4
+    by_mode_bucket = {(row["match_mode"], row["bucket_minutes"]): row for row in rate_rows}
+    assert set(by_mode_bucket) == {("strict", 1), ("strict", 5), ("loose", 1), ("loose", 5)}
+
+    strict_1 = by_mode_bucket[("strict", 1)]
+    assert strict_1["matched_rate_pro"] == 0.10
+    assert strict_1["matched_rate_con"] == 0.20
+    loose_1 = by_mode_bucket[("loose", 1)]
+    assert loose_1["matched_rate_pro"] == 0.80
+    assert loose_1["matched_rate_con"] == 0.90
+    strict_5 = by_mode_bucket[("strict", 5)]
+    assert strict_5["matched_rate_pro"] == 0.25
+    assert strict_5["matched_rate_con"] == 0.35
+    loose_5 = by_mode_bucket[("loose", 5)]
+    assert loose_5["matched_rate_pro"] == 0.85
+    assert loose_5["matched_rate_con"] == 0.95
+
+
+def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                    "n_total": [10],
+                    "n_pro": [4],
+                    "n_con": [6],
+                    "pro_rate": [0.4],
+                    "pro_rate_wilson_low": [0.2],
+                    "pro_rate_wilson_high": [0.6],
+                    "is_low_power": [False],
+                    "n_unique_names": [8],
+                    "unique_ratio": [0.8],
+                }
+            ),
+            "duplicates_exact.per_name_duplicates_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "display_name": "HARSHAW, NORMAN",
+                        "canonical_name": "HARSHAW|NORMAN",
+                        "name_key": "HARSHAW|NORMAN",
+                        "observed_count": 12,
+                        "n_pro": 5,
+                        "n_con": 7,
+                        "time_span_minutes": 30.0,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "loose",
+                        "display_name": "HARSHAW, NORM",
+                        "canonical_name": "HARSHAW|NORM",
+                        "name_key": "HARSHAW|NORM",
+                        "observed_count": 18,
+                        "n_pro": 8,
+                        "n_con": 10,
+                        "time_span_minutes": 40.0,
+                    },
+                ]
+            ),
+            "duplicates_exact.per_name_anomalies": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "display_name": "HARSHAW, NORMAN",
+                        "canonical_name": "HARSHAW|NORMAN",
+                        "n": 12,
+                        "n_pro": 5,
+                        "n_con": 7,
+                        "time_span_minutes": 30.0,
+                        "expected_count": 2.0,
+                        "p_value": 0.001,
+                        "q_value": 0.002,
+                        "is_significant": True,
+                    }
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+
+    chart_rows = payload["charts"]["duplicates_exact_per_name_anomalies"]
+    assert {row["match_mode"] for row in chart_rows} == {"strict", "loose"}
+    by_mode = {row["match_mode"]: row for row in chart_rows}
+    assert by_mode["strict"]["n"] == 12
+    assert by_mode["loose"]["n"] == 18
+
+
 def test_payload_values_are_json_safe_scalars() -> None:
     payload = _build_interactive_chart_payload_v2(
         table_map={

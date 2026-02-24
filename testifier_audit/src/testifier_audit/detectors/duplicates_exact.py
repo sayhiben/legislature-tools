@@ -1035,7 +1035,6 @@ class DuplicatesExactDetector(Detector):
                         )
                         .reset_index()
                     )
-                    bucket_counts = bucket_counts[bucket_counts["duplicate_rows"] >= 2].copy()
                     if bucket_counts.empty:
                         continue
 

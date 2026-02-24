@@ -2973,29 +2973,31 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "duplicates_exact_top_name_timing_exact": {
             "summary": (
-                "Exact-match top duplicate names shown as time points sized by per-position duplicate rows."
+                "Top duplicate names shown as time points sized by per-position submission rows."
             ),
             "items": [
                 {
                     "label": "Point",
                     "description": (
-                        "Each point is one active-bucket occurrence for a ranked top exact-match "
+                        "Each point is one active-bucket occurrence for a ranked top "
                         "name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other "
-                        "and point size scales duplicate rows for that position in the bucket."
+                        "and point size scales submission rows for that position in the bucket. "
+                        "Names are eligible only when they have at least one duplicate in the hearing."
                     ),
                 },
                 {
                     "label": "Y-axis order",
                     "description": (
-                        "Names are ranked by total repeated rows (rank 1 = most repeated) and "
+                        "Names are ranked by total sign-ins among duplicate-eligible names "
+                        "(rank 1 = highest) and "
                         "paginated 10 at a time up to the top 50 names."
                     ),
                 },
                 {
                     "label": "Tooltip context",
                     "description": (
-                        "Tooltips include exact-tier definition, rank, bucket span, Pro/Con split, "
-                        "bucket duplicate rows, and total repeated rows."
+                        "Tooltips include match definition, rank, bucket span, Pro/Con split, "
+                        "bucket submission rows, and total sign-ins for the name."
                     ),
                 },
             ],
@@ -4444,7 +4446,7 @@ def _build_interactive_chart_payload_v2(
             .map(lambda value: _normalize_report_match_mode(value, default="strict"))
             .astype(str)
         )
-    dup_exact_per_name = _with_expected_columns(
+    dup_exact_per_name_anomalies = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_anomalies"), pd.DataFrame()),
         [
             "scope",
@@ -4465,19 +4467,52 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_min_gap",
         ],
     )
-    if not dup_exact_per_name.empty:
-        dup_exact_per_name["match_mode"] = dup_exact_per_name["match_mode"].map(
+    if not dup_exact_per_name_anomalies.empty:
+        dup_exact_per_name_anomalies["match_mode"] = dup_exact_per_name_anomalies["match_mode"].map(
             lambda value: _normalize_report_match_mode(value, default="strict")
         )
-        dup_exact_per_name["scope"] = dup_exact_per_name.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
-        if not (dup_exact_per_name["scope"].astype(str).str.len() > 0).any():
-            dup_exact_per_name["scope"] = primary_dup_scope
-    elif not dup_exact_per_name_by_mode.empty:
+        dup_exact_per_name_anomalies["scope"] = (
+            dup_exact_per_name_anomalies.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+        )
+        if not (dup_exact_per_name_anomalies["scope"].astype(str).str.len() > 0).any():
+            dup_exact_per_name_anomalies["scope"] = primary_dup_scope
+
+    if not dup_exact_per_name_by_mode.empty:
         dup_exact_per_name = dup_exact_per_name_by_mode.rename(
             columns={
                 "observed_count": "n",
             }
         ).copy()
+        if not dup_exact_per_name_anomalies.empty:
+            anomaly_columns = [
+                "scope",
+                "match_mode",
+                "canonical_name",
+                "display_name",
+                "expected_count",
+                "p_value",
+                "q_value",
+                "is_significant",
+                "within_5m_pairs",
+                "within_15m_pairs",
+                "temporal_p_value_within_5m",
+                "temporal_p_value_min_gap",
+            ]
+            anomaly_subset = dup_exact_per_name_anomalies[anomaly_columns].copy()
+            dup_exact_per_name = dup_exact_per_name.merge(
+                anomaly_subset,
+                on=["scope", "match_mode", "canonical_name"],
+                how="left",
+                suffixes=("", "_anomaly"),
+            )
+            if "display_name_anomaly" in dup_exact_per_name.columns:
+                dup_exact_per_name["display_name"] = dup_exact_per_name["display_name"].where(
+                    dup_exact_per_name["display_name"].astype(str).str.strip() != "",
+                    dup_exact_per_name["display_name_anomaly"],
+                )
+                dup_exact_per_name = dup_exact_per_name.drop(columns=["display_name_anomaly"])
+    elif not dup_exact_per_name_anomalies.empty:
+        dup_exact_per_name = dup_exact_per_name_anomalies.copy()
     else:
         per_name_display = _with_expected_columns(
             table_map.get(_table_key("duplicates_exact", "per_name_display"), pd.DataFrame()),
@@ -5170,6 +5205,10 @@ def _build_interactive_chart_payload_v2(
 
         if not voter_bucket_position.empty:
             position_frame = voter_bucket_position.copy()
+            position_frame["match_mode"] = position_frame.get(
+                "match_mode",
+                pd.Series(pd.NA, index=position_frame.index),
+            ).map(lambda value: _normalize_report_match_mode(value, default="loose"))
             position_frame["bucket_start"] = pd.to_datetime(
                 position_frame.get("bucket_start"), errors="coerce"
             )
@@ -5191,6 +5230,7 @@ def _build_interactive_chart_payload_v2(
                     continue
                 position_subset = position_subset[
                     [
+                        "match_mode",
                         "bucket_start",
                         "bucket_minutes",
                         "matched_rate",
@@ -5206,7 +5246,7 @@ def _build_interactive_chart_payload_v2(
                 )
                 voter_bucket = voter_bucket.merge(
                     position_subset,
-                    on=["bucket_start", "bucket_minutes"],
+                    on=["match_mode", "bucket_start", "bucket_minutes"],
                     how="left",
                 )
         for position_column in [

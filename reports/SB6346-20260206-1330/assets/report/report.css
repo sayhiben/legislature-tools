@@ -1778,6 +1778,14 @@ tr.duplicate-name-inline-detail-row > td {
   margin: 0;
 }
 
+.duplicate-name-inline-panel {
+  margin-top: 0.48rem;
+  padding: 0.58rem 0.62rem 0.64rem;
+  border: 1px solid var(--table-cell-border);
+  border-radius: 8px;
+  background: var(--table-bg-alt);
+}
+
 .duplicate-name-inline-summary {
   margin: 0 0 0.22rem;
   color: var(--table-row-text);

@@ -589,6 +589,10 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "formatDateRangeHumanized(" in js_text
     assert "renderKpiMiniPie(" in js_text
     assert "renderKpiMiniBars(" in js_text
+    assert "function humanizeTableColumnHeader(field)" in js_text
+    assert "title: humanizeTableColumnHeader(field)," in js_text
+    assert "function renderOffHoursPrimaryFlagChannels(mount, rows)" in js_text
+    assert "shortOffHoursPrimaryFlagChannelLabel(row)" in js_text
     assert 'tablePreviewRows("duplicates_exact", "per_name_display")' in js_text
     assert "filterRowsByDuplicateTableBucket(" in js_text
     assert "rerenderBucketAwareTables();" in js_text
@@ -622,6 +626,8 @@ def test_render_report_table_semantic_rules_and_cell_background_normalization(
     assert "primary_model_fit_converged" in js_text
     assert "semanticClassForTableCell(tableKey, field, value)" in js_text
     assert "delete tableOptions.tableKey;" in js_text
+    assert "const resolveRowComponent = (rowElement) => {" in js_text
+    assert 'container.addEventListener(\n          "click",' in js_text
     assert (
         ".tabulator .tabulator-tableholder .tabulator-table .tabulator-row "
         ".tabulator-cell:first-child" in css_text

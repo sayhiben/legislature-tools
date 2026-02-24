@@ -5522,6 +5522,127 @@
     "voter_registry_pairwise_tests",
   ]);
 
+  function shortOffHoursPrimaryFlagChannelLabel(row) {
+    const channel = String((row || {}).channel || "").trim().toLowerCase();
+    const channelMap = {
+      tested_off_hours_windows: "Tested",
+      primary_spc_998_two_sided: "SPC 99.8%",
+      primary_fdr_two_sided: "FDR 2-sided",
+      primary_any_flag_channel: "SPC or FDR",
+      primary_both_flag_channels: "SPC and FDR",
+      robust_primary_alert: "Robust alerts",
+    };
+    if (Object.prototype.hasOwnProperty.call(channelMap, channel)) {
+      return channelMap[channel];
+    }
+
+    const labelRaw = String((row || {}).channel_label || "").trim();
+    if (!labelRaw) {
+      return "Channel";
+    }
+
+    return labelRaw
+      .replace(/^Primary\s+/i, "")
+      .replace(/\s*\(two-sided\)\s*/i, "")
+      .replace(/two-sided/gi, "2-sided")
+      .replace(/flag channels?/gi, "flags")
+      .replace(/significant/gi, "sig.")
+      .trim();
+  }
+
+  function renderOffHoursPrimaryFlagChannels(mount, rows) {
+    const theme = currentChartTheme();
+    const subset = rows
+      .map((row) => {
+        const fullLabel = String((row || {}).channel_label || "").trim();
+        const shortLabel = shortOffHoursPrimaryFlagChannelLabel(row);
+        const count = toFiniteNumberOrNull((row || {}).count);
+        const share = toFiniteNumberOrNull((row || {}).share_of_tested);
+        const rank = toFiniteNumberOrNull((row || {}).rank);
+        if (count === null) {
+          return null;
+        }
+        if (!fullLabel && !shortLabel) {
+          return null;
+        }
+        return {
+          raw: row,
+          fullLabel: fullLabel || shortLabel,
+          shortLabel: shortLabel || fullLabel,
+          count: count,
+          share: share,
+          rank: rank === null ? Number.POSITIVE_INFINITY : rank,
+        };
+      })
+      .filter((row) => row !== null)
+      .sort((left, right) => left.rank - right.rank)
+      .slice(0, 30);
+
+    if (!subset.length) {
+      return false;
+    }
+
+    const bucketLabel = bucketLabelFromValue(mount.activeBucket);
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          if (!entries.length) {
+            return "";
+          }
+          const dataIndex = Number(toNumber(entries[0].dataIndex || 0));
+          const row = subset[Math.max(0, Math.min(subset.length - 1, dataIndex))];
+          const lines = [
+            "<strong>Channel:</strong> " + escapeHtml(row.fullLabel),
+          ];
+          if (row.shortLabel && row.shortLabel !== row.fullLabel) {
+            lines.push("<strong>Short label:</strong> " + escapeHtml(row.shortLabel));
+          }
+          if (bucketLabel) {
+            lines.push("<strong>Bucket:</strong> " + bucketLabel);
+          }
+          entries.forEach((entry) => {
+            lines.push(
+              (entry.marker || "") +
+                "<strong>Window count:</strong> " +
+                formatTooltipValue(entry.value)
+            );
+          });
+          if (row.share !== null) {
+            lines.push(
+              "<strong>Share of tested:</strong> " + formatPercent(row.share, 1)
+            );
+          }
+          return lines.join("<br/>");
+        },
+      },
+      grid: { left: 64, right: 20, top: 26, bottom: 78 },
+      xAxis: {
+        type: "category",
+        name: "Flag channel",
+        data: subset.map((row) => row.shortLabel),
+        axisLabel: { interval: 0, rotate: 18, color: theme.axisText },
+      },
+      yAxis: { type: "value", name: "Window count", axisLabel: { color: theme.axisText } },
+      series: [
+        {
+          type: "bar",
+          data: subset.map((row) => ({
+            value: row.count,
+            itemStyle: { color: theme.barAccent, opacity: 0.84 },
+          })),
+        },
+      ],
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
   function renderSimpleBar(mount, rows, xField, yField, title) {
     const theme = currentChartTheme();
     const subset = rows
@@ -6445,13 +6566,7 @@
       return renderOffHoursFunnel(mount, rows);
     }
     if (mount.chartId === "off_hours_primary_flag_channels") {
-      return renderSimpleBar(
-        mount,
-        rows,
-        "channel_label",
-        "count",
-        "Window count"
-      );
+      return renderOffHoursPrimaryFlagChannels(mount, rows);
     }
     if (mount.chartId === "overview_position_volume_by_bucket") {
       return renderOverviewPositionVolumeByBucket(mount, rows);
@@ -6848,6 +6963,89 @@
       .trim();
   }
 
+  function humanizeTableColumnHeader(field) {
+    const raw = String(field || "").trim();
+    if (!raw) {
+      return "";
+    }
+    if (raw.startsWith("__") || raw.includes("#")) {
+      return raw;
+    }
+
+    const canonical = raw.replace(/([a-z0-9])([A-Z])/g, "$1_$2");
+    const normalized = canonical.toLowerCase();
+    const directMap = {
+      n: "Count",
+      n_total: "Total",
+      n_known: "# Known",
+      n_unknown: "# Unknown",
+      n_pro: "# Pro",
+      n_con: "# Con",
+      n_other: "# Other",
+      n_rows: "# Rows",
+      n_names: "# Names",
+      n_records: "# Records",
+      n_unique: "# Unique",
+      display_name: "Display Name",
+      canonical_name: "Canonical Name",
+      time_span_minutes: "Submission Period",
+    };
+    if (Object.prototype.hasOwnProperty.call(directMap, normalized)) {
+      return directMap[normalized];
+    }
+
+    if (normalized.startsWith("n_")) {
+      const remainder = normalized.slice(2);
+      if (!remainder) {
+        return "Count";
+      }
+      return "# " + humanizeTableColumnHeader(remainder);
+    }
+
+    const connectorTokens = new Set(["and", "or", "of", "to", "in", "for", "by", "on", "at", "per"]);
+    const tokenMap = {
+      aic: "AIC",
+      ci: "CI",
+      fdr: "FDR",
+      glm: "GLM",
+      id: "ID",
+      ids: "IDs",
+      pct: "Percent",
+      pro: "Pro",
+      con: "Con",
+      q: "Q",
+      p: "P",
+      spc: "SPC",
+      utc: "UTC",
+      vrdb: "VRDB",
+      z: "Z",
+    };
+
+    const tokens = canonical
+      .split(/[_\s.]+/)
+      .map((token) => String(token || "").trim())
+      .filter(Boolean);
+    if (!tokens.length) {
+      return raw;
+    }
+
+    return tokens
+      .map((token, index) => {
+        const lower = token.toLowerCase();
+        if (Object.prototype.hasOwnProperty.call(tokenMap, lower)) {
+          return tokenMap[lower];
+        }
+        if (/^\d+(\.\d+)?$/.test(token)) {
+          return token;
+        }
+        if (index > 0 && connectorTokens.has(lower)) {
+          return lower;
+        }
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      })
+      .join(" ");
+  }
+
   function fallbackColumnDescription(field) {
     const normalized = String(field || "").trim();
     const label = humanizeFieldName(normalized);
@@ -7171,8 +7369,13 @@
     const tableKey =
       options && typeof options.tableKey === "string" ? options.tableKey.trim() : "";
     const tableOptions = Object.assign({}, options || {});
+    const tabulatorRowClickHandler =
+      typeof tableOptions.rowClick === "function" ? tableOptions.rowClick : null;
     if (Object.prototype.hasOwnProperty.call(tableOptions, "tableKey")) {
       delete tableOptions.tableKey;
+    }
+    if (Object.prototype.hasOwnProperty.call(tableOptions, "rowClick")) {
+      delete tableOptions.rowClick;
     }
     const defaultTableMaxHeightPx = 340;
     const tableHeightBumpPx = 64;
@@ -7190,7 +7393,7 @@
     const columns = Array.from(
       new Set(dataset.flatMap((row) => Object.keys(row || {})))
     ).map((field) => ({
-      title: field,
+      title: humanizeTableColumnHeader(field),
       field: field,
       headerFilter: "input",
       formatter: (cell) => {
@@ -7228,6 +7431,69 @@
           tableOptions
         )
       );
+      if (tabulatorRowClickHandler) {
+        const resolveRowComponent = (rowElement) => {
+          if (!rowElement || typeof table.getRows !== "function") {
+            return null;
+          }
+          const candidateSets = [table.getRows("active"), table.getRows()];
+          for (const candidates of candidateSets) {
+            if (!Array.isArray(candidates) || !candidates.length) {
+              continue;
+            }
+            for (const candidate of candidates) {
+              if (!candidate || typeof candidate.getElement !== "function") {
+                continue;
+              }
+              if (candidate.getElement() === rowElement) {
+                return candidate;
+              }
+            }
+          }
+          return null;
+        };
+
+        const resolveRowElementFromEventTarget = (target) => {
+          if (!(target instanceof Element)) {
+            return null;
+          }
+          const rowElement = target.closest(".tabulator-row");
+          if (!rowElement || !container.contains(rowElement)) {
+            return null;
+          }
+          return rowElement;
+        };
+
+        const suppressTabulatorPointerInteraction = (event) => {
+          const rowElement = resolveRowElementFromEventTarget(event.target);
+          if (!rowElement) {
+            return;
+          }
+          event.stopPropagation();
+        };
+
+        container.addEventListener("mousedown", suppressTabulatorPointerInteraction, true);
+        container.addEventListener("mouseup", suppressTabulatorPointerInteraction, true);
+        container.addEventListener("pointerdown", suppressTabulatorPointerInteraction, true);
+
+        container.addEventListener(
+          "click",
+          (event) => {
+            const rowElement = resolveRowElementFromEventTarget(event.target);
+            if (!rowElement) {
+              return;
+            }
+            const rowComponent = resolveRowComponent(rowElement);
+            if (!rowComponent) {
+              return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            tabulatorRowClickHandler(event, rowComponent);
+          },
+          true
+        );
+      }
       return {
         kind: "tabulator",
         table: table,
@@ -7812,6 +8078,7 @@
     }
     if (current.detailElement) {
       current.detailElement.classList.remove("is-open");
+      current.detailElement.classList.add("hidden");
       const chartHost = current.detailElement.querySelector(".duplicate-name-inline-chart");
       disposeDuplicateInlineTimingChart(chartHost);
     }
@@ -7837,6 +8104,8 @@
 
     const host = document.createElement("div");
     host.className = "table-host";
+    const inlineDetailPanel = document.createElement("div");
+    inlineDetailPanel.className = "duplicate-name-inline-detail duplicate-name-inline-panel hidden";
 
     const displayRows = rows.map((row) => ({
       Name: row.Name,
@@ -7848,6 +8117,7 @@
     const tableKey = detectorKey ? detectorKey + ".per_name_duplicates" : "duplicates_exact.per_name_duplicates";
     renderTableHelpCard(wrap, tableKey, displayRows);
     wrap.appendChild(host);
+    wrap.appendChild(inlineDetailPanel);
     details.appendChild(wrap);
     container.appendChild(details);
 
@@ -7863,20 +8133,21 @@
       if (!rowData || !rowElement) {
         return;
       }
-      if (activeInlineDetail.current && activeInlineDetail.current.rowElement === rowElement) {
+      const rowKey = String(
+        rowData.__row_id || rowData.__lookup_key || rowData.__display_lookup_key || rowData.Name || ""
+      );
+      if (activeInlineDetail.current && activeInlineDetail.current.rowKey === rowKey) {
         collapseDuplicateNameInlineDetail(activeInlineDetail);
         return;
       }
       collapseDuplicateNameInlineDetail(activeInlineDetail);
 
-      const detailRefs = ensureDuplicateNameInlineDetailElement(rowElement);
-      if (!detailRefs || !detailRefs.detailElement) {
-        return;
-      }
-      const scaffold = ensureDuplicateInlineDetailScaffold(detailRefs.detailElement);
+      rowElement.classList.add("duplicate-name-row-expandable");
+      const scaffold = ensureDuplicateInlineDetailScaffold(inlineDetailPanel);
       if (!scaffold) {
         return;
       }
+      inlineDetailPanel.classList.remove("hidden");
 
       const lookupKey = normalizeDuplicateNameLookupKey(rowData.__lookup_key);
       const displayLookupKey = normalizeDuplicateNameLookupKey(rowData.__display_lookup_key);
@@ -7934,12 +8205,14 @@
         renderDuplicateInlineTimingChart(scaffold.chartHost, displayName, timelineRows);
       }
 
-      detailRefs.rowElement.classList.add("is-expanded");
-      detailRefs.detailElement.classList.add("is-open");
-      if (detailRefs.detailRow) {
-        detailRefs.detailRow.classList.remove("hidden");
-      }
-      activeInlineDetail.current = detailRefs;
+      rowElement.classList.add("is-expanded");
+      inlineDetailPanel.classList.add("is-open");
+      activeInlineDetail.current = {
+        rowKey: rowKey,
+        rowElement: rowElement,
+        detailRow: null,
+        detailElement: inlineDetailPanel,
+      };
     };
 
     mountTable(host, rows, {

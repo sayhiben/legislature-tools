@@ -42,7 +42,9 @@
             "duplicates_exact_top_name_timing_exact": "Duplicate Names Top Timing"
           } %}
           {% set chart_card_class_overrides = {
-            "duplicates_exact_swing_impact": "detail-card detail-card-half"
+            "duplicates_exact_swing_impact": "detail-card detail-card-half",
+            "voter_registry_sensitivity_modes": "detail-card detail-card-half",
+            "off_hours_primary_flag_channels": "detail-card detail-card-half"
           } %}
           {% for chart_id in analysis.detail_chart_ids %}
             <article class="{{ chart_card_class_overrides.get(chart_id, "detail-card") }}">

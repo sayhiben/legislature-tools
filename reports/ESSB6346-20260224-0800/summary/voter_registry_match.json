@@ -10,6 +10,11 @@
     120
   ],
   "enabled": true,
+  "match_mode_default": "loose",
+  "match_mode_options": [
+    "strict",
+    "loose"
+  ],
   "matched_rate_rows": 0.8668073290873153,
   "n_matched_ambiguous_rows": 46902,
   "n_matched_unique_rows": 63609,
@@ -17,7 +22,8 @@
   "n_unique_names": 105134,
   "n_unmatched_rows": 16981,
   "n_unmatched_unique": 14636,
-  "primary_match_mode": "conservative",
+  "primary_match_mode": "loose",
+  "primary_outcome_column": "loose_outcome",
   "registry_row_count": 5088115,
   "unmatched_rate_rows": 0.13319267091268472,
   "unmatched_rate_unique": 0.13921281412292882,

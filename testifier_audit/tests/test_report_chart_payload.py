@@ -275,6 +275,10 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(controls["duplicate_collision_metric_default"], str)
     assert isinstance(controls["duplicate_collision_scope_options"], list)
     assert isinstance(controls["duplicate_collision_metric_options"], list)
+    assert isinstance(controls["duplicate_match_mode_default"], str)
+    assert isinstance(controls["duplicate_match_mode_options"], list)
+    assert isinstance(controls["voter_match_mode_default"], str)
+    assert isinstance(controls["voter_match_mode_options"], list)
     assert "absolute_time" in controls["zoom_sync_groups"]
     assert isinstance(controls["zoom_sync_groups"]["absolute_time"], list)
     assert 30 in controls["global_bucket_options"]
@@ -667,7 +671,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
 
     timing_exact_rows = payload["charts"]["duplicates_exact_top_name_timing_exact"]
     assert timing_exact_rows
-    assert {entry["match_mode"] for entry in timing_exact_rows} == {"exact"}
+    assert {entry["match_mode"] for entry in timing_exact_rows} == {"strict"}
     timing_required = {
         "scope",
         "match_mode",
@@ -693,6 +697,8 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert controls["duplicate_collision_metric_default"] == "repeated_group_rows"
     assert "matched_only" in controls["duplicate_collision_scope_options"]
     assert "pairs" in controls["duplicate_collision_metric_options"]
+    assert controls["duplicate_match_mode_default"] in {"strict", "loose"}
+    assert set(controls["duplicate_match_mode_options"]).issubset({"strict", "loose"})
 
     methodology = payload["controls"]["methodology"]
     assert methodology["duplicate_runtime"]

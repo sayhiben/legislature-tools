@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T01:12:00.680991-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T01:42:29.452279-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -175,10 +175,23 @@
                 >
                   <div class="sidebar-control-row sidebar-compact-row">
                     <span class="tiny-note header-view-control-label">Duplicate controls</span>
+                    <label class="tiny-note" for="duplicate-match-mode-select">Name match</label>
+                    <select id="duplicate-match-mode-select" class="control-button"></select>
                     <label class="tiny-note" for="duplicate-scope-select">Scope</label>
                     <select id="duplicate-scope-select" class="control-button"></select>
                     <label class="tiny-note" for="duplicate-metric-select">Metric</label>
                     <select id="duplicate-metric-select" class="control-button"></select>
+                  </div>
+                </div>
+                <div
+                  class="sidebar-control-group hidden header-view-control-group"
+                  id="voter-match-mode-panel"
+                  data-section-control-for="voter_registry_match"
+                >
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span class="tiny-note header-view-control-label">Voter controls</span>
+                    <label class="tiny-note" for="voter-match-mode-select">Name match</label>
+                    <select id="voter-match-mode-select" class="control-button"></select>
                   </div>
                 </div>
               </div>

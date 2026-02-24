@@ -97,7 +97,7 @@ def test_voter_registry_match_detector_emits_conservative_outputs(monkeypatch) -
     result = detector.run(df=df, features={})
 
     assert result.summary["active"] is True
-    assert result.summary["primary_match_mode"] == "conservative"
+    assert result.summary["primary_match_mode"] == "loose"
     assert result.summary["n_rows"] == 6
     assert result.summary["n_matched_unique_rows"] == 4
     assert result.summary["n_matched_ambiguous_rows"] == 0
@@ -106,19 +106,22 @@ def test_voter_registry_match_detector_emits_conservative_outputs(monkeypatch) -
     assert result.summary["unmatched_rate_rows"] == pytest.approx(2 / 6)
     assert result.summary["voter_signal_role"] == "supporting_evidence_only"
 
-    overview = result.tables["linkage_overview"].iloc[0]
+    overview = result.tables["linkage_overview"]
+    overview = overview[overview["match_mode"] == "loose"].iloc[0]
     assert overview["n_rows"] == 6
     assert overview["n_unmatched_rows"] == 2
     assert overview["matched_rate_rows"] == pytest.approx(4 / 6)
     assert overview["unmatched_rate_rows"] == pytest.approx(2 / 6)
 
-    by_position = result.tables["linkage_by_position_rows"].set_index("position_normalized")
+    by_position = result.tables["linkage_by_position_rows"]
+    by_position = by_position[by_position["match_mode"] == "loose"].set_index("position_normalized")
     assert by_position.loc["Pro", "n_total"] == 3
     assert by_position.loc["Con", "n_total"] == 3
     assert by_position.loc["Pro", "unmatched_rate"] == pytest.approx(1 / 3)
     assert by_position.loc["Con", "unmatched_rate"] == pytest.approx(1 / 3)
 
-    by_bucket = result.tables["match_by_bucket"].sort_values("bucket_start").reset_index(drop=True)
+    by_bucket = result.tables["match_by_bucket"]
+    by_bucket = by_bucket[by_bucket["match_mode"] == "loose"].sort_values("bucket_start").reset_index(drop=True)
     assert len(by_bucket) == 2
     assert set(by_bucket["bucket_minutes"].astype(int).tolist()) == {30}
     assert by_bucket.loc[0, "n_total"] == 3
@@ -131,8 +134,10 @@ def test_voter_registry_match_detector_emits_conservative_outputs(monkeypatch) -
     pairwise = result.tables["position_pairwise_tests"]
     assert not pairwise.empty
     assert set(pairwise["unit"]) == {"rows", "unique_names"}
+    assert set(pairwise["match_mode"]) == {"strict", "loose"}
 
-    unmatched = result.tables["unmatched_names"].set_index("canonical_name")
+    unmatched = result.tables["unmatched_names"]
+    unmatched = unmatched[unmatched["match_mode"] == "loose"].set_index("canonical_name")
     assert set(unmatched.index) == {"SMITH|JOHN", "BROWN|AVA"}
     assert unmatched.loc["SMITH|JOHN", "n_rows"] == 1
     assert unmatched.loc["BROWN|AVA", "n_rows"] == 1
@@ -260,19 +265,20 @@ def test_voter_registry_match_detector_reports_sensitivity_modes(monkeypatch) ->
     )
     result = detector.run(df=df, features={})
 
-    # Conservative mode only keeps deterministic/nickname equivalents.
+    # Loose mode keeps deterministic/nickname equivalents.
     assert result.summary["n_matched_unique_rows"] == 2
     assert result.summary["n_unmatched_rows"] == 2
 
     sensitivity = result.tables["sensitivity_modes"].set_index("mode")
-    assert set(sensitivity.index) == {"conservative", "balanced", "broad"}
-    assert sensitivity.loc["conservative", "n_unmatched_rows"] == 2
-    assert sensitivity.loc["balanced", "n_unmatched_rows"] == 2
-    assert sensitivity.loc["broad", "n_unmatched_rows"] == 1
+    assert set(sensitivity.index) == {"strict", "loose"}
+    assert sensitivity.loc["strict", "n_unmatched_rows"] == 3
+    assert sensitivity.loc["loose", "n_unmatched_rows"] == 2
 
     assignments = result.tables["match_assignments"].set_index("canonical_name")
     assert assignments.loc["DOE|JANE", "primary_outcome"] == "matched_unique"
     assert assignments.loc["SMITH|JON", "primary_outcome"] == "matched_unique"
     assert assignments.loc["SMITH|JON", "balanced_outcome"] == "matched_unique"
     assert assignments.loc["LEE|ALEXA", "broad_outcome"] == "matched_unique"
+    assert assignments.loc["DOE|JANE", "strict_outcome_selected"] == "matched_unique"
+    assert assignments.loc["SMITH|JON", "loose_outcome_selected"] == "matched_unique"
     assert assignments.loc["BROWN|AVA", "primary_outcome"] == "unmatched"

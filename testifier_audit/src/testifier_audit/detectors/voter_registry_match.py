@@ -30,6 +30,11 @@ MODE_TO_OUTCOME_COLUMN = {
     "balanced": "balanced_outcome",
     "broad": "broad_outcome",
 }
+REPORT_MATCH_MODE_TO_OUTCOME_COLUMN = {
+    "strict": "strict_outcome",
+    "loose": "loose_outcome",
+}
+DEFAULT_REPORT_MATCH_MODE = "loose"
 
 
 def _safe_str_series(series: pd.Series) -> pd.Series:
@@ -602,6 +607,34 @@ class VoterRegistryMatchDetector(Detector):
         assignments["is_ambiguous"] = assignments["is_ambiguous"].map(bool)
         assignments["match_caveat"] = _safe_str_series(assignments["match_caveat"])
 
+        assignments["match_tier"] = _safe_str_series(assignments.get("match_tier", pd.Series(dtype=str))).replace(
+            "", "unmatched"
+        )
+        for mode, outcome_column in MODE_TO_OUTCOME_COLUMN.items():
+            if outcome_column not in assignments.columns:
+                assignments[outcome_column] = "unmatched"
+            assignments[outcome_column] = _safe_str_series(assignments[outcome_column]).replace("", "unmatched")
+
+        # Strict mode: exact canonical-name matches only.
+        assignments["strict_outcome"] = "unmatched"
+        strict_mask = assignments["match_tier"] == "exact"
+        assignments.loc[strict_mask, "strict_outcome"] = assignments.loc[
+            strict_mask, "primary_outcome"
+        ]
+
+        # Loose mode: exact + nickname-equivalent first-name matches.
+        assignments["loose_outcome"] = "unmatched"
+        loose_mask = assignments["match_tier"].isin({"exact", "nickname_exact"})
+        assignments.loc[loose_mask, "loose_outcome"] = assignments.loc[
+            loose_mask, "primary_outcome"
+        ]
+        for outcome_column in REPORT_MATCH_MODE_TO_OUTCOME_COLUMN.values():
+            assignments[outcome_column] = (
+                _safe_str_series(assignments[outcome_column])
+                .where(_safe_str_series(assignments[outcome_column]).isin(PRIMARY_OUTCOMES), "unmatched")
+                .replace("", "unmatched")
+            )
+
         working = working.merge(assignments, on="canonical_name", how="left")
         for mode, outcome_column in MODE_TO_OUTCOME_COLUMN.items():
             if outcome_column not in working.columns:
@@ -610,8 +643,17 @@ class VoterRegistryMatchDetector(Detector):
             working[f"is_matched_{mode}"] = working[outcome_column].isin(
                 {"matched_unique", "matched_ambiguous"}
             )
-
-        outcome_column = MODE_TO_OUTCOME_COLUMN[self.primary_match_mode]
+        for match_mode, outcome_column in REPORT_MATCH_MODE_TO_OUTCOME_COLUMN.items():
+            if outcome_column not in working.columns:
+                working[outcome_column] = "unmatched"
+            working[outcome_column] = (
+                _safe_str_series(working[outcome_column])
+                .where(_safe_str_series(working[outcome_column]).isin(PRIMARY_OUTCOMES), "unmatched")
+                .replace("", "unmatched")
+            )
+            working[f"is_matched_{match_mode}"] = working[outcome_column].isin(
+                {"matched_unique", "matched_ambiguous"}
+            )
 
         # Name-level position assignment for unique-name inference unit.
         unique_position = (
@@ -657,208 +699,333 @@ class VoterRegistryMatchDetector(Detector):
             pd.to_numeric(assignments.get("n_positions", 0), errors="coerce").fillna(0).astype(int)
         )
 
-        # Position summaries for row-level and unique-name inference units.
-        linkage_by_position_rows = self._build_linkage_by_position(
-            working,
-            outcome_column=outcome_column,
-            unit_label="rows",
-        )
-        linkage_by_position_unique = self._build_linkage_by_position(
-            assignments,
-            outcome_column=outcome_column,
-            unit_label="unique_names",
-            position_column="dominant_position",
-        )
+        def _build_unmatched_names(
+            *,
+            source: pd.DataFrame,
+            match_mode: str,
+        ) -> pd.DataFrame:
+            if source.empty:
+                return pd.DataFrame(
+                    columns=[
+                        "match_mode",
+                        "display_name",
+                        "canonical_name",
+                        "n_rows",
+                        "n_pro",
+                        "n_con",
+                        "top_caveat",
+                        "best_similarity_score",
+                        "candidate_pool_size",
+                    ]
+                )
+            working_source = source.copy()
+            if "display_name" in working_source.columns:
+                working_source["display_name"] = _safe_str_series(working_source["display_name"])
+            elif "name_display" in working_source.columns:
+                working_source["display_name"] = _safe_str_series(working_source["name_display"])
+            else:
+                working_source["display_name"] = ""
+            working_source["display_name"] = working_source["display_name"].where(
+                working_source["display_name"].str.strip() != "",
+                working_source["canonical_name"].map(_display_name_from_canonical),
+            )
+            grouped = (
+                working_source.groupby("canonical_name", dropna=False)
+                .agg(
+                    display_name=(
+                        "display_name",
+                        lambda series: next(
+                            (value for value in _safe_str_series(series).tolist() if value.strip()),
+                            "",
+                        ),
+                    ),
+                    n_rows=("canonical_name", "count"),
+                    n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
+                    n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                    top_caveat=(
+                        "match_caveat",
+                        lambda series: str(series.mode().iloc[0]) if not series.mode().empty else "",
+                    ),
+                    best_similarity_score=("best_similarity_score", "max"),
+                    candidate_pool_size=("candidate_pool_size", "max"),
+                )
+                .reset_index()
+                .sort_values("n_rows", ascending=False)
+            )
+            grouped["match_mode"] = str(match_mode)
+            return grouped
 
-        pairwise_rows = self._build_pairwise_tests(linkage_by_position_rows, unit_label="rows")
-        pairwise_unique = self._build_pairwise_tests(
-            linkage_by_position_unique,
-            unit_label="unique_names",
-        )
-        position_pairwise_tests = (
-            pd.concat([pairwise_rows, pairwise_unique], ignore_index=True)
-            if not pairwise_rows.empty or not pairwise_unique.empty
-            else pd.DataFrame()
-        )
-
-        # Sensitivity-mode panel.
+        linkage_overview_frames: list[pd.DataFrame] = []
+        linkage_by_position_rows_frames: list[pd.DataFrame] = []
+        linkage_by_position_unique_frames: list[pd.DataFrame] = []
+        position_pairwise_frames: list[pd.DataFrame] = []
+        match_by_bucket_frames: list[pd.DataFrame] = []
+        match_by_bucket_position_frames: list[pd.DataFrame] = []
+        unmatched_names_frames: list[pd.DataFrame] = []
         sensitivity_rows: list[dict[str, object]] = []
-        for mode, mode_outcome_column in MODE_TO_OUTCOME_COLUMN.items():
+
+        for match_mode, outcome_column in REPORT_MATCH_MODE_TO_OUTCOME_COLUMN.items():
+            row_counts = working[outcome_column].value_counts().reindex(PRIMARY_OUTCOMES, fill_value=0)
+            unique_counts = assignments[outcome_column].value_counts().reindex(PRIMARY_OUTCOMES, fill_value=0)
             n_rows_total = int(len(working))
             n_rows_unique = int(len(assignments))
-            row_counts = (
-                working[mode_outcome_column].value_counts().reindex(PRIMARY_OUTCOMES, fill_value=0)
+
+            matched_rows = int(row_counts["matched_unique"] + row_counts["matched_ambiguous"])
+            matched_unique_rows = int(row_counts["matched_unique"])
+            matched_ambiguous_rows = int(row_counts["matched_ambiguous"])
+            unmatched_rows = int(row_counts["unmatched"])
+
+            matched_unique_unique = int(unique_counts["matched_unique"])
+            matched_ambiguous_unique = int(unique_counts["matched_ambiguous"])
+            unmatched_unique = int(unique_counts["unmatched"])
+
+            matched_rows_low, matched_rows_high = wilson_interval(
+                successes=pd.Series([matched_rows]),
+                totals=pd.Series([n_rows_total]),
             )
-            unique_counts = (
-                assignments[mode_outcome_column]
-                .value_counts()
-                .reindex(PRIMARY_OUTCOMES, fill_value=0)
+            unmatched_rows_low, unmatched_rows_high = wilson_interval(
+                successes=pd.Series([unmatched_rows]),
+                totals=pd.Series([n_rows_total]),
+            )
+
+            linkage_overview_frames.append(
+                pd.DataFrame(
+                    [
+                        {
+                            "match_mode": str(match_mode),
+                            "primary_match_mode": str(match_mode),
+                            "primary_outcome_column": outcome_column,
+                            "n_rows": n_rows_total,
+                            "n_matched_unique_rows": matched_unique_rows,
+                            "n_matched_ambiguous_rows": matched_ambiguous_rows,
+                            "n_unmatched_rows": unmatched_rows,
+                            "matched_rate_rows": (matched_rows / n_rows_total) if n_rows_total else 0.0,
+                            "unmatched_rate_rows": (unmatched_rows / n_rows_total) if n_rows_total else 0.0,
+                            "matched_rate_rows_wilson_low": float(matched_rows_low[0]),
+                            "matched_rate_rows_wilson_high": float(matched_rows_high[0]),
+                            "unmatched_rate_rows_wilson_low": float(unmatched_rows_low[0]),
+                            "unmatched_rate_rows_wilson_high": float(unmatched_rows_high[0]),
+                            "n_unique_names": n_rows_unique,
+                            "n_matched_unique_unique": matched_unique_unique,
+                            "n_matched_ambiguous_unique": matched_ambiguous_unique,
+                            "n_unmatched_unique": unmatched_unique,
+                            "matched_rate_unique": (
+                                (matched_unique_unique + matched_ambiguous_unique) / n_rows_unique
+                                if n_rows_unique
+                                else 0.0
+                            ),
+                            "unmatched_rate_unique": (
+                                unmatched_unique / n_rows_unique if n_rows_unique else 0.0
+                            ),
+                            "strong_fuzzy_min_score": float(self.strong_fuzzy_min_score),
+                            "weak_fuzzy_min_score": float(self.weak_fuzzy_min_score),
+                            "ambiguous_score_gap": float(self.ambiguous_score_gap),
+                            "pairwise_alpha": float(self.pairwise_alpha),
+                            "active_only": bool(self.active_only),
+                            "registry_row_count": int(registry_row_count),
+                            "voter_signal_role": "supporting_evidence_only",
+                            "match_language_rule": "unmatched_to_wa_active_voter_file_only",
+                            "attribution_caveat": self._ATTRIBUTION_CAVEAT,
+                            "is_low_power": bool(n_rows_total < self.low_power_min_total),
+                        }
+                    ]
+                )
             )
             sensitivity_rows.append(
                 {
-                    "mode": mode,
-                    "n_rows": n_rows_total,
-                    "n_matched_unique_rows": int(row_counts["matched_unique"]),
-                    "n_matched_ambiguous_rows": int(row_counts["matched_ambiguous"]),
-                    "n_unmatched_rows": int(row_counts["unmatched"]),
-                    "matched_rate_rows": (
-                        float(row_counts["matched_unique"] + row_counts["matched_ambiguous"])
-                        / float(n_rows_total)
-                        if n_rows_total
-                        else 0.0
-                    ),
-                    "unmatched_rate_rows": (
-                        float(row_counts["unmatched"]) / float(n_rows_total) if n_rows_total else 0.0
-                    ),
-                    "n_unique_names": n_rows_unique,
-                    "n_matched_unique_unique": int(unique_counts["matched_unique"]),
-                    "n_matched_ambiguous_unique": int(unique_counts["matched_ambiguous"]),
-                    "n_unmatched_unique": int(unique_counts["unmatched"]),
-                    "matched_rate_unique": (
-                        float(unique_counts["matched_unique"] + unique_counts["matched_ambiguous"])
-                        / float(n_rows_unique)
-                        if n_rows_unique
-                        else 0.0
-                    ),
-                    "unmatched_rate_unique": (
-                        float(unique_counts["unmatched"]) / float(n_rows_unique)
-                        if n_rows_unique
-                        else 0.0
-                    ),
-                }
-            )
-        sensitivity_modes = pd.DataFrame(sensitivity_rows)
-
-        # Primary bucket views use selected primary mode.
-        match_by_bucket, match_by_bucket_position = self._build_match_by_bucket(
-            working,
-            outcome_column=outcome_column,
-        )
-
-        # Unmatched names in primary mode.
-        unmatched_source = working[working[outcome_column] == "unmatched"].copy()
-        if "display_name" in unmatched_source.columns:
-            unmatched_source["display_name"] = _safe_str_series(unmatched_source["display_name"])
-        elif "name_display" in unmatched_source.columns:
-            unmatched_source["display_name"] = _safe_str_series(unmatched_source["name_display"])
-        else:
-            unmatched_source["display_name"] = ""
-        unmatched_source["display_name"] = unmatched_source["display_name"].where(
-            unmatched_source["display_name"].str.strip() != "",
-            unmatched_source["canonical_name"].map(_display_name_from_canonical),
-        )
-
-        unmatched_names = (
-            unmatched_source.groupby("canonical_name", dropna=False)
-            .agg(
-                display_name=(
-                    "display_name",
-                    lambda series: next(
-                        (value for value in _safe_str_series(series).tolist() if value.strip()),
-                        "",
-                    ),
-                ),
-                n_rows=("canonical_name", "count"),
-                n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
-                n_con=("position_normalized", lambda series: int((series == "Con").sum())),
-                top_caveat=("match_caveat", lambda series: str(series.mode().iloc[0]) if not series.mode().empty else ""),
-                best_similarity_score=("best_similarity_score", "max"),
-                candidate_pool_size=("candidate_pool_size", "max"),
-            )
-            .reset_index()
-            .sort_values("n_rows", ascending=False)
-        )
-
-        # Match assignments table (one row per canonical name) with primary labels surfaced.
-        match_assignments = assignments.copy()
-        match_assignments["primary_match_mode"] = self.primary_match_mode
-        match_assignments["primary_outcome_selected"] = match_assignments[outcome_column]
-        match_assignments = match_assignments.sort_values(
-            ["primary_outcome_selected", "n_rows", "canonical_name"],
-            ascending=[True, False, True],
-        )
-
-        # Overview in primary mode.
-        row_counts_primary = (
-            working[outcome_column].value_counts().reindex(PRIMARY_OUTCOMES, fill_value=0)
-        )
-        unique_counts_primary = (
-            assignments[outcome_column].value_counts().reindex(PRIMARY_OUTCOMES, fill_value=0)
-        )
-        n_rows_total = int(len(working))
-        n_unique_total = int(len(assignments))
-        matched_rows = int(row_counts_primary["matched_unique"] + row_counts_primary["matched_ambiguous"])
-        matched_unique_rows = int(row_counts_primary["matched_unique"])
-        matched_ambiguous_rows = int(row_counts_primary["matched_ambiguous"])
-        unmatched_rows = int(row_counts_primary["unmatched"])
-
-        matched_unique_unique = int(unique_counts_primary["matched_unique"])
-        matched_ambiguous_unique = int(unique_counts_primary["matched_ambiguous"])
-        unmatched_unique = int(unique_counts_primary["unmatched"])
-
-        matched_rows_low, matched_rows_high = wilson_interval(
-            successes=pd.Series([matched_rows]),
-            totals=pd.Series([n_rows_total]),
-        )
-        unmatched_rows_low, unmatched_rows_high = wilson_interval(
-            successes=pd.Series([unmatched_rows]),
-            totals=pd.Series([n_rows_total]),
-        )
-
-        linkage_overview = pd.DataFrame(
-            [
-                {
-                    "primary_match_mode": self.primary_match_mode,
-                    "primary_outcome_column": outcome_column,
+                    "mode": str(match_mode),
+                    "match_mode": str(match_mode),
                     "n_rows": n_rows_total,
                     "n_matched_unique_rows": matched_unique_rows,
                     "n_matched_ambiguous_rows": matched_ambiguous_rows,
                     "n_unmatched_rows": unmatched_rows,
                     "matched_rate_rows": (matched_rows / n_rows_total) if n_rows_total else 0.0,
                     "unmatched_rate_rows": (unmatched_rows / n_rows_total) if n_rows_total else 0.0,
-                    "matched_rate_rows_wilson_low": float(matched_rows_low[0]),
-                    "matched_rate_rows_wilson_high": float(matched_rows_high[0]),
-                    "unmatched_rate_rows_wilson_low": float(unmatched_rows_low[0]),
-                    "unmatched_rate_rows_wilson_high": float(unmatched_rows_high[0]),
-                    "n_unique_names": n_unique_total,
+                    "n_unique_names": n_rows_unique,
                     "n_matched_unique_unique": matched_unique_unique,
                     "n_matched_ambiguous_unique": matched_ambiguous_unique,
                     "n_unmatched_unique": unmatched_unique,
                     "matched_rate_unique": (
-                        (matched_unique_unique + matched_ambiguous_unique) / n_unique_total
-                        if n_unique_total
+                        float(matched_unique_unique + matched_ambiguous_unique) / float(n_rows_unique)
+                        if n_rows_unique
                         else 0.0
                     ),
                     "unmatched_rate_unique": (
-                        unmatched_unique / n_unique_total if n_unique_total else 0.0
+                        float(unmatched_unique) / float(n_rows_unique) if n_rows_unique else 0.0
                     ),
-                    "strong_fuzzy_min_score": float(self.strong_fuzzy_min_score),
-                    "weak_fuzzy_min_score": float(self.weak_fuzzy_min_score),
-                    "ambiguous_score_gap": float(self.ambiguous_score_gap),
-                    "pairwise_alpha": float(self.pairwise_alpha),
-                    "active_only": bool(self.active_only),
-                    "registry_row_count": int(registry_row_count),
-                    "voter_signal_role": "supporting_evidence_only",
-                    "match_language_rule": "unmatched_to_wa_active_voter_file_only",
-                    "attribution_caveat": self._ATTRIBUTION_CAVEAT,
-                    "is_low_power": bool(n_rows_total < self.low_power_min_total),
                 }
-            ]
+            )
+
+            linkage_by_position_rows = self._build_linkage_by_position(
+                working,
+                outcome_column=outcome_column,
+                unit_label="rows",
+            )
+            if not linkage_by_position_rows.empty:
+                linkage_by_position_rows["match_mode"] = str(match_mode)
+                linkage_by_position_rows_frames.append(linkage_by_position_rows)
+
+            linkage_by_position_unique = self._build_linkage_by_position(
+                assignments,
+                outcome_column=outcome_column,
+                unit_label="unique_names",
+                position_column="dominant_position",
+            )
+            if not linkage_by_position_unique.empty:
+                linkage_by_position_unique["match_mode"] = str(match_mode)
+                linkage_by_position_unique_frames.append(linkage_by_position_unique)
+
+            pairwise_rows = self._build_pairwise_tests(linkage_by_position_rows, unit_label="rows")
+            if not pairwise_rows.empty:
+                pairwise_rows["match_mode"] = str(match_mode)
+                position_pairwise_frames.append(pairwise_rows)
+            pairwise_unique = self._build_pairwise_tests(
+                linkage_by_position_unique,
+                unit_label="unique_names",
+            )
+            if not pairwise_unique.empty:
+                pairwise_unique["match_mode"] = str(match_mode)
+                position_pairwise_frames.append(pairwise_unique)
+
+            match_by_bucket, match_by_bucket_position = self._build_match_by_bucket(
+                working,
+                outcome_column=outcome_column,
+            )
+            if not match_by_bucket.empty:
+                match_by_bucket["match_mode"] = str(match_mode)
+                match_by_bucket_frames.append(match_by_bucket)
+            if not match_by_bucket_position.empty:
+                match_by_bucket_position["match_mode"] = str(match_mode)
+                match_by_bucket_position_frames.append(match_by_bucket_position)
+
+            unmatched_source = working[working[outcome_column] == "unmatched"].copy()
+            unmatched_names_frames.append(
+                _build_unmatched_names(source=unmatched_source, match_mode=match_mode)
+            )
+
+        linkage_overview = (
+            pd.concat(linkage_overview_frames, ignore_index=True)
+            if linkage_overview_frames
+            else pd.DataFrame()
+        )
+        linkage_by_position_rows = (
+            pd.concat(linkage_by_position_rows_frames, ignore_index=True)
+            if linkage_by_position_rows_frames
+            else pd.DataFrame()
+        )
+        linkage_by_position_unique = (
+            pd.concat(linkage_by_position_unique_frames, ignore_index=True)
+            if linkage_by_position_unique_frames
+            else pd.DataFrame()
+        )
+        position_pairwise_tests = (
+            pd.concat(position_pairwise_frames, ignore_index=True)
+            if position_pairwise_frames
+            else pd.DataFrame()
+        )
+        sensitivity_modes = pd.DataFrame(sensitivity_rows)
+        match_by_bucket = (
+            pd.concat(match_by_bucket_frames, ignore_index=True)
+            .sort_values(["match_mode", "bucket_minutes", "bucket_start"])
+            .reset_index(drop=True)
+            if match_by_bucket_frames
+            else pd.DataFrame()
+        )
+        match_by_bucket_position = (
+            pd.concat(match_by_bucket_position_frames, ignore_index=True)
+            .sort_values(["match_mode", "bucket_minutes", "bucket_start", "position_normalized"])
+            .reset_index(drop=True)
+            if match_by_bucket_position_frames
+            else pd.DataFrame()
+        )
+        unmatched_names = (
+            pd.concat(unmatched_names_frames, ignore_index=True)
+            .sort_values(["match_mode", "n_rows", "display_name"], ascending=[True, False, True])
+            if unmatched_names_frames
+            else pd.DataFrame()
+        )
+        if not unmatched_names.empty:
+            unmatched_names = unmatched_names.groupby(
+                "match_mode", dropna=False, group_keys=False
+            ).head(1000)
+
+        available_mode_values = (
+            set(sensitivity_modes["mode"])
+            if isinstance(sensitivity_modes, pd.DataFrame) and "mode" in sensitivity_modes.columns
+            else set()
+        )
+        match_mode_options = [
+            mode for mode in REPORT_MATCH_MODE_TO_OUTCOME_COLUMN if mode in available_mode_values
+        ]
+        if not match_mode_options:
+            match_mode_options = [DEFAULT_REPORT_MATCH_MODE]
+        primary_match_mode = (
+            DEFAULT_REPORT_MATCH_MODE if DEFAULT_REPORT_MATCH_MODE in match_mode_options else match_mode_options[0]
+        )
+        primary_outcome_column = REPORT_MATCH_MODE_TO_OUTCOME_COLUMN.get(
+            primary_match_mode,
+            REPORT_MATCH_MODE_TO_OUTCOME_COLUMN[DEFAULT_REPORT_MATCH_MODE],
+        )
+
+        if "match_mode" in linkage_overview.columns:
+            primary_linkage = linkage_overview[
+                linkage_overview["match_mode"].astype(str) == str(primary_match_mode)
+            ].copy()
+        else:
+            primary_linkage = pd.DataFrame()
+        if primary_linkage.empty and not linkage_overview.empty:
+            primary_linkage = linkage_overview.head(1).copy()
+            primary_match_mode = str(primary_linkage["match_mode"].iloc[0])
+            primary_outcome_column = str(primary_linkage["primary_outcome_column"].iloc[0])
+        primary_row = (
+            primary_linkage.iloc[0].to_dict()
+            if not primary_linkage.empty
+            else {
+                "n_rows": 0,
+                "n_unique_names": 0,
+                "n_matched_unique_rows": 0,
+                "n_matched_ambiguous_rows": 0,
+                "n_unmatched_rows": 0,
+                "matched_rate_rows": 0.0,
+                "unmatched_rate_rows": 0.0,
+                "n_unmatched_unique": 0,
+                "unmatched_rate_unique": 0.0,
+            }
+        )
+
+        # Match assignments table (one row per canonical name) with primary labels surfaced.
+        match_assignments = assignments.copy()
+        match_assignments["primary_match_mode"] = str(primary_match_mode)
+        match_assignments["primary_outcome_selected"] = _safe_str_series(
+            match_assignments.get(primary_outcome_column, pd.Series(dtype=str))
+        ).replace("", "unmatched")
+        match_assignments["strict_outcome_selected"] = _safe_str_series(
+            match_assignments.get("strict_outcome", pd.Series(dtype=str))
+        ).replace("", "unmatched")
+        match_assignments["loose_outcome_selected"] = _safe_str_series(
+            match_assignments.get("loose_outcome", pd.Series(dtype=str))
+        ).replace("", "unmatched")
+        match_assignments = match_assignments.sort_values(
+            ["primary_outcome_selected", "n_rows", "canonical_name"],
+            ascending=[True, False, True],
         )
 
         summary = {
             "enabled": True,
             "active": True,
-            "primary_match_mode": self.primary_match_mode,
-            "n_rows": n_rows_total,
-            "n_unique_names": n_unique_total,
-            "n_matched_unique_rows": matched_unique_rows,
-            "n_matched_ambiguous_rows": matched_ambiguous_rows,
-            "n_unmatched_rows": unmatched_rows,
-            "matched_rate_rows": (matched_rows / n_rows_total) if n_rows_total else 0.0,
-            "unmatched_rate_rows": (unmatched_rows / n_rows_total) if n_rows_total else 0.0,
-            "n_unmatched_unique": unmatched_unique,
-            "unmatched_rate_unique": (unmatched_unique / n_unique_total) if n_unique_total else 0.0,
+            "primary_match_mode": str(primary_match_mode),
+            "primary_outcome_column": str(primary_outcome_column),
+            "match_mode_default": str(primary_match_mode),
+            "match_mode_options": [str(value) for value in match_mode_options],
+            "n_rows": int(primary_row.get("n_rows", 0) or 0),
+            "n_unique_names": int(primary_row.get("n_unique_names", 0) or 0),
+            "n_matched_unique_rows": int(primary_row.get("n_matched_unique_rows", 0) or 0),
+            "n_matched_ambiguous_rows": int(primary_row.get("n_matched_ambiguous_rows", 0) or 0),
+            "n_unmatched_rows": int(primary_row.get("n_unmatched_rows", 0) or 0),
+            "matched_rate_rows": float(primary_row.get("matched_rate_rows", 0.0) or 0.0),
+            "unmatched_rate_rows": float(primary_row.get("unmatched_rate_rows", 0.0) or 0.0),
+            "n_unmatched_unique": int(primary_row.get("n_unmatched_unique", 0) or 0),
+            "unmatched_rate_unique": float(primary_row.get("unmatched_rate_unique", 0.0) or 0.0),
             "registry_row_count": int(registry_row_count),
             "bucket_minutes": [int(value) for value in self.bucket_minutes],
             "voter_signal_role": "supporting_evidence_only",
@@ -874,6 +1041,6 @@ class VoterRegistryMatchDetector(Detector):
             "match_assignments": match_assignments,
             "match_by_bucket": match_by_bucket,
             "match_by_bucket_position": match_by_bucket_position,
-            "unmatched_names": unmatched_names.head(1000),
+            "unmatched_names": unmatched_names,
         }
         return DetectorResult(detector=self.name, summary=summary, tables=tables)

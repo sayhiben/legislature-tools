@@ -182,6 +182,11 @@
         .map((value) => String(value || "").trim())
         .filter((value) => !!value)
     : [];
+  const duplicateMatchModeOptions = Array.isArray(controls.duplicate_match_mode_options)
+    ? controls.duplicate_match_mode_options
+        .map((value) => String(value || "").trim().toLowerCase())
+        .filter((value) => value === "strict" || value === "loose")
+    : [];
   const defaultDuplicateScope =
     typeof controls.duplicate_collision_scope_default === "string" &&
     duplicateScopeOptions.includes(controls.duplicate_collision_scope_default)
@@ -192,6 +197,21 @@
     duplicateMetricOptions.includes(controls.duplicate_collision_metric_default)
       ? controls.duplicate_collision_metric_default
       : duplicateMetricOptions[0] || "repeated_group_rows";
+  const defaultDuplicateMatchMode =
+    typeof controls.duplicate_match_mode_default === "string" &&
+    duplicateMatchModeOptions.includes(String(controls.duplicate_match_mode_default).trim().toLowerCase())
+      ? String(controls.duplicate_match_mode_default).trim().toLowerCase()
+      : duplicateMatchModeOptions[0] || "strict";
+  const voterMatchModeOptions = Array.isArray(controls.voter_match_mode_options)
+    ? controls.voter_match_mode_options
+        .map((value) => String(value || "").trim().toLowerCase())
+        .filter((value) => value === "strict" || value === "loose")
+    : [];
+  const defaultVoterMatchMode =
+    typeof controls.voter_match_mode_default === "string" &&
+    voterMatchModeOptions.includes(String(controls.voter_match_mode_default).trim().toLowerCase())
+      ? String(controls.voter_match_mode_default).trim().toLowerCase()
+      : voterMatchModeOptions[0] || "loose";
 
   const hasEcharts = typeof window.echarts !== "undefined";
   const hasTabulator = typeof window.Tabulator !== "undefined";
@@ -207,6 +227,10 @@
     defaultDuplicateScope: defaultDuplicateScope,
     activeDuplicateMetric: defaultDuplicateMetric,
     defaultDuplicateMetric: defaultDuplicateMetric,
+    activeDuplicateMatchMode: defaultDuplicateMatchMode,
+    defaultDuplicateMatchMode: defaultDuplicateMatchMode,
+    activeVoterMatchMode: defaultVoterMatchMode,
+    defaultVoterMatchMode: defaultVoterMatchMode,
     cursorX: null,
     activeTocHeading: null,
     activeSectionControlKey: "",
@@ -2105,6 +2129,8 @@
       ].forEach((key) => params.delete(key));
       ["dup_scope", "duplicate_scope"].forEach((key) => params.delete(key));
       ["dup_metric", "duplicate_metric"].forEach((key) => params.delete(key));
+      ["dup_match_mode", "duplicate_match_mode"].forEach((key) => params.delete(key));
+      ["voter_match_mode", "voter_mode"].forEach((key) => params.delete(key));
       if (
         Number.isFinite(state.activeBucket) &&
         Number.isFinite(state.defaultBucket) &&
@@ -2125,6 +2151,20 @@
         state.activeDuplicateMetric !== state.defaultDuplicateMetric
       ) {
         params.set("dup_metric", state.activeDuplicateMetric);
+      }
+      if (
+        typeof state.activeDuplicateMatchMode === "string" &&
+        state.activeDuplicateMatchMode &&
+        state.activeDuplicateMatchMode !== state.defaultDuplicateMatchMode
+      ) {
+        params.set("dup_match_mode", state.activeDuplicateMatchMode);
+      }
+      if (
+        typeof state.activeVoterMatchMode === "string" &&
+        state.activeVoterMatchMode &&
+        state.activeVoterMatchMode !== state.defaultVoterMatchMode
+      ) {
+        params.set("voter_match_mode", state.activeVoterMatchMode);
       }
 
       [
@@ -3315,6 +3355,22 @@
       return null;
     }
     return options.includes(raw) ? raw : null;
+  }
+
+  function normalizeReportMatchMode(rawValue, fallbackValue) {
+    const fallback =
+      String(fallbackValue || "").trim().toLowerCase() === "loose" ? "loose" : "strict";
+    const normalized = String(rawValue || "").trim().toLowerCase();
+    if (!normalized) {
+      return fallback;
+    }
+    if (normalized === "strict" || normalized === "exact" || normalized === "medium") {
+      return "strict";
+    }
+    if (normalized === "loose" || normalized === "nickname") {
+      return "loose";
+    }
+    return fallback;
   }
 
   function collectAbsoluteTimeExtent() {
@@ -6111,20 +6167,17 @@
   function renderDuplicateTopNameTiming(mount, rows, matchModeOverride) {
     const theme = currentChartTheme();
     const modeMeta = {
-      exact: {
-        label: "Exact (last + first)",
-        fallbackDefinition: "Exact match on last-name and first-name tokens.",
-      },
-      medium: {
-        label: "Medium (last + nickname root)",
-        fallbackDefinition: "Matches last-name with nickname-root first-name normalization.",
+      strict: {
+        label: "Strict (last + first)",
+        fallbackDefinition: "Exact match on last-name and first-name tokens (nickname-sensitive).",
       },
       loose: {
-        label: "Loose (last + first initial)",
-        fallbackDefinition: "Matches last-name with first-name initial only.",
+        label: "Loose (last + nickname-root first)",
+        fallbackDefinition:
+          "Matches last-name exactly and applies nickname equivalence to first-name tokens only.",
       },
     };
-    const normalizeMode = (value) => String(value || "").trim().toLowerCase();
+    const normalizeMode = (value) => normalizeReportMatchMode(value, "strict");
     const targetMode = normalizeMode(matchModeOverride || "");
     const filtered = rows.filter((row) => {
       if (!targetMode) {
@@ -6852,7 +6905,11 @@
       return renderSimpleBar(mount, rows, "display_name", "n", "repeat count");
     }
     if (mount.chartId === "duplicates_exact_top_name_timing_exact") {
-      return renderDuplicateTopNameTiming(mount, rows, "exact");
+      return renderDuplicateTopNameTiming(
+        mount,
+        rows,
+        normalizeReportMatchMode(state.activeDuplicateMatchMode, state.defaultDuplicateMatchMode || "strict")
+      );
     }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
       return renderSimpleBar(mount, rows, "metric", "observed", "observed");
@@ -7607,11 +7664,18 @@
 
   function buildUnifiedDuplicateNameRows(detectorTables) {
     const sourcePriorities = {
+      per_name_duplicates_by_mode: 4,
       per_name_tests: 3,
       per_name_display: 2,
       per_name_anomalies: 1,
     };
     const sources = [
+      [
+        "per_name_duplicates_by_mode",
+        Array.isArray(detectorTables.per_name_duplicates_by_mode)
+          ? detectorTables.per_name_duplicates_by_mode
+          : [],
+      ],
       ["per_name_tests", Array.isArray(detectorTables.per_name_tests) ? detectorTables.per_name_tests : []],
       ["per_name_display", Array.isArray(detectorTables.per_name_display) ? detectorTables.per_name_display : []],
       ["per_name_anomalies", Array.isArray(detectorTables.per_name_anomalies) ? detectorTables.per_name_anomalies : []],
@@ -7628,6 +7692,10 @@
           return;
         }
         const scope = String((row || {}).scope || "").trim();
+        const matchMode = normalizeReportMatchMode(
+          (row || {}).match_mode,
+          state.defaultDuplicateMatchMode || "strict"
+        );
         const canonicalName = String((row || {}).canonical_name || (row || {}).name_key || "").trim();
         const displayName = duplicateNameDisplayForRow(row);
         const canonicalLookupKey = normalizeDuplicateNameLookupKey(canonicalName);
@@ -7639,10 +7707,11 @@
         const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
         const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
         const timeSpanMinutes = toFiniteNumberOrNull((row || {}).time_span_minutes);
-        const mapKey = String(scope || "all") + "::" + lookupKey;
+        const mapKey = String(scope || "all") + "::" + String(matchMode) + "::" + lookupKey;
         const candidate = {
           mapKey: mapKey,
           scope: scope,
+          matchMode: matchMode,
           lookupKey: lookupKey,
           displayLookupKey: displayLookupKey,
           canonicalName: canonicalName,
@@ -7681,7 +7750,13 @@
     const scopedRows = mergedRows.filter(
       (row) => row.scope && row.scope === String(state.activeDuplicateScope || "")
     );
-    const activeRows = scopedRows.length ? scopedRows : mergedRows;
+    const scopeCandidates = scopedRows.length ? scopedRows : mergedRows;
+    const modeRows = scopeCandidates.filter(
+      (row) =>
+        normalizeReportMatchMode(row.matchMode, state.defaultDuplicateMatchMode || "strict") ===
+        normalizeReportMatchMode(state.activeDuplicateMatchMode, state.defaultDuplicateMatchMode || "strict")
+    );
+    const activeRows = modeRows.length ? modeRows : scopeCandidates;
     activeRows.sort((left, right) => {
       const signInDelta = toNumber(right.signIns) - toNumber(left.signIns);
       if (signInDelta !== 0) {
@@ -7695,6 +7770,7 @@
       __lookup_key: row.lookupKey,
       __display_lookup_key: row.displayLookupKey,
       __scope: row.scope,
+      __match_mode: row.matchMode,
       Name: row.displayName,
       "# Sign-ins": row.signIns,
       "# Pro": row.nPro,
@@ -7755,8 +7831,15 @@
       if (scope && scope !== String(state.activeDuplicateScope || "")) {
         return false;
       }
-      const matchMode = String((row || {}).match_mode || "").trim().toLowerCase();
-      return !matchMode || matchMode === "exact";
+      const matchMode = normalizeReportMatchMode(
+        (row || {}).match_mode,
+        state.defaultDuplicateMatchMode || "strict"
+      );
+      const activeMode = normalizeReportMatchMode(
+        state.activeDuplicateMatchMode,
+        state.defaultDuplicateMatchMode || "strict"
+      );
+      return !matchMode || matchMode === activeMode;
     });
     topTimingRows.forEach((row) => {
       const lookupKey = normalizeDuplicateNameLookupKey((row || {}).name_key || (row || {}).canonical_name);
@@ -8260,6 +8343,7 @@
           headerFilter: false,
         },
         { title: "__scope", field: "__scope", visible: false, headerFilter: false },
+        { title: "__match_mode", field: "__match_mode", visible: false, headerFilter: false },
       ],
     });
 
@@ -8304,16 +8388,35 @@
 
     const duplicateRowsFull = tablePreviewRows("duplicates_exact", "per_name_tests");
     const duplicateRowsDisplay = tablePreviewRows("duplicates_exact", "per_name_display");
+    const duplicateRowsByMode = tablePreviewRows("duplicates_exact", "per_name_duplicates_by_mode").filter(
+      (row) =>
+        normalizeReportMatchMode(
+          (row || {}).match_mode,
+          state.defaultDuplicateMatchMode || "strict"
+        ) ===
+        normalizeReportMatchMode(
+          state.activeDuplicateMatchMode,
+          state.defaultDuplicateMatchMode || "strict"
+        )
+    );
     const topRepeatedNames = Array.isArray(summary.top_repeated_names) ? summary.top_repeated_names : [];
-    const duplicateSourceRows = duplicateRowsFull.length
-      ? duplicateRowsFull
+    const duplicateSourceRows = duplicateRowsByMode.length
+      ? duplicateRowsByMode
+      : duplicateRowsFull.length
+        ? duplicateRowsFull
       : duplicateRowsDisplay.length
         ? duplicateRowsDisplay
         : topRepeatedNames;
     setTextById("triage-duplicate-names-total", duplicateSourceRows.length.toLocaleString());
     setTextById(
       "triage-duplicate-names-meta",
-      duplicateRowsFull.length
+      duplicateRowsByMode.length
+        ? "Repeated names using " +
+          (normalizeReportMatchMode(state.activeDuplicateMatchMode, "strict") === "loose"
+            ? "loose"
+            : "strict") +
+          " first-name matching."
+        : duplicateRowsFull.length
         ? "All repeated names from duplicates test rows."
         : duplicateRowsDisplay.length
           ? "Repeated canonical names from display-limited duplicates table."
@@ -8324,7 +8427,12 @@
     });
 
     const voterOverviewRows = tablePreviewRows("voter_registry_match", "linkage_overview");
-    const voterOverview = voterOverviewRows.length ? voterOverviewRows[0] || {} : {};
+    const voterOverviewPreferred = voterOverviewRows.find(
+      (row) =>
+        normalizeReportMatchMode((row || {}).match_mode, state.defaultVoterMatchMode || "loose") ===
+        normalizeReportMatchMode(state.activeVoterMatchMode, state.defaultVoterMatchMode || "loose")
+    );
+    const voterOverview = voterOverviewPreferred || (voterOverviewRows.length ? voterOverviewRows[0] || {} : {});
     const matchedRate = toFiniteNumberOrNull(
       voterOverview.matched_rate_rows !== undefined
         ? voterOverview.matched_rate_rows
@@ -8348,6 +8456,11 @@
         : "Voter match data unavailable for this run."
     );
     const voterPositionRows = tablePreviewRows("voter_registry_match", "linkage_by_position_rows")
+      .filter(
+        (row) =>
+          normalizeReportMatchMode((row || {}).match_mode, state.defaultVoterMatchMode || "loose") ===
+          normalizeReportMatchMode(state.activeVoterMatchMode, state.defaultVoterMatchMode || "loose")
+      )
       .filter((row) => String((row || {}).unit || "rows").toLowerCase() === "rows")
       .map((row) => {
         const label = String((row || {}).position_normalized || "Unknown");
@@ -8558,6 +8671,7 @@
         "per_name_anomalies",
         "per_name_display",
         "per_name_tests",
+        "per_name_duplicates_by_mode",
       ]);
       tableNames = tableNames.filter((name) => !mergedDuplicateNameSourceTables.has(name));
     }
@@ -8677,6 +8791,41 @@
         tableBucketNote = bucketFiltered.note;
         if (bucketFiltered.applied && Number.isFinite(state.activeBucket)) {
           tableTitle = tableName + " (" + Math.round(state.activeBucket) + "m)";
+        }
+        const modeScopedRows = rows.filter((row) => {
+          if (!Object.prototype.hasOwnProperty.call(row || {}, "match_mode")) {
+            return true;
+          }
+          return (
+            normalizeReportMatchMode(
+              (row || {}).match_mode,
+              state.defaultDuplicateMatchMode || "strict"
+            ) ===
+            normalizeReportMatchMode(
+              state.activeDuplicateMatchMode,
+              state.defaultDuplicateMatchMode || "strict"
+            )
+          );
+        });
+        if (modeScopedRows.length && modeScopedRows.length !== rows.length) {
+          rows = modeScopedRows;
+        }
+      }
+      if (analysis.id === "voter_registry_match") {
+        const modeScopedRows = rows.filter((row) => {
+          if (!Object.prototype.hasOwnProperty.call(row || {}, "match_mode")) {
+            return true;
+          }
+          return (
+            normalizeReportMatchMode((row || {}).match_mode, state.defaultVoterMatchMode || "loose") ===
+            normalizeReportMatchMode(
+              state.activeVoterMatchMode,
+              state.defaultVoterMatchMode || "loose"
+            )
+          );
+        });
+        if (modeScopedRows.length && modeScopedRows.length !== rows.length) {
+          rows = modeScopedRows;
         }
       }
 
@@ -8933,6 +9082,23 @@
     if (!subset.length) {
       return subset;
     }
+    const filterByMatchMode = (sourceRows, targetMode, fallbackMode) => {
+      const candidateRows = Array.isArray(sourceRows) ? sourceRows : [];
+      if (!candidateRows.length) {
+        return candidateRows;
+      }
+      const hasMode = candidateRows.some((row) =>
+        Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
+      );
+      if (!hasMode) {
+        return candidateRows;
+      }
+      const normalizedTarget = normalizeReportMatchMode(targetMode, fallbackMode);
+      const filtered = candidateRows.filter(
+        (row) => normalizeReportMatchMode((row || {}).match_mode, fallbackMode) === normalizedTarget
+      );
+      return filtered.length ? filtered : candidateRows;
+    };
     if (chartId === "duplicates_exact_bucket_concentration") {
       const scoped = subset.filter(
         (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
@@ -8953,7 +9119,45 @@
       const scoped = subset.filter(
         (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
       );
-      return scoped.length ? scoped : subset;
+      const scopedFallback = scoped.length ? scoped : subset;
+      return filterByMatchMode(
+        scopedFallback,
+        state.activeDuplicateMatchMode,
+        state.defaultDuplicateMatchMode || "strict"
+      );
+    }
+    if (
+      chartId === "duplicates_exact_per_name_anomalies" ||
+      chartId === "duplicates_exact_top_names" ||
+      chartId === "duplicates_exact_position_switch"
+    ) {
+      const scoped = subset.filter((row) => {
+        const scope = String((row || {}).scope || "").trim();
+        return !scope || scope === String(state.activeDuplicateScope || "");
+      });
+      const scopedFallback = scoped.length ? scoped : subset;
+      return filterByMatchMode(
+        scopedFallback,
+        state.activeDuplicateMatchMode,
+        state.defaultDuplicateMatchMode || "strict"
+      );
+    }
+    const voterModeChartIds = new Set([
+      "voter_registry_match_rates",
+      "voter_registry_linkage_by_position_rows",
+      "voter_registry_linkage_by_position_unique",
+      "voter_registry_pairwise_tests",
+      "voter_registry_unmatched_names",
+      "voter_registry_position_buckets",
+      "voter_registry_match_by_position",
+      "voter_registry_match_tiers",
+    ]);
+    if (voterModeChartIds.has(chartId)) {
+      return filterByMatchMode(
+        subset,
+        state.activeVoterMatchMode,
+        state.defaultVoterMatchMode || "loose"
+      );
     }
     return subset;
   }
@@ -8963,6 +9167,9 @@
       "duplicates_exact_bucket_concentration",
       "duplicates_exact_metric_diagnostics",
       "duplicates_exact_top_name_timing_exact",
+      "duplicates_exact_per_name_anomalies",
+      "duplicates_exact_top_names",
+      "duplicates_exact_position_switch",
     ]);
     const renders = [];
     chartMounts.forEach((mount, chartId) => {
@@ -8976,10 +9183,12 @@
 
   function initDuplicateCollisionControls() {
     const panel = document.getElementById("duplicate-collision-panel");
+    const matchModeSelect = document.getElementById("duplicate-match-mode-select");
     const scopeSelect = document.getElementById("duplicate-scope-select");
     const metricSelect = document.getElementById("duplicate-metric-select");
+    const matchModeLabel = panel ? panel.querySelector('label[for="duplicate-match-mode-select"]') : null;
     const scopeLabel = panel ? panel.querySelector('label[for="duplicate-scope-select"]') : null;
-    if (!panel || !scopeSelect || !metricSelect) {
+    if (!panel || !matchModeSelect || !scopeSelect || !metricSelect) {
       return;
     }
 
@@ -8989,7 +9198,10 @@
     const metricOptions = duplicateMetricOptions.length
       ? duplicateMetricOptions
       : [state.defaultDuplicateMetric];
-    if (!scopeOptions.length || !metricOptions.length) {
+    const matchModeOptions = duplicateMatchModeOptions.length
+      ? duplicateMatchModeOptions
+      : [state.defaultDuplicateMatchMode || "strict"];
+    if (!scopeOptions.length || !metricOptions.length || !matchModeOptions.length) {
       panel.setAttribute("data-section-control-enabled", "false");
       panel.classList.add("hidden");
       updateSectionViewControlsForHeading(state.activeTocHeading || window.location.hash);
@@ -9000,9 +9212,13 @@
 
     let savedScope = "";
     let savedMetric = "";
+    let savedMatchMode = "";
     try {
       savedScope = String(window.localStorage.getItem("testifier_audit_dup_scope") || "").trim();
       savedMetric = String(window.localStorage.getItem("testifier_audit_dup_metric") || "").trim();
+      savedMatchMode = String(window.localStorage.getItem("testifier_audit_dup_match_mode") || "")
+        .trim()
+        .toLowerCase();
     } catch (_error) {}
     const queryScope = parseDuplicateOptionFromQueryParams(
       ["dup_scope", "duplicate_scope"],
@@ -9011,6 +9227,10 @@
     const queryMetric = parseDuplicateOptionFromQueryParams(
       ["dup_metric", "duplicate_metric"],
       metricOptions
+    );
+    const queryMatchMode = parseDuplicateOptionFromQueryParams(
+      ["dup_match_mode", "duplicate_match_mode"],
+      matchModeOptions
     );
     state.activeDuplicateScope = queryScope
       ? queryScope
@@ -9022,11 +9242,34 @@
       : metricOptions.includes(savedMetric)
         ? savedMetric
         : state.defaultDuplicateMetric;
+    state.activeDuplicateMatchMode = queryMatchMode
+      ? normalizeReportMatchMode(queryMatchMode, state.defaultDuplicateMatchMode || "strict")
+      : matchModeOptions.includes(savedMatchMode)
+        ? normalizeReportMatchMode(savedMatchMode, state.defaultDuplicateMatchMode || "strict")
+        : normalizeReportMatchMode(state.defaultDuplicateMatchMode, "strict");
     if (!scopeOptions.includes(state.activeDuplicateScope)) {
       state.activeDuplicateScope = scopeOptions[0];
     }
     if (!metricOptions.includes(state.activeDuplicateMetric)) {
       state.activeDuplicateMetric = metricOptions[0];
+    }
+    if (!matchModeOptions.includes(state.activeDuplicateMatchMode)) {
+      state.activeDuplicateMatchMode = matchModeOptions[0];
+    }
+
+    matchModeSelect.innerHTML = "";
+    matchModeOptions.forEach((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value === "loose" ? "Loose" : "Strict";
+      matchModeSelect.appendChild(option);
+    });
+    matchModeSelect.value = state.activeDuplicateMatchMode;
+    const hideMatchModeControl = matchModeOptions.length <= 1;
+    matchModeSelect.classList.toggle("hidden", hideMatchModeControl);
+    matchModeSelect.disabled = hideMatchModeControl;
+    if (matchModeLabel) {
+      matchModeLabel.classList.toggle("hidden", hideMatchModeControl);
     }
 
     scopeSelect.innerHTML = "";
@@ -9054,15 +9297,21 @@
     metricSelect.value = state.activeDuplicateMetric;
 
     const onChange = () => {
+      state.activeDuplicateMatchMode = normalizeReportMatchMode(
+        matchModeSelect.value,
+        state.defaultDuplicateMatchMode || "strict"
+      );
       state.activeDuplicateScope = scopeSelect.value;
       state.activeDuplicateMetric = metricSelect.value;
       try {
+        window.localStorage.setItem("testifier_audit_dup_match_mode", state.activeDuplicateMatchMode);
         window.localStorage.setItem("testifier_audit_dup_scope", state.activeDuplicateScope);
         window.localStorage.setItem("testifier_audit_dup_metric", state.activeDuplicateMetric);
       } catch (_error) {}
       syncControlOverridesToUrl();
-      runWithBusyIndicator("Applying duplicate collision view...", async () => {
+      runWithBusyIndicator("Applying duplicate name/collision view...", async () => {
         await rerenderDuplicateCollisionCharts();
+        renderTriageSummary();
         const duplicateSection = document.querySelector('[data-analysis-id="duplicates_exact"]');
         const duplicateAnalysis = analysisById.get("duplicates_exact");
         if (duplicateSection && duplicateAnalysis) {
@@ -9070,8 +9319,113 @@
         }
       });
     };
+    matchModeSelect.addEventListener("change", onChange);
     scopeSelect.addEventListener("change", onChange);
     metricSelect.addEventListener("change", onChange);
+    if (!isOffHoursFocusOnly) {
+      renderTriageSummary();
+    }
+    updateSectionViewControlsForHeading(state.activeTocHeading || window.location.hash);
+  }
+
+  async function rerenderVoterMatchModeCharts() {
+    const targets = new Set([
+      "voter_registry_match_rates",
+      "voter_registry_linkage_by_position_rows",
+      "voter_registry_linkage_by_position_unique",
+      "voter_registry_pairwise_tests",
+      "voter_registry_unmatched_names",
+      "voter_registry_position_buckets",
+      "voter_registry_match_by_position",
+      "voter_registry_match_tiers",
+    ]);
+    const renders = [];
+    chartMounts.forEach((mount, chartId) => {
+      if (!mount || !targets.has(chartId)) {
+        return;
+      }
+      renders.push(renderChartMount(mount));
+    });
+    await Promise.all(renders);
+  }
+
+  function initVoterMatchModeControls() {
+    const panel = document.getElementById("voter-match-mode-panel");
+    const matchModeSelect = document.getElementById("voter-match-mode-select");
+    const matchModeLabel = panel ? panel.querySelector('label[for="voter-match-mode-select"]') : null;
+    if (!panel || !matchModeSelect) {
+      return;
+    }
+
+    const modeOptions = voterMatchModeOptions.length
+      ? voterMatchModeOptions
+      : [state.defaultVoterMatchMode || "loose"];
+    if (!modeOptions.length) {
+      panel.setAttribute("data-section-control-enabled", "false");
+      panel.classList.add("hidden");
+      updateSectionViewControlsForHeading(state.activeTocHeading || window.location.hash);
+      return;
+    }
+    panel.setAttribute("data-section-control-enabled", "true");
+    panel.classList.add("hidden");
+
+    let savedMode = "";
+    try {
+      savedMode = String(window.localStorage.getItem("testifier_audit_voter_match_mode") || "")
+        .trim()
+        .toLowerCase();
+    } catch (_error) {}
+    const queryMode = parseDuplicateOptionFromQueryParams(
+      ["voter_match_mode", "voter_mode"],
+      modeOptions
+    );
+    state.activeVoterMatchMode = queryMode
+      ? normalizeReportMatchMode(queryMode, state.defaultVoterMatchMode || "loose")
+      : modeOptions.includes(savedMode)
+        ? normalizeReportMatchMode(savedMode, state.defaultVoterMatchMode || "loose")
+        : normalizeReportMatchMode(state.defaultVoterMatchMode, "loose");
+    if (!modeOptions.includes(state.activeVoterMatchMode)) {
+      state.activeVoterMatchMode = modeOptions[0];
+    }
+
+    matchModeSelect.innerHTML = "";
+    modeOptions.forEach((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value === "strict" ? "Strict" : "Loose";
+      matchModeSelect.appendChild(option);
+    });
+    matchModeSelect.value = state.activeVoterMatchMode;
+    const hideModeControl = modeOptions.length <= 1;
+    matchModeSelect.classList.toggle("hidden", hideModeControl);
+    matchModeSelect.disabled = hideModeControl;
+    if (matchModeLabel) {
+      matchModeLabel.classList.toggle("hidden", hideModeControl);
+    }
+
+    const onChange = () => {
+      state.activeVoterMatchMode = normalizeReportMatchMode(
+        matchModeSelect.value,
+        state.defaultVoterMatchMode || "loose"
+      );
+      try {
+        window.localStorage.setItem("testifier_audit_voter_match_mode", state.activeVoterMatchMode);
+      } catch (_error) {}
+      syncControlOverridesToUrl();
+      runWithBusyIndicator("Applying voter name-match view...", async () => {
+        await rerenderVoterMatchModeCharts();
+        renderTriageSummary();
+        const voterSection = document.querySelector('[data-analysis-id="voter_registry_match"]');
+        const voterAnalysis = analysisById.get("voter_registry_match");
+        if (voterSection && voterAnalysis) {
+          renderTablesForAnalysis(voterSection, voterAnalysis);
+        }
+      });
+    };
+    matchModeSelect.addEventListener("change", onChange);
+    if (!isOffHoursFocusOnly) {
+      renderTriageSummary();
+    }
     updateSectionViewControlsForHeading(state.activeTocHeading || window.location.hash);
   }
 
@@ -10112,6 +10466,7 @@
   initGlobalControlsCollapse();
   initBucketTabs();
   initDuplicateCollisionControls();
+  initVoterMatchModeControls();
   initZoomControls();
   initSidebarFloatingOffsetsObserver();
   initSidebarToc();

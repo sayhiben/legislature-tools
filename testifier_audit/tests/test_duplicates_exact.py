@@ -501,7 +501,7 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     }
     assert required.issubset(timing.columns)
     assert not timing.empty
-    assert set(timing["match_mode"]) == {"exact"}
+    assert set(timing["match_mode"]) == {"strict", "loose"}
     assert (timing["duplicate_rows"] >= 2).all()
     assert (timing["n_other"] >= 0).all()
     assert (
@@ -511,10 +511,12 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
         == timing["duplicate_rows"].astype(int)
     ).all()
 
-    exact_names = set(timing[timing["match_mode"] == "exact"]["name_key"])
-    assert exact_names == {"DOE|ROBERT", "DOE|BOB", "DOE|BEN", "LEE|ALICE"}
+    strict_names = set(timing[timing["match_mode"] == "strict"]["name_key"])
+    assert strict_names == {"DOE|ROBERT", "DOE|BOB", "DOE|BEN", "LEE|ALICE"}
+    loose_names = set(timing[timing["match_mode"] == "loose"]["name_key"])
+    assert loose_names == {"DOE|ROBERT", "DOE|BEN", "LEE|ALICE"}
     mode_ranked = (
-        timing[timing["match_mode"] == "exact"][["name_key", "rank", "total_repeated_rows"]]
+        timing[timing["match_mode"] == "strict"][["name_key", "rank", "total_repeated_rows"]]
         .drop_duplicates()
         .sort_values(["rank", "name_key"])
     )
@@ -523,3 +525,8 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     assert mode_ranked["rank"].astype(int).tolist() == expected_ranks
     totals = mode_ranked["total_repeated_rows"].astype(int).tolist()
     assert totals == sorted(totals, reverse=True)
+
+    per_name_by_mode = result.tables["per_name_duplicates_by_mode"]
+    assert not per_name_by_mode.empty
+    assert set(per_name_by_mode["match_mode"]) == {"strict", "loose"}
+    assert (per_name_by_mode["observed_count"].astype(int) >= 2).all()

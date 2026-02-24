@@ -401,6 +401,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "scheduleZoomSync(" in js_text
     assert "parseLinkedZoomFromQueryParams" in js_text
     assert "parseDuplicateOptionFromQueryParams" in js_text
+    assert "normalizeReportMatchMode(rawValue, fallbackValue)" in js_text
     assert "initializeLinkedZoomOnLoad()" in js_text
     assert "updateSectionViewControlsForHeading" in js_text
     assert "bucketSelectorLabel" in js_text
@@ -422,8 +423,11 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert 'id="zoom-reset-button"' in rendered
     assert 'id="zoom-active-banner"' not in rendered
     assert 'id="duplicate-collision-panel"' in rendered
+    assert 'id="duplicate-match-mode-select"' in rendered
     assert 'id="duplicate-scope-select"' in rendered
     assert 'id="duplicate-metric-select"' in rendered
+    assert 'id="voter-match-mode-panel"' in rendered
+    assert 'id="voter-match-mode-select"' in rendered
     assert 'id="sidebar-bill-meta"' not in rendered
     assert 'id="sidebar-report-title"' in rendered
     assert 'id="sidebar-meeting-meta"' in rendered

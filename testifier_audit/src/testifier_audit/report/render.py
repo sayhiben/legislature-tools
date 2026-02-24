@@ -1317,6 +1317,7 @@ _DUPLICATES_EXACT_FULL_PREVIEW_TABLES = frozenset(
         "per_name_tests",
         "per_name_display",
         "per_name_anomalies",
+        "per_name_duplicates_by_mode",
         "repeated_same_bucket",
         "position_switching_names",
         "top_repeated_names",
@@ -1369,6 +1370,31 @@ def _prepare_table_for_preview(
                 ascending.append(True)
             if "canonical_name" in prepared.columns:
                 sort_columns.append("canonical_name")
+                ascending.append(True)
+            if sort_columns:
+                prepared = prepared.sort_values(sort_columns, ascending=ascending)
+            return prepared
+        if table_name == "per_name_duplicates_by_mode":
+            count_column = (
+                "observed_count"
+                if "observed_count" in prepared.columns
+                else "total_repeated_rows"
+                if "total_repeated_rows" in prepared.columns
+                else "n"
+                if "n" in prepared.columns
+                else None
+            )
+            sort_columns: list[str] = []
+            ascending: list[bool] = []
+            for column in ("scope", "match_mode"):
+                if column in prepared.columns:
+                    sort_columns.append(column)
+                    ascending.append(True)
+            if count_column is not None and count_column in prepared.columns:
+                sort_columns.append(count_column)
+                ascending.append(False)
+            if "display_name" in prepared.columns:
+                sort_columns.append("display_name")
                 ascending.append(True)
             if sort_columns:
                 prepared = prepared.sort_values(sort_columns, ascending=ascending)
@@ -3749,6 +3775,32 @@ def _load_table_map_from_disk(out_dir: Path) -> dict[str, pd.DataFrame]:
     return table_map
 
 
+_REPORT_MATCH_MODE_ALIASES: dict[str, str] = {
+    "strict": "strict",
+    "exact": "strict",
+    "medium": "strict",
+    "loose": "loose",
+    "nickname": "loose",
+}
+
+
+def _normalize_report_match_mode(value: Any, *, default: str = "strict") -> str:
+    if value is None:
+        return default
+    if isinstance(value, str):
+        raw = value.strip().lower()
+    else:
+        try:
+            if pd.isna(value):
+                return default
+        except Exception:
+            pass
+        raw = str(value).strip().lower()
+    if not raw:
+        return default
+    return _REPORT_MATCH_MODE_ALIASES.get(raw, raw if raw in {"strict", "loose"} else default)
+
+
 def _build_interactive_chart_payload_v2(
     table_map: dict[str, pd.DataFrame],
     detector_summaries: dict[str, dict[str, Any]],
@@ -4275,6 +4327,15 @@ def _build_interactive_chart_payload_v2(
     )
     if not duplicate_metric_options:
         duplicate_metric_options = [primary_dup_metric]
+    primary_dup_match_mode = (
+        _normalize_report_match_mode(
+            dup_exact_methods.get("collision_key_mode", pd.Series(dtype=str)).iloc[0]
+            if not dup_exact_methods.empty
+            else "strict",
+            default="strict",
+        )
+    )
+    duplicate_match_mode_options: list[str] = []
     dup_exact_metric_diagnostics = dup_exact_collision_overview[
         dup_exact_collision_overview["scope"].astype(str).str.len() > 0
     ].copy()
@@ -4358,9 +4419,36 @@ def _build_interactive_chart_payload_v2(
                 dup_exact_bucket["expected_duplicate_rows"] = pd.NA
                 dup_exact_bucket["excess_duplicate_rows"] = dup_exact_bucket["duplicate_rows"]
 
+    dup_exact_per_name_by_mode = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "per_name_duplicates_by_mode"), pd.DataFrame()),
+        [
+            "scope",
+            "match_mode",
+            "match_label",
+            "match_definition",
+            "display_name",
+            "canonical_name",
+            "name_key",
+            "observed_count",
+            "total_repeated_rows",
+            "n_pro",
+            "n_con",
+            "first_seen",
+            "last_seen",
+            "time_span_minutes",
+        ],
+    )
+    if not dup_exact_per_name_by_mode.empty:
+        dup_exact_per_name_by_mode["match_mode"] = (
+            dup_exact_per_name_by_mode["match_mode"]
+            .map(lambda value: _normalize_report_match_mode(value, default="strict"))
+            .astype(str)
+        )
     dup_exact_per_name = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_anomalies"), pd.DataFrame()),
         [
+            "scope",
+            "match_mode",
             "display_name",
             "canonical_name",
             "n",
@@ -4377,7 +4465,20 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_min_gap",
         ],
     )
-    if dup_exact_per_name.empty:
+    if not dup_exact_per_name.empty:
+        dup_exact_per_name["match_mode"] = dup_exact_per_name["match_mode"].map(
+            lambda value: _normalize_report_match_mode(value, default="strict")
+        )
+        dup_exact_per_name["scope"] = dup_exact_per_name.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+        if not (dup_exact_per_name["scope"].astype(str).str.len() > 0).any():
+            dup_exact_per_name["scope"] = primary_dup_scope
+    elif not dup_exact_per_name_by_mode.empty:
+        dup_exact_per_name = dup_exact_per_name_by_mode.rename(
+            columns={
+                "observed_count": "n",
+            }
+        ).copy()
+    else:
         per_name_display = _with_expected_columns(
             table_map.get(_table_key("duplicates_exact", "per_name_display"), pd.DataFrame()),
             [
@@ -4399,26 +4500,51 @@ def _build_interactive_chart_payload_v2(
                 per_name_display["scope"].astype(str) == primary_dup_scope
             ].copy()
             dup_exact_per_name = per_name_display.rename(columns={"observed_count": "n"})
+            dup_exact_per_name["match_mode"] = "strict"
         else:
             dup_exact_per_name = _with_expected_columns(
                 table_map.get(_table_key("duplicates_exact", "top_repeated_names"), pd.DataFrame()),
                 ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
             )
-        dup_exact_per_name["expected_count"] = dup_exact_per_name.get("expected_count", pd.Series(dtype=float))
-        dup_exact_per_name["p_value"] = dup_exact_per_name.get("p_value", pd.Series(dtype=float)).fillna(pd.NA)
-        dup_exact_per_name["q_value"] = dup_exact_per_name.get("q_value", pd.Series(dtype=float)).fillna(pd.NA)
-        is_significant_series = (
-            dup_exact_per_name["is_significant"]
-            if "is_significant" in dup_exact_per_name.columns
-            else pd.Series(pd.NA, index=dup_exact_per_name.index, dtype="object")
-        )
-        dup_exact_per_name["is_significant"] = (
-            pd.to_numeric(is_significant_series, errors="coerce").fillna(0).astype(bool)
-        )
-        dup_exact_per_name["within_5m_pairs"] = 0
-        dup_exact_per_name["within_15m_pairs"] = 0
-        dup_exact_per_name["temporal_p_value_within_5m"] = pd.NA
-        dup_exact_per_name["temporal_p_value_min_gap"] = pd.NA
+            dup_exact_per_name["scope"] = primary_dup_scope
+            dup_exact_per_name["match_mode"] = "strict"
+    if "scope" not in dup_exact_per_name.columns:
+        dup_exact_per_name["scope"] = primary_dup_scope
+    dup_exact_per_name["scope"] = dup_exact_per_name["scope"].fillna("").astype(str).replace("", primary_dup_scope)
+    dup_exact_per_name["match_mode"] = dup_exact_per_name.get(
+        "match_mode", pd.Series("strict", index=dup_exact_per_name.index)
+    ).map(lambda value: _normalize_report_match_mode(value, default="strict"))
+    dup_exact_per_name["expected_count"] = dup_exact_per_name.get("expected_count", pd.Series(dtype=float))
+    dup_exact_per_name["p_value"] = dup_exact_per_name.get("p_value", pd.Series(dtype=float)).fillna(pd.NA)
+    dup_exact_per_name["q_value"] = dup_exact_per_name.get("q_value", pd.Series(dtype=float)).fillna(pd.NA)
+    is_significant_series = (
+        dup_exact_per_name["is_significant"]
+        if "is_significant" in dup_exact_per_name.columns
+        else pd.Series(pd.NA, index=dup_exact_per_name.index, dtype="object")
+    )
+    dup_exact_per_name["is_significant"] = (
+        pd.to_numeric(is_significant_series, errors="coerce").fillna(0).astype(bool)
+    )
+    dup_exact_per_name["within_5m_pairs"] = pd.to_numeric(
+        dup_exact_per_name.get(
+            "within_5m_pairs",
+            pd.Series(pd.NA, index=dup_exact_per_name.index),
+        ),
+        errors="coerce",
+    ).fillna(0)
+    dup_exact_per_name["within_15m_pairs"] = pd.to_numeric(
+        dup_exact_per_name.get(
+            "within_15m_pairs",
+            pd.Series(pd.NA, index=dup_exact_per_name.index),
+        ),
+        errors="coerce",
+    ).fillna(0)
+    dup_exact_per_name["temporal_p_value_within_5m"] = dup_exact_per_name.get(
+        "temporal_p_value_within_5m", pd.Series(pd.NA, index=dup_exact_per_name.index)
+    )
+    dup_exact_per_name["temporal_p_value_min_gap"] = dup_exact_per_name.get(
+        "temporal_p_value_min_gap", pd.Series(pd.NA, index=dup_exact_per_name.index)
+    )
     dup_exact_top_name_timing = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "top_name_timing_by_mode"), pd.DataFrame()),
         [
@@ -4440,6 +4566,36 @@ def _build_interactive_chart_payload_v2(
             "last_seen",
         ],
     )
+    if not dup_exact_top_name_timing.empty:
+        dup_exact_top_name_timing["match_mode"] = dup_exact_top_name_timing["match_mode"].map(
+            lambda value: _normalize_report_match_mode(value, default="strict")
+        )
+        dup_exact_top_name_timing["scope"] = (
+            dup_exact_top_name_timing.get("scope", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_scope)
+        )
+    duplicate_match_mode_options = sorted(
+        {
+            _normalize_report_match_mode(value, default="strict")
+            for value in [
+                *dup_exact_top_name_timing.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *dup_exact_per_name.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *dup_exact_per_name_by_mode.get("match_mode", pd.Series(dtype=str)).tolist(),
+            ]
+            if str(value).strip()
+        }
+    )
+    duplicate_match_mode_options = [
+        value for value in duplicate_match_mode_options if value in {"strict", "loose"}
+    ]
+    if not duplicate_match_mode_options:
+        duplicate_match_mode_options = ["strict"]
+    if primary_dup_match_mode not in duplicate_match_mode_options:
+        primary_dup_match_mode = (
+            "strict" if "strict" in duplicate_match_mode_options else duplicate_match_mode_options[0]
+        )
 
     dup_exact_position_tests = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "position_concentration_tests"), pd.DataFrame()),
@@ -4614,6 +4770,7 @@ def _build_interactive_chart_payload_v2(
     voter_bucket = _with_expected_columns(
         table_map.get(_table_key("voter_registry_match", "match_by_bucket"), pd.DataFrame()),
         [
+            "match_mode",
             "bucket_start",
             "bucket_minutes",
             "n_total",
@@ -4634,6 +4791,7 @@ def _build_interactive_chart_payload_v2(
     voter_position_rows = _with_expected_columns(
         table_map.get(_table_key("voter_registry_match", "linkage_by_position_rows"), pd.DataFrame()),
         [
+            "match_mode",
             "position_normalized",
             "n_total",
             "n_matched_unique",
@@ -4651,6 +4809,7 @@ def _build_interactive_chart_payload_v2(
     voter_position_unique = _with_expected_columns(
         table_map.get(_table_key("voter_registry_match", "linkage_by_position_unique"), pd.DataFrame()),
         [
+            "match_mode",
             "position_normalized",
             "n_total",
             "n_matched_unique",
@@ -4668,6 +4827,7 @@ def _build_interactive_chart_payload_v2(
     voter_pairwise = _with_expected_columns(
         table_map.get(_table_key("voter_registry_match", "position_pairwise_tests"), pd.DataFrame()),
         [
+            "match_mode",
             "unit",
             "position_left",
             "position_right",
@@ -4689,6 +4849,7 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("voter_registry_match", "sensitivity_modes"), pd.DataFrame()),
         [
             "mode",
+            "match_mode",
             "n_rows",
             "n_unmatched_rows",
             "unmatched_rate_rows",
@@ -4700,6 +4861,7 @@ def _build_interactive_chart_payload_v2(
     voter_unmatched = _with_expected_columns(
         table_map.get(_table_key("voter_registry_match", "unmatched_names"), pd.DataFrame()),
         [
+            "match_mode",
             "display_name",
             "canonical_name",
             "n_rows",
@@ -4716,6 +4878,7 @@ def _build_interactive_chart_payload_v2(
             pd.DataFrame(),
         ),
         [
+            "match_mode",
             "bucket_start",
             "bucket_minutes",
             "position_normalized",
@@ -4742,6 +4905,58 @@ def _build_interactive_chart_payload_v2(
                 frame["match_rate_wilson_low"] = frame["matched_rate_wilson_low"]
             if "match_rate_wilson_high" not in frame.columns and "matched_rate_wilson_high" in frame.columns:
                 frame["match_rate_wilson_high"] = frame["matched_rate_wilson_high"]
+
+    if not voter_sensitivity_modes.empty and "match_mode" in voter_sensitivity_modes.columns:
+        voter_sensitivity_modes["match_mode"] = voter_sensitivity_modes["match_mode"].map(
+            lambda value: _normalize_report_match_mode(value, default="loose")
+        )
+    elif not voter_sensitivity_modes.empty and "mode" in voter_sensitivity_modes.columns:
+        voter_sensitivity_modes["match_mode"] = voter_sensitivity_modes["mode"].map(
+            lambda value: _normalize_report_match_mode(value, default="loose")
+        )
+    for frame in (
+        voter_bucket,
+        voter_position_rows,
+        voter_position_unique,
+        voter_pairwise,
+        voter_unmatched,
+        voter_bucket_position,
+    ):
+        if frame.empty:
+            continue
+        if "match_mode" not in frame.columns:
+            frame["match_mode"] = "loose"
+        frame["match_mode"] = frame["match_mode"].map(
+            lambda value: _normalize_report_match_mode(value, default="loose")
+        )
+
+    voter_match_mode_options = sorted(
+        {
+            _normalize_report_match_mode(value, default="loose")
+            for value in [
+                *voter_bucket.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *voter_position_rows.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *voter_position_unique.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *voter_pairwise.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *voter_unmatched.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *voter_bucket_position.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *voter_sensitivity_modes.get("match_mode", pd.Series(dtype=str)).tolist(),
+            ]
+            if str(value).strip()
+        }
+    )
+    voter_match_mode_options = [value for value in voter_match_mode_options if value in {"strict", "loose"}]
+    if not voter_match_mode_options:
+        voter_match_mode_options = ["loose"]
+    voter_summary = detector_summaries.get("voter_registry_match", {})
+    voter_default_mode = _normalize_report_match_mode(
+        voter_summary.get("match_mode_default")
+        or voter_summary.get("primary_match_mode")
+        or "loose",
+        default="loose",
+    )
+    if voter_default_mode not in voter_match_mode_options:
+        voter_default_mode = "loose" if "loose" in voter_match_mode_options else voter_match_mode_options[0]
 
     if "n_records" not in voter_unmatched.columns and "n_rows" in voter_unmatched.columns:
         voter_unmatched["n_records"] = voter_unmatched["n_rows"]
@@ -5848,9 +6063,25 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=50,
     )
+    dup_exact_per_name_chart = dup_exact_per_name.sort_values(
+        ["scope", "match_mode", "q_value", "p_value", "n"],
+        ascending=[True, True, True, True, False],
+    )
+    if not dup_exact_per_name_chart.empty:
+        group_fields = [
+            field for field in ("scope", "match_mode") if field in dup_exact_per_name_chart.columns
+        ]
+        if group_fields:
+            dup_exact_per_name_chart = dup_exact_per_name_chart.groupby(
+                group_fields, dropna=False, group_keys=False
+            ).head(15)
+        else:
+            dup_exact_per_name_chart = dup_exact_per_name_chart.head(15)
     charts["duplicates_exact_per_name_anomalies"] = _records_from_frame(
-        dup_exact_per_name.sort_values(["q_value", "p_value", "n"], ascending=[True, True, False]),
+        dup_exact_per_name_chart,
         columns=[
+            "scope",
+            "match_mode",
             "display_name",
             "canonical_name",
             "n",
@@ -5866,7 +6097,7 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_within_5m",
             "temporal_p_value_min_gap",
         ],
-        max_rows=15,
+        max_rows=100_000,
     )
     top_name_timing_sorted = dup_exact_top_name_timing.sort_values(
         ["match_mode", "rank", "bucket_minutes", "bucket_start", "name_key"]
@@ -5910,22 +6141,9 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=100_000,
     )
-
-    def _top_name_timing_rows_for_mode(match_mode: str) -> list[dict[str, Any]]:
-        normalized_mode = str(match_mode).strip().lower()
-        bucket_rows = [
-            row
-            for row in top_name_timing_rows
-            if str(row.get("match_mode", "")).strip().lower() == normalized_mode
-        ]
-        rank_rows = [
-            {**row, "row_kind": "name_rank"}
-            for row in top_name_timing_rank_rows
-            if str(row.get("match_mode", "")).strip().lower() == normalized_mode
-        ]
-        return bucket_rows + rank_rows
-
-    charts["duplicates_exact_top_name_timing_exact"] = _top_name_timing_rows_for_mode("exact")
+    charts["duplicates_exact_top_name_timing_exact"] = top_name_timing_rows + [
+        {**row, "row_kind": "name_rank"} for row in top_name_timing_rank_rows
+    ]
     charts["duplicates_exact_position_concentration"] = _records_from_frame(
         dup_exact_position_tests.assign(
             pair_label=(
@@ -6128,8 +6346,9 @@ def _build_interactive_chart_payload_v2(
     )
 
     charts["voter_registry_match_rates"] = _records_from_frame(
-        voter_bucket.sort_values(["bucket_minutes", "bucket_start"]),
+        voter_bucket.sort_values(["match_mode", "bucket_minutes", "bucket_start"]),
         columns=[
+            "match_mode",
             "bucket_start",
             "bucket_minutes",
             "n_total",
@@ -6164,8 +6383,9 @@ def _build_interactive_chart_payload_v2(
         max_rows=25_000,
     )
     charts["voter_registry_linkage_by_position_rows"] = _records_from_frame(
-        voter_position_rows.sort_values("position_normalized"),
+        voter_position_rows.sort_values(["match_mode", "position_normalized"]),
         columns=[
+            "match_mode",
             "position_normalized",
             "n_total",
             "n_matched_unique",
@@ -6182,8 +6402,9 @@ def _build_interactive_chart_payload_v2(
         max_rows=100,
     )
     charts["voter_registry_linkage_by_position_unique"] = _records_from_frame(
-        voter_position_unique.sort_values("position_normalized"),
+        voter_position_unique.sort_values(["match_mode", "position_normalized"]),
         columns=[
+            "match_mode",
             "position_normalized",
             "n_total",
             "n_matched_unique",
@@ -6199,9 +6420,18 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=100,
     )
+    voter_unmatched_top = voter_unmatched.sort_values(
+        ["match_mode", "n_records", "display_name"],
+        ascending=[True, False, True],
+    )
+    if not voter_unmatched_top.empty and "match_mode" in voter_unmatched_top.columns:
+        voter_unmatched_top = voter_unmatched_top.groupby(
+            "match_mode", dropna=False, group_keys=False
+        ).head(10)
     charts["voter_registry_unmatched_names"] = _records_from_frame(
-        voter_unmatched.sort_values("n_records", ascending=False),
+        voter_unmatched_top,
         columns=[
+            "match_mode",
             "display_name",
             "canonical_name",
             "n_records",
@@ -6211,7 +6441,7 @@ def _build_interactive_chart_payload_v2(
             "best_similarity_score",
             "candidate_pool_size",
         ],
-        max_rows=10,
+        max_rows=1000,
     )
     charts["voter_registry_pairwise_tests"] = _records_from_frame(
         voter_pairwise.assign(
@@ -6222,8 +6452,9 @@ def _build_interactive_chart_payload_v2(
                 + " vs "
                 + voter_pairwise["position_right"].astype(str)
             )
-        ).sort_values(["unit", "p_value", "pair_label"]),
+        ).sort_values(["match_mode", "unit", "p_value", "pair_label"]),
         columns=[
+            "match_mode",
             "unit",
             "pair_label",
             "position_left",
@@ -6247,6 +6478,7 @@ def _build_interactive_chart_payload_v2(
         voter_sensitivity_modes.sort_values("mode"),
         columns=[
             "mode",
+            "match_mode",
             "n_rows",
             "n_unmatched_rows",
             "unmatched_rate_rows",
@@ -6258,9 +6490,10 @@ def _build_interactive_chart_payload_v2(
     )
     charts["voter_registry_position_buckets"] = _records_from_frame(
         voter_bucket_position.sort_values(
-            ["bucket_minutes", "bucket_start", "position_normalized"]
+            ["match_mode", "bucket_minutes", "bucket_start", "position_normalized"]
         ),
         columns=[
+            "match_mode",
             "bucket_start",
             "bucket_minutes",
             "position_normalized",
@@ -6690,6 +6923,10 @@ def _build_interactive_chart_payload_v2(
             "duplicate_collision_metric_default": primary_dup_metric,
             "duplicate_collision_scope_options": duplicate_scope_options,
             "duplicate_collision_metric_options": duplicate_metric_options,
+            "duplicate_match_mode_default": primary_dup_match_mode,
+            "duplicate_match_mode_options": duplicate_match_mode_options,
+            "voter_match_mode_default": voter_default_mode,
+            "voter_match_mode_options": voter_match_mode_options,
             "timezone": timezone_name,
             "timezone_label": timezone_name,
             "process_markers": process_markers,

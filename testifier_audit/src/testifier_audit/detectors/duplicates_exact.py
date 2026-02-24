@@ -46,10 +46,18 @@ _MATCHED_OUTCOMES = {"matched_unique", "matched_ambiguous"}
 _ALLOWED_STRATIFICATIONS = {"none", "birth_decade"}
 _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
     {
-        "match_mode": "exact",
+        "match_mode": "strict",
         "key_column": "collision_key_medium",
-        "match_label": "Exact (last + first)",
-        "match_definition": "Exact match on last-name and first-name tokens.",
+        "match_label": "Strict (last + first)",
+        "match_definition": "Exact match on last-name and first-name tokens (nickname-sensitive).",
+    },
+    {
+        "match_mode": "loose",
+        "key_column": "canonical_key_nickname",
+        "match_label": "Loose (last + nickname-root first)",
+        "match_definition": (
+            "Matches last-name exactly and applies nickname equivalence to first-name tokens only."
+        ),
     },
 )
 _TOP_NAME_TIMING_TOP_N = 50
@@ -855,6 +863,7 @@ class DuplicatesExactDetector(Detector):
         bucket_frames: list[pd.DataFrame] = []
         per_name_tests_frames: list[pd.DataFrame] = []
         per_name_display_frames: list[pd.DataFrame] = []
+        per_name_duplicates_by_mode_frames: list[pd.DataFrame] = []
         temporal_frames: list[pd.DataFrame] = []
         top_name_timing_frames: list[pd.DataFrame] = []
         stratified_sensitivity_frames: list[pd.DataFrame] = []
@@ -938,22 +947,63 @@ class DuplicatesExactDetector(Detector):
                     mode_frame.get("name_display", mode_frame["name_key"])
                 )
 
-                mode_totals = (
+                mode_totals_all = (
                     mode_frame.groupby("name_key", dropna=False)
                     .agg(
                         total_repeated_rows=("id", "count"),
+                        observed_count=("id", "count"),
                         display_name=("display_name_mode", "first"),
+                        n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
+                        n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                        first_seen=("timestamp", "min"),
+                        last_seen=("timestamp", "max"),
                     )
                     .reset_index()
                 )
-                mode_totals = mode_totals[mode_totals["total_repeated_rows"] >= 2].copy()
-                if mode_totals.empty:
+                mode_totals_all = mode_totals_all[mode_totals_all["total_repeated_rows"] >= 2].copy()
+                if mode_totals_all.empty:
                     continue
-                mode_totals = mode_totals.sort_values(
+                mode_totals_all["time_span_minutes"] = (
+                    (
+                        pd.to_datetime(mode_totals_all["last_seen"], errors="coerce")
+                        - pd.to_datetime(mode_totals_all["first_seen"], errors="coerce")
+                    ).dt.total_seconds()
+                    / 60.0
+                ).fillna(0.0)
+                mode_totals_all["scope"] = scope
+                mode_totals_all["match_mode"] = str(mode_spec.get("match_mode", ""))
+                mode_totals_all["match_label"] = str(mode_spec.get("match_label", ""))
+                mode_totals_all["match_definition"] = str(mode_spec.get("match_definition", ""))
+                mode_totals_all["canonical_name"] = mode_totals_all["name_key"].astype(str)
+                per_name_duplicates_by_mode_frames.append(
+                    mode_totals_all[
+                        [
+                            "scope",
+                            "match_mode",
+                            "match_label",
+                            "match_definition",
+                            "canonical_name",
+                            "name_key",
+                            "display_name",
+                            "observed_count",
+                            "total_repeated_rows",
+                            "n_pro",
+                            "n_con",
+                            "first_seen",
+                            "last_seen",
+                            "time_span_minutes",
+                        ]
+                    ].copy()
+                )
+
+                mode_totals = mode_totals_all.sort_values(
                     ["total_repeated_rows", "display_name", "name_key"],
                     ascending=[False, True, True],
                 ).head(_TOP_NAME_TIMING_TOP_N)
-                mode_totals = mode_totals.reset_index(drop=True)
+                mode_totals = mode_totals.sort_values(
+                    ["total_repeated_rows", "display_name", "name_key"],
+                    ascending=[False, True, True],
+                ).reset_index(drop=True)
                 mode_totals["rank"] = mode_totals.index.astype(int) + 1
 
                 top_keys = set(mode_totals["name_key"].astype(str).tolist())
@@ -1748,6 +1798,14 @@ class DuplicatesExactDetector(Detector):
         per_name_display = (
             pd.concat(per_name_display_frames, ignore_index=True) if per_name_display_frames else pd.DataFrame()
         )
+        per_name_duplicates_by_mode = (
+            pd.concat(per_name_duplicates_by_mode_frames, ignore_index=True).sort_values(
+                ["scope", "match_mode", "observed_count", "display_name", "canonical_name"],
+                ascending=[True, True, False, True, True],
+            )
+            if per_name_duplicates_by_mode_frames
+            else pd.DataFrame()
+        )
         collision_stratification_sensitivity = (
             pd.concat(stratified_sensitivity_frames, ignore_index=True)
             if stratified_sensitivity_frames
@@ -1808,6 +1866,7 @@ class DuplicatesExactDetector(Detector):
                 "collision_stratification_sensitivity": collision_stratification_sensitivity,
                 "per_name_tests": per_name_tests,
                 "per_name_display": per_name_display,
+                "per_name_duplicates_by_mode": per_name_duplicates_by_mode,
                 "temporal_burst_signals": temporal_burst,
                 "top_name_timing_by_mode": top_name_timing_by_mode,
                 # Legacy compatibility tables retained while render contracts migrate.

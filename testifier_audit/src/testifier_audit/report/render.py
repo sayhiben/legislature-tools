@@ -862,6 +862,17 @@ def _coerce_bucket_minutes(value: Any) -> int | None:
     return None
 
 
+def _canonical_name_to_display_name(value: Any) -> str:
+    canonical_name = str(value or "").strip()
+    if not canonical_name:
+        return ""
+    if "|" not in canonical_name:
+        return canonical_name
+    last_name, first_name = canonical_name.split("|", 1)
+    display_name = f"{last_name.strip()}, {first_name.strip()}".strip(", ").strip()
+    return display_name if display_name else canonical_name
+
+
 def _write_json_payload(path: Path, payload: Any) -> int:
     encoded = json.dumps(
         _json_safe(payload),
@@ -1061,6 +1072,16 @@ def _preview_columns_for_detector_table(
     detector_name: str,
     table_name: str,
 ) -> list[str] | None:
+    if detector_name == "voter_registry_match" and table_name == "unmatched_names":
+        return [
+            "display_name",
+            "n_rows",
+            "n_pro",
+            "n_con",
+            "top_caveat",
+            "best_similarity_score",
+            "candidate_pool_size",
+        ]
     if detector_name != "off_hours":
         return None
     preview_columns: dict[str, list[str]] = {
@@ -1250,13 +1271,67 @@ def _preview_columns_for_detector_table(
     return preview_columns.get(table_name)
 
 
+_DUPLICATES_EXACT_FULL_PREVIEW_TABLES = frozenset(
+    {
+        "per_name_display",
+        "per_name_anomalies",
+        "position_switching_names",
+        "top_repeated_names",
+        "top_name_timing_by_mode",
+    }
+)
+
+
+def _preview_row_limit_for_detector_table(
+    detector_name: str,
+    table_name: str,
+    *,
+    default_max_rows: int,
+) -> int | None:
+    if (
+        detector_name == "duplicates_exact"
+        and table_name in _DUPLICATES_EXACT_FULL_PREVIEW_TABLES
+    ):
+        return None
+    return default_max_rows
+
+
+def _prepare_table_for_preview(
+    detector_name: str,
+    table_name: str,
+    table: pd.DataFrame,
+) -> pd.DataFrame:
+    if table.empty:
+        return table
+    if detector_name != "voter_registry_match" or table_name != "unmatched_names":
+        return table
+
+    prepared = table.copy()
+    if "canonical_name" in prepared.columns:
+        canonical_display_names = (
+            prepared["canonical_name"].fillna("").astype(str).map(_canonical_name_to_display_name)
+        )
+    else:
+        canonical_display_names = pd.Series("", index=prepared.index, dtype=str)
+
+    if "display_name" not in prepared.columns:
+        prepared["display_name"] = canonical_display_names
+    else:
+        prepared["display_name"] = prepared["display_name"].fillna("").astype(str)
+        prepared["display_name"] = prepared["display_name"].where(
+            prepared["display_name"].str.strip() != "",
+            canonical_display_names,
+        )
+    return prepared
+
+
 def _table_preview(
     df: pd.DataFrame,
-    max_rows: int = 12,
+    max_rows: int | None = 12,
     *,
     columns: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    limited = df.head(max_rows).copy()
+    limited = df.copy() if max_rows is None else df.head(max_rows).copy()
     if columns:
         selected_columns = [column for column in columns if column in limited.columns]
         if selected_columns:
@@ -1305,9 +1380,15 @@ def _table_previews_from_results(
         for table_name, table in sorted(result.tables.items()):
             if table.empty:
                 continue
+            table_max_rows = _preview_row_limit_for_detector_table(
+                detector_name,
+                table_name,
+                default_max_rows=max_rows,
+            )
+            table = _prepare_table_for_preview(detector_name, table_name, table)
             detector_tables[table_name] = _table_preview(
                 table,
-                max_rows=max_rows,
+                max_rows=table_max_rows,
                 columns=_preview_columns_for_detector_table(detector_name, table_name),
             )
         if detector_tables:
@@ -1328,13 +1409,26 @@ def _load_table_previews_from_disk(
         if "__" not in path.stem:
             continue
         detector_name, table_name = path.stem.split("__", 1)
+        table_max_rows = _preview_row_limit_for_detector_table(
+            detector_name,
+            table_name,
+            default_max_rows=max_rows,
+        )
 
         table: pd.DataFrame
         try:
             if path.suffix == ".csv":
-                table = pd.read_csv(path, nrows=max_rows)
+                table = (
+                    pd.read_csv(path)
+                    if table_max_rows is None
+                    else pd.read_csv(path, nrows=table_max_rows)
+                )
             elif path.suffix == ".parquet":
-                table = pd.read_parquet(path).head(max_rows)
+                table = (
+                    pd.read_parquet(path)
+                    if table_max_rows is None
+                    else pd.read_parquet(path).head(table_max_rows)
+                )
             else:
                 continue
         except Exception:
@@ -1342,9 +1436,10 @@ def _load_table_previews_from_disk(
 
         if table.empty:
             continue
+        table = _prepare_table_for_preview(detector_name, table_name, table)
         previews[detector_name][table_name] = _table_preview(
             table,
-            max_rows=max_rows,
+            max_rows=table_max_rows,
             columns=_preview_columns_for_detector_table(detector_name, table_name),
         )
 
@@ -2667,22 +2762,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 },
             ],
         },
-        "off_hours_day_hour_heatmap": {
-            "summary": "Day x hour heatmap for testimony position composition.",
-            "items": [
-                {
-                    "label": "Cell color",
-                    "description": "Pro share for each weekday/hour cell.",
-                },
-                {
-                    "label": "Axes",
-                    "description": (
-                        "X-axis is hour of day; Y-axis is weekday in chronological "
-                        "top-down order (Monday to Sunday)."
-                    ),
-                },
-            ],
-        },
         "off_hours_date_hour_pro_heatmap": {
             "summary": "Date x hour heatmap for testimony position composition.",
             "items": [
@@ -3092,9 +3171,9 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Count of unmatched rows for each canonical name.",
+                    "description": "Count of unmatched rows for each display name.",
                 },
-                {"label": "X-axis", "description": "Canonical unmatched name values."},
+                {"label": "X-axis", "description": "Display names for unmatched rows."},
             ],
         },
         "voter_registry_pairwise_tests": {
@@ -3843,23 +3922,6 @@ def _build_interactive_chart_payload_v2(
             "n_total",
             "n_pro",
             "n_con",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-        ],
-    )
-    off_hours_day_hour = _with_expected_columns(
-        table_map.get(_table_key("off_hours", "hour_of_week_distribution"), pd.DataFrame()),
-        [
-            "day_of_week",
-            "day_of_week_index",
-            "hour",
-            "n_total",
-            "n_pro",
-            "n_con",
-            "n_off_hours",
-            "off_hours_fraction",
             "pro_rate",
             "pro_rate_wilson_low",
             "pro_rate_wilson_high",
@@ -4649,6 +4711,7 @@ def _build_interactive_chart_payload_v2(
     voter_unmatched = _with_expected_columns(
         table_map.get(_table_key("voter_registry_match", "unmatched_names"), pd.DataFrame()),
         [
+            "display_name",
             "canonical_name",
             "n_rows",
             "n_pro",
@@ -4693,6 +4756,17 @@ def _build_interactive_chart_payload_v2(
 
     if "n_records" not in voter_unmatched.columns and "n_rows" in voter_unmatched.columns:
         voter_unmatched["n_records"] = voter_unmatched["n_rows"]
+    if "display_name" not in voter_unmatched.columns:
+        voter_unmatched["display_name"] = ""
+    voter_unmatched["display_name"] = voter_unmatched["display_name"].fillna("").astype(str)
+    if "canonical_name" in voter_unmatched.columns:
+        canonical_display_names = (
+            voter_unmatched["canonical_name"].fillna("").astype(str).map(_canonical_name_to_display_name)
+        )
+        voter_unmatched["display_name"] = voter_unmatched["display_name"].where(
+            voter_unmatched["display_name"].str.strip() != "",
+            canonical_display_names,
+        )
 
     periodic_clockface = _with_expected_columns(
         table_map.get(_table_key("periodicity", "clockface_distribution"), pd.DataFrame()),
@@ -5761,24 +5835,6 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=10,
     )
-    charts["off_hours_day_hour_heatmap"] = _records_from_frame(
-        off_hours_day_hour.sort_values(["day_of_week_index", "hour", "day_of_week"]),
-        columns=[
-            "day_of_week",
-            "day_of_week_index",
-            "hour",
-            "n_total",
-            "n_pro",
-            "n_con",
-            "n_off_hours",
-            "off_hours_fraction",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-        ],
-        max_rows=2_500,
-    )
 
     charts["duplicates_exact_bucket_concentration"] = _records_from_frame(
         dup_exact_bucket.sort_values(["bucket_minutes", "bucket_start"]),
@@ -6196,6 +6252,7 @@ def _build_interactive_chart_payload_v2(
     charts["voter_registry_unmatched_names"] = _records_from_frame(
         voter_unmatched.sort_values("n_records", ascending=False),
         columns=[
+            "display_name",
             "canonical_name",
             "n_records",
             "n_pro",
@@ -6511,7 +6568,6 @@ def _build_interactive_chart_payload_v2(
     supplemental_chart_ids = {
         "off_hours_hourly_profile",
         "off_hours_summary_compare",
-        "off_hours_day_hour_heatmap",
         "off_hours_date_hour_pro_heatmap",
         "off_hours_date_hour_primary_residual_heatmap",
         "off_hours_date_hour_volume_heatmap",

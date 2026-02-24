@@ -20,6 +20,7 @@ from testifier_audit.report.render import (
     _load_summaries_from_disk,
     _load_table_previews_from_disk,
     _serialize_value,
+    _table_previews_from_results,
     render_report,
 )
 
@@ -126,6 +127,26 @@ def test_disk_summary_artifact_and_table_preview_loaders(tmp_path: Path) -> None
     (tables_dir / "detector__unsupported.txt").write_text("ignore-me", encoding="utf-8")
     (tables_dir / "detector__bad.parquet").write_text("not parquet bytes", encoding="utf-8")
     pd.DataFrame({"x": [1], "y": ["v"]}).to_csv(tables_dir / "detector__table.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "scope": "matched_only",
+                "display_name": f"NAME {index}",
+                "observed_count": index + 2,
+            }
+            for index in range(9)
+        ]
+    ).to_csv(tables_dir / "duplicates_exact__per_name_display.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "scope": "matched_only",
+                "metric": "repeated_group_rows",
+                "observed": index,
+            }
+            for index in range(9)
+        ]
+    ).to_csv(tables_dir / "duplicates_exact__collision_overview.csv", index=False)
 
     assert _load_summaries_from_disk(out_dir)["bursts"]["n"] == 1
 
@@ -137,6 +158,45 @@ def test_disk_summary_artifact_and_table_preview_loaders(tmp_path: Path) -> None
     assert "detector" in previews
     assert "table" in previews["detector"]
     assert previews["detector"]["table"][0]["x"] == 1
+    assert len(previews["duplicates_exact"]["per_name_display"]) == 9
+    assert len(previews["duplicates_exact"]["collision_overview"]) == 5
+
+
+def test_table_previews_from_results_keep_full_duplicate_name_tables() -> None:
+    duplicate_rows = pd.DataFrame(
+        [
+            {
+                "scope": "matched_only",
+                "display_name": f"NAME {index}",
+                "observed_count": index + 2,
+            }
+            for index in range(9)
+        ]
+    )
+    collision_rows = pd.DataFrame(
+        [
+            {
+                "scope": "matched_only",
+                "metric": "repeated_group_rows",
+                "observed": index,
+            }
+            for index in range(9)
+        ]
+    )
+    results = {
+        "duplicates_exact": DetectorResult(
+            detector="duplicates_exact",
+            summary={},
+            tables={
+                "per_name_display": duplicate_rows,
+                "collision_overview": collision_rows,
+            },
+        )
+    }
+
+    previews = _table_previews_from_results(results, max_rows=5)
+    assert len(previews["duplicates_exact"]["per_name_display"]) == 9
+    assert len(previews["duplicates_exact"]["collision_overview"]) == 5
 
 
 def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path) -> None:
@@ -382,6 +442,13 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "table-cell-semantic-alert" in css_text
     assert "table-cell-semantic-warn" in css_text
     assert "table-cell-semantic-context" in css_text
+    assert ".structured-host" in css_text
+    assert ".structured-kv-item" in css_text
+    assert ".structured-pair-item" in css_text
+    assert ".table-host.table-host-compact" in css_text
+    assert ".kpi-microchart" in css_text
+    assert ".kpi-mini-pie" in css_text
+    assert ".kpi-mini-bars" in css_text
     assert "@media print" in css_text
     assert ".toc-sidebar," in css_text
     assert ".page-shell.sidebar-open .report-main," in css_text
@@ -403,7 +470,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert 'id="methodology-multiple-testing-list"' not in rendered
         assert 'id="off-hours-evidence-tier"' in rendered
         assert 'id="off-hours-inference-banner"' in rendered
-        assert 'id="kpi-artifacts-meta"' in rendered
+        assert 'id="kpi-artifacts-meta"' not in rendered
         assert "sparseWhenLowSupport: true" in js_text
         assert "off_hours_primary_residual_timeline" in js_text
         assert "off_hours_primary_flag_channels" in js_text
@@ -414,7 +481,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert "flag_channel_summary" in js_text
         assert "flagged_window_diagnostics" in js_text
     else:
-        assert 'id="triage-dedup-mode"' in rendered
+        assert 'id="triage-dedup-mode"' not in rendered
         assert 'id="data-quality-warning-host"' in rendered
         assert 'id="data-quality-dedup-metrics-host"' in rendered
         assert 'id="cross-hearing-comparator-host"' not in rendered
@@ -427,8 +494,22 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert 'id="methodology-tests-used-host"' in rendered
         assert 'id="methodology-guardrails-host"' in rendered
         assert 'id="methodology-multiple-testing-list"' in rendered
+        assert 'id="triage-total-procon-meta"' in rendered
+        assert 'id="triage-procon-pie"' in rendered
+        assert 'id="triage-date-range-meta"' in rendered
+        assert 'id="triage-duplicate-names-total"' in rendered
+        assert 'id="triage-duplicate-position-bars"' in rendered
+        assert 'id="triage-voter-match-rate"' in rendered
+        assert 'id="triage-voter-match-position-bars"' in rendered
+        assert 'id="triage-overall-procon"' not in rendered
+        assert 'id="triage-top-tier-count"' not in rendered
+        assert 'id="forensics-top-names-host" class="table-host table-host-compact"' in rendered
+        assert 'id="hearing-context-metadata-host" class="structured-host structured-host-compact"' in rendered
+        assert 'id="hearing-deadline-ramp-host" class="structured-host structured-host-compact"' in rendered
+        assert 'id="methodology-definitions-host" class="structured-host structured-host-compact"' in rendered
+        assert 'id="methodology-guardrails-host" class="structured-host structured-host-compact"' in rendered
     assert "renderMethodologyPanel()" in js_text
-    assert "initDedupModeControl()" in js_text
+    assert "initDedupModeControl()" not in js_text
     assert "renderDataQualityPanel()" in js_text
     assert "renderCrossHearingComparator()" not in js_text
     assert "applyCrossHearingNameCues(" not in js_text
@@ -450,6 +531,23 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert '"unmatched_rate",' not in voter_rates_block
     assert "statistical irregularity requiring review" in payload_text
     assert 'summary.textContent = "artifact_rows"' not in js_text
+    assert "mountKeyValueList(metadataHost, metadataRows" in js_text
+    assert "mountKeyValueList(rampHost, rampRows" in js_text
+    assert "mountTextPairCards(definitionsHost, definitions" in js_text
+    assert "mountTextPairCards(guardrailsHost, guardrails" in js_text
+    assert "mountTable(metadataHost, metadataRows" not in js_text
+    assert "mountTable(guardrailsHost, guardrails" not in js_text
+    assert "formatDateRangeHumanized(" in js_text
+    assert "renderKpiMiniPie(" in js_text
+    assert "renderKpiMiniBars(" in js_text
+    assert 'tablePreviewRows("duplicates_exact", "per_name_display")' in js_text
+    assert "filterRowsByDuplicateTableBucket(" in js_text
+    assert "rerenderBucketAwareTables();" in js_text
+    assert "triage-overall-procon" not in js_text
+    assert "triage-top-tier-count" not in js_text
+    assert '"Total Sign-ins"' in js_text
+    assert '"# Pro"' in js_text
+    assert '"# Con"' in js_text
 
 
 def test_render_report_table_semantic_rules_and_cell_background_normalization(
@@ -499,7 +597,6 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
 
     overview_chart_ids = [
         "overview_position_volume_by_bucket",
-        "off_hours_day_hour_heatmap",
         "off_hours_date_hour_pro_heatmap",
         "off_hours_date_hour_primary_residual_heatmap",
         "off_hours_date_hour_volume_heatmap",

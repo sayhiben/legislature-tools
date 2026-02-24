@@ -1091,6 +1091,8 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_10() -> None:
         [row["n_records"] for row in chart_rows],
         reverse=True,
     )
+    assert all(str(row.get("display_name", "")).strip() for row in chart_rows)
+    assert chart_rows[0]["display_name"] == "NAME, 00"
 
 
 def test_payload_values_are_json_safe_scalars() -> None:

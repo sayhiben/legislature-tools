@@ -36,6 +36,12 @@ def _safe_str_series(series: pd.Series) -> pd.Series:
     return series.fillna("").astype(str)
 
 
+def _display_name_from_canonical(canonical_name: str) -> str:
+    last_name, first_name = split_canonical_name(str(canonical_name or ""))
+    display_name = f"{last_name}, {first_name}".strip(", ").strip()
+    return display_name if display_name else str(canonical_name or "")
+
+
 class VoterRegistryMatchDetector(Detector):
     name = "voter_registry_match"
     _ATTRIBUTION_CAVEAT = (
@@ -730,10 +736,28 @@ class VoterRegistryMatchDetector(Detector):
         )
 
         # Unmatched names in primary mode.
+        unmatched_source = working[working[outcome_column] == "unmatched"].copy()
+        if "display_name" in unmatched_source.columns:
+            unmatched_source["display_name"] = _safe_str_series(unmatched_source["display_name"])
+        elif "name_display" in unmatched_source.columns:
+            unmatched_source["display_name"] = _safe_str_series(unmatched_source["name_display"])
+        else:
+            unmatched_source["display_name"] = ""
+        unmatched_source["display_name"] = unmatched_source["display_name"].where(
+            unmatched_source["display_name"].str.strip() != "",
+            unmatched_source["canonical_name"].map(_display_name_from_canonical),
+        )
+
         unmatched_names = (
-            working[working[outcome_column] == "unmatched"]
-            .groupby("canonical_name", dropna=False)
+            unmatched_source.groupby("canonical_name", dropna=False)
             .agg(
+                display_name=(
+                    "display_name",
+                    lambda series: next(
+                        (value for value in _safe_str_series(series).tolist() if value.strip()),
+                        "",
+                    ),
+                ),
                 n_rows=("canonical_name", "count"),
                 n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
                 n_con=("position_normalized", lambda series: int((series == "Con").sum())),

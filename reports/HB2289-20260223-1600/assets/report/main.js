@@ -169,20 +169,9 @@
     typeof controls.timezone_label === "string" && controls.timezone_label.trim()
       ? controls.timezone_label.trim()
       : reportTimezone;
-  const dedupModes = Array.isArray(controls.dedup_modes)
-    ? controls.dedup_modes.map((mode) => String(mode || "").trim()).filter((mode) => !!mode)
-    : [];
   const processMarkers = Array.isArray(controls.process_markers)
     ? controls.process_markers
     : [];
-  const defaultDedupMode =
-    typeof controls.default_dedup_mode === "string" && dedupModes.includes(controls.default_dedup_mode)
-      ? controls.default_dedup_mode
-      : dedupModes.includes("side_by_side")
-        ? "side_by_side"
-        : dedupModes.includes("raw")
-          ? "raw"
-          : dedupModes[0] || "raw";
   const duplicateScopeOptions = Array.isArray(controls.duplicate_collision_scope_options)
     ? controls.duplicate_collision_scope_options
         .map((value) => String(value || "").trim())
@@ -214,7 +203,6 @@
   const state = {
     activeBucket: null,
     defaultBucket: null,
-    activeDedupMode: defaultDedupMode,
     activeDuplicateScope: defaultDuplicateScope,
     defaultDuplicateScope: defaultDuplicateScope,
     activeDuplicateMetric: defaultDuplicateMetric,
@@ -1041,6 +1029,214 @@
     return formatEpochMillis(start) + " to " + formatEpochMillis(end);
   }
 
+  function formatDurationHumanized(durationMs) {
+    if (!Number.isFinite(durationMs) || durationMs <= 0) {
+      return "";
+    }
+    const dayMs = 24 * 60 * 60 * 1000;
+    const hourMs = 60 * 60 * 1000;
+    const minuteMs = 60 * 1000;
+    const days = Math.floor(durationMs / dayMs);
+    const hours = Math.floor((durationMs % dayMs) / hourMs);
+    const minutes = Math.floor((durationMs % hourMs) / minuteMs);
+    const parts = [];
+    if (days > 0) {
+      parts.push(String(days) + "d");
+    }
+    if (hours > 0) {
+      parts.push(String(hours) + "h");
+    }
+    if (minutes > 0 && days === 0) {
+      parts.push(String(minutes) + "m");
+    }
+    return parts.join(" ");
+  }
+
+  function formatDateRangeHumanized(startIso, endIso) {
+    const start = toEpochMillis(startIso);
+    const end = toEpochMillis(endIso);
+    if (start === null || end === null) {
+      return {
+        value: "-",
+        meta: "",
+      };
+    }
+    const value = formatZoomRangeEpochMillis(start) + " to " + formatZoomRangeEpochMillis(end);
+    const durationText = formatDurationHumanized(Math.max(0, end - start));
+    return {
+      value: value,
+      meta: durationText ? "Span: " + durationText + "." : "",
+    };
+  }
+
+  function setTextById(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = String(value);
+    }
+  }
+
+  function tablePreviewRows(detectorName, tableName) {
+    const detectorTables =
+      reportData.table_previews && typeof reportData.table_previews === "object"
+        ? reportData.table_previews[detectorName]
+        : null;
+    const rows = detectorTables && typeof detectorTables === "object" ? detectorTables[tableName] : null;
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function kpiPositionColor(positionLabel) {
+    const normalized = String(positionLabel || "").trim().toLowerCase();
+    const theme = currentChartTheme();
+    if (normalized.includes("pro")) {
+      return theme.contextLine;
+    }
+    if (normalized.includes("con")) {
+      return theme.primaryLine;
+    }
+    if (normalized.includes("unknown")) {
+      return theme.intervalBand;
+    }
+    return theme.referenceLine;
+  }
+
+  function renderKpiMiniPie(hostId, slices) {
+    const host = document.getElementById(hostId);
+    if (!host) {
+      return;
+    }
+    host.innerHTML = "";
+    const rows = Array.isArray(slices)
+      ? slices.filter((slice) => toFiniteNumberOrNull((slice || {}).value) !== null)
+      : [];
+    const total = rows.reduce((acc, slice) => acc + Math.max(0, toNumber(slice.value)), 0);
+    if (!(total > 0)) {
+      return;
+    }
+
+    const parts = [];
+    let cursor = 0;
+    rows.forEach((slice) => {
+      const value = Math.max(0, toNumber(slice.value));
+      if (!(value > 0)) {
+        return;
+      }
+      const start = (cursor / total) * 360;
+      cursor += value;
+      const end = (cursor / total) * 360;
+      const color = typeof slice.color === "string" && slice.color.trim() ? slice.color.trim() : "#94a3b8";
+      parts.push(color + " " + start + "deg " + end + "deg");
+    });
+
+    const pie = document.createElement("div");
+    pie.className = "kpi-mini-pie";
+    pie.style.background = "conic-gradient(" + parts.join(", ") + ")";
+    host.appendChild(pie);
+  }
+
+  function renderKpiMiniBars(hostId, entries, options) {
+    const host = document.getElementById(hostId);
+    if (!host) {
+      return;
+    }
+    host.innerHTML = "";
+    const rows = Array.isArray(entries) ? entries : [];
+    if (!rows.length) {
+      return;
+    }
+
+    const maxValueOption = options ? toFiniteNumberOrNull(options.maxValue) : null;
+    const maxValue =
+      maxValueOption !== null && maxValueOption > 0
+        ? maxValueOption
+        : rows.reduce((acc, row) => Math.max(acc, Math.max(0, toNumber((row || {}).value))), 0);
+    if (!(maxValue > 0)) {
+      return;
+    }
+    const formatter =
+      options && typeof options.valueFormatter === "function"
+        ? options.valueFormatter
+        : (value) => String(value);
+
+    const list = document.createElement("div");
+    list.className = "kpi-mini-bars";
+    rows.forEach((row) => {
+      const labelText = String((row || {}).label || "").trim();
+      if (!labelText) {
+        return;
+      }
+      const value = Math.max(0, toNumber((row || {}).value));
+      const width = Math.max(0, Math.min(100, (value / maxValue) * 100));
+      const color =
+        typeof row.color === "string" && row.color.trim() ? row.color.trim() : kpiPositionColor(labelText);
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "kpi-mini-bars-row";
+
+      const label = document.createElement("span");
+      label.className = "kpi-mini-bars-label";
+      label.textContent = labelText;
+      wrapper.appendChild(label);
+
+      const track = document.createElement("div");
+      track.className = "kpi-mini-bars-track";
+      const fill = document.createElement("div");
+      fill.className = "kpi-mini-bars-fill";
+      fill.style.width = width.toFixed(1) + "%";
+      fill.style.background = color;
+      track.appendChild(fill);
+      wrapper.appendChild(track);
+
+      const valueLabel = document.createElement("span");
+      valueLabel.className = "kpi-mini-bars-value";
+      valueLabel.textContent = formatter(value);
+      wrapper.appendChild(valueLabel);
+
+      list.appendChild(wrapper);
+    });
+
+    if (!list.childElementCount) {
+      return;
+    }
+    host.appendChild(list);
+  }
+
+  function duplicatePositionCounts(rows) {
+    const counts = new Map([
+      ["Pro", 0],
+      ["Con", 0],
+      ["Other", 0],
+      ["Unknown", 0],
+    ]);
+
+    rows.forEach((row) => {
+      const pro = Math.max(0, toNumber((row || {}).n_pro));
+      const con = Math.max(0, toNumber((row || {}).n_con));
+      const observed = Math.max(
+        0,
+        toNumber((row || {}).observed_count ?? (row || {}).n_records ?? (row || {}).n)
+      );
+      const other = Math.max(0, observed - pro - con);
+      let bucket = "Unknown";
+      if (pro >= con && pro >= other && pro > 0) {
+        bucket = "Pro";
+      } else if (con >= pro && con >= other && con > 0) {
+        bucket = "Con";
+      } else if (other > 0) {
+        bucket = "Other";
+      }
+      counts.set(bucket, toNumber(counts.get(bucket)) + 1);
+    });
+
+    return ["Pro", "Con", "Other", "Unknown"]
+      .map((label) => ({
+        label: label,
+        value: toNumber(counts.get(label)),
+        color: kpiPositionColor(label),
+      }))
+      .filter((entry) => entry.value > 0);
+  }
+
   function processMarkerDisplayLabel(marker) {
     const explicit = marker && typeof marker.label === "string" ? marker.label.trim() : "";
     if (explicit) {
@@ -1101,19 +1297,6 @@
         };
       })
       .filter((entry) => !!entry);
-  }
-
-  function dedupModeLabel(mode) {
-    if (mode === "raw") {
-      return "Raw";
-    }
-    if (mode === "exact_row_dedup") {
-      return "Exact row dedup";
-    }
-    if (mode === "side_by_side") {
-      return "Side-by-side";
-    }
-    return mode;
   }
 
   function themeLabel(themeId) {
@@ -1212,6 +1395,9 @@
         }
         applyTheme(option, true);
         chartMounts.forEach((mount) => renderChartMount(mount));
+        if (!isOffHoursFocusOnly) {
+          renderTriageSummary();
+        }
         scheduleChartResizeSequence();
       });
     });
@@ -1273,6 +1459,189 @@
     });
   }
 
+  function clearStructuredHostClasses(container) {
+    if (!container) {
+      return;
+    }
+    container.classList.remove("structured-host");
+    container.classList.remove("structured-host-key-value");
+    container.classList.remove("structured-host-pairs");
+  }
+
+  function isBlankValue(value) {
+    if (value === null || value === undefined) {
+      return true;
+    }
+    if (typeof value === "string") {
+      return !value.trim();
+    }
+    if (Array.isArray(value)) {
+      return value.length === 0;
+    }
+    return false;
+  }
+
+  function formatStructuredValue(value) {
+    if (value === null || value === undefined) {
+      return "N/A";
+    }
+    if (typeof value === "boolean") {
+      return value ? "Yes" : "No";
+    }
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) {
+        return "N/A";
+      }
+      if (Number.isInteger(value)) {
+        return value.toLocaleString();
+      }
+      return value.toLocaleString(undefined, { maximumFractionDigits: 6 });
+    }
+    if (Array.isArray(value)) {
+      if (!value.length) {
+        return "N/A";
+      }
+      return value.map((entry) => formatStructuredValue(entry)).join(", ");
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    const text = String(value).trim();
+    return text || "N/A";
+  }
+
+  function appendStructuredEmptyMessage(container, message) {
+    if (!container) {
+      return;
+    }
+    const empty = document.createElement("p");
+    empty.className = "structured-empty";
+    empty.textContent = message || "No entries available for this run.";
+    container.appendChild(empty);
+  }
+
+  function mountKeyValueList(container, rows, options) {
+    if (!container) {
+      return null;
+    }
+    clearStructuredHostClasses(container);
+    container.classList.add("structured-host");
+    container.classList.add("structured-host-key-value");
+    container.innerHTML = "";
+
+    const dataset = Array.isArray(rows) ? rows : [];
+    if (!dataset.length) {
+      appendStructuredEmptyMessage(container, "No metadata available for this run.");
+      return { kind: "structured", data: [] };
+    }
+
+    const keyField =
+      options && typeof options.keyField === "string" && options.keyField.trim()
+        ? options.keyField.trim()
+        : "key";
+    const valueField =
+      options && typeof options.valueField === "string" && options.valueField.trim()
+        ? options.valueField.trim()
+        : "value";
+    const humanizeKeys = !!(options && options.humanizeKeys);
+    const list = document.createElement("dl");
+    list.className = "structured-kv-list";
+
+    dataset.forEach((row) => {
+      if (!row || typeof row !== "object") {
+        return;
+      }
+      const keyRaw = row[keyField];
+      const valueRaw = row[valueField];
+      const keyText = String(keyRaw === null || keyRaw === undefined ? "" : keyRaw).trim();
+      if (!keyText && isBlankValue(valueRaw)) {
+        return;
+      }
+
+      const item = document.createElement("div");
+      item.className = "structured-kv-item";
+
+      const key = document.createElement("dt");
+      key.textContent = humanizeKeys ? humanizeFieldName(keyText) : keyText || "entry";
+      item.appendChild(key);
+
+      const value = document.createElement("dd");
+      value.textContent = formatStructuredValue(valueRaw);
+      item.appendChild(value);
+
+      list.appendChild(item);
+    });
+
+    if (!list.childElementCount) {
+      appendStructuredEmptyMessage(container, "No metadata available for this run.");
+      return { kind: "structured", data: dataset };
+    }
+
+    container.appendChild(list);
+    return { kind: "structured", data: dataset };
+  }
+
+  function mountTextPairCards(container, rows, options) {
+    if (!container) {
+      return null;
+    }
+    clearStructuredHostClasses(container);
+    container.classList.add("structured-host");
+    container.classList.add("structured-host-pairs");
+    container.innerHTML = "";
+
+    const dataset = Array.isArray(rows) ? rows : [];
+    if (!dataset.length) {
+      appendStructuredEmptyMessage(container, "No entries available for this run.");
+      return { kind: "structured", data: [] };
+    }
+
+    const titleField =
+      options && typeof options.titleField === "string" && options.titleField.trim()
+        ? options.titleField.trim()
+        : "title";
+    const bodyField =
+      options && typeof options.bodyField === "string" && options.bodyField.trim()
+        ? options.bodyField.trim()
+        : "body";
+    const list = document.createElement("div");
+    list.className = "structured-pair-list";
+
+    dataset.forEach((row) => {
+      if (!row || typeof row !== "object") {
+        return;
+      }
+      const titleText = String(row[titleField] === null || row[titleField] === undefined ? "" : row[titleField]).trim();
+      const bodyText = String(row[bodyField] === null || row[bodyField] === undefined ? "" : row[bodyField]).trim();
+      if (!titleText && !bodyText) {
+        return;
+      }
+
+      const item = document.createElement("article");
+      item.className = "structured-pair-item";
+
+      const title = document.createElement("h4");
+      title.className = "structured-pair-title";
+      title.textContent = titleText || "entry";
+      item.appendChild(title);
+
+      const body = document.createElement("p");
+      body.className = "structured-pair-body";
+      body.textContent = bodyText || "N/A";
+      item.appendChild(body);
+
+      list.appendChild(item);
+    });
+
+    if (!list.childElementCount) {
+      appendStructuredEmptyMessage(container, "No entries available for this run.");
+      return { kind: "structured", data: dataset };
+    }
+
+    container.appendChild(list);
+    return { kind: "structured", data: dataset };
+  }
+
   function renderMethodologyPanel() {
     const definitionsHost = document.getElementById("methodology-definitions-host");
     const testsHost = document.getElementById("methodology-tests-used-host");
@@ -1294,36 +1663,32 @@
       ? methodology.interpretation_guidance
       : [];
 
-    mountTable(definitionsHost, definitions, {
-      pagination: false,
-      maxHeight: "280px",
+    mountTextPairCards(definitionsHost, definitions, {
+      titleField: "term",
+      bodyField: "definition",
     });
     mountTable(testsHost, testsUsed, {
       pagination: false,
       maxHeight: "320px",
+      tableKey: "methodology.tests_used",
     });
-    mountTable(guardrailsHost, guardrails, {
-      pagination: false,
-      maxHeight: "260px",
+    mountTextPairCards(guardrailsHost, guardrails, {
+      titleField: "standard",
+      bodyField: "requirement",
     });
     setListItems(multipleTestingHost, multipleTesting);
     setListItems(caveatsHost, caveats);
     setListItems(guidanceHost, guidance);
   }
 
-  function getTriageView(mode) {
-    const key = String(mode || "");
-    const view = triageViews[key];
+  function getRawTriageView() {
+    const view = triageViews.raw;
     if (view && typeof view === "object") {
       return view;
     }
     return {
       triage_summary: triageSummary,
     };
-  }
-
-  function getActiveTriageView() {
-    return getTriageView(state.activeDedupMode);
   }
 
   function buildDateTimeFormatter(timezoneName) {
@@ -2340,6 +2705,57 @@
       bucket: target,
       options: options,
       note: selection.note,
+    };
+  }
+
+  function shouldRetainBucketlessRowsForDuplicateTable(tableName) {
+    return tableName === "top_name_timing_by_mode";
+  }
+
+  function filterRowsByDuplicateTableBucket(tableName, rows) {
+    const sourceRows = Array.isArray(rows) ? rows : [];
+    if (!sourceRows.length || !Number.isFinite(state.activeBucket)) {
+      return {
+        rows: sourceRows,
+        applied: false,
+        note: "",
+      };
+    }
+
+    const hasBucketField = sourceRows.some((row) =>
+      Object.prototype.hasOwnProperty.call(row || {}, "bucket_minutes")
+    );
+    if (!hasBucketField) {
+      return {
+        rows: sourceRows,
+        applied: false,
+        note: "",
+      };
+    }
+
+    const keepBucketlessRows = shouldRetainBucketlessRowsForDuplicateTable(tableName);
+    const filteredRows = sourceRows.filter((row) => {
+      const bucketMinutes = toFiniteNumberOrNull((row || {}).bucket_minutes);
+      if (bucketMinutes === state.activeBucket) {
+        return true;
+      }
+      return keepBucketlessRows && bucketMinutes === null;
+    });
+    if (filteredRows.length) {
+      return {
+        rows: filteredRows,
+        applied: true,
+        note: "",
+      };
+    }
+
+    return {
+      rows: sourceRows,
+      applied: false,
+      note:
+        "Selected bucket " +
+        Math.round(state.activeBucket) +
+        "m is unavailable for this preview table; showing all rows.",
     };
   }
 
@@ -4886,6 +5302,10 @@
       return false;
     }
 
+    mount.timeExtent = extentFromRows(points, "bucketStart");
+    mount.customChartNote = null;
+    const mainSeriesId = "main-" + mount.chartId;
+
     const seriesFor = (field) =>
       points.map((point) => ({
         value: [point.bucketStart, point[field]],
@@ -4894,7 +5314,7 @@
 
     const option = {
       animation: false,
-      grid: { left: 66, right: 28, top: 24, bottom: 68 },
+      grid: { left: 66, right: 28, top: 24, bottom: 88 },
       legend: { bottom: 0 },
       tooltip: {
         trigger: "axis",
@@ -4962,8 +5382,24 @@
         name: "Submission count",
         min: 0,
       },
+      dataZoom: [
+        {
+          type: "inside",
+          xAxisIndex: [0],
+          startValue: Number.isFinite(state.zoom.minTime) ? state.zoom.minTime : undefined,
+          endValue: Number.isFinite(state.zoom.maxTime) ? state.zoom.maxTime : undefined,
+        },
+        {
+          type: "slider",
+          xAxisIndex: [0],
+          bottom: 14,
+          startValue: Number.isFinite(state.zoom.minTime) ? state.zoom.minTime : undefined,
+          endValue: Number.isFinite(state.zoom.maxTime) ? state.zoom.maxTime : undefined,
+        },
+      ],
       series: [
         {
+          id: mainSeriesId,
           name: "Pro",
           type: "bar",
           stack: "position-volume",
@@ -4971,6 +5407,7 @@
           itemStyle: { color: theme.contextLine },
           emphasis: { focus: "series" },
           barMaxWidth: 20,
+          markLine: appendCursorMarkLine(mount.baseMarkLines || []),
         },
         {
           name: "Con",
@@ -4994,8 +5431,9 @@
     };
 
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.seriesId = mainSeriesId;
     mount.isTimeSeries = true;
-    mount.isAbsoluteTime = true;
+    mount.isAbsoluteTime = state.absoluteTimeSet.has(mount.chartId);
     return true;
   }
 
@@ -6082,9 +6520,6 @@
     if (mount.chartId === "baseline_day_hour_volume") {
       return renderDayHourHeatmap(mount, rows, "n_total");
     }
-    if (mount.chartId === "off_hours_day_hour_heatmap") {
-      return renderDayHourHeatmap(mount, rows, "pro_rate");
-    }
     if (mount.chartId === "off_hours_date_hour_pro_heatmap") {
       return renderDateHourHeatmap(mount, rows, "pro_rate", "Pro rate", {
         scaleMode: "rate_diverging",
@@ -6472,7 +6907,7 @@
       return renderSimpleBar(mount, rows, "mode", "unmatched_rate_rows", "unmatched rate");
     }
     if (mount.chartId === "voter_registry_unmatched_names") {
-      return renderSimpleBar(mount, rows, "canonical_name", "n_records", "count");
+      return renderSimpleBar(mount, rows, "display_name", "n_records", "count");
     }
     if (mount.chartId === "voter_registry_match_tiers") {
       const yField = rows.length && rows[0].record_rate !== undefined
@@ -6840,10 +7275,12 @@
     const dataset = Array.isArray(rows) ? rows : [];
     if (!container || !dataset.length) {
       if (container) {
+        clearStructuredHostClasses(container);
         container.innerHTML = "";
       }
       return null;
     }
+    clearStructuredHostClasses(container);
     const tableKey =
       options && typeof options.tableKey === "string" ? options.tableKey.trim() : "";
     const tableOptions = Object.assign({}, options || {});
@@ -6966,65 +7403,104 @@
   }
 
   function renderTriageSummary() {
-    const view = getActiveTriageView();
+    const view = getRawTriageView();
     const summary = view.triage_summary || {};
-    const setText = (id, value) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.textContent = String(value);
-      }
+    const totalSubmissions = Math.max(0, Math.round(toNumber(summary.total_submissions || 0)));
+    const proRateRaw = toFiniteNumberOrNull(summary.overall_pro_rate);
+    const conRateRaw = toFiniteNumberOrNull(summary.overall_con_rate);
+    const proRate = proRateRaw === null ? 0 : Math.max(0, Math.min(1, proRateRaw));
+    const conRate = conRateRaw === null ? 0 : Math.max(0, Math.min(1, conRateRaw));
+    let proCount = Math.max(0, Math.round(totalSubmissions * proRate));
+    let conCount = Math.max(0, Math.round(totalSubmissions * conRate));
+    if (proCount + conCount > totalSubmissions && totalSubmissions > 0) {
+      const denom = Math.max(1, proCount + conCount);
+      proCount = Math.round((totalSubmissions * proCount) / denom);
+      conCount = totalSubmissions - proCount;
+    }
+    const otherCount = Math.max(0, totalSubmissions - proCount - conCount);
+
+    setTextById("triage-total-submissions", totalSubmissions.toLocaleString());
+    const proConMetaParts = [
+      "Pro " + proCount.toLocaleString() + " (" + formatPercent(proRate, 1) + ")",
+      "Con " + conCount.toLocaleString() + " (" + formatPercent(conRate, 1) + ")",
+    ];
+    if (otherCount > 0) {
+      proConMetaParts.push("Other " + otherCount.toLocaleString());
+    }
+    setTextById("triage-total-procon-meta", proConMetaParts.join(" · "));
+    renderKpiMiniPie("triage-procon-pie", [
+      { label: "Pro", value: proCount, color: currentChartTheme().contextLine },
+      { label: "Con", value: conCount, color: currentChartTheme().primaryLine },
+      { label: "Other", value: otherCount, color: currentChartTheme().referenceLine },
+    ]);
+
+    const range = formatDateRangeHumanized(summary.date_range_start, summary.date_range_end);
+    setTextById("triage-date-range", range.value);
+    setTextById("triage-date-range-meta", range.meta);
+
+    const duplicateRows = tablePreviewRows("duplicates_exact", "per_name_display");
+    const topRepeatedNames = Array.isArray(summary.top_repeated_names) ? summary.top_repeated_names : [];
+    const duplicateSourceRows = duplicateRows.length ? duplicateRows : topRepeatedNames;
+    setTextById("triage-duplicate-names-total", duplicateSourceRows.length.toLocaleString());
+    setTextById(
+      "triage-duplicate-names-meta",
+      duplicateRows.length
+        ? "Repeated canonical names in duplicates table."
+        : "Fallback from triage summary (top repeated names only)."
+    );
+    renderKpiMiniBars("triage-duplicate-position-bars", duplicatePositionCounts(duplicateSourceRows), {
+      valueFormatter: (value) => Math.round(value).toLocaleString(),
+    });
+
+    const voterOverviewRows = tablePreviewRows("voter_registry_match", "linkage_overview");
+    const voterOverview = voterOverviewRows.length ? voterOverviewRows[0] || {} : {};
+    const matchedRate = toFiniteNumberOrNull(
+      voterOverview.matched_rate_rows !== undefined
+        ? voterOverview.matched_rate_rows
+        : voterOverview.matched_rate_unique
+    );
+    setTextById(
+      "triage-voter-match-rate",
+      matchedRate === null ? "-" : formatPercent(matchedRate, 1)
+    );
+    const matchedRows = Math.max(
+      0,
+      Math.round(
+        toNumber(voterOverview.n_matched_unique_rows) + toNumber(voterOverview.n_matched_ambiguous_rows)
+      )
+    );
+    const totalRows = Math.max(0, Math.round(toNumber(voterOverview.n_rows)));
+    setTextById(
+      "triage-voter-match-meta",
+      totalRows > 0
+        ? matchedRows.toLocaleString() + " / " + totalRows.toLocaleString() + " matched rows."
+        : "Voter match data unavailable for this run."
+    );
+    const voterPositionRows = tablePreviewRows("voter_registry_match", "linkage_by_position_rows")
+      .filter((row) => String((row || {}).unit || "rows").toLowerCase() === "rows")
+      .map((row) => {
+        const label = String((row || {}).position_normalized || "Unknown");
+        return {
+          label: label,
+          value: Math.max(0, Math.min(1, toNumber((row || {}).matched_rate))),
+          color: kpiPositionColor(label),
+        };
+      });
+    const positionOrder = {
+      Pro: 0,
+      Con: 1,
+      Other: 2,
+      Unknown: 3,
     };
-
-    if (
-      state.activeDedupMode === "side_by_side" &&
-      summary.total_submissions_raw !== undefined &&
-      summary.total_submissions_exact_row_dedup !== undefined
-    ) {
-      setText(
-        "triage-total-submissions",
-        Number(toNumber(summary.total_submissions_raw || 0)).toLocaleString() +
-          " -> " +
-          Number(toNumber(summary.total_submissions_exact_row_dedup || 0)).toLocaleString()
-      );
-    } else {
-      setText(
-        "triage-total-submissions",
-        Number(toNumber(summary.total_submissions || 0)).toLocaleString()
-      );
-    }
-    setText(
-      "triage-date-range",
-      formatDateRange(summary.date_range_start, summary.date_range_end)
+    voterPositionRows.sort(
+      (left, right) =>
+        toNumber(positionOrder[left.label] !== undefined ? positionOrder[left.label] : 99) -
+        toNumber(positionOrder[right.label] !== undefined ? positionOrder[right.label] : 99)
     );
-    if (
-      state.activeDedupMode === "side_by_side" &&
-      summary.overall_pro_rate_raw !== undefined &&
-      summary.overall_pro_rate_exact_row_dedup !== undefined
-    ) {
-      setText(
-        "triage-overall-procon",
-        formatPercent(summary.overall_pro_rate_raw) +
-          " -> " +
-          formatPercent(summary.overall_pro_rate_exact_row_dedup) +
-          " / " +
-          formatPercent(summary.overall_con_rate_raw) +
-          " -> " +
-          formatPercent(summary.overall_con_rate_exact_row_dedup)
-      );
-    } else {
-      setText(
-        "triage-overall-procon",
-        formatPercent(summary.overall_pro_rate) + " / " + formatPercent(summary.overall_con_rate)
-      );
-    }
-
-    const topRepeatedNames = Array.isArray(summary.top_repeated_names)
-      ? summary.top_repeated_names
-      : [];
-    setText(
-      "triage-top-tier-count",
-      Number(toNumber(topRepeatedNames.length || 0)).toLocaleString()
-    );
+    renderKpiMiniBars("triage-voter-match-position-bars", voterPositionRows, {
+      maxValue: 1,
+      valueFormatter: (value) => formatPercent(value, 0),
+    });
   }
 
   function renderDataQualityPanel() {
@@ -7046,10 +7522,18 @@
           : "Data-quality checks unavailable for this run.";
     }
     if (warningHost) {
-      mountTable(warningHost, warnings, { pagination: false, maxHeight: "260px" });
+      mountTable(warningHost, warnings, {
+        pagination: false,
+        maxHeight: "260px",
+        tableKey: "data_quality.warnings",
+      });
     }
     if (metricsHost) {
-      mountTable(metricsHost, metrics, { pagination: false, maxHeight: "260px" });
+      mountTable(metricsHost, metrics, {
+        pagination: false,
+        maxHeight: "260px",
+        tableKey: "data_quality.raw_vs_dedup_metrics",
+      });
     }
   }
 
@@ -7087,22 +7571,29 @@
     }
 
     if (metadataHost) {
-      mountTable(metadataHost, metadataRows, { pagination: false, maxHeight: "280px" });
+      mountKeyValueList(metadataHost, metadataRows, {
+        keyField: "field",
+        valueField: "value",
+        humanizeKeys: true,
+      });
     }
 
     const rampRows = [];
     if (ramp && typeof ramp === "object") {
       Object.keys(ramp)
-        .filter((key) => key !== "status")
         .forEach((key) => {
           rampRows.push({
-            metric: key.replace(/_/g, " "),
+            metric: key,
             value: ramp[key],
           });
         });
     }
     if (rampHost) {
-      mountTable(rampHost, rampRows, { pagination: false, maxHeight: "280px" });
+      mountKeyValueList(rampHost, rampRows, {
+        keyField: "metric",
+        valueField: "value",
+        humanizeKeys: true,
+      });
     }
   }
 
@@ -7110,7 +7601,7 @@
     if (isOffHoursFocusOnly) {
       return;
     }
-    const view = getActiveTriageView();
+    const view = getRawTriageView();
     const summary = view.triage_summary || {};
     const forensicsNamesHost = document.getElementById("forensics-top-names-host");
     const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
@@ -7119,9 +7610,22 @@
     const topNames = Array.isArray(summary.top_repeated_names)
       ? summary.top_repeated_names
       : [];
-    mountTable(forensicsNamesHost, topNames, {
+    const topNamesRows = topNames.map((row) => ({
+      Name:
+        typeof (row || {}).display_name === "string" && row.display_name.trim()
+          ? row.display_name.trim()
+          : typeof (row || {}).canonical_name === "string" && row.canonical_name.trim()
+            ? row.canonical_name.trim()
+            : "",
+      "Total Sign-ins": Number(toNumber((row || {}).n_records ?? (row || {}).n)),
+      "# Pro": Number(toNumber((row || {}).n_pro)),
+      "# Con": Number(toNumber((row || {}).n_con)),
+    }));
+    mountTable(forensicsNamesHost, topNamesRows, {
       paginationSize: 8,
       maxHeight: "340px",
+      layout: "fitData",
+      tableKey: "triage.top_repeated_names",
     });
 
     const taxonomyRows = Array.isArray(methodology.evidence_taxonomy)
@@ -7132,6 +7636,7 @@
     mountTable(taxonomyHost, taxonomyRows, {
       pagination: false,
       maxHeight: "280px",
+      tableKey: "methodology.evidence_taxonomy",
     });
 
     const artifactRows = Object.entries(reportData.artifact_rows || {})
@@ -7149,60 +7654,9 @@
     mountTable(artifactRowsHost, artifactRows, {
       paginationSize: 10,
       maxHeight: "300px",
+      tableKey: "report.artifact_rows",
     });
     renderMethodologyPanel();
-  }
-
-  function initDedupModeControl() {
-    const select = document.getElementById("triage-dedup-mode");
-    const note = document.getElementById("triage-dedup-note");
-    if (!select) {
-      return;
-    }
-
-    const modes = dedupModes.length ? dedupModes : ["raw"];
-    if (!modes.includes(state.activeDedupMode)) {
-      state.activeDedupMode = modes[0];
-    }
-
-    select.innerHTML = "";
-    modes.forEach((mode) => {
-      const option = document.createElement("option");
-      option.value = mode;
-      option.textContent = dedupModeLabel(mode);
-      select.appendChild(option);
-    });
-    select.value = state.activeDedupMode;
-
-    const updateNote = () => {
-      if (!note) {
-        return;
-      }
-      const lensNote =
-        typeof dataQualityPanel.lens_note === "string" ? dataQualityPanel.lens_note.trim() : "";
-      const materialMetricCount = Number(toNumber(dataQualityPanel.material_metric_count || 0));
-      const impactNote =
-        materialMetricCount > 0
-          ? materialMetricCount.toLocaleString() + " raw-vs-dedup metric(s) changed materially."
-          : "No material raw-vs-dedup metric deltas detected.";
-      note.textContent = dedupModeLabel(state.activeDedupMode) + " lens. " + lensNote + " " + impactNote;
-    };
-
-    select.addEventListener("change", () => {
-      const nextMode = String(select.value || "").trim();
-      if (!nextMode || nextMode === state.activeDedupMode) {
-        updateNote();
-        return;
-      }
-      state.activeDedupMode = nextMode;
-      runWithBusyIndicator("Applying " + dedupModeLabel(nextMode) + " lens...", () => {
-        renderTriageSummary();
-        renderInvestigationTables();
-      });
-      updateNote();
-    });
-
-    updateNote();
   }
 
   function renderTablesForAnalysis(section, analysis) {
@@ -7348,23 +7802,42 @@
     }
 
     tableNames.forEach((tableName, index) => {
+      const sourceRows = detectorTables[tableName] || [];
+      let rows = sourceRows;
+      let tableBucketNote = "";
+      let tableTitle = tableName;
+      if (analysis.id === "duplicates_exact") {
+        const bucketFiltered = filterRowsByDuplicateTableBucket(tableName, sourceRows);
+        rows = bucketFiltered.rows;
+        tableBucketNote = bucketFiltered.note;
+        if (bucketFiltered.applied && Number.isFinite(state.activeBucket)) {
+          tableTitle = tableName + " (" + Math.round(state.activeBucket) + "m)";
+        }
+      }
+
       const details = document.createElement("details");
       details.className = "table-group";
       details.open = index === 0 && container.childElementCount === 0;
 
       const summary = document.createElement("summary");
-      summary.textContent = tableName;
+      summary.textContent = tableTitle;
       details.appendChild(summary);
 
       const wrap = document.createElement("div");
       wrap.className = "table-wrap";
       details.appendChild(wrap);
 
+      if (tableBucketNote) {
+        const note = document.createElement("p");
+        note.className = "tiny-note";
+        note.textContent = tableBucketNote;
+        wrap.appendChild(note);
+      }
+
       const host = document.createElement("div");
       host.className = "table-host";
       wrap.appendChild(host);
 
-      const rows = detectorTables[tableName] || [];
       const tableKey = detectorKey ? detectorKey + "." + tableName : tableName;
       renderTableHelpCard(wrap, tableKey, rows);
       mountTable(host, rows, {
@@ -7560,6 +8033,18 @@
       renders.push(renderChartMount(mount));
     });
     await Promise.all(renders);
+  }
+
+  function rerenderBucketAwareTables() {
+    if (!mountedSections.has("duplicates_exact")) {
+      return;
+    }
+    const duplicateSection = document.querySelector('[data-analysis-id="duplicates_exact"]');
+    const duplicateAnalysis = analysisById.get("duplicates_exact");
+    if (!duplicateSection || !duplicateAnalysis) {
+      return;
+    }
+    renderTablesForAnalysis(duplicateSection, duplicateAnalysis);
   }
 
   function rerenderLinkedZoomAwareCharts(sourceChartId) {
@@ -7765,9 +8250,10 @@
           node.setAttribute("aria-selected", value === bucket ? "true" : "false");
         });
         syncControlOverridesToUrl();
-        runWithBusyIndicator("Applying " + bucket + "m bucket...", async () =>
-          rerenderBucketAwareCharts()
-        );
+        runWithBusyIndicator("Applying " + bucket + "m bucket...", async () => {
+          await rerenderBucketAwareCharts();
+          rerenderBucketAwareTables();
+        });
       });
       root.appendChild(tab);
     });
@@ -8744,7 +9230,6 @@
   initThemeControl();
   initSidebarTooltips();
   if (!isOffHoursFocusOnly) {
-    initDedupModeControl();
     renderDataQualityPanel();
     renderHearingContextPanel();
     renderTriageSummary();

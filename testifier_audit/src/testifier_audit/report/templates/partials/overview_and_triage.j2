@@ -2,62 +2,18 @@
 {% import "macros/chart_host.j2" as chart_host %}
 
           <section id="section-overview" class="report-section panel">
-            <h2 id="overview" class="toc-heading">How To Use This Report</h2>
+            <h2 id="overview" class="toc-heading">Overview</h2>
+            <h3>How to use this report</h3>
             {% if off_hours_focus_only %}
               <p>
                 This temporary focused view shows only the off-hours shift anomaly analysis so methodology and chart behavior can be refined in isolation.
               </p>
-            {% else %}
-              <p>
-                This report is investigation-first. Start in <strong>Triage</strong> for data quality and high-level context,
-                then inspect detector sections before final interpretation.
-              </p>
             {% endif %}
-            <aside class="definition-callout">
-              <p>
-                <strong>What low power means:</strong> low-support buckets/windows have high proportion uncertainty and can swing
-                from random variation.
-              </p>
-              <p>
-                <strong>How to interpret:</strong> prioritize signals that persist into adjacent higher-volume windows or recur at
-                similar dayparts across days.
-              </p>
-            </aside>
             <p class="tiny-note" id="report-timezone-summary"></p>
             {% if off_hours_focus_only %}
               <div id="off-hours-evidence-tier" class="offhours-evidence-tier hidden"></div>
               <div id="off-hours-inference-banner" class="warning-banner hidden"></div>
             {% endif %}
-            <section class="kpi-grid">
-              <article class="kpi-card">
-                <div class="kpi-label">
-                  {% if off_hours_focus_only %}Off-Hours Records{% else %}Artifacts Tracked{% endif %}
-                </div>
-                <div class="kpi-value" id="kpi-artifacts">0</div>
-                <div class="kpi-meta" id="kpi-artifacts-meta"></div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">
-                  {% if off_hours_focus_only %}Analyses Shown{% else %}Detectors Run{% endif %}
-                </div>
-                <div class="kpi-value" id="kpi-detectors">0</div>
-                <div class="kpi-meta" id="kpi-detectors-meta"></div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">
-                  {% if off_hours_focus_only %}Robust Primary Alerts{% else %}Flagged/Significant Windows{% endif %}
-                </div>
-                <div class="kpi-value" id="kpi-flagged">0</div>
-                <div class="kpi-meta" id="kpi-flagged-meta"></div>
-              </article>
-              <article class="kpi-card">
-                <div class="kpi-label">
-                  {% if off_hours_focus_only %}Primary-Bucket Low-Power Off-Hours{% else %}Low-power Windows{% endif %}
-                </div>
-                <div class="kpi-value" id="kpi-low-power">0</div>
-                <div class="kpi-meta" id="kpi-low-power-meta"></div>
-              </article>
-            </section>
 
             <div class="analysis-detail-grid">
               <article class="detail-card">
@@ -67,15 +23,6 @@
                 {% set overview_bucket_help = interactive_charts.chart_help_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_help_docs else None %}
                 {% set overview_bucket_legend = interactive_charts.chart_legend_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_legend_docs else None %}
                 {{ chart_help.render_chart_help(overview_bucket_help, overview_bucket_legend) }}
-              </article>
-
-              <article class="detail-card">
-                <h3 class="detail-title">Day/Hour Position Heatmap</h3>
-                <p class="tiny-note"><code>off_hours_day_hour_heatmap</code></p>
-                {{ chart_host.render_chart_host("off_hours_day_hour_heatmap", "detail", "chart-host-detail") }}
-                {% set day_hour_help = interactive_charts.chart_help_docs.get("off_hours_day_hour_heatmap") if interactive_charts.chart_help_docs else None %}
-                {% set day_hour_legend = interactive_charts.chart_legend_docs.get("off_hours_day_hour_heatmap") if interactive_charts.chart_legend_docs else None %}
-                {{ chart_help.render_chart_help(day_hour_help, day_hour_legend) }}
               </article>
 
               <article class="detail-card">
@@ -105,35 +52,40 @@
                 {{ chart_help.render_chart_help(volume_heatmap_help, volume_heatmap_legend) }}
               </article>
             </div>
-          </section>
-
-          {% if not off_hours_focus_only %}
-          <section id="section-triage" class="report-section panel">
-            <h2 id="triage" class="toc-heading">Triage</h2>
+            {% if not off_hours_focus_only %}
+            <h3>Triage</h3>
             <p class="tiny-note">
               Use this section for quality checks, hearing context, and top repeated-name/cluster summaries.
             </p>
-            <div class="triage-lens-controls">
-              <label for="triage-dedup-mode" class="triage-lens-label">Triage lens</label>
-              <select id="triage-dedup-mode" class="triage-lens-select"></select>
-              <span id="triage-dedup-note" class="tiny-note"></span>
-            </div>
             <section class="kpi-grid">
               <article class="kpi-card">
                 <div class="kpi-label">Total submissions</div>
                 <div class="kpi-value" id="triage-total-submissions">0</div>
+                <div class="kpi-meta" id="triage-total-procon-meta"></div>
+                <div id="triage-procon-pie" class="kpi-microchart kpi-microchart-pie"></div>
               </article>
               <article class="kpi-card">
                 <div class="kpi-label">Date range</div>
                 <div class="kpi-value" id="triage-date-range">-</div>
+                <div class="kpi-meta" id="triage-date-range-meta"></div>
               </article>
               <article class="kpi-card">
-                <div class="kpi-label">Overall Pro / Con</div>
-                <div class="kpi-value" id="triage-overall-procon">-</div>
+                <div class="kpi-label">Duplicate Names</div>
+                <div class="kpi-value" id="triage-duplicate-names-total">0</div>
+                <div class="kpi-meta" id="triage-duplicate-names-meta"></div>
+                <div
+                  id="triage-duplicate-position-bars"
+                  class="kpi-microchart kpi-microchart-bars"
+                ></div>
               </article>
               <article class="kpi-card">
-                <div class="kpi-label">Top repeated names</div>
-                <div class="kpi-value" id="triage-top-tier-count">0</div>
+                <div class="kpi-label">Registered Voter Match</div>
+                <div class="kpi-value" id="triage-voter-match-rate">-</div>
+                <div class="kpi-meta" id="triage-voter-match-meta"></div>
+                <div
+                  id="triage-voter-match-position-bars"
+                  class="kpi-microchart kpi-microchart-bars"
+                ></div>
               </article>
             </section>
             <div id="data-quality-summary" class="warning-banner"></div>
@@ -150,34 +102,36 @@
                   <div id="data-quality-dedup-metrics-host" class="table-host"></div>
                 </div>
               </article>
-              <article class="detail-card">
+            </div>
+            <div class="analysis-detail-grid analysis-detail-grid-compact">
+              <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Hearing Context Metadata</h3>
                 <p id="hearing-context-summary" class="tiny-note"></p>
                 <div class="table-wrap">
-                  <div id="hearing-context-metadata-host" class="table-host"></div>
+                  <div id="hearing-context-metadata-host" class="structured-host structured-host-compact"></div>
                 </div>
               </article>
-              <article class="detail-card">
+              <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Deadline Ramp Metrics</h3>
                 <div class="table-wrap">
-                  <div id="hearing-deadline-ramp-host" class="table-host"></div>
+                  <div id="hearing-deadline-ramp-host" class="structured-host structured-host-compact"></div>
                 </div>
               </article>
-              <article class="detail-card">
+              <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Top Repeated Names</h3>
                 <div class="table-wrap">
-                  <div id="forensics-top-names-host" class="table-host"></div>
+                  <div id="forensics-top-names-host" class="table-host table-host-compact"></div>
                 </div>
               </article>
-              <article class="detail-card">
+              <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
                 <p class="tiny-note">
                   Artifact/table row counts are retained for reproducibility.
                 </p>
                 <div class="table-wrap">
-                  <div id="methodology-artifact-rows-host" class="table-host"></div>
+                  <div id="methodology-artifact-rows-host" class="table-host table-host-compact"></div>
                 </div>
               </article>
             </div>
+            {% endif %}
           </section>
-          {% endif %}

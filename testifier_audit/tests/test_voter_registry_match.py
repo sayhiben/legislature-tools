@@ -40,6 +40,14 @@ def test_voter_registry_match_detector_emits_conservative_outputs(monkeypatch) -
                 "CHANG|MEI",
                 "CHANG|MEI",
             ],
+            "name_display": [
+                "DOE, JANE",
+                "DOE, JANE",
+                "SMITH, JOHN",
+                "BROWN, AVA",
+                "CHANG, MEI",
+                "CHANG, MEI",
+            ],
             "position_normalized": ["Pro", "Con", "Pro", "Con", "Pro", "Con"],
             "minute_bucket": pd.to_datetime(
                 [
@@ -128,6 +136,8 @@ def test_voter_registry_match_detector_emits_conservative_outputs(monkeypatch) -
     assert set(unmatched.index) == {"SMITH|JOHN", "BROWN|AVA"}
     assert unmatched.loc["SMITH|JOHN", "n_rows"] == 1
     assert unmatched.loc["BROWN|AVA", "n_rows"] == 1
+    assert unmatched.loc["SMITH|JOHN", "display_name"] == "SMITH, JOHN"
+    assert unmatched.loc["BROWN|AVA", "display_name"] == "BROWN, AVA"
 
 
 def test_voter_registry_match_detector_supports_multiple_bucket_windows(monkeypatch) -> None:

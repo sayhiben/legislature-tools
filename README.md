@@ -8,8 +8,7 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - `data/metadata/`: hearing metadata sidecars (`*.hearing.yaml`).
 - `reports/`: cached rendered reports published via GitHub Pages.
 - `output/`: local working artifacts and screenshots (not committed).
-- `anomaly-detection-guidance.md`: methodology notes.
-- `IMPLEMENTATION-PLAN-v2.md`: implementation roadmap source of truth.
+- `docs/anomaly-detection-guidance.md`: methodology notes.
 - `AGENTS.md`: repository development guidance for humans and AI/code agents.
 
 ## Development Posture

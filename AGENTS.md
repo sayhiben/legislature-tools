@@ -7,12 +7,10 @@ Repository-specific guidance for AI/code agents.
 - Detect anomalous timing/composition patterns with explicit statistical caveats.
 - Publish one detector-first interactive report per dataset run.
 
-## Project Status and Roadmap
+## Project Status
 - This project is pre-production and expected to remain pre-production for an extended period.
 - Prioritize correctness, interpretability, UX reliability, and iteration speed.
 - Do not add feature flags, rollout gates, legacy renderer paths, or compatibility shims unless explicitly requested.
-- Roadmap source of truth:
-  - `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
 
 ## Canonical Locations
 - App source/tests: `/Users/sayhiben/dev/legislature-tools/testifier_audit/`

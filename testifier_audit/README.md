@@ -7,7 +7,7 @@ HTML report for anomaly review.
 - This app is pre-production.
 - Prioritize rapid, test-backed improvements to accuracy, interpretability, and UX.
 - Avoid feature flags and backward-compatibility scaffolding unless explicitly requested.
-- Roadmap source of truth: `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
+- Development direction and guardrails: `/Users/sayhiben/dev/legislature-tools/AGENTS.md`
 
 ## What This App Covers
 - Burst detection and calibrated significance windows.

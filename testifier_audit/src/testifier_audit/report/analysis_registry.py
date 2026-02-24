@@ -38,11 +38,10 @@ ANALYSES_TO_PERFORM: tuple[str, ...] = (
     # "baseline_profile",
     # "bursts",
     # "procon_swings",
-    "off_hours",
     "duplicates_exact",
-    "duplicates_near",
     # "org_anomalies",
     "voter_registry_match",
+    "off_hours",
 )
 
 
@@ -125,9 +124,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "off_hours_primary_residual_timeline",
             "off_hours_primary_flag_channels",
             "off_hours_model_fit_diagnostics",
-            "off_hours_date_hour_pro_heatmap",
-            "off_hours_date_hour_primary_residual_heatmap",
-            "off_hours_date_hour_volume_heatmap",
         ),
         how_to_read=(
             "Use the off-hours control timeline to compare observed pro share with "
@@ -147,15 +143,13 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
     ),
     AnalysisDefinition(
         id="duplicates_exact",
-        title="Exact Duplicate Names",
+        title="Duplicate Names",
         detector="duplicates_exact",
         hero_chart_id="duplicates_exact_bucket_concentration",
         detail_chart_ids=(
             "duplicates_exact_metric_diagnostics",
             "duplicates_exact_per_name_anomalies",
             "duplicates_exact_top_name_timing_exact",
-            "duplicates_exact_top_name_timing_medium",
-            "duplicates_exact_top_name_timing_loose",
             "duplicates_exact_position_concentration",
             "duplicates_exact_temporal_burst",
             "duplicates_exact_swing_impact",
@@ -170,26 +164,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         ),
         common_benign_causes=(
             "Common names and legitimate coordinated outreach can elevate duplicate pressure."
-        ),
-    ),
-    AnalysisDefinition(
-        id="duplicates_near",
-        title="Near-Duplicate Clusters",
-        detector="duplicates_near",
-        hero_chart_id="duplicates_near_cluster_timeline",
-        detail_chart_ids=(
-            "duplicates_near_cluster_size",
-            "duplicates_near_time_concentration",
-            "duplicates_near_similarity",
-        ),
-        how_to_read=(
-            "Near-duplicate clusters group highly similar names that appear in related "
-            "windows."
-        ),
-        what_to_look_for="Large or fast-forming clusters with high edge similarity scores.",
-        common_benign_causes=(
-            "Typos, OCR noise, and multilingual transliteration can inflate "
-            "near-duplicate clusters."
         ),
     ),
     AnalysisDefinition(
@@ -248,7 +222,6 @@ _ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
     "procon_swings": ("window_signals", 94),
     "off_hours": ("window_signals", 86),
     "duplicates_exact": ("identity_forensics", 88),
-    "duplicates_near": ("identity_forensics", 87),
     "org_anomalies": ("field_quality", 78),
     "voter_registry_match": ("external_enrichment", 65),
 }

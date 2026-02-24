@@ -51,18 +51,6 @@ _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
         "match_label": "Exact (last + first)",
         "match_definition": "Exact match on last-name and first-name tokens.",
     },
-    {
-        "match_mode": "medium",
-        "key_column": "canonical_key_nickname",
-        "match_label": "Medium (last + nickname root)",
-        "match_definition": "Matches last-name with nickname-root first-name normalization.",
-    },
-    {
-        "match_mode": "loose",
-        "key_column": "collision_key_loose",
-        "match_label": "Loose (last + first initial)",
-        "match_definition": "Matches last-name with first-name initial only.",
-    },
 )
 _TOP_NAME_TIMING_TOP_N = 50
 

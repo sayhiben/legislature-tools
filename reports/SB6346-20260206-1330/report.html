@@ -14,115 +14,15 @@
   <body>
 
     <div class="page-shell" id="page-shell">
-      <button
-        id="sidebar-launcher"
-        class="sidebar-launcher"
-        type="button"
-        aria-controls="toc-sidebar"
-        aria-expanded="false"
-        aria-label="Show menu"
-      >
-        ☰
-      </button>
       <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
       <div class="report-layout">
-        <section class="sidebar-global-controls panel" id="sidebar-global-controls" aria-label="Global controls">
-          <div class="sidebar-control-group" id="theme-sync-panel">
-            <div class="sidebar-control-row sidebar-compact-row">
-              <span
-                class="sidebar-control-icon"
-                aria-hidden="true"
-                data-tooltip="Theme controls"
-                title="Theme controls"
-              >
-                ◐
-              </span>
-              <div class="theme-icon-controls" id="theme-controls" role="group" aria-label="Theme controls">
-                <button
-                  id="theme-light-button"
-                  class="theme-icon-button"
-                  type="button"
-                  data-theme-option="light"
-                  aria-label="Use light theme"
-                  title="Light theme"
-                >
-                  ☀
-                </button>
-                <button
-                  id="theme-dark-button"
-                  class="theme-icon-button"
-                  type="button"
-                  data-theme-option="dark"
-                  aria-label="Use dark theme"
-                  title="Dark theme"
-                >
-                  ☾
-                </button>
-              </div>
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="Theme changes only appearance; detector semantics and alert logic are unchanged."
-                aria-label="Theme selector help"
-              >
-                ?
-              </button>
-            </div>
-          </div>
-          <div class="sidebar-control-group hidden" id="zoom-sync-panel">
-            <div class="sidebar-control-row sidebar-compact-row">
-              <span
-                class="sidebar-control-icon"
-                aria-hidden="true"
-                data-tooltip="Linked zoom controls"
-                title="Linked zoom controls"
-              >
-                🔍
-              </span>
-              <span id="zoom-status-chip" class="zoom-status-chip">All</span>
-              <button id="zoom-reset-button" class="control-icon-button" type="button" aria-label="Reset zoom" title="Reset zoom">
-                ↺
-              </button>
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="Absolute-time charts share one zoom range. Reset returns all linked charts to full timeline."
-                aria-label="Linked zoom help"
-              >
-                ?
-              </button>
-            </div>
-            <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
-          </div>
-          <div class="sidebar-control-group" id="bucket-sync-panel">
-            <div class="sidebar-control-row sidebar-compact-row">
-              <span
-                class="sidebar-control-icon"
-                aria-hidden="true"
-                data-tooltip="Linked bucket selector"
-                title="Linked bucket selector"
-              >
-                ⌗
-              </span>
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="Choose one bucket and all bucket-aware charts update together when that bucket exists."
-                aria-label="Bucket selector help"
-              >
-                ?
-              </button>
-            </div>
-            <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
-          </div>
-        </section>
 
         <aside class="toc-sidebar panel" id="toc-sidebar" aria-label="Section navigation">
           <div class="sidebar-header">
             <div class="sidebar-title-block">
-              <h1 class="sidebar-report-title">Testifier Audit Report</h1>
-              <p class="tiny-note sidebar-bill-meta hidden" id="sidebar-bill-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-23T18:41:41.747833-08:00</code></p>
+              <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
+              <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-23T22:14:07.403649-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -135,48 +35,6 @@
               ←
             </button>
           </div>
-
-          <section class="sidebar-controls-panel panel hidden" id="section-view-controls-panel" aria-live="polite" aria-label="Section view controls">
-            <h3 class="sidebar-controls-title">
-              View Controls
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="These controls change based on the section currently in view."
-                aria-label="Section view controls help"
-              >
-                ?
-              </button>
-            </h3>
-            <p id="section-view-controls-context" class="tiny-note sidebar-view-controls-context"></p>
-            <div id="section-view-controls-body">
-              <div
-                class="sidebar-control-group hidden"
-                id="duplicate-collision-panel"
-                data-section-control-for="duplicates_exact"
-              >
-                <div class="sidebar-control-row sidebar-compact-row">
-                  <span class="sidebar-control-icon" aria-hidden="true">⌬</span>
-                  <button
-                    class="help-tip"
-                    type="button"
-                    data-tooltip="Choose duplicate scope and metric for duplicate-name charts and diagnostics."
-                    aria-label="Duplicate collision controls help"
-                  >
-                    ?
-                  </button>
-                </div>
-                <div class="sidebar-control-row">
-                  <label class="tiny-note" for="duplicate-scope-select">Scope</label>
-                  <select id="duplicate-scope-select" class="control-button"></select>
-                </div>
-                <div class="sidebar-control-row">
-                  <label class="tiny-note" for="duplicate-metric-select">Metric</label>
-                  <select id="duplicate-metric-select" class="control-button"></select>
-                </div>
-              </div>
-            </div>
-          </section>
 
           <hr class="sidebar-divider" />
           <h2 class="toc-title">
@@ -195,24 +53,137 @@
           </div>
         </aside>
 
-        <main id="toc-content" class="report-main">            <nav class="workflow-tabs panel" aria-label="Investigation tabs">
-              <a class="workflow-tab" href="#triage">Triage</a>
-              <a class="workflow-tab" href="#methodology">Methodology</a>
-            </nav>
-
-          <section id="zoom-active-banner" class="zoom-active-banner hidden" role="status" aria-live="polite" aria-atomic="true">
-            <div class="zoom-active-banner-copy">
-              <p class="zoom-active-banner-title">Filtered Timeline View</p>
-              <p id="zoom-active-banner-text" class="zoom-active-banner-text"></p>
-              <p id="zoom-active-banner-meta" class="zoom-active-banner-meta"></p>
-            </div>
-            <div class="zoom-active-banner-actions">
-              <span id="zoom-active-banner-chip" class="zoom-active-banner-chip"></span>
-              <button id="zoom-banner-copy-button" class="zoom-banner-button" type="button">Copy link</button>
-              <button id="zoom-banner-reset-button" class="zoom-banner-button" type="button">Reset zoom</button>
+        <main id="toc-content" class="report-main">
+          <section class="sidebar-global-controls panel" id="sidebar-global-controls" aria-label="Global controls">
+            <div class="global-controls-strip">
+              <button
+                id="sidebar-launcher"
+                class="sidebar-launcher"
+                type="button"
+                aria-controls="toc-sidebar"
+                aria-expanded="false"
+                aria-label="Show menu"
+              >
+                ☰
+              </button>
+              <div class="global-header-block">
+                <h1 class="global-header-title hidden" id="header-bill-title"></h1>
+                <p class="tiny-note global-header-context hidden" id="header-context-meta"></p>
+                <p class="tiny-note global-header-bill-title hidden" id="header-bill-long-title"></p>
+              </div>
+              <button
+                id="global-controls-toggle"
+                class="global-controls-toggle"
+                type="button"
+                aria-controls="global-controls-grid"
+                aria-expanded="false"
+                aria-label="Show global controls"
+              >
+                Controls
+              </button>
+              <div class="global-controls-grid" id="global-controls-grid">
+                <div class="sidebar-control-group hidden" id="zoom-sync-panel">
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span
+                      class="sidebar-control-label"
+                      aria-hidden="true"
+                      data-tooltip="Linked zoom controls"
+                      title="Linked zoom controls"
+                    >
+                      Zoom
+                    </span>
+                    <span id="zoom-status-chip" class="zoom-status-chip">All</span>
+                    <button id="zoom-reset-button" class="control-icon-button" type="button" aria-label="Reset" title="Reset">
+                      Reset
+                    </button>
+                    <button
+                      class="help-tip"
+                      type="button"
+                      data-tooltip="Absolute-time charts share one zoom range. Reset returns all linked charts to full timeline."
+                      aria-label="Linked zoom help"
+                    >
+                      ?
+                    </button>
+                  </div>
+                  <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
+                </div>
+                <div class="sidebar-control-group" id="bucket-sync-panel">
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span
+                      class="sidebar-control-label"
+                      aria-hidden="true"
+                      data-tooltip="Linked bucket selector"
+                      title="Linked bucket selector"
+                    >
+                      Bucket Size
+                    </span>
+                    <button
+                      class="help-tip"
+                      type="button"
+                      data-tooltip="Choose one bucket and all bucket-aware charts update together when that bucket exists."
+                      aria-label="Bucket selector help"
+                    >
+                      ?
+                    </button>
+                  </div>
+                  <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
+                </div>
+                <div class="sidebar-control-group" id="theme-sync-panel">
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span
+                      class="sidebar-control-icon"
+                      aria-hidden="true"
+                      data-tooltip="Theme controls"
+                      title="Theme controls"
+                    >
+                      ◐
+                    </span>
+                    <div class="theme-icon-controls" id="theme-controls" role="group" aria-label="Theme controls">
+                      <button
+                        id="theme-light-button"
+                        class="theme-icon-button"
+                        type="button"
+                        data-theme-option="light"
+                        aria-label="Use light theme"
+                        title="Light theme"
+                      >
+                        ☀
+                      </button>
+                      <button
+                        id="theme-dark-button"
+                        class="theme-icon-button"
+                        type="button"
+                        data-theme-option="dark"
+                        aria-label="Use dark theme"
+                        title="Dark theme"
+                      >
+                        ☾
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
-
+          <section class="header-view-controls panel hidden" id="section-view-controls-panel" aria-live="polite" aria-label="Section view controls">
+            <div class="header-view-controls-row">
+              <div id="section-view-controls-body" class="header-view-controls-body">
+                <div
+                  class="sidebar-control-group hidden header-view-control-group"
+                  id="duplicate-collision-panel"
+                  data-section-control-for="duplicates_exact"
+                >
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span class="tiny-note header-view-control-label">Duplicate controls</span>
+                    <label class="tiny-note" for="duplicate-scope-select">Scope</label>
+                    <select id="duplicate-scope-select" class="control-button"></select>
+                    <label class="tiny-note" for="duplicate-metric-select">Metric</label>
+                    <select id="duplicate-metric-select" class="control-button"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
           <section id="section-overview" class="report-section panel">
             <h2 id="overview" class="toc-heading">How To Use This Report</h2>
               <p>
@@ -256,6 +227,135 @@ Low-power Windows                </div>
                 <div class="kpi-meta" id="kpi-low-power-meta"></div>
               </article>
             </section>
+
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Position Volume By Bucket</h3>
+                <p class="tiny-note"><code>overview_position_volume_by_bucket</code></p>
+                <div class="chart-host chart-host-detail" data-chart-id="overview_position_volume_by_bucket" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="overview_position_volume_by_bucket">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="overview_position_volume_by_bucket"></p>
+                <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Stacked pro/con/other volume by time bucket. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Stacked columns, Axes.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Stacked pro/con/other volume by time bucket.</p>
+        <ul>
+            <li><strong>Stacked columns:</strong> Each bucket stacks Pro, Con, and Other testimony counts so composition and total support are visible at once.</li>
+            <li><strong>Axes:</strong> X-axis is bucket timestamp in report timezone; Y-axis is submission count.</li>
+        </ul>
+  </div>
+</details>
+
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Day/Hour Position Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_day_hour_heatmap</code></p>
+                <div class="chart-host chart-host-detail" data-chart-id="off_hours_day_hour_heatmap" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_day_hour_heatmap">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_day_hour_heatmap"></p>
+                <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Day x hour heatmap for testimony position composition. This is a matrix view where color encodes magnitude across paired axes such as date/hour or slot/day. Each cell is a compact summary of one intersection, so the chart is optimized for pattern shape over exact per-cell precision.</p>
+      <p><strong>Why this matters:</strong> Heatmaps reveal spatially contiguous patterns that line charts can hide, especially repeated daypart behavior and slot-level drift. They are especially useful for finding regime-like blocks that persist across many adjacent cells.</p>
+      <p><strong>How to interpret:</strong> Scan for contiguous blocks before focusing on single cells. Compare high-intensity and low-intensity regions with bucket support and related detector outputs. Then check whether color transitions occur at meaningful boundaries such as day changes, hearing windows, or slot shifts.</p>
+      <p><strong>What to look for:</strong> Look for coherent blocks, repeated stripes, or abrupt regime boundaries that persist across adjacent rows/columns. Short isolated hot/cold cells are weaker evidence; long bands or rectangles are stronger. Legend components: Cell color, Axes.</p>
+      <p><strong>Momentary high/low:</strong> A single hot/cold cell can reflect transient activity or low support. Interpret isolated cells cautiously, especially if they do not repeat in neighboring slots. Momentary highs can map to one reminder wave; momentary lows can map to ordinary quiet periods.</p>
+      <p><strong>Extended high/low:</strong> Extended hot/cold regions typically indicate sustained behavioral mode shifts. Persistence across multiple dates/slots is stronger evidence than one transition point. Extended hot regions may indicate durable mobilization or process bias; extended cold regions may indicate suppression or inactivity.</p>
+      <p><strong>Legend guide:</strong> Day x hour heatmap for testimony position composition.</p>
+        <ul>
+            <li><strong>Cell color:</strong> Pro share for each weekday/hour cell.</li>
+            <li><strong>Axes:</strong> X-axis is hour of day; Y-axis is weekday in chronological top-down order (Monday to Sunday).</li>
+        </ul>
+  </div>
+</details>
+
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Position Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_pro_heatmap</code></p>
+                <div class="chart-host chart-host-detail" data-chart-id="off_hours_date_hour_pro_heatmap" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_date_hour_pro_heatmap">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_date_hour_pro_heatmap"></p>
+                <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Date x hour heatmap for testimony position composition. This is a matrix view where color encodes magnitude across paired axes such as date/hour or slot/day. Each cell is a compact summary of one intersection, so the chart is optimized for pattern shape over exact per-cell precision.</p>
+      <p><strong>Why this matters:</strong> Heatmaps reveal spatially contiguous patterns that line charts can hide, especially repeated daypart behavior and slot-level drift. They are especially useful for finding regime-like blocks that persist across many adjacent cells.</p>
+      <p><strong>How to interpret:</strong> Scan for contiguous blocks before focusing on single cells. Compare high-intensity and low-intensity regions with bucket support and related detector outputs. Then check whether color transitions occur at meaningful boundaries such as day changes, hearing windows, or slot shifts.</p>
+      <p><strong>What to look for:</strong> Look for coherent blocks, repeated stripes, or abrupt regime boundaries that persist across adjacent rows/columns. Short isolated hot/cold cells are weaker evidence; long bands or rectangles are stronger. Legend components: Cell color, Axes.</p>
+      <p><strong>Momentary high/low:</strong> A single hot/cold cell can reflect transient activity or low support. Interpret isolated cells cautiously, especially if they do not repeat in neighboring slots. Momentary highs can map to one reminder wave; momentary lows can map to ordinary quiet periods.</p>
+      <p><strong>Extended high/low:</strong> Extended hot/cold regions typically indicate sustained behavioral mode shifts. Persistence across multiple dates/slots is stronger evidence than one transition point. Extended hot regions may indicate durable mobilization or process bias; extended cold regions may indicate suppression or inactivity.</p>
+      <p><strong>Legend guide:</strong> Date x hour heatmap for testimony position composition.</p>
+        <ul>
+            <li><strong>Cell color:</strong> Pro share for that date/hour cell; low-power cells are marked in tooltip.</li>
+            <li><strong>Axes:</strong> X-axis is hour of day; Y-axis is calendar date in chronological top-down order (earliest at top).</li>
+        </ul>
+  </div>
+</details>
+
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Position Residual Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_primary_residual_heatmap</code></p>
+                <div class="chart-host chart-host-detail" data-chart-id="off_hours_date_hour_primary_residual_heatmap" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_date_hour_primary_residual_heatmap">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_date_hour_primary_residual_heatmap"></p>
+                <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Date x hour heatmap for primary-baseline standardized residuals across the full 24-hour timeline. This is a matrix view where color encodes magnitude across paired axes such as date/hour or slot/day. Each cell is a compact summary of one intersection, so the chart is optimized for pattern shape over exact per-cell precision.</p>
+      <p><strong>Why this matters:</strong> Heatmaps reveal spatially contiguous patterns that line charts can hide, especially repeated daypart behavior and slot-level drift. They are especially useful for finding regime-like blocks that persist across many adjacent cells.</p>
+      <p><strong>How to interpret:</strong> Scan for contiguous blocks before focusing on single cells. Compare high-intensity and low-intensity regions with bucket support and related detector outputs. Then check whether color transitions occur at meaningful boundaries such as day changes, hearing windows, or slot shifts.</p>
+      <p><strong>What to look for:</strong> Look for coherent blocks, repeated stripes, or abrupt regime boundaries that persist across adjacent rows/columns. Short isolated hot/cold cells are weaker evidence; long bands or rectangles are stronger. Legend components: Cell color, Support, Off-hours emphasis, Axes.</p>
+      <p><strong>Momentary high/low:</strong> A single hot/cold cell can reflect transient activity or low support. Interpret isolated cells cautiously, especially if they do not repeat in neighboring slots. Momentary highs can map to one reminder wave; momentary lows can map to ordinary quiet periods.</p>
+      <p><strong>Extended high/low:</strong> Extended hot/cold regions typically indicate sustained behavioral mode shifts. Persistence across multiple dates/slots is stronger evidence than one transition point. Extended hot regions may indicate durable mobilization or process bias; extended cold regions may indicate suppression or inactivity.</p>
+      <p><strong>Legend guide:</strong> Date x hour heatmap for primary-baseline standardized residuals across the full 24-hour timeline.</p>
+        <ul>
+            <li><strong>Cell color:</strong> Average support-window primary z-score for that date/hour cell (blue = below baseline, warm = above baseline).</li>
+            <li><strong>Support:</strong> Tooltips show inferential tested-window counts and robust-alert counts so isolated low-support cells are not over-weighted.</li>
+            <li><strong>Off-hours emphasis:</strong> Off-hours hours are highlighted on the X-axis label to preserve off-hours focus while retaining all-hour context.</li>
+            <li><strong>Axes:</strong> X-axis is hour of day; Y-axis is calendar date in chronological top-down order (earliest at top).</li>
+        </ul>
+  </div>
+</details>
+
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Volume Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_volume_heatmap</code></p>
+                <div class="chart-host chart-host-detail" data-chart-id="off_hours_date_hour_volume_heatmap" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_date_hour_volume_heatmap">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_date_hour_volume_heatmap"></p>
+                <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Date x hour heatmap for submission volume. This is a matrix view where color encodes magnitude across paired axes such as date/hour or slot/day. Each cell is a compact summary of one intersection, so the chart is optimized for pattern shape over exact per-cell precision.</p>
+      <p><strong>Why this matters:</strong> Heatmaps reveal spatially contiguous patterns that line charts can hide, especially repeated daypart behavior and slot-level drift. They are especially useful for finding regime-like blocks that persist across many adjacent cells.</p>
+      <p><strong>How to interpret:</strong> Scan for contiguous blocks before focusing on single cells. Compare high-intensity and low-intensity regions with bucket support and related detector outputs. Then check whether color transitions occur at meaningful boundaries such as day changes, hearing windows, or slot shifts.</p>
+      <p><strong>What to look for:</strong> Look for coherent blocks, repeated stripes, or abrupt regime boundaries that persist across adjacent rows/columns. Short isolated hot/cold cells are weaker evidence; long bands or rectangles are stronger. Legend components: Cell color, Axes.</p>
+      <p><strong>Momentary high/low:</strong> A single hot/cold cell can reflect transient activity or low support. Interpret isolated cells cautiously, especially if they do not repeat in neighboring slots. Momentary highs can map to one reminder wave; momentary lows can map to ordinary quiet periods.</p>
+      <p><strong>Extended high/low:</strong> Extended hot/cold regions typically indicate sustained behavioral mode shifts. Persistence across multiple dates/slots is stronger evidence than one transition point. Extended hot regions may indicate durable mobilization or process bias; extended cold regions may indicate suppression or inactivity.</p>
+      <p><strong>Legend guide:</strong> Date x hour heatmap for submission volume.</p>
+        <ul>
+            <li><strong>Cell color:</strong> Submission count for that date/hour cell.</li>
+            <li><strong>Axes:</strong> X-axis is hour of day; Y-axis is calendar date in chronological top-down order (earliest at top).</li>
+        </ul>
+  </div>
+</details>
+
+              </article>
+            </div>
           </section>
 
           <section id="section-triage" class="report-section panel">
@@ -320,12 +420,6 @@ Low-power Windows                </div>
                 </div>
               </article>
               <article class="detail-card">
-                <h3 class="detail-title">Top Near-Dup Clusters</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-clusters-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
                 <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
                 <p class="tiny-note">
                   Artifact/table row counts are retained for reproducibility.
@@ -340,253 +434,13 @@ Low-power Windows                </div>
 <section id="analysis-root" class="report-section">
     <section
       class="analysis-section"
-      id="section-off_hours"
-      data-analysis-id="off_hours"
-      data-analysis-status="ready"
-      data-analysis-detector="off_hours"
-    >
-      <div class="analysis-header">
-        <h2 id="analysis-off_hours" class="toc-heading">Off-Hours Profile</h2>
-      </div>
-
-      <div class="analysis-hero-block">
-        <div class="chart-host chart-host-hero" data-chart-id="off_hours_control_timeline" data-chart-role="hero"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_control_timeline">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_control_timeline"></p>
-        <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Off-hours control timeline with primary baseline overlays (model when available, day-adjusted fallback otherwise). This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
-      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
-      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Submission count, Pro rate, Wilson low / Wilson high, Robust primary alert, Low-power.</p>
-      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
-      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
-      <p><strong>Legend guide:</strong> Off-hours control timeline with primary baseline overlays (model when available, day-adjusted fallback otherwise).</p>
-        <ul>
-            <li><strong>Submission count:</strong> Total records per bucket for support context.</li>
-            <li><strong>Pro rate:</strong> Observed pro share by bucket, with Wilson uncertainty and primary expected/control-band overlays.</li>
-            <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
-            <li><strong>Robust primary alert:</strong> Alert-eligible windows beyond the primary 99.8% control limits with tail-consistent FDR support and material effect size. Shaded spans mark contiguous robust-alert runs (lower or upper tail).</li>
-            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
-        </ul>
-  </div>
-</details>
-
-      </div>
-
-      <details class="analysis-help-card">
-  <summary>Analysis Help</summary>
-  <div class="analysis-help-body">
-      <p><strong>What is this?</strong> Off-Hours Profile focuses on model-aware off-hours composition shift with volume context. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
-      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
-      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
-      <p><strong>What do I look for?</strong> Sustained robust primary alerts (alert-eligible, beyond primary 99.8% control bands with tail-consistent FDR support and material effect size) at adequate support, then verify whether lower- or upper-tail patterns repeat or cluster in specific dates/hours. Prioritize robust primary alerts (below primary 99.8% lower limit, lower-tail FDR-significant, and materially negative delta at adequate support); avoid interpreting low-n windows even if raw rates look extreme. If tested off-hours windows are zero after low-power filtering, treat the section as descriptive-only and avoid inferential conclusions. Use the funnel view to compare primary and global expected bands; treat primary-baseline breaches as the decision metric and global bands as context. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
-      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate short overnight swings that stay within primary control limits after day/hour adjustment. Momentary lows can indicate small support windows where apparent extremes are likely sampling noise. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
-      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate repeating robust primary alerts across adjacent windows or nights at moderate/high support. Extended lows can indicate stable overnight behavior that remains inside expected primary control bands. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
-      <ul>
-          <li>Prioritize robust primary alerts (below primary 99.8% lower limit, lower-tail FDR-significant, and materially negative delta at adequate support); avoid interpreting low-n windows even if raw rates look extreme.</li>
-          <li>If tested off-hours windows are zero after low-power filtering, treat the section as descriptive-only and avoid inferential conclusions.</li>
-          <li>Use the funnel view to compare primary and global expected bands; treat primary-baseline breaches as the decision metric and global bands as context.</li>
-          <li>In date-hour heatmaps, repeated overnight blocks across multiple dates are stronger than a single-night dip; corroborate with burst, periodicity, and duplicate detectors before escalation.</li>
-      </ul>
-    <p><strong>Common benign causes:</strong> Time-zone spillover, campaign scheduling, and hearing-deadline pushes can produce legitimate overnight composition shifts.</p>
-  </div>
-</details>
-
-        <div class="analysis-detail-grid">
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Funnel Plot</h3>
-              <p class="tiny-note"><code>off_hours_funnel_plot</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_funnel_plot" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_funnel_plot">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_funnel_plot"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Funnel plot of pro share versus support with primary and global control references. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
-      <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
-      <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
-      <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Control curves, Color, Y-axis scaling.</p>
-      <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
-      <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> Funnel plot of pro share versus support with primary and global control references.</p>
-        <ul>
-            <li><strong>Point:</strong> Each point is one time bucket (x = known pro/con count, y = pro share). Inference is strongest when windows are alert-eligible and not low-power.</li>
-            <li><strong>Control curves:</strong> Curves show global-baseline expected range (95% and 99.8%). Primary baseline is row-specific (model/day-adjusted) and is used for robust-alert scoring and tooltip diagnostics.</li>
-            <li><strong>Color:</strong> Off-hours-dominant windows are highlighted; red points mark robust lower-tail alerts and pink triangles mark robust upper-tail alerts (99.8% control-limit breach + tail-consistent FDR + material effect size).</li>
-            <li><strong>Y-axis scaling:</strong> The pro-rate axis uses a tail-stretch transform so dense extreme-tail regions remain readable instead of collapsing at chart boundaries.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Primary Residual Timeline</h3>
-              <p class="tiny-note"><code>off_hours_primary_residual_timeline</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_primary_residual_timeline" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_primary_residual_timeline">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_primary_residual_timeline"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Primary-baseline residual timeline for inferentially tested off-hours windows with SPC/FDR channel markers. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
-      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
-      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Known Pro+Con count, Primary z-score, Day z-score, Z references, Robust primary alert, Low-power.</p>
-      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
-      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
-      <p><strong>Legend guide:</strong> Primary-baseline residual timeline for inferentially tested off-hours windows with SPC/FDR channel markers.</p>
-        <ul>
-            <li><strong>Known Pro+Con count:</strong> Known pro/con records supporting each bucket.</li>
-            <li><strong>Primary z-score:</strong> Standardized residual of observed pro count versus the primary expected pro-rate baseline (model/day-adjusted).</li>
-            <li><strong>Day z-score:</strong> Day-adjusted standardized residual shown as comparator context.</li>
-            <li><strong>Z references:</strong> Reference lines at 0 and +/-3 sigma for residual context.</li>
-            <li><strong>Robust primary alert:</strong> Alert-eligible windows meeting robust-primary criteria (99.8% control-limit breach + tail-consistent FDR + material effect size).</li>
-            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Primary Flag Channels</h3>
-              <p class="tiny-note"><code>off_hours_primary_flag_channels</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_primary_flag_channels" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_primary_flag_channels">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_primary_flag_channels"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Channelized flag accounting for tested off-hours windows in the primary bucket. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Column, Channel meaning, Reading order.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Channelized flag accounting for tested off-hours windows in the primary bucket.</p>
-        <ul>
-            <li><strong>Column:</strong> Each column is a count of tested windows for one channel label on the x-axis.</li>
-            <li><strong>Channel meaning:</strong> Tested off-hours windows = denominator; Primary 99.8% breach = SPC extreme tail; Primary two-sided FDR-significant = multiplicity-adjusted test hits; Any primary flag channel = SPC OR FDR; Both primary flag channels = SPC AND FDR; Robust primary alerts = AND criteria plus material effect-size gate.</li>
-            <li><strong>Reading order:</strong> Columns are ordered from broad denominator context to stricter overlap criteria.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Model Fit Diagnostics</h3>
-              <p class="tiny-note"><code>off_hours_model_fit_diagnostics</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_model_fit_diagnostics" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_model_fit_diagnostics">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_model_fit_diagnostics"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Model-fit availability by off-hours bucket size (counts plus fraction). This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Total windows (bar), Model-available windows (bar), Model-available fraction (line), X-axis bucket.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Model-fit availability by off-hours bucket size (counts plus fraction).</p>
-        <ul>
-            <li><strong>Total windows (bar):</strong> Count of windows evaluated for that bucket size.</li>
-            <li><strong>Model-available windows (bar):</strong> Subset of total windows where model-based expected rates were available.</li>
-            <li><strong>Model-available fraction (line):</strong> Available windows divided by total windows for each bucket size.</li>
-            <li><strong>X-axis bucket:</strong> Bucket size in minutes; combine with table diagnostics for method, support, convergence, and AIC context.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Date Hour Pro Heatmap</h3>
-              <p class="tiny-note"><code>off_hours_date_hour_pro_heatmap</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_date_hour_pro_heatmap" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_date_hour_pro_heatmap">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_date_hour_pro_heatmap"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Date x hour heatmap for off-hours composition. This is a matrix view where color encodes magnitude across paired axes such as date/hour or slot/day. Each cell is a compact summary of one intersection, so the chart is optimized for pattern shape over exact per-cell precision.</p>
-      <p><strong>Why this matters:</strong> Heatmaps reveal spatially contiguous patterns that line charts can hide, especially repeated daypart behavior and slot-level drift. They are especially useful for finding regime-like blocks that persist across many adjacent cells.</p>
-      <p><strong>How to interpret:</strong> Scan for contiguous blocks before focusing on single cells. Compare high-intensity and low-intensity regions with bucket support and related detector outputs. Then check whether color transitions occur at meaningful boundaries such as day changes, hearing windows, or slot shifts.</p>
-      <p><strong>What to look for:</strong> Look for coherent blocks, repeated stripes, or abrupt regime boundaries that persist across adjacent rows/columns. Short isolated hot/cold cells are weaker evidence; long bands or rectangles are stronger. Legend components: Cell color, Axes.</p>
-      <p><strong>Momentary high/low:</strong> A single hot/cold cell can reflect transient activity or low support. Interpret isolated cells cautiously, especially if they do not repeat in neighboring slots. Momentary highs can map to one reminder wave; momentary lows can map to ordinary quiet periods.</p>
-      <p><strong>Extended high/low:</strong> Extended hot/cold regions typically indicate sustained behavioral mode shifts. Persistence across multiple dates/slots is stronger evidence than one transition point. Extended hot regions may indicate durable mobilization or process bias; extended cold regions may indicate suppression or inactivity.</p>
-      <p><strong>Legend guide:</strong> Date x hour heatmap for off-hours composition.</p>
-        <ul>
-            <li><strong>Cell color:</strong> Pro share for that date/hour cell; low-power cells are marked in tooltip.</li>
-            <li><strong>Axes:</strong> X-axis is hour of day; Y-axis is calendar date in chronological top-down order (earliest at top).</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Date Hour Primary Residual Heatmap</h3>
-              <p class="tiny-note"><code>off_hours_date_hour_primary_residual_heatmap</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_date_hour_primary_residual_heatmap" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_date_hour_primary_residual_heatmap">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_date_hour_primary_residual_heatmap"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Date x hour heatmap for primary-baseline standardized residuals across the full 24-hour timeline. This is a matrix view where color encodes magnitude across paired axes such as date/hour or slot/day. Each cell is a compact summary of one intersection, so the chart is optimized for pattern shape over exact per-cell precision.</p>
-      <p><strong>Why this matters:</strong> Heatmaps reveal spatially contiguous patterns that line charts can hide, especially repeated daypart behavior and slot-level drift. They are especially useful for finding regime-like blocks that persist across many adjacent cells.</p>
-      <p><strong>How to interpret:</strong> Scan for contiguous blocks before focusing on single cells. Compare high-intensity and low-intensity regions with bucket support and related detector outputs. Then check whether color transitions occur at meaningful boundaries such as day changes, hearing windows, or slot shifts.</p>
-      <p><strong>What to look for:</strong> Look for coherent blocks, repeated stripes, or abrupt regime boundaries that persist across adjacent rows/columns. Short isolated hot/cold cells are weaker evidence; long bands or rectangles are stronger. Legend components: Cell color, Support, Off-hours emphasis, Axes.</p>
-      <p><strong>Momentary high/low:</strong> A single hot/cold cell can reflect transient activity or low support. Interpret isolated cells cautiously, especially if they do not repeat in neighboring slots. Momentary highs can map to one reminder wave; momentary lows can map to ordinary quiet periods.</p>
-      <p><strong>Extended high/low:</strong> Extended hot/cold regions typically indicate sustained behavioral mode shifts. Persistence across multiple dates/slots is stronger evidence than one transition point. Extended hot regions may indicate durable mobilization or process bias; extended cold regions may indicate suppression or inactivity.</p>
-      <p><strong>Legend guide:</strong> Date x hour heatmap for primary-baseline standardized residuals across the full 24-hour timeline.</p>
-        <ul>
-            <li><strong>Cell color:</strong> Average support-window primary z-score for that date/hour cell (blue = below baseline, warm = above baseline).</li>
-            <li><strong>Support:</strong> Tooltips show inferential tested-window counts and robust-alert counts so isolated low-support cells are not over-weighted.</li>
-            <li><strong>Off-hours emphasis:</strong> Off-hours hours are highlighted on the X-axis label to preserve off-hours focus while retaining all-hour context.</li>
-            <li><strong>Axes:</strong> X-axis is hour of day; Y-axis is calendar date in chronological top-down order (earliest at top).</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Off Hours Date Hour Volume Heatmap</h3>
-              <p class="tiny-note"><code>off_hours_date_hour_volume_heatmap</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="off_hours_date_hour_volume_heatmap" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="off_hours_date_hour_volume_heatmap">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="off_hours_date_hour_volume_heatmap"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Date x hour heatmap for off-hours volume. This is a matrix view where color encodes magnitude across paired axes such as date/hour or slot/day. Each cell is a compact summary of one intersection, so the chart is optimized for pattern shape over exact per-cell precision.</p>
-      <p><strong>Why this matters:</strong> Heatmaps reveal spatially contiguous patterns that line charts can hide, especially repeated daypart behavior and slot-level drift. They are especially useful for finding regime-like blocks that persist across many adjacent cells.</p>
-      <p><strong>How to interpret:</strong> Scan for contiguous blocks before focusing on single cells. Compare high-intensity and low-intensity regions with bucket support and related detector outputs. Then check whether color transitions occur at meaningful boundaries such as day changes, hearing windows, or slot shifts.</p>
-      <p><strong>What to look for:</strong> Look for coherent blocks, repeated stripes, or abrupt regime boundaries that persist across adjacent rows/columns. Short isolated hot/cold cells are weaker evidence; long bands or rectangles are stronger. Legend components: Cell color, Axes.</p>
-      <p><strong>Momentary high/low:</strong> A single hot/cold cell can reflect transient activity or low support. Interpret isolated cells cautiously, especially if they do not repeat in neighboring slots. Momentary highs can map to one reminder wave; momentary lows can map to ordinary quiet periods.</p>
-      <p><strong>Extended high/low:</strong> Extended hot/cold regions typically indicate sustained behavioral mode shifts. Persistence across multiple dates/slots is stronger evidence than one transition point. Extended hot regions may indicate durable mobilization or process bias; extended cold regions may indicate suppression or inactivity.</p>
-      <p><strong>Legend guide:</strong> Date x hour heatmap for off-hours volume.</p>
-        <ul>
-            <li><strong>Cell color:</strong> Submission count for that date/hour cell.</li>
-            <li><strong>Axes:</strong> X-axis is hour of day; Y-axis is calendar date in chronological top-down order (earliest at top).</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-        </div>
-
-      <div class="analysis-tables" data-analysis-tables-for="off_hours"></div>
-    </section>
-    <section
-      class="analysis-section"
       id="section-duplicates_exact"
       data-analysis-id="duplicates_exact"
       data-analysis-status="ready"
       data-analysis-detector="duplicates_exact"
     >
       <div class="analysis-header">
-        <h2 id="analysis-duplicates_exact" class="toc-heading">Exact Duplicate Names</h2>
+        <h2 id="analysis-duplicates_exact" class="toc-heading">Duplicate Names</h2>
       </div>
 
       <div class="analysis-hero-block">
@@ -617,7 +471,7 @@ Low-power Windows                </div>
       <details class="analysis-help-card">
   <summary>Analysis Help</summary>
   <div class="analysis-help-body">
-      <p><strong>What is this?</strong> Exact Duplicate Names focuses on exact repeated-name concentration. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
+      <p><strong>What is this?</strong> Duplicate Names focuses on exact repeated-name concentration. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
       <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
       <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
       <p><strong>What do I look for?</strong> Excess duplicate burden with low p/q values, corroborating temporal burst evidence, and position concentration differences that persist across neighboring windows. Short bursts of repeated names in tiny windows may occur during legitimate group actions; concern rises when concentration repeats across multiple larger buckets. Names that appear repeatedly while switching pro/con positions are higher-priority review targets because they indicate inconsistent stance representation under one canonical identity. Persistent duplicate concentration during otherwise stable baseline periods can imply scripted submissions or queue replay effects rather than organic participation. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
@@ -685,7 +539,7 @@ Low-power Windows                </div>
 
             </article>
             <article class="detail-card">
-              <h3 class="detail-title">Duplicates Exact Top Name Timing (Exact)</h3>
+              <h3 class="detail-title">Duplicate Names Top Timing</h3>
               <p class="tiny-note"><code>duplicates_exact_top_name_timing_exact</code></p>
               <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_top_name_timing_exact" data-chart-role="detail"></div>
 <p class="empty-message hidden" data-chart-empty-for="duplicates_exact_top_name_timing_exact">No chartable records for this run.</p>
@@ -704,56 +558,6 @@ Low-power Windows                </div>
             <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top exact-match name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales duplicate rows for that position in the bucket.</li>
             <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated) and paginated 10 at a time up to the top 50 names.</li>
             <li><strong>Tooltip context:</strong> Tooltips include exact-tier definition, rank, bucket span, Pro/Con split, bucket duplicate rows, and total repeated rows.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Duplicates Exact Top Name Timing (Medium)</h3>
-              <p class="tiny-note"><code>duplicates_exact_top_name_timing_medium</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_top_name_timing_medium" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_top_name_timing_medium">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_top_name_timing_medium"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Nickname-root match tier top names shown as time points sized by per-position duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
-      <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
-      <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
-      <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Y-axis order, Tooltip context.</p>
-      <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
-      <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> Nickname-root match tier top names shown as time points sized by per-position duplicate rows.</p>
-        <ul>
-            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top nickname-root match name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales duplicate rows for that position in the bucket.</li>
-            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated) and paginated 10 at a time up to the top 50 names.</li>
-            <li><strong>Tooltip context:</strong> Tooltips include medium-tier definition, rank, bucket span, Pro/Con split, bucket duplicate rows, and total repeated rows.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Duplicates Exact Top Name Timing (Loose)</h3>
-              <p class="tiny-note"><code>duplicates_exact_top_name_timing_loose</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_top_name_timing_loose" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="duplicates_exact_top_name_timing_loose">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="duplicates_exact_top_name_timing_loose"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> First-initial match tier top names shown as time points sized by per-position duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
-      <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
-      <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
-      <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Y-axis order, Tooltip context.</p>
-      <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
-      <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> First-initial match tier top names shown as time points sized by per-position duplicate rows.</p>
-        <ul>
-            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top first-initial match name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales duplicate rows for that position in the bucket.</li>
-            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated) and paginated 10 at a time up to the top 50 names.</li>
-            <li><strong>Tooltip context:</strong> Tooltips include loose-tier definition, rank, bucket span, Pro/Con split, bucket duplicate rows, and total repeated rows.</li>
         </ul>
   </div>
 </details>
@@ -836,138 +640,6 @@ Low-power Windows                </div>
         </div>
 
       <div class="analysis-tables" data-analysis-tables-for="duplicates_exact"></div>
-    </section>
-    <section
-      class="analysis-section"
-      id="section-duplicates_near"
-      data-analysis-id="duplicates_near"
-      data-analysis-status="ready"
-      data-analysis-detector="duplicates_near"
-    >
-      <div class="analysis-header">
-        <h2 id="analysis-duplicates_near" class="toc-heading">Near-Duplicate Clusters</h2>
-      </div>
-
-      <div class="analysis-hero-block">
-        <div class="chart-host chart-host-hero" data-chart-id="duplicates_near_cluster_timeline" data-chart-role="hero"></div>
-<p class="empty-message hidden" data-chart-empty-for="duplicates_near_cluster_timeline">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_cluster_timeline"></p>
-        <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Near-duplicate cluster activity over time at the selected bucket size, including within-bucket density. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
-      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
-      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Near-duplicate records, Records per active cluster.</p>
-      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
-      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
-      <p><strong>Legend guide:</strong> Near-duplicate cluster activity over time at the selected bucket size, including within-bucket density.</p>
-        <ul>
-            <li><strong>Near-duplicate records:</strong> Bar height is total near-duplicate records in each selected bucket.</li>
-            <li><strong>Records per active cluster:</strong> Line shows average near-duplicate records per active cluster in each selected time bucket.</li>
-        </ul>
-  </div>
-</details>
-
-      </div>
-
-      <details class="analysis-help-card">
-  <summary>Analysis Help</summary>
-  <div class="analysis-help-body">
-      <p><strong>What is this?</strong> Near-Duplicate Clusters focuses on near-duplicate cluster growth and similarity structure. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
-      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
-      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
-      <p><strong>What do I look for?</strong> Large or fast-forming clusters with high edge similarity scores. Many small near-duplicate clusters are often benign typo/transliteration noise; stronger signals are rapid growth of large clusters in compressed time spans. High similarity edges among many distinct names during high-volume windows can indicate templated naming patterns or normalization collisions that warrant manual spot checks. Extended periods where cluster size and record counts rise together can point to coordinated intake streams, especially when aligned with burst and swing flags. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
-      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate short typo/transliteration bursts around outreach windows. Momentary lows can indicate periods where naming variation is naturally broader. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
-      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate templated or normalization-colliding naming behavior over sustained windows. Extended lows can indicate low cluster cohesion and reduced near-duplicate pressure. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
-      <ul>
-          <li>Many small near-duplicate clusters are often benign typo/transliteration noise; stronger signals are rapid growth of large clusters in compressed time spans.</li>
-          <li>High similarity edges among many distinct names during high-volume windows can indicate templated naming patterns or normalization collisions that warrant manual spot checks.</li>
-          <li>Extended periods where cluster size and record counts rise together can point to coordinated intake streams, especially when aligned with burst and swing flags.</li>
-      </ul>
-    <p><strong>Common benign causes:</strong> Typos, OCR noise, and multilingual transliteration can inflate near-duplicate clusters.</p>
-  </div>
-</details>
-
-        <div class="analysis-detail-grid">
-            <article class="detail-card">
-              <h3 class="detail-title">Duplicates Near Cluster Size</h3>
-              <p class="tiny-note"><code>duplicates_near_cluster_size</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="duplicates_near_cluster_size" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="duplicates_near_cluster_size">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_cluster_size"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Cluster-size distribution for the selected bucket size. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, Cluster definition, X-axis.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Cluster-size distribution for the selected bucket size.</p>
-        <ul>
-            <li><strong>Bar height:</strong> Number of active near-duplicate clusters observed at each cluster size for the current bucket selection.</li>
-            <li><strong>Cluster definition:</strong> A cluster is a connected group of highly similar names linked by near-duplicate edges.</li>
-            <li><strong>X-axis:</strong> Cluster size (count of unique names).</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Duplicates Near Time Concentration</h3>
-              <p class="tiny-note"><code>duplicates_near_time_concentration</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="duplicates_near_time_concentration" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="duplicates_near_time_concentration">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_time_concentration"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Near-duplicate cluster time concentration for the selected bucket size (dispersion vs peak-share view). This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
-      <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
-      <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
-      <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Interpretation.</p>
-      <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
-      <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> Near-duplicate cluster time concentration for the selected bucket size (dispersion vs peak-share view).</p>
-        <ul>
-            <li><strong>Point:</strong> Each point is one near-duplicate cluster (x = active bucket count, y = peak bucket share, size = peak bucket records, color = HHI).</li>
-            <li><strong>Interpretation:</strong> Upper-left points indicate tight short-window concentration; rightward points indicate spread across more buckets.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Duplicates Near Similarity</h3>
-              <p class="tiny-note"><code>duplicates_near_similarity</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="duplicates_near_similarity" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="duplicates_near_similarity">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="duplicates_near_similarity"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Distribution of near-duplicate similarity scores with both count and share context. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bars, Line, X-axis bin, Intended use.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Distribution of near-duplicate similarity scores with both count and share context.</p>
-        <ul>
-            <li><strong>Bars:</strong> Count of near-duplicate edges falling in each similarity bin.</li>
-            <li><strong>Line:</strong> Share of all near-duplicate edges in each similarity bin.</li>
-            <li><strong>X-axis bin:</strong> Adaptive similarity-score ranges (narrow bins when values are tightly clustered near the threshold).</li>
-            <li><strong>Intended use:</strong> Use this to judge whether the edge set is concentrated near the threshold or dominated by very-high-similarity pairs.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-        </div>
-
-      <div class="analysis-tables" data-analysis-tables-for="duplicates_near"></div>
     </section>
     <section
       class="analysis-section"
@@ -1154,6 +826,172 @@ Low-power Windows                </div>
         </div>
 
       <div class="analysis-tables" data-analysis-tables-for="voter_registry_match"></div>
+    </section>
+    <section
+      class="analysis-section"
+      id="section-off_hours"
+      data-analysis-id="off_hours"
+      data-analysis-status="ready"
+      data-analysis-detector="off_hours"
+    >
+      <div class="analysis-header">
+        <h2 id="analysis-off_hours" class="toc-heading">Off-Hours Profile</h2>
+      </div>
+
+      <div class="analysis-hero-block">
+        <div class="chart-host chart-host-hero" data-chart-id="off_hours_control_timeline" data-chart-role="hero"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_control_timeline">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_control_timeline"></p>
+        <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Off-hours control timeline with primary baseline overlays (model when available, day-adjusted fallback otherwise). This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Submission count, Pro rate, Wilson low / Wilson high, Robust primary alert, Low-power.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Off-hours control timeline with primary baseline overlays (model when available, day-adjusted fallback otherwise).</p>
+        <ul>
+            <li><strong>Submission count:</strong> Total records per bucket for support context.</li>
+            <li><strong>Pro rate:</strong> Observed pro share by bucket, with Wilson uncertainty and primary expected/control-band overlays.</li>
+            <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
+            <li><strong>Robust primary alert:</strong> Alert-eligible windows beyond the primary 99.8% control limits with tail-consistent FDR support and material effect size. Shaded spans mark contiguous robust-alert runs (lower or upper tail).</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
+        </ul>
+  </div>
+</details>
+
+      </div>
+
+      <details class="analysis-help-card">
+  <summary>Analysis Help</summary>
+  <div class="analysis-help-body">
+      <p><strong>What is this?</strong> Off-Hours Profile focuses on model-aware off-hours composition shift with volume context. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
+      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
+      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
+      <p><strong>What do I look for?</strong> Sustained robust primary alerts (alert-eligible, beyond primary 99.8% control bands with tail-consistent FDR support and material effect size) at adequate support, then verify whether lower- or upper-tail patterns repeat or cluster in specific dates/hours. Prioritize robust primary alerts (below primary 99.8% lower limit, lower-tail FDR-significant, and materially negative delta at adequate support); avoid interpreting low-n windows even if raw rates look extreme. If tested off-hours windows are zero after low-power filtering, treat the section as descriptive-only and avoid inferential conclusions. Use the funnel view to compare primary and global expected bands; treat primary-baseline breaches as the decision metric and global bands as context. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate short overnight swings that stay within primary control limits after day/hour adjustment. Momentary lows can indicate small support windows where apparent extremes are likely sampling noise. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
+      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate repeating robust primary alerts across adjacent windows or nights at moderate/high support. Extended lows can indicate stable overnight behavior that remains inside expected primary control bands. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
+      <ul>
+          <li>Prioritize robust primary alerts (below primary 99.8% lower limit, lower-tail FDR-significant, and materially negative delta at adequate support); avoid interpreting low-n windows even if raw rates look extreme.</li>
+          <li>If tested off-hours windows are zero after low-power filtering, treat the section as descriptive-only and avoid inferential conclusions.</li>
+          <li>Use the funnel view to compare primary and global expected bands; treat primary-baseline breaches as the decision metric and global bands as context.</li>
+          <li>In date-hour heatmaps, repeated overnight blocks across multiple dates are stronger than a single-night dip; corroborate with burst, periodicity, and duplicate detectors before escalation.</li>
+      </ul>
+    <p><strong>Common benign causes:</strong> Time-zone spillover, campaign scheduling, and hearing-deadline pushes can produce legitimate overnight composition shifts.</p>
+  </div>
+</details>
+
+        <div class="analysis-detail-grid">
+            <article class="detail-card">
+              <h3 class="detail-title">Off Hours Funnel Plot</h3>
+              <p class="tiny-note"><code>off_hours_funnel_plot</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="off_hours_funnel_plot" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_funnel_plot">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_funnel_plot"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Funnel plot of pro share versus support with primary and global control references. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
+      <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
+      <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
+      <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Control curves, Color, Y-axis scaling.</p>
+      <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
+      <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
+      <p><strong>Legend guide:</strong> Funnel plot of pro share versus support with primary and global control references.</p>
+        <ul>
+            <li><strong>Point:</strong> Each point is one time bucket (x = known pro/con count, y = pro share). Inference is strongest when windows are alert-eligible and not low-power.</li>
+            <li><strong>Control curves:</strong> Curves show global-baseline expected range (95% and 99.8%). Primary baseline is row-specific (model/day-adjusted) and is used for robust-alert scoring and tooltip diagnostics.</li>
+            <li><strong>Color:</strong> Off-hours-dominant windows are highlighted; red points mark robust lower-tail alerts and pink triangles mark robust upper-tail alerts (99.8% control-limit breach + tail-consistent FDR + material effect size).</li>
+            <li><strong>Y-axis scaling:</strong> The pro-rate axis uses a tail-stretch transform so dense extreme-tail regions remain readable instead of collapsing at chart boundaries.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Off Hours Primary Residual Timeline</h3>
+              <p class="tiny-note"><code>off_hours_primary_residual_timeline</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="off_hours_primary_residual_timeline" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_primary_residual_timeline">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_primary_residual_timeline"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Primary-baseline residual timeline for inferentially tested off-hours windows with SPC/FDR channel markers. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Known Pro+Con count, Primary z-score, Day z-score, Z references, Robust primary alert, Low-power.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Primary-baseline residual timeline for inferentially tested off-hours windows with SPC/FDR channel markers.</p>
+        <ul>
+            <li><strong>Known Pro+Con count:</strong> Known pro/con records supporting each bucket.</li>
+            <li><strong>Primary z-score:</strong> Standardized residual of observed pro count versus the primary expected pro-rate baseline (model/day-adjusted).</li>
+            <li><strong>Day z-score:</strong> Day-adjusted standardized residual shown as comparator context.</li>
+            <li><strong>Z references:</strong> Reference lines at 0 and +/-3 sigma for residual context.</li>
+            <li><strong>Robust primary alert:</strong> Alert-eligible windows meeting robust-primary criteria (99.8% control-limit breach + tail-consistent FDR + material effect size).</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Off Hours Primary Flag Channels</h3>
+              <p class="tiny-note"><code>off_hours_primary_flag_channels</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="off_hours_primary_flag_channels" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_primary_flag_channels">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_primary_flag_channels"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Channelized flag accounting for tested off-hours windows in the primary bucket. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Column, Channel meaning, Reading order.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Channelized flag accounting for tested off-hours windows in the primary bucket.</p>
+        <ul>
+            <li><strong>Column:</strong> Each column is a count of tested windows for one channel label on the x-axis.</li>
+            <li><strong>Channel meaning:</strong> Tested off-hours windows = denominator; Primary 99.8% breach = SPC extreme tail; Primary two-sided FDR-significant = multiplicity-adjusted test hits; Any primary flag channel = SPC OR FDR; Both primary flag channels = SPC AND FDR; Robust primary alerts = AND criteria plus material effect-size gate.</li>
+            <li><strong>Reading order:</strong> Columns are ordered from broad denominator context to stricter overlap criteria.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Off Hours Model Fit Diagnostics</h3>
+              <p class="tiny-note"><code>off_hours_model_fit_diagnostics</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="off_hours_model_fit_diagnostics" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="off_hours_model_fit_diagnostics">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="off_hours_model_fit_diagnostics"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Model-fit availability by off-hours bucket size (counts plus fraction). This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Total windows (bar), Model-available windows (bar), Model-available fraction (line), X-axis bucket.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Model-fit availability by off-hours bucket size (counts plus fraction).</p>
+        <ul>
+            <li><strong>Total windows (bar):</strong> Count of windows evaluated for that bucket size.</li>
+            <li><strong>Model-available windows (bar):</strong> Subset of total windows where model-based expected rates were available.</li>
+            <li><strong>Model-available fraction (line):</strong> Available windows divided by total windows for each bucket size.</li>
+            <li><strong>X-axis bucket:</strong> Bucket size in minutes; combine with table diagnostics for method, support, convergence, and AIC context.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+        </div>
+
+      <div class="analysis-tables" data-analysis-tables-for="off_hours"></div>
     </section>
 </section>          <section id="section-methodology" class="report-section panel">
             <h2 id="methodology" class="toc-heading">Methodology</h2>

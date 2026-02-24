@@ -56,8 +56,8 @@ def test_build_evidence_item_applies_scoring_explanations_and_caveats() -> None:
             explanation_hint="potential_manipulation",
         ),
         EvidenceSignal(
-            signal_id="duplicates.cluster_near",
-            detector="duplicates_near",
+            signal_id="duplicates_exact.name_density",
+            detector="duplicates_exact",
             evidence_kind="heuristic",
             signal_score=0.75,
             support_n=18,
@@ -95,7 +95,7 @@ def test_score_breakdown_strings_ranks_primary_driver() -> None:
         ),
         EvidenceSignal(
             signal_id="dup.cluster_001",
-            detector="duplicates_near",
+            detector="duplicates_exact",
             evidence_kind="heuristic",
             signal_score=0.60,
             support_n=22,
@@ -106,5 +106,5 @@ def test_score_breakdown_strings_ranks_primary_driver() -> None:
 
     assert primary_driver == "bursts"
     assert "bursts" in detector_breakdown
-    assert "duplicates_near" in detector_breakdown
+    assert "duplicates_exact" in detector_breakdown
     assert "bursts.window_15m" in signal_breakdown

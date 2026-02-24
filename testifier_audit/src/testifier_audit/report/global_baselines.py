@@ -20,7 +20,6 @@ _COMPARATOR_METRIC_SPECS: tuple[tuple[str, str], ...] = (
     ("window_top_abs_z", "Top window |z|"),
     ("window_top_dup_fraction", "Top window duplicate fraction"),
     ("top_name_max_records", "Top repeated-name records"),
-    ("top_cluster_max_records", "Top near-dup cluster records"),
     ("off_hours_ratio", "Off-hours submission ratio"),
     ("dedup_drop_fraction", "Dedup drop fraction"),
 )
@@ -40,7 +39,6 @@ def default_cross_hearing_baseline_payload() -> dict[str, Any]:
         "report_count": 0,
         "metric_comparators": [],
         "top_name_cues": [],
-        "top_cluster_cues": [],
     }
 
 
@@ -142,31 +140,6 @@ def _normalize_name_rows(rows: list[dict[str, Any]], *, max_rows: int = 20) -> l
     return normalized[:max_rows]
 
 
-def _normalize_cluster_rows(
-    rows: list[dict[str, Any]], *, max_rows: int = 20
-) -> list[dict[str, Any]]:
-    normalized: list[dict[str, Any]] = []
-    for row in rows:
-        cluster_id = str(row.get("cluster_id") or "").strip()
-        if not cluster_id:
-            continue
-        normalized.append(
-            {
-                "cluster_id": cluster_id,
-                "cluster_size": _safe_int(row.get("cluster_size", 0)),
-                "n_records": _safe_int(row.get("n_records", 0)),
-            }
-        )
-    normalized.sort(
-        key=lambda row: (
-            -int(row.get("n_records", 0)),
-            -int(row.get("cluster_size", 0)),
-            str(row.get("cluster_id", "")),
-        )
-    )
-    return normalized[:max_rows]
-
-
 def build_feature_vector(
     *,
     report_id: str,
@@ -204,12 +177,8 @@ def build_feature_vector(
     top_name_rows = _normalize_name_rows(
         _as_rows(summary.get("top_repeated_names")) or _normalize_name_rows(record_rows)
     )
-    top_cluster_rows = _normalize_cluster_rows(
-        _as_rows(summary.get("top_near_dup_clusters")) or _normalize_cluster_rows(cluster_rows)
-    )
 
     top_name_max_records = max((row["n_records"] for row in top_name_rows), default=0)
-    top_cluster_max_records = max((row["n_records"] for row in top_cluster_rows), default=0)
 
     off_hours_summary = _as_dict(summary.get("off_hours_summary"))
     off_hours_ratio = _safe_float(off_hours_summary.get("off_hours_ratio"))
@@ -253,7 +222,6 @@ def build_feature_vector(
         "window_top_dup_fraction": max(window_dup_fraction) if window_dup_fraction else None,
         "window_min_q_value": min(window_q_values) if window_q_values else None,
         "top_name_max_records": top_name_max_records,
-        "top_cluster_max_records": top_cluster_max_records,
         "off_hours_ratio": off_hours_ratio,
         "dedup_drop_fraction": dedup_drop_fraction,
     }
@@ -272,7 +240,6 @@ def build_feature_vector(
         "date_range_end": summary.get("date_range_end"),
         "metrics": metrics,
         "top_repeated_names": top_name_rows,
-        "top_near_dup_clusters": top_cluster_rows,
         "material_quality_metric_count": quality_metric_count,
         # Compatibility keys retained for previously emitted shape.
         "total_submissions": metrics["total_submissions"],
@@ -349,18 +316,9 @@ def _normalize_feature_record(
     top_names = _normalize_name_rows(
         _as_rows(feature.get("top_repeated_names")) or _as_rows(summary.get("top_repeated_names"))
     )
-    top_clusters = _normalize_cluster_rows(
-        _as_rows(feature.get("top_near_dup_clusters"))
-        or _as_rows(summary.get("top_near_dup_clusters"))
-    )
 
     if _safe_float(metrics.get("top_name_max_records")) is None:
         metrics["top_name_max_records"] = max((row["n_records"] for row in top_names), default=0)
-    if _safe_float(metrics.get("top_cluster_max_records")) is None:
-        metrics["top_cluster_max_records"] = max(
-            (row["n_records"] for row in top_clusters),
-            default=0,
-        )
     if _safe_float(metrics.get("off_hours_ratio")) is None:
         metrics["off_hours_ratio"] = _safe_float(
             _as_dict(summary.get("off_hours_summary")).get("off_hours_ratio")
@@ -383,7 +341,6 @@ def _normalize_feature_record(
     feature["report_id"] = str(feature.get("report_id") or report_id)
     feature["metrics"] = metrics
     feature["top_repeated_names"] = top_names
-    feature["top_near_dup_clusters"] = top_clusters
     return feature
 
 
@@ -466,19 +423,6 @@ def build_global_baselines(records: list[ReportFeatureRecord]) -> dict[str, Any]
         if entry["max_n_records"] > 0
     ]
 
-    all_cluster_sizes: list[float] = []
-    all_cluster_records: list[float] = []
-    for record in records:
-        for row in _normalize_cluster_rows(
-            _as_rows(record.feature_vector.get("top_near_dup_clusters"))
-        ):
-            cluster_size = _safe_float(row.get("cluster_size"))
-            n_records = _safe_float(row.get("n_records"))
-            if cluster_size is not None:
-                all_cluster_sizes.append(cluster_size)
-            if n_records is not None:
-                all_cluster_records.append(n_records)
-
     for record in records:
         feature = record.feature_vector
         metrics = _as_dict(feature.get("metrics"))
@@ -527,35 +471,12 @@ def build_global_baselines(records: list[ReportFeatureRecord]) -> dict[str, Any]
                 }
             )
 
-        top_cluster_cues: list[dict[str, Any]] = []
-        for row in _normalize_cluster_rows(_as_rows(feature.get("top_near_dup_clusters"))):
-            cluster_size = _safe_float(row.get("cluster_size"))
-            n_records = _safe_float(row.get("n_records"))
-            top_cluster_cues.append(
-                {
-                    "cluster_id": str(row.get("cluster_id") or ""),
-                    "cluster_size": _safe_int(row.get("cluster_size"), default=0),
-                    "n_records": _safe_int(row.get("n_records"), default=0),
-                    "cluster_size_percentile": (
-                        _percentile_rank(all_cluster_sizes, cluster_size)
-                        if cluster_size is not None
-                        else None
-                    ),
-                    "n_records_percentile": (
-                        _percentile_rank(all_cluster_records, n_records)
-                        if n_records is not None
-                        else None
-                    ),
-                }
-            )
-
         payload["by_report"][record.report_id] = {
             "available": True,
             "report_id": record.report_id,
             "report_count": len(records),
             "metric_comparators": metric_comparators,
             "top_name_cues": top_name_cues,
-            "top_cluster_cues": top_cluster_cues,
         }
 
     return payload

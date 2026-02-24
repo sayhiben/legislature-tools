@@ -43,43 +43,6 @@
       "n_con": 17
     }
   ],
-  "top_near_dup_clusters": [
-    {
-      "cluster_id": "cluster_0001",
-      "cluster_size": 13,
-      "n_records": 15,
-      "first_seen": "2026-02-03T18:55:00-08:00",
-      "last_seen": "2026-02-06T10:59:00-08:00"
-    },
-    {
-      "cluster_id": "cluster_0002",
-      "cluster_size": 9,
-      "n_records": 15,
-      "first_seen": "2026-02-03T19:34:00-08:00",
-      "last_seen": "2026-02-06T12:02:00-08:00"
-    },
-    {
-      "cluster_id": "cluster_0003",
-      "cluster_size": 8,
-      "n_records": 17,
-      "first_seen": "2026-02-03T19:40:00-08:00",
-      "last_seen": "2026-02-06T08:09:00-08:00"
-    },
-    {
-      "cluster_id": "cluster_0004",
-      "cluster_size": 7,
-      "n_records": 8,
-      "first_seen": "2026-02-04T20:48:00-08:00",
-      "last_seen": "2026-02-06T11:50:00-08:00"
-    },
-    {
-      "cluster_id": "cluster_0007",
-      "cluster_size": 6,
-      "n_records": 16,
-      "first_seen": "2026-02-03T20:52:00-08:00",
-      "last_seen": "2026-02-06T11:15:00-08:00"
-    }
-  ],
   "off_hours_summary": {
     "total": 80847.0,
     "off_hours": 5262.0,

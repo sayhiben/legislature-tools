@@ -281,7 +281,6 @@ def _empty_summary() -> dict[str, Any]:
         "top_burst_windows": [],
         "top_swing_windows": [],
         "top_repeated_names": [],
-        "top_near_dup_clusters": [],
         "off_hours_summary": {},
         "queue_counts": {"window": 0, "record": 0, "cluster": 0},
         "window_tier_counts": {"high": 0, "medium": 0, "watch": 0},
@@ -435,19 +434,6 @@ def build_investigation_view(
             "inference_status",
         ],
     )
-    dup_near_clusters = _with_columns(
-        _table(table_map, "duplicates_near.cluster_summary"),
-        [
-            "cluster_id",
-            "cluster_size",
-            "n_records",
-            "n_pro",
-            "n_con",
-            "first_seen",
-            "last_seen",
-            "time_span_minutes",
-        ],
-    )
     off_hours_summary = _with_columns(
         _table(table_map, "off_hours.off_hours_summary"),
         [
@@ -472,14 +458,6 @@ def build_investigation_view(
     swings["start_minute"] = pd.to_datetime(swings["start_minute"], errors="coerce")
     swings["end_minute"] = pd.to_datetime(swings["end_minute"], errors="coerce")
     swings = swings.dropna(subset=["start_minute", "end_minute"]).reset_index(drop=True)
-
-    dup_near_clusters["first_seen"] = pd.to_datetime(
-        dup_near_clusters["first_seen"], errors="coerce"
-    )
-    dup_near_clusters["last_seen"] = pd.to_datetime(dup_near_clusters["last_seen"], errors="coerce")
-    dup_near_clusters = dup_near_clusters.dropna(subset=["first_seen", "last_seen"]).reset_index(
-        drop=True
-    )
 
     summary = _empty_summary()
     if not counts.empty:
@@ -551,16 +529,6 @@ def build_investigation_view(
             "n_con": int(_to_float(row.get("n_con")) or 0),
         }
         for row in top_repeated_source.head(5).to_dict(orient="records")
-    ]
-    summary["top_near_dup_clusters"] = [
-        {
-            "cluster_id": str(row.get("cluster_id") or ""),
-            "cluster_size": int(_to_float(row.get("cluster_size")) or 0),
-            "n_records": int(_to_float(row.get("n_records")) or 0),
-            "first_seen": _iso_or_none(_to_timestamp(row.get("first_seen"))),
-            "last_seen": _iso_or_none(_to_timestamp(row.get("last_seen"))),
-        }
-        for row in dup_near_clusters.head(5).to_dict(orient="records")
     ]
     if not off_hours_summary.empty:
         summary["off_hours_summary"] = {

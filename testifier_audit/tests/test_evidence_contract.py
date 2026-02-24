@@ -51,7 +51,7 @@ def test_triage_evidence_item_exposes_evidence_kinds() -> None:
             ),
             EvidenceSignal(
                 signal_id="dup.cluster_count",
-                detector="duplicates_near",
+                detector="duplicates_exact",
                 evidence_kind="heuristic",
                 signal_score=0.60,
                 support_n=30,

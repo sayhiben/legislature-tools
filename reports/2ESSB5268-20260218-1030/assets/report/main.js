@@ -222,6 +222,7 @@
     cursorX: null,
     activeTocHeading: null,
     activeSectionControlKey: "",
+    globalControlsExpandedMobile: false,
     renderToc: null,
     selectedWindowRange: null,
     zoom: {
@@ -1347,6 +1348,63 @@
   }
 
   const reportDateTimeFormatter = buildDateTimeFormatter(reportTimezone);
+  const zoomRangeDateTimeFormatter = (() => {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: reportTimezone,
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hourCycle: "h23",
+      });
+    } catch (_error) {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Los_Angeles",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hourCycle: "h23",
+      });
+    }
+  })();
+  const zoomMonthAbbrevMap = {
+    Jan: "Jan.",
+    Feb: "Feb.",
+    Mar: "Mar.",
+    Apr: "Apr.",
+    May: "May",
+    Jun: "Jun.",
+    Jul: "Jul.",
+    Aug: "Aug.",
+    Sep: "Sep.",
+    Oct: "Oct.",
+    Nov: "Nov.",
+    Dec: "Dec.",
+  };
+  const meetingDateTimeFormatter = (() => {
+    const options = {
+      timeZone: reportTimezone,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+    };
+    try {
+      return new Intl.DateTimeFormat("en-US", options);
+    } catch (_error) {
+      return new Intl.DateTimeFormat(
+        "en-US",
+        Object.assign({}, options, { timeZone: "America/Los_Angeles" })
+      );
+    }
+  })();
 
   function formatEpochMillis(epochMillis) {
     if (!Number.isFinite(epochMillis)) {
@@ -1355,49 +1413,50 @@
     return reportDateTimeFormatter.format(new Date(epochMillis));
   }
 
-  function formatDurationCompact(epochDelta) {
-    const millis = toFiniteNumberOrNull(epochDelta);
-    if (millis === null || millis <= 0) {
-      return "-";
+  function formatZoomRangeEpochMillis(epochMillis) {
+    if (!Number.isFinite(epochMillis)) {
+      return "";
     }
-    const totalMinutes = Math.floor(millis / 60000);
-    if (totalMinutes < 1) {
-      return "under 1m";
-    }
+    const parts = zoomRangeDateTimeFormatter.formatToParts(new Date(epochMillis));
+    let month = "";
+    let day = "";
+    let year = "";
+    let hour = "";
+    let minute = "";
+    parts.forEach((part) => {
+      if (!part || typeof part.type !== "string") {
+        return;
+      }
+      if (part.type === "month") {
+        month = String(part.value || "");
+      } else if (part.type === "day") {
+        day = String(part.value || "");
+      } else if (part.type === "year") {
+        year = String(part.value || "");
+      } else if (part.type === "hour") {
+        hour = String(part.value || "");
+      } else if (part.type === "minute") {
+        minute = String(part.value || "");
+      }
+    });
 
-    const days = Math.floor(totalMinutes / 1440);
-    const hours = Math.floor((totalMinutes % 1440) / 60);
-    const minutes = totalMinutes % 60;
-    const parts = [];
-    if (days > 0) {
-      parts.push(String(days) + "d");
+    const monthLabel = zoomMonthAbbrevMap[month] || (month ? month + "." : "");
+    const hourNumber = Number.parseInt(hour, 10);
+    if (!monthLabel || !day || !year || !Number.isFinite(hourNumber)) {
+      return formatEpochMillis(epochMillis);
     }
-    if (hours > 0) {
-      parts.push(String(hours) + "h");
-    }
-    if (minutes > 0 && parts.length < 2) {
-      parts.push(String(minutes) + "m");
-    }
-    if (!parts.length) {
-      parts.push("0m");
-    }
-    return parts.join(" ");
-  }
-
-  function formatCoveragePercent(ratio) {
-    const numeric = toFiniteNumberOrNull(ratio);
-    if (numeric === null || numeric < 0) {
-      return null;
-    }
-    const bounded = Math.max(0, Math.min(1, numeric));
-    const percent = bounded * 100;
-    if (percent < 0.1) {
-      return "<0.1%";
-    }
-    if (percent > 99.95) {
-      return "100%";
-    }
-    return percent.toFixed(1) + "%";
+    const minuteLabel = minute ? minute.padStart(2, "0") : "00";
+    return (
+      monthLabel +
+      " " +
+      day +
+      ", " +
+      year +
+      ", " +
+      String(hourNumber) +
+      ":" +
+      minuteLabel
+    );
   }
 
   function formatTooltipValue(value) {
@@ -1448,6 +1507,45 @@
     }
   }
 
+  function globalControlsOffsetPx(extraPixels) {
+    const controlsPanel = document.getElementById("sidebar-global-controls");
+    const panelHeight = controlsPanel ? controlsPanel.getBoundingClientRect().height : 0;
+    const cssHeightRaw = getComputedStyle(document.documentElement).getPropertyValue(
+      "--sidebar-global-controls-height"
+    );
+    const cssHeight = Number.parseFloat(cssHeightRaw);
+    const baseHeight =
+      panelHeight > 0
+        ? panelHeight
+        : Number.isFinite(cssHeight) && cssHeight > 0
+          ? cssHeight
+          : 84;
+    const extra = toFiniteNumberOrNull(extraPixels);
+    return Math.max(64, Math.round(baseHeight + (extra === null ? 0 : extra)));
+  }
+
+  function sectionViewControlsOffsetPx() {
+    const panel = document.getElementById("section-view-controls-panel");
+    if (!panel || panel.classList.contains("hidden")) {
+      return 0;
+    }
+    const panelHeight = panel.getBoundingClientRect().height;
+    if (panelHeight > 0) {
+      return Math.round(panelHeight);
+    }
+    const cssHeightRaw = getComputedStyle(document.documentElement).getPropertyValue(
+      "--section-view-controls-height"
+    );
+    const cssHeight = Number.parseFloat(cssHeightRaw);
+    return Number.isFinite(cssHeight) && cssHeight > 0 ? Math.round(cssHeight) : 0;
+  }
+
+  function headerStackOffsetPx(extraPixels) {
+    const extra = toFiniteNumberOrNull(extraPixels);
+    const topStack = globalControlsOffsetPx(0) + sectionViewControlsOffsetPx();
+    return Math.max(64, Math.round(topStack + (extra === null ? 0 : extra)));
+  }
+
   function updateSidebarFloatingOffsets() {
     const rootStyle = document.documentElement ? document.documentElement.style : null;
     const controlsPanel = document.getElementById("sidebar-global-controls");
@@ -1461,6 +1559,15 @@
     rootStyle.setProperty(
       "--sidebar-global-controls-height",
       String(Math.ceil(panelHeight)) + "px"
+    );
+    const sectionControlsPanel = document.getElementById("section-view-controls-panel");
+    let sectionControlsHeight = 0;
+    if (sectionControlsPanel && !sectionControlsPanel.classList.contains("hidden")) {
+      sectionControlsHeight = sectionControlsPanel.getBoundingClientRect().height;
+    }
+    rootStyle.setProperty(
+      "--section-view-controls-height",
+      sectionControlsHeight > 0 ? String(Math.ceil(sectionControlsHeight)) + "px" : "0px"
     );
   }
 
@@ -1477,6 +1584,10 @@
       updateSidebarFloatingOffsets();
     });
     sidebarFloatingControlsObserver.observe(controlsPanel);
+    const sectionControlsPanel = document.getElementById("section-view-controls-panel");
+    if (sectionControlsPanel) {
+      sidebarFloatingControlsObserver.observe(sectionControlsPanel);
+    }
   }
 
   function sectionControlKeyForHeading(headingId) {
@@ -1499,31 +1610,16 @@
     return "";
   }
 
-  function sectionLabelForHeading(headingId) {
-    const normalized = normalizeHashId(headingId);
-    if (!normalized) {
-      return "";
-    }
-    const heading = document.getElementById(normalized);
-    if (!heading) {
-      return "";
-    }
-    return String(heading.textContent || "").trim();
-  }
-
   function updateSectionViewControlsForHeading(headingId) {
     const root = document.getElementById("section-view-controls-panel");
     if (!root) {
       return;
     }
-    const context = document.getElementById("section-view-controls-context");
     const panels = Array.from(root.querySelectorAll("[data-section-control-for]"));
     if (!panels.length) {
       root.classList.add("hidden");
-      if (context) {
-        context.textContent = "";
-      }
       state.activeSectionControlKey = "";
+      updateSidebarFloatingOffsets();
       return;
     }
 
@@ -1541,18 +1637,12 @@
 
     if (!activePanel) {
       root.classList.add("hidden");
-      if (context) {
-        context.textContent = "";
-      }
       state.activeSectionControlKey = "";
+      updateSidebarFloatingOffsets();
       return;
     }
 
     root.classList.remove("hidden");
-    if (context) {
-      const headingLabel = sectionLabelForHeading(headingId);
-      context.textContent = headingLabel ? headingLabel : "";
-    }
 
     const activeKey = String(activePanel.getAttribute("data-section-control-for") || "").trim();
     if (state.activeSectionControlKey !== activeKey) {
@@ -1565,6 +1655,7 @@
       }, 980);
     }
     state.activeSectionControlKey = activeKey;
+    updateSidebarFloatingOffsets();
   }
 
   function replaceUrlHashWithoutHistory(headingId) {
@@ -1663,40 +1754,6 @@
       ) {
         params.set("zoom_start", String(Math.round(state.zoom.minTime)));
         params.set("zoom_end", String(Math.round(state.zoom.maxTime)));
-      }
-    });
-  }
-
-  function copyTextToClipboard(text) {
-    const value = String(text || "");
-    if (!value) {
-      return Promise.reject(new Error("Nothing to copy"));
-    }
-    if (
-      window.navigator &&
-      window.navigator.clipboard &&
-      typeof window.navigator.clipboard.writeText === "function"
-    ) {
-      return window.navigator.clipboard.writeText(value);
-    }
-    return new Promise((resolve, reject) => {
-      try {
-        const input = document.createElement("textarea");
-        input.value = value;
-        input.setAttribute("readonly", "");
-        input.style.position = "absolute";
-        input.style.left = "-9999px";
-        document.body.appendChild(input);
-        input.select();
-        const succeeded = document.execCommand("copy");
-        document.body.removeChild(input);
-        if (!succeeded) {
-          reject(new Error("Copy command failed"));
-          return;
-        }
-        resolve();
-      } catch (error) {
-        reject(error);
       }
     });
   }
@@ -2259,6 +2316,10 @@
     return Array.from(values).sort((left, right) => left - right);
   }
 
+  function shouldRetainBucketlessRowsForChart(chartId) {
+    return chartId === "duplicates_exact_top_name_timing_exact";
+  }
+
   function filterRowsByBucket(rows, chartId) {
     const options = getChartBucketOptions(chartId, rows);
     if (!options.length) {
@@ -2267,8 +2328,15 @@
 
     const selection = resolveBucketTarget(options);
     const target = selection.bucket;
+    const keepBucketlessRows = shouldRetainBucketlessRowsForChart(chartId);
     return {
-      rows: rows.filter((row) => toFiniteNumberOrNull(row.bucket_minutes) === target),
+      rows: rows.filter((row) => {
+        const bucketValue = toFiniteNumberOrNull(row.bucket_minutes);
+        if (bucketValue === target) {
+          return true;
+        }
+        return keepBucketlessRows && bucketValue === null;
+      }),
       bucket: target,
       options: options,
       note: selection.note,
@@ -2466,6 +2534,26 @@
     return Array.isArray(rows)
       ? rows.some((row) => inferRowAbsoluteTimeRange(mount, row) !== null)
       : false;
+  }
+
+  function overlapsWindow(startA, endA, startB, endB) {
+    const leftStart = toFiniteNumberOrNull(startA);
+    const leftEnd = toFiniteNumberOrNull(endA);
+    const rightStart = toFiniteNumberOrNull(startB);
+    const rightEnd = toFiniteNumberOrNull(endB);
+    if (
+      leftStart === null ||
+      leftEnd === null ||
+      rightStart === null ||
+      rightEnd === null
+    ) {
+      return false;
+    }
+    const normalizedLeftStart = Math.min(leftStart, leftEnd);
+    const normalizedLeftEnd = Math.max(leftStart, leftEnd);
+    const normalizedRightStart = Math.min(rightStart, rightEnd);
+    const normalizedRightEnd = Math.max(rightStart, rightEnd);
+    return normalizedLeftStart <= normalizedRightEnd && normalizedRightStart <= normalizedLeftEnd;
   }
 
   function filterRowsByLinkedZoom(mount, rows) {
@@ -2900,12 +2988,6 @@
     const label = document.getElementById("zoom-range-label");
     const statusChip = document.getElementById("zoom-status-chip");
     const resetButton = document.getElementById("zoom-reset-button");
-    const banner = document.getElementById("zoom-active-banner");
-    const bannerText = document.getElementById("zoom-active-banner-text");
-    const bannerMeta = document.getElementById("zoom-active-banner-meta");
-    const bannerChip = document.getElementById("zoom-active-banner-chip");
-    const bannerResetButton = document.getElementById("zoom-banner-reset-button");
-    const bannerCopyButton = document.getElementById("zoom-banner-copy-button");
     if (!panel || !label || !resetButton) {
       return;
     }
@@ -2915,9 +2997,6 @@
       if (statusChip) {
         statusChip.classList.remove("is-active");
         statusChip.textContent = "All";
-      }
-      if (banner) {
-        banner.classList.add("hidden");
       }
       updateSidebarFloatingOffsets();
       return;
@@ -2934,68 +3013,20 @@
         statusChip.textContent = "All";
       }
     }
-    if (bannerResetButton) {
-      bannerResetButton.disabled = !hasZoom;
-    }
-    if (bannerCopyButton) {
-      bannerCopyButton.disabled = !hasZoom;
-      if (!hasZoom) {
-        bannerCopyButton.textContent = "Copy link";
-      }
-    }
     if (!hasZoom) {
       label.textContent = "Full timeline";
-      if (banner) {
-        banner.classList.add("hidden");
-      }
-      if (bannerMeta) {
-        bannerMeta.textContent = "";
-      }
-      if (bannerChip) {
-        bannerChip.textContent = "";
-      }
       updateSidebarFloatingOffsets();
       return;
     }
 
     const rangeText =
-      formatEpochMillis(state.zoom.minTime) +
+      formatZoomRangeEpochMillis(state.zoom.minTime) +
       " to " +
-      formatEpochMillis(state.zoom.maxTime);
-    label.textContent = rangeText;
-    const selectedDuration = Math.max(0, state.zoom.maxTime - state.zoom.minTime);
-    const selectedDurationText = formatDurationCompact(selectedDuration);
-    const fullExtent = collectAbsoluteTimeExtent();
-    const fullDuration =
-      fullExtent && Number.isFinite(fullExtent.min) && Number.isFinite(fullExtent.max)
-        ? Math.max(0, fullExtent.max - fullExtent.min)
-        : null;
-    const coverageRatio =
-      fullDuration && fullDuration > 0 ? selectedDuration / fullDuration : null;
-    const coverageText = formatCoveragePercent(coverageRatio);
+      formatZoomRangeEpochMillis(state.zoom.maxTime);
     if (statusChip) {
-      statusChip.textContent = coverageText ? coverageText : "Zoom";
+      statusChip.textContent = "Zoom";
     }
-    if (banner && bannerText) {
-      banner.classList.remove("hidden");
-      bannerText.textContent = rangeText;
-      if (bannerMeta) {
-        let metaText =
-          "All time-based charts, heatmaps, funnel points, and bucket tables are filtered to this range.";
-        if (selectedDurationText !== "-") {
-          metaText += " Window span: " + selectedDurationText + ".";
-        }
-        if (coverageText) {
-          metaText += " Coverage: " + coverageText + " of full timeline.";
-        }
-        bannerMeta.textContent = metaText;
-      }
-      if (bannerChip) {
-        bannerChip.textContent = coverageText
-          ? coverageText + " of timeline"
-          : selectedDurationText;
-      }
-    }
+    label.textContent = rangeText;
     updateSidebarFloatingOffsets();
   }
 
@@ -3481,7 +3512,7 @@
         {
           type: "slider",
           xAxisIndex: [0],
-          bottom: 30,
+          bottom: 14,
           startValue: Number.isFinite(state.zoom.minTime) ? state.zoom.minTime : undefined,
           endValue: Number.isFinite(state.zoom.maxTime) ? state.zoom.maxTime : undefined,
         },
@@ -4824,6 +4855,150 @@
     return true;
   }
 
+  function renderOverviewPositionVolumeByBucket(mount, rows) {
+    const theme = currentChartTheme();
+    const points = rows
+      .map((row) => {
+        const bucketStart = toEpochMillis(row.bucket_start);
+        const bucketMinutes = toFiniteNumberOrNull(row.bucket_minutes);
+        const nPro = Math.max(0, toNumber(row.n_pro));
+        const nCon = Math.max(0, toNumber(row.n_con));
+        const nOtherRaw =
+          Object.prototype.hasOwnProperty.call(row, "n_other_position")
+            ? row.n_other_position
+            : row.n_unknown;
+        const nOther = Math.max(0, toNumber(nOtherRaw));
+        const nTotalRaw = toFiniteNumberOrNull(row.n_total);
+        const nTotal = nTotalRaw !== null ? Math.max(0, nTotalRaw) : nPro + nCon + nOther;
+        return {
+          bucketStart,
+          bucketMinutes,
+          nPro,
+          nCon,
+          nOther,
+          nTotal,
+        };
+      })
+      .filter((row) => row.bucketStart !== null)
+      .sort((left, right) => left.bucketStart - right.bucketStart)
+      .slice(0, 60000);
+    if (!points.length) {
+      return false;
+    }
+
+    const seriesFor = (field) =>
+      points.map((point) => ({
+        value: [point.bucketStart, point[field]],
+        meta: point,
+      }));
+
+    const option = {
+      animation: false,
+      grid: { left: 66, right: 28, top: 24, bottom: 68 },
+      legend: { bottom: 0 },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        appendToBody: true,
+        confine: false,
+        formatter: (params) => {
+          const items = Array.isArray(params) ? params : [];
+          const first = items.length ? items[0] : null;
+          const meta = first && first.data && first.data.meta ? first.data.meta : null;
+          if (!meta) {
+            return "";
+          }
+          const lines = [];
+          if (meta.bucketStart !== null) {
+            lines.push(
+              "<strong>Bucket start (" +
+                reportTimezoneLabel +
+                "):</strong> " +
+                formatEpochMillis(meta.bucketStart)
+            );
+          }
+          if (meta.bucketStart !== null && meta.bucketMinutes !== null) {
+            lines.push(
+              "<strong>Bucket end:</strong> " +
+                formatEpochMillis(
+                  meta.bucketStart + Math.max(1, Math.round(meta.bucketMinutes)) * 60 * 1000 - 1
+                )
+            );
+            lines.push(
+              "<strong>Bucket:</strong> " + String(Math.round(meta.bucketMinutes)) + "m"
+            );
+          } else {
+            const bucketLabel = bucketLabelFromValue(mount.activeBucket);
+            if (bucketLabel) {
+              lines.push("<strong>Bucket:</strong> " + bucketLabel);
+            }
+          }
+          lines.push("<strong>Pro:</strong> " + Math.round(meta.nPro).toLocaleString());
+          lines.push("<strong>Con:</strong> " + Math.round(meta.nCon).toLocaleString());
+          lines.push("<strong>Other:</strong> " + Math.round(meta.nOther).toLocaleString());
+          lines.push("<strong>Total:</strong> " + Math.round(meta.nTotal).toLocaleString());
+          if (meta.nTotal > 0) {
+            lines.push(
+              "<strong>Shares (Pro/Con/Other):</strong> " +
+                formatPercent(meta.nPro / meta.nTotal) +
+                " / " +
+                formatPercent(meta.nCon / meta.nTotal) +
+                " / " +
+                formatPercent(meta.nOther / meta.nTotal)
+            );
+          }
+          return lines.join("<br/>");
+        },
+      },
+      xAxis: {
+        type: "time",
+        name: "Time (" + reportTimezoneLabel + ")",
+        axisLabel: {
+          formatter: (value) => formatEpochMillis(value),
+        },
+      },
+      yAxis: {
+        type: "value",
+        name: "Submission count",
+        min: 0,
+      },
+      series: [
+        {
+          name: "Pro",
+          type: "bar",
+          stack: "position-volume",
+          data: seriesFor("nPro"),
+          itemStyle: { color: theme.contextLine },
+          emphasis: { focus: "series" },
+          barMaxWidth: 20,
+        },
+        {
+          name: "Con",
+          type: "bar",
+          stack: "position-volume",
+          data: seriesFor("nCon"),
+          itemStyle: { color: theme.alertLower },
+          emphasis: { focus: "series" },
+          barMaxWidth: 20,
+        },
+        {
+          name: "Other",
+          type: "bar",
+          stack: "position-volume",
+          data: seriesFor("nOther"),
+          itemStyle: { color: theme.referenceLine },
+          emphasis: { focus: "series" },
+          barMaxWidth: 20,
+        },
+      ],
+    };
+
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.isTimeSeries = true;
+    mount.isAbsoluteTime = true;
+    return true;
+  }
+
   const simpleBarCategoricalChartIds = new Set([
     "composite_evidence_flags",
     "duplicates_exact_swing_impact",
@@ -4845,9 +5020,6 @@
     "duplicates_exact_top_names",
     "duplicates_exact_position_switch",
     "duplicates_exact_position_concentration",
-    "duplicates_near_cluster_size",
-    "duplicates_near_similarity",
-    "duplicates_near_time_concentration",
     "off_hours_hourly_profile",
     "off_hours_model_fit_diagnostics",
     "off_hours_summary_compare",
@@ -5559,10 +5731,17 @@
     if (!topNames.length) {
       return false;
     }
+    const rankedTopNames = topNames.map((entry, index) => ({
+      key: entry.key,
+      rank: entry.rank,
+      displayName: entry.displayName,
+      totalRepeatedRows: entry.totalRepeatedRows,
+      displayRank: index + 1,
+    }));
 
     const totalPages = Math.max(
       1,
-      Math.ceil(topNames.length / DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE)
+      Math.ceil(rankedTopNames.length / DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE)
     );
     const requestedPage = Number.isFinite(mount.topNameTimingPage)
       ? Math.round(mount.topNameTimingPage)
@@ -5571,20 +5750,19 @@
     mount.topNameTimingPage = pageIndex;
     const pageStart = pageIndex * DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE;
     const pageEndExclusive = Math.min(
-      topNames.length,
+      rankedTopNames.length,
       pageStart + DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE
     );
-    const pageNames = topNames.slice(pageStart, pageEndExclusive);
+    const pageNames = rankedTopNames.slice(pageStart, pageEndExclusive);
     if (!pageNames.length) {
       return false;
     }
+    const displayRankByKey = new Map(pageNames.map((entry) => [entry.key, entry.displayRank]));
 
     const yLabelByKey = new Map(
       pageNames.map((entry) => [
         entry.key,
-        Number.isFinite(entry.rank)
-          ? String(entry.rank) + ". " + entry.displayName
-          : entry.displayName,
+        String(entry.displayRank) + ". " + entry.displayName,
       ])
     );
     const yCategories = pageNames.map((entry) => yLabelByKey.get(entry.key) || entry.displayName);
@@ -5620,7 +5798,7 @@
           value: [timestamp, yLabelByKey.get(key), entry.rows],
           name_key: key,
           display_name: String(row.display_name || key),
-          rank: toFiniteNumberOrNull(row.rank),
+          rank: toFiniteNumberOrNull(displayRankByKey.get(key)),
           total_repeated_rows: toFiniteNumberOrNull(row.total_repeated_rows),
           bucket_minutes: toFiniteNumberOrNull(row.bucket_minutes),
           duplicate_rows: duplicateRows,
@@ -5850,7 +6028,7 @@
         "-" +
         pageLabelEnd +
         " of " +
-        topNames.length +
+        rankedTopNames.length +
         " (page " +
         (pageIndex + 1) +
         "/" +
@@ -5883,272 +6061,8 @@
       "-" +
       pageLabelEnd +
       " of " +
-      topNames.length +
+      rankedTopNames.length +
       ".";
-    mount.isTimeSeries = false;
-    mount.isAbsoluteTime = false;
-    return true;
-  }
-
-  function renderNearSimilarityDistribution(mount, rows) {
-    const theme = currentChartTheme();
-    const subset = rows
-      .map((row) => {
-        const start = toFiniteNumberOrNull(row.similarity_bin_start);
-        const end = toFiniteNumberOrNull(row.similarity_bin_end);
-        const nPairs = toFiniteNumberOrNull(row.n_pairs);
-        const share = toFiniteNumberOrNull(row.share_pairs);
-        if (start === null || end === null || nPairs === null) {
-          return null;
-        }
-        const labelRaw = String(row.similarity_bin || "").trim();
-        const label = labelRaw || String(Math.round(start)) + "-" + String(Math.max(Math.round(start), Math.round(end) - 1));
-        return {
-          start: start,
-          end: end,
-          nPairs: nPairs,
-          share: share,
-          label: label,
-        };
-      })
-      .filter((row) => row !== null)
-      .sort((left, right) => left.start - right.start);
-    if (!subset.length) {
-      return false;
-    }
-
-    let runningPairs = 0;
-    const totalPairs = subset.reduce((acc, row) => acc + toNumber(row.nPairs), 0);
-    const cumulativeShare = subset.map((row) => {
-      runningPairs += toNumber(row.nPairs);
-      return totalPairs > 0 ? runningPairs / totalPairs : null;
-    });
-    const labels = subset.map((row) => row.label);
-    const rotateLabels = labels.length > 10;
-
-    const option = {
-      animation: false,
-      legend: { top: 0, data: ["Pair count", "Share", "Cumulative share"] },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "shadow" },
-        formatter: (params) => {
-          const entries = Array.isArray(params) ? params : [params];
-          if (!entries.length) {
-            return "";
-          }
-          const index = Number(toNumber(entries[0].dataIndex || 0));
-          const row = subset[Math.max(0, Math.min(subset.length - 1, index))];
-          const lines = [
-            "<strong>Similarity bin:</strong> " + escapeHtml(row.label),
-            "<strong>Range:</strong> " + Number(row.start).toFixed(0) + " to " + Number(row.end - 1).toFixed(0),
-            "<strong>Pair count:</strong> " + Number(row.nPairs).toLocaleString(),
-          ];
-          if (row.share !== null) {
-            lines.push("<strong>Share:</strong> " + formatPercent(row.share));
-          }
-          const cumulative = cumulativeShare[index];
-          if (cumulative !== null) {
-            lines.push("<strong>Cumulative share:</strong> " + formatPercent(cumulative));
-          }
-          return lines.join("<br/>");
-        },
-      },
-      grid: { left: 64, right: 66, top: 54, bottom: 94 },
-      xAxis: {
-        type: "category",
-        name: "Similarity bin",
-        data: labels,
-        axisLabel: { interval: 0, rotate: rotateLabels ? 35 : 0, color: theme.axisText },
-      },
-      yAxis: [
-        {
-          type: "value",
-          name: "Pair count",
-          min: 0,
-          axisLabel: { color: theme.axisText },
-        },
-        {
-          type: "value",
-          name: "Share",
-          min: 0,
-          max: 1,
-          axisLabel: { color: theme.axisText, formatter: (value) => formatPercent(value) },
-          splitLine: { show: false },
-        },
-      ],
-      series: [
-        {
-          name: "Pair count",
-          type: "bar",
-          yAxisIndex: 0,
-          data: subset.map((row) => row.nPairs),
-          itemStyle: { color: theme.barAccent, opacity: 0.82 },
-        },
-        {
-          name: "Share",
-          type: "line",
-          yAxisIndex: 1,
-          data: subset.map((row) => row.share),
-          showSymbol: true,
-          symbolSize: 6,
-          lineStyle: { color: theme.contextLine, width: 1.7, opacity: 0.9 },
-          itemStyle: { color: theme.contextLine },
-        },
-        {
-          name: "Cumulative share",
-          type: "line",
-          yAxisIndex: 1,
-          data: cumulativeShare,
-          showSymbol: false,
-          lineStyle: { color: theme.referenceLine, width: 1.1, type: "dashed", opacity: 0.8 },
-        },
-      ],
-    };
-    mount.chart.setOption(ensureReadableAxes(option, mount), true);
-    mount.isTimeSeries = false;
-    mount.isAbsoluteTime = false;
-    return true;
-  }
-
-  function renderNearTimeConcentration(mount, rows) {
-    const theme = currentChartTheme();
-    const subset = rows
-      .map((row) => {
-        const activeBuckets = toFiniteNumberOrNull(row.n_active_buckets);
-        const peakFraction = toFiniteNumberOrNull(row.peak_bucket_fraction);
-        const peakRecords = toFiniteNumberOrNull(row.peak_bucket_records);
-        const concentrationHhi = toFiniteNumberOrNull(row.concentration_hhi);
-        if (activeBuckets === null || peakFraction === null) {
-          return null;
-        }
-        return {
-          clusterId: String(row.cluster_id || ""),
-          activeBuckets: Math.max(1, activeBuckets),
-          peakFraction: Math.max(0, Math.min(1, peakFraction)),
-          peakRecords: peakRecords,
-          concentrationHhi: concentrationHhi,
-          peakBucketStart: toEpochMillis(row.peak_bucket_start),
-        };
-      })
-      .filter((row) => row !== null)
-      .sort((left, right) => {
-        const peakDelta = toNumber(right.peakFraction) - toNumber(left.peakFraction);
-        if (peakDelta !== 0) {
-          return peakDelta;
-        }
-        return toNumber(right.peakRecords) - toNumber(left.peakRecords);
-      })
-      .slice(0, 800);
-    if (!subset.length) {
-      return false;
-    }
-
-    const hhiValues = subset
-      .map((row) => row.concentrationHhi)
-      .filter((value) => value !== null);
-    const hhiMin = hhiValues.length ? Math.min(...hhiValues) : 0;
-    const hhiMaxRaw = hhiValues.length ? Math.max(...hhiValues) : 1;
-    const hhiMax = hhiMaxRaw > hhiMin ? hhiMaxRaw : hhiMin + 1;
-    const pointData = subset.map((row) => ({
-      value: [row.activeBuckets, row.peakFraction, row.concentrationHhi, row.peakRecords],
-      meta: row,
-    }));
-    const bucketLabel = bucketLabelFromValue(mount.activeBucket);
-
-    const option = {
-      animation: false,
-      tooltip: {
-        trigger: "item",
-        formatter: (params) => {
-          const raw = params && params.data && params.data.meta ? params.data.meta : null;
-          if (!raw) {
-            return "";
-          }
-          const lines = [];
-          if (raw.clusterId) {
-            lines.push("<strong>Cluster:</strong> " + escapeHtml(raw.clusterId));
-          }
-          lines.push(
-            "<strong>Active buckets:</strong> " + Math.round(toNumber(raw.activeBuckets)).toLocaleString()
-          );
-          lines.push("<strong>Peak bucket share:</strong> " + formatPercent(raw.peakFraction));
-          if (raw.peakRecords !== null) {
-            lines.push("<strong>Peak bucket records:</strong> " + Math.round(toNumber(raw.peakRecords)).toLocaleString());
-          }
-          if (raw.concentrationHhi !== null) {
-            lines.push("<strong>Concentration HHI:</strong> " + toNumber(raw.concentrationHhi).toFixed(3));
-          }
-          if (raw.peakBucketStart !== null) {
-            lines.push(
-              "<strong>Peak bucket time (" +
-                reportTimezoneLabel +
-                "):</strong> " +
-                formatEpochMillis(raw.peakBucketStart)
-            );
-          }
-          if (bucketLabel) {
-            lines.push("<strong>Bucket:</strong> " + bucketLabel);
-          }
-          return lines.join("<br/>");
-        },
-      },
-      grid: { left: 72, right: 30, top: 24, bottom: 84 },
-      xAxis: {
-        type: "value",
-        name: "Active buckets per cluster",
-        min: 0,
-        axisLabel: { color: theme.axisText },
-      },
-      yAxis: {
-        type: "value",
-        name: "Peak bucket share",
-        min: 0,
-        max: 1,
-        axisLabel: { color: theme.axisText, formatter: (value) => formatPercent(value) },
-      },
-      visualMap: {
-        min: hhiMin,
-        max: hhiMax,
-        dimension: 2,
-        orient: "horizontal",
-        left: "center",
-        bottom: 8,
-        calculable: true,
-        text: ["Higher HHI", "Lower HHI"],
-        textStyle: { color: theme.axisText },
-        inRange: { color: [theme.volumeBar, theme.contextLine, theme.alertLower] },
-      },
-      series: [
-        {
-          name: "Clusters",
-          type: "scatter",
-          data: pointData,
-          symbolSize: (value) => {
-            const peakRecords = toFiniteNumberOrNull(Array.isArray(value) ? value[3] : null);
-            if (peakRecords === null) {
-              return 8;
-            }
-            return Math.max(7, Math.min(22, Math.sqrt(Math.max(1, peakRecords)) * 2.2));
-          },
-          itemStyle: { opacity: 0.76 },
-          markLine: {
-            symbol: ["none", "none"],
-            data: [
-              {
-                name: "50% peak share",
-                yAxis: 0.5,
-                lineStyle: { color: theme.referenceLine, type: "dashed", width: 1.1, opacity: 0.8 },
-                label: { formatter: "50%", color: theme.axisText, fontSize: 10 },
-              },
-            ],
-          },
-        },
-      ],
-    };
-    mount.chart.setOption(ensureReadableAxes(option, mount), true);
-    mount.customChartNote =
-      "Higher-left clusters are tightly concentrated in fewer time buckets; rightward points are more dispersed.";
     mount.isTimeSeries = false;
     mount.isAbsoluteTime = false;
     return true;
@@ -6213,6 +6127,9 @@
     }
     if (mount.chartId === "off_hours_model_fit_diagnostics") {
       return renderOffHoursModelFitDiagnostics(mount, rows);
+    }
+    if (mount.chartId === "overview_position_volume_by_bucket") {
+      return renderOverviewPositionVolumeByBucket(mount, rows);
     }
 
     const timeOverrides = {
@@ -6366,13 +6283,6 @@
         lineAxisName: "Duplicate rows",
         barAxisName: "Total rows",
       },
-      duplicates_near_cluster_timeline: {
-        timeField: "bucket_start",
-        barField: "n_records",
-        lineField: "records_per_cluster",
-        lineAxisName: "Records per active cluster",
-        barAxisName: "Near-duplicate records",
-      },
       sortedness_bucket_ratio: {
         timeField: "bucket_start",
         barField: "n_records",
@@ -6447,9 +6357,6 @@
     if (mount.chartId === "multivariate_top_buckets") {
       return renderScatter(mount, rows, "n_total", "anomaly_score", "anomaly_score_percentile", "n_total");
     }
-    if (mount.chartId === "duplicates_near_similarity") {
-      return renderNearSimilarityDistribution(mount, rows);
-    }
     if (mount.chartId === "composite_evidence_flags") {
       return renderSimpleBar(mount, rows, "flag", "count", "count");
     }
@@ -6507,12 +6414,6 @@
     if (mount.chartId === "duplicates_exact_top_name_timing_exact") {
       return renderDuplicateTopNameTiming(mount, rows, "exact");
     }
-    if (mount.chartId === "duplicates_exact_top_name_timing_medium") {
-      return renderDuplicateTopNameTiming(mount, rows, "medium");
-    }
-    if (mount.chartId === "duplicates_exact_top_name_timing_loose") {
-      return renderDuplicateTopNameTiming(mount, rows, "loose");
-    }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
       return renderSimpleBar(mount, rows, "metric", "observed", "observed");
     }
@@ -6530,12 +6431,6 @@
     }
     if (mount.chartId === "duplicates_exact_swing_impact") {
       return renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share");
-    }
-    if (mount.chartId === "duplicates_near_cluster_size") {
-      return renderSimpleBar(mount, rows, "cluster_size", "n_clusters", "clusters");
-    }
-    if (mount.chartId === "duplicates_near_time_concentration") {
-      return renderNearTimeConcentration(mount, rows);
     }
     if (mount.chartId === "sortedness_bucket_summary") {
       return renderSimpleBar(mount, rows, "bucket_minutes", "alphabetical_ratio", "alphabetical ratio");
@@ -7218,21 +7113,13 @@
     const view = getActiveTriageView();
     const summary = view.triage_summary || {};
     const forensicsNamesHost = document.getElementById("forensics-top-names-host");
-    const forensicsClustersHost = document.getElementById("forensics-top-clusters-host");
     const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
     const artifactRowsHost = document.getElementById("methodology-artifact-rows-host");
 
     const topNames = Array.isArray(summary.top_repeated_names)
       ? summary.top_repeated_names
       : [];
-    const topClusters =
-      Array.isArray(summary.top_near_dup_clusters) ? summary.top_near_dup_clusters : [];
-
     mountTable(forensicsNamesHost, topNames, {
-      paginationSize: 8,
-      maxHeight: "340px",
-    });
-    mountTable(forensicsClustersHost, topClusters, {
       paginationSize: 8,
       maxHeight: "340px",
     });
@@ -7712,11 +7599,7 @@
       );
       return scoped.length ? scoped : subset;
     }
-    if (
-      chartId === "duplicates_exact_top_name_timing_exact" ||
-      chartId === "duplicates_exact_top_name_timing_medium" ||
-      chartId === "duplicates_exact_top_name_timing_loose"
-    ) {
+    if (chartId === "duplicates_exact_top_name_timing_exact") {
       const scoped = subset.filter(
         (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
       );
@@ -7730,8 +7613,6 @@
       "duplicates_exact_bucket_concentration",
       "duplicates_exact_metric_diagnostics",
       "duplicates_exact_top_name_timing_exact",
-      "duplicates_exact_top_name_timing_medium",
-      "duplicates_exact_top_name_timing_loose",
     ]);
     const renders = [];
     chartMounts.forEach((mount, chartId) => {
@@ -7896,17 +7777,11 @@
   function initZoomControls() {
     const panel = document.getElementById("zoom-sync-panel");
     const resetButton = document.getElementById("zoom-reset-button");
-    const banner = document.getElementById("zoom-active-banner");
-    const bannerResetButton = document.getElementById("zoom-banner-reset-button");
-    const bannerCopyButton = document.getElementById("zoom-banner-copy-button");
     if (!panel || !resetButton) {
       return;
     }
     if (!state.absoluteTimeSet.size) {
       panel.classList.add("hidden");
-      if (banner) {
-        banner.classList.add("hidden");
-      }
       updateSidebarFloatingOffsets();
       return;
     }
@@ -7917,31 +7792,52 @@
       });
     };
     resetButton.addEventListener("click", resetZoom);
-    if (bannerResetButton) {
-      bannerResetButton.addEventListener("click", resetZoom);
-    }
-    if (bannerCopyButton) {
-      bannerCopyButton.addEventListener("click", () => {
-        if (!hasActiveZoomRange()) {
-          return;
-        }
-        copyTextToClipboard(window.location.href)
-          .then(() => {
-            bannerCopyButton.textContent = "Copied";
-            window.setTimeout(() => {
-              bannerCopyButton.textContent = "Copy link";
-            }, 1200);
-          })
-          .catch(() => {
-            bannerCopyButton.textContent = "Copy failed";
-            window.setTimeout(() => {
-              bannerCopyButton.textContent = "Copy link";
-            }, 1600);
-          });
-      });
-    }
     updateZoomRangeLabel();
     updateSidebarFloatingOffsets();
+  }
+
+  function initGlobalControlsCollapse() {
+    const panel = document.getElementById("sidebar-global-controls");
+    const toggleButton = document.getElementById("global-controls-toggle");
+    if (!panel || !toggleButton) {
+      return;
+    }
+
+    const isMobile = () => window.matchMedia("(max-width: 820px)").matches;
+    let previousIsMobile = isMobile();
+    state.globalControlsExpandedMobile = !previousIsMobile;
+
+    const applyState = () => {
+      const mobile = isMobile();
+      const expanded = mobile ? state.globalControlsExpandedMobile : true;
+      panel.classList.toggle("is-collapsed", mobile && !expanded);
+      toggleButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggleButton.setAttribute(
+        "aria-label",
+        expanded ? "Hide global controls" : "Show global controls"
+      );
+      updateSidebarFloatingOffsets();
+    };
+
+    applyState();
+
+    toggleButton.addEventListener("click", () => {
+      if (!isMobile()) {
+        return;
+      }
+      state.globalControlsExpandedMobile = !state.globalControlsExpandedMobile;
+      applyState();
+      scheduleChartResizeSequence();
+    });
+
+    window.addEventListener("resize", () => {
+      const mobile = isMobile();
+      if (mobile !== previousIsMobile) {
+        previousIsMobile = mobile;
+        state.globalControlsExpandedMobile = !mobile;
+      }
+      applyState();
+    });
   }
 
   function initSidebarToggle() {
@@ -8144,7 +8040,7 @@
     state.renderToc = renderToc;
 
     const pickActiveHeading = () => {
-      const topOffset = 120;
+      const topOffset = headerStackOffsetPx(16);
       const lastHeading = trackedHeadings[trackedHeadings.length - 1];
       const doc = document.documentElement;
       const hashHeadingId = normalizeHashId(window.location.hash);
@@ -8208,7 +8104,10 @@
         }
       }
       const alignToTarget = (behavior) => {
-        const nextTop = Math.max(0, target.getBoundingClientRect().top + window.scrollY - 76);
+        const nextTop = Math.max(
+          0,
+          target.getBoundingClientRect().top + window.scrollY - headerStackOffsetPx(12)
+        );
         window.scrollTo({ top: nextTop, behavior: behavior });
       };
       alignToTarget("smooth");
@@ -8302,27 +8201,68 @@
     return collapsed;
   }
 
-  function deriveBillShortName() {
-    const source =
-      hearingContextPanel && hearingContextPanel.source && typeof hearingContextPanel.source === "object"
-        ? hearingContextPanel.source
-        : {};
-    const fromSource = normalizeBillShortName(source.short_bill_id);
-    if (fromSource) {
-      return fromSource;
+  function escapeRegexLiteral(value) {
+    return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function hearingContextSource() {
+    return hearingContextPanel && hearingContextPanel.source && typeof hearingContextPanel.source === "object"
+      ? hearingContextPanel.source
+      : {};
+  }
+
+  function readHearingContextString(fieldCandidates) {
+    const candidates = Array.isArray(fieldCandidates)
+      ? fieldCandidates
+          .map((value) => String(value || "").trim())
+          .filter((value) => !!value)
+      : [];
+    if (!candidates.length) {
+      return "";
     }
 
+    const source = hearingContextSource();
+    for (const key of candidates) {
+      const value = source[key];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    for (const key of candidates) {
+      const value = hearingContextPanel ? hearingContextPanel[key] : null;
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    const lowered = new Set(candidates.map((value) => value.toLowerCase()));
     const metadataRows = Array.isArray(hearingContextPanel.metadata_rows)
       ? hearingContextPanel.metadata_rows
       : [];
     for (const row of metadataRows) {
-      if (String(row && row.field ? row.field : "") !== "short_bill_id") {
+      const field = String(row && row.field ? row.field : "")
+        .trim()
+        .toLowerCase();
+      if (!field || !lowered.has(field)) {
         continue;
       }
-      const fromMetadata = normalizeBillShortName(row && row.value ? row.value : "");
-      if (fromMetadata) {
-        return fromMetadata;
+      const value = row ? row.value : null;
+      if (value === null || value === undefined) {
+        continue;
       }
+      const text = String(value).trim();
+      if (text) {
+        return text;
+      }
+    }
+    return "";
+  }
+
+  function deriveBillShortName() {
+    const fromContext = normalizeBillShortName(readHearingContextString(["short_bill_id"]));
+    if (fromContext) {
+      return fromContext;
     }
 
     const hearingId = String(hearingContextPanel.hearing_id || "").trim();
@@ -8344,27 +8284,198 @@
     return "";
   }
 
+  function deriveAgendaItemDescription() {
+    return readHearingContextString(["agenda_item_description", "agenda_description"]);
+  }
+
+  function deriveBillLongTitle() {
+    return readHearingContextString(["bill_title"]);
+  }
+
+  function deriveCommitteeName() {
+    return readHearingContextString(["committee_name", "committee"]);
+  }
+
+  function deriveChamberName() {
+    return readHearingContextString(["chamber"]);
+  }
+
+  function deriveMeetingStartEpochMillis() {
+    const rawMeetingStart = readHearingContextString(["meeting_start"]);
+    return toEpochMillis(rawMeetingStart);
+  }
+
+  function stripLeadingBillPrefix(description, billShortName) {
+    const source = String(description || "").replace(/\s+/g, " ").trim();
+    if (!source) {
+      return "";
+    }
+    const canonicalShortName = normalizeBillShortName(billShortName);
+    if (!canonicalShortName) {
+      return source;
+    }
+    let stripped = source;
+    const canonical = canonicalShortName.match(/^([A-Za-z]{1,4})\s+(\d{3,5}[A-Za-z]?)$/);
+    if (canonical) {
+      const prefixPattern = new RegExp(
+        "^\\s*" +
+          escapeRegexLiteral(canonical[1]) +
+          "\\s*[-\\s]*" +
+          escapeRegexLiteral(canonical[2]) +
+          "\\b\\s*[:\\-–—]?\\s*",
+        "i"
+      );
+      stripped = stripped.replace(prefixPattern, "").trim();
+    }
+    if (!stripped) {
+      return "";
+    }
+    const compactShort = canonicalShortName.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const compactStripped = stripped.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    if (compactShort && compactStripped === compactShort) {
+      return "";
+    }
+    return stripped;
+  }
+
+  function buildCombinedBillHeading(shortBillName, agendaDescription) {
+    const shortLabel = normalizeBillShortName(shortBillName);
+    const description = String(agendaDescription || "").replace(/\s+/g, " ").trim();
+    if (shortLabel && description) {
+      const dedupedDescription = stripLeadingBillPrefix(description, shortLabel);
+      if (dedupedDescription) {
+        return shortLabel + ": " + dedupedDescription;
+      }
+      return shortLabel;
+    }
+    if (shortLabel) {
+      return shortLabel;
+    }
+    return description;
+  }
+
+  function buildSidebarAuditHeading(shortBillName) {
+    const shortLabel = normalizeBillShortName(shortBillName);
+    if (shortLabel) {
+      return shortLabel + ": Sign-in Audit";
+    }
+    return "Sign-in Audit";
+  }
+
+  function formatMeetingDateTime(epochMillis) {
+    if (!Number.isFinite(epochMillis)) {
+      return "";
+    }
+    return meetingDateTimeFormatter.format(new Date(epochMillis));
+  }
+
+  function buildMeetingContextSummary(epochMillis, chamber, committee) {
+    const parts = [];
+    const meetingLabel = formatMeetingDateTime(epochMillis);
+    if (meetingLabel) {
+      parts.push(meetingLabel);
+    }
+    const chamberCommittee = [String(chamber || "").trim(), String(committee || "").trim()]
+      .filter((value) => !!value)
+      .join(" · ");
+    if (chamberCommittee) {
+      parts.push(chamberCommittee);
+    }
+    return parts.join(" · ");
+  }
+
   function applySidebarBillMeta() {
-    const host = document.getElementById("sidebar-bill-meta");
-    if (!host) {
-      return;
-    }
+    const headerTitleHost = document.getElementById("header-bill-title");
+    const headerContextHost = document.getElementById("header-context-meta");
+    const headerBillTitleHost = document.getElementById("header-bill-long-title");
+    const sidebarTitleHost = document.getElementById("sidebar-report-title");
+    const sidebarMeetingHost = document.getElementById("sidebar-meeting-meta");
+
     const billShortName = deriveBillShortName();
-    if (!billShortName) {
-      host.textContent = "";
-      host.classList.add("hidden");
-      return;
+    const agendaDescription = deriveAgendaItemDescription();
+    const combinedTitle = buildCombinedBillHeading(billShortName, agendaDescription);
+    const meetingStartEpochMillis = deriveMeetingStartEpochMillis();
+    const committeeName = deriveCommitteeName();
+    const chamberName = deriveChamberName();
+    const billTitleFull = deriveBillLongTitle();
+    const headerContextSummary = buildMeetingContextSummary(
+      meetingStartEpochMillis,
+      chamberName,
+      committeeName
+    );
+    const sidebarMeetingSummary = formatMeetingDateTime(meetingStartEpochMillis);
+    const truncatedBillTitle = truncateLegendText(billTitleFull, 128);
+
+    if (headerTitleHost) {
+      if (combinedTitle) {
+        headerTitleHost.textContent = combinedTitle;
+        headerTitleHost.classList.remove("hidden");
+      } else {
+        headerTitleHost.textContent = "";
+        headerTitleHost.classList.add("hidden");
+      }
     }
-    host.textContent = "Bill " + billShortName;
-    host.classList.remove("hidden");
+
+    if (headerContextHost) {
+      if (headerContextSummary) {
+        headerContextHost.textContent = headerContextSummary;
+        headerContextHost.classList.remove("hidden");
+      } else {
+        headerContextHost.textContent = "";
+        headerContextHost.classList.add("hidden");
+      }
+    }
+
+    if (headerBillTitleHost) {
+      const normalizedCombinedTitle = combinedTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+      const normalizedBillTitle = billTitleFull
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+      const shouldShowBillTitle =
+        !!truncatedBillTitle &&
+        (!normalizedBillTitle ||
+          !normalizedCombinedTitle ||
+          normalizedBillTitle !== normalizedCombinedTitle);
+      if (shouldShowBillTitle) {
+        headerBillTitleHost.textContent = truncatedBillTitle;
+        headerBillTitleHost.title = billTitleFull;
+        headerBillTitleHost.classList.remove("hidden");
+      } else {
+        headerBillTitleHost.textContent = "";
+        headerBillTitleHost.removeAttribute("title");
+        headerBillTitleHost.classList.add("hidden");
+      }
+    }
+
+    if (sidebarTitleHost) {
+      sidebarTitleHost.textContent = buildSidebarAuditHeading(billShortName);
+    }
+
+    if (sidebarMeetingHost) {
+      if (sidebarMeetingSummary) {
+        sidebarMeetingHost.textContent = sidebarMeetingSummary;
+        sidebarMeetingHost.classList.remove("hidden");
+      } else {
+        sidebarMeetingHost.textContent = "";
+        sidebarMeetingHost.classList.add("hidden");
+      }
+    }
 
     const title = String(document.title || "").trim();
-    if (!title) {
-      document.title = "Testifier Audit Report - " + billShortName;
+    const titleToken = normalizeBillShortName(billShortName) || combinedTitle;
+    if (!titleToken) {
       return;
     }
-    if (!title.includes(billShortName)) {
-      document.title = title + " - " + billShortName;
+    if (!title) {
+      document.title = "Testifier Audit Report - " + titleToken;
+      return;
+    }
+    if (!title.includes(titleToken)) {
+      document.title = title + " - " + titleToken;
     }
   }
 
@@ -8595,13 +8706,18 @@
 
   async function mountAllSections() {
     const sections = Array.from(document.querySelectorAll("[data-analysis-id]"));
-    if (!sections.length) {
-      return;
-    }
     for (const section of sections) {
       const analysisId = String(section.getAttribute("data-analysis-id") || "");
       await mountSection(section, analysisById.get(analysisId));
     }
+
+    const overviewHosts = Array.from(
+      document.querySelectorAll("#section-overview [data-chart-id]")
+    );
+    if (!overviewHosts.length) {
+      return;
+    }
+    await Promise.all(overviewHosts.map((host) => mountChartHost(host)));
   }
 
   async function ensureWindowDrilldownDataLoaded() {
@@ -8613,7 +8729,6 @@
       "bursts",
       "procon_swings",
       "duplicates_exact",
-      "duplicates_near",
       "rare_names",
     ];
     const available = requiredAnalyses.filter((analysisId) =>
@@ -8637,6 +8752,7 @@
     renderInvestigationTables();
   }
   initSidebarToggle();
+  initGlobalControlsCollapse();
   initBucketTabs();
   initDuplicateCollisionControls();
   initZoomControls();

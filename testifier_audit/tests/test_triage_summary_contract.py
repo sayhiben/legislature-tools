@@ -60,18 +60,6 @@ def test_triage_summary_contract_contains_required_phase2_fields() -> None:
                 "time_span_minutes": [15.0],
             }
         ),
-        "duplicates_near.cluster_summary": pd.DataFrame(
-            {
-                "cluster_id": ["cluster_0001"],
-                "cluster_size": [3],
-                "n_records": [6],
-                "n_pro": [3],
-                "n_con": [3],
-                "first_seen": pd.to_datetime(["2026-02-01T00:00:00Z"]),
-                "last_seen": pd.to_datetime(["2026-02-01T00:03:00Z"]),
-                "time_span_minutes": [3.0],
-            }
-        ),
         "off_hours.off_hours_summary": pd.DataFrame(
             {
                 "off_hours": [12],
@@ -95,7 +83,6 @@ def test_triage_summary_contract_contains_required_phase2_fields() -> None:
     assert isinstance(summary["top_burst_windows"], list)
     assert isinstance(summary["top_swing_windows"], list)
     assert isinstance(summary["top_repeated_names"], list)
-    assert isinstance(summary["top_near_dup_clusters"], list)
     assert isinstance(summary["off_hours_summary"], dict)
     assert summary["queue_counts"] == {"window": 0, "record": 0, "cluster": 0}
     assert summary["window_tier_counts"] == {"high": 0, "medium": 0, "watch": 0}

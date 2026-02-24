@@ -39,10 +39,10 @@ def test_report_layout_contains_phase2_investigation_sections(tmp_path: Path) ->
         assert "Triage" in rendered
         assert "Window Drilldown" not in rendered
         assert "Methodology" in rendered
-        assert 'href="#triage"' in rendered
+        assert 'href="#triage"' not in rendered
         assert 'href="#window-drilldown"' not in rendered
         assert 'href="#name-cluster-forensics"' not in rendered
-        assert 'href="#methodology"' in rendered
+        assert 'href="#methodology"' not in rendered
         assert 'id="section-triage"' in rendered
         assert 'id="section-window-drilldown"' not in rendered
         assert 'id="section-name-cluster-forensics"' not in rendered

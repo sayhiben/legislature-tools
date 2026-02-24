@@ -178,7 +178,7 @@ def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path)
         assert 'data-analysis-id="off_hours"' in rendered
     elif _configured_focus_analysis_ids():
         assert "Composite Evidence Score" not in rendered
-        assert "Exact Duplicate Names" in rendered
+        assert "Duplicate Names" in rendered
         assert "Registered Voter Match" in rendered
     assert 'data-analysis-id="composite_score"' not in rendered
     assert 'data-analysis-id="rare_names"' not in rendered
@@ -302,13 +302,24 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "is-loading" in css_text
     assert "state.zoom" in js_text
     assert 'id="sidebar-global-controls"' in rendered
+    assert 'class="global-header-title hidden"' in rendered
+    assert 'id="header-bill-title"' in rendered
+    assert 'id="header-context-meta"' in rendered
+    assert 'id="header-bill-long-title"' in rendered
+    assert 'id="global-controls-toggle"' in rendered
+    assert 'id="global-controls-grid"' in rendered
+    assert 'class="header-view-controls panel hidden"' in rendered
     assert 'id="section-view-controls-panel"' in rendered
     assert 'id="zoom-sync-panel"' in rendered
+    assert 'id="zoom-copy-button"' not in rendered
     assert 'id="zoom-reset-button"' in rendered
+    assert 'id="zoom-active-banner"' not in rendered
     assert 'id="duplicate-collision-panel"' in rendered
     assert 'id="duplicate-scope-select"' in rendered
     assert 'id="duplicate-metric-select"' in rendered
-    assert 'id="sidebar-bill-meta"' in rendered
+    assert 'id="sidebar-bill-meta"' not in rendered
+    assert 'id="sidebar-report-title"' in rendered
+    assert 'id="sidebar-meeting-meta"' in rendered
     assert 'id="report-timezone-summary"' in rendered
     assert "All times in this report are shown in " in js_text
     assert "updateZoomRangeLabel" in js_text
@@ -331,6 +342,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "testifier_audit_chart_theme" not in js_text
     assert "initSidebarTooltips()" in js_text
     assert "initThemeControl()" in js_text
+    assert "initGlobalControlsCollapse()" in js_text
     assert "initChartThemeControl()" not in js_text
     assert "computeLegendDockMode(mount)" in js_text
     assert "scheduleLegendLayoutRerender()" in js_text
@@ -345,6 +357,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "resolveColorSemanticTheme(" in js_text
     assert "semanticTokenCache" in js_text
     assert "renderDuplicateTopNameTiming(" in js_text
+    assert "function shouldRetainBucketlessRowsForChart(chartId)" in js_text
+    assert "keepBucketlessRows && bucketValue === null" in js_text
     assert "volumeBarOpacity: surfaceTheme === \"dark\" ? 0.42 : 0.4" in js_text
     assert "shadowColor: theme.shadowColor" in js_text
     assert "shadowColor: \"rgba(0,0,0,0.35)\"" not in js_text
@@ -355,8 +369,10 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "Robust lower-tail alert" in js_text
     assert "Robust upper-tail alert" in js_text
     assert "duplicates_exact_top_name_timing_exact" in rendered
-    assert "duplicates_exact_top_name_timing_medium" in rendered
-    assert "duplicates_exact_top_name_timing_loose" in rendered
+    assert "duplicates_exact_top_name_timing_medium" not in rendered
+    assert "duplicates_exact_top_name_timing_loose" not in rendered
+    assert "overview_position_volume_by_bucket" in rendered
+    assert "renderOverviewPositionVolumeByBucket" in js_text
     assert "SPC-only flag" in js_text
     assert "FDR-only flag" in js_text
     assert "simpleBarCategoricalChartIds" in js_text
@@ -366,6 +382,9 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "table-cell-semantic-alert" in css_text
     assert "table-cell-semantic-warn" in css_text
     assert "table-cell-semantic-context" in css_text
+    assert "@media print" in css_text
+    assert ".toc-sidebar," in css_text
+    assert ".page-shell.sidebar-open .report-main," in css_text
     assert "semanticClassForTableCell(tableKey, field, value)" in js_text
     assert "background: var(--table-row-bg);" in css_text
     if _is_off_hours_only_view():
@@ -477,6 +496,17 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
             detail_id = str(detail_chart_id)
             assert f'data-chart-id="{detail_id}"' in rendered
             assert f'data-chart-empty-for="{detail_id}"' in rendered
+
+    overview_chart_ids = [
+        "overview_position_volume_by_bucket",
+        "off_hours_day_hour_heatmap",
+        "off_hours_date_hour_pro_heatmap",
+        "off_hours_date_hour_primary_residual_heatmap",
+        "off_hours_date_hour_volume_heatmap",
+    ]
+    for chart_id in overview_chart_ids:
+        assert f'data-chart-id="{chart_id}"' in rendered
+        assert f'data-chart-empty-for="{chart_id}"' in rendered
 
     assert "PhotoSwipe" not in rendered
     assert "Static Figure Exports" not in rendered

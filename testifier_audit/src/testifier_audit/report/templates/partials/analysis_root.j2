@@ -39,9 +39,7 @@
       {% if analysis.detail_chart_ids %}
         <div class="analysis-detail-grid">
           {% set chart_title_overrides = {
-            "duplicates_exact_top_name_timing_exact": "Duplicates Exact Top Name Timing (Exact)",
-            "duplicates_exact_top_name_timing_medium": "Duplicates Exact Top Name Timing (Medium)",
-            "duplicates_exact_top_name_timing_loose": "Duplicates Exact Top Name Timing (Loose)"
+            "duplicates_exact_top_name_timing_exact": "Duplicate Names Top Timing"
           } %}
           {% for chart_id in analysis.detail_chart_ids %}
             <article class="detail-card">

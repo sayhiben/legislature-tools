@@ -14,7 +14,7 @@ HTML report for anomaly review.
 - Pro/Con ratio swings across bucket sizes.
 - Volume and Pro-rate changepoints.
 - Off-hours concentration checks.
-- Exact and near-duplicate name detection.
+- Exact duplicate name detection.
 - Alphabetical/sortedness pattern detection.
 - Rare-name and singleton concentration checks.
 - Organization blank/null and concentration anomalies.

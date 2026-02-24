@@ -26,13 +26,6 @@ def test_build_feature_vector_emits_phase7_metrics_and_compatibility_keys() -> N
                 "n_con": 7,
             }
         ],
-        "top_near_dup_clusters": [
-            {
-                "cluster_id": "cluster_0001",
-                "cluster_size": 4,
-                "n_records": 9,
-            }
-        ],
         "total_submissions_raw": 120,
         "total_submissions_exact_row_dedup": 110,
     }
@@ -55,7 +48,7 @@ def test_build_feature_vector_emits_phase7_metrics_and_compatibility_keys() -> N
         },
     ]
     records = [{"canonical_name": "DOE|JANE", "n_records": 12}]
-    clusters = [{"cluster_id": "cluster_0001", "cluster_size": 4, "n_records": 9}]
+    clusters: list[dict[str, object]] = []
     data_quality_panel = {
         "triage_raw_vs_dedup_metrics": [
             {"metric": "total_submissions", "material_change": True},
@@ -105,15 +98,11 @@ def test_global_baselines_build_and_load_round_trip(tmp_path: Path) -> None:
             "window_top_abs_z": 3.4,
             "window_top_dup_fraction": 0.18,
             "top_name_max_records": 8,
-            "top_cluster_max_records": 7,
             "off_hours_ratio": 0.12,
             "dedup_drop_fraction": 0.03
           },
           "top_repeated_names": [
             {"canonical_name": "DOE|JANE", "display_name": "Doe, Jane", "n_records": 8}
-          ],
-          "top_near_dup_clusters": [
-            {"cluster_id": "cluster_0001", "cluster_size": 3, "n_records": 7}
           ]
         }
         """.strip(),
@@ -131,16 +120,12 @@ def test_global_baselines_build_and_load_round_trip(tmp_path: Path) -> None:
             "window_top_abs_z": 6.1,
             "window_top_dup_fraction": 0.31,
             "top_name_max_records": 15,
-            "top_cluster_max_records": 11,
             "off_hours_ratio": 0.08,
             "dedup_drop_fraction": 0.01
           },
           "top_repeated_names": [
             {"canonical_name": "DOE|JANE", "display_name": "Doe, Jane", "n_records": 15},
             {"canonical_name": "SMITH|JOHN", "display_name": "Smith, John", "n_records": 9}
-          ],
-          "top_near_dup_clusters": [
-            {"cluster_id": "cluster_0009", "cluster_size": 5, "n_records": 11}
           ]
         }
         """.strip(),

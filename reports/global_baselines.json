@@ -1,0 +1,584 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-24T06:14:13.058144+00:00",
+  "report_count": 5,
+  "reports": [
+    "2ESSB5268-20260218-1030",
+    "ESSB6346-20260224-0800",
+    "HB2289-20260223-1600",
+    "SB5798-20250331-1600",
+    "SB6346-20260206-1330"
+  ],
+  "by_report": {
+    "2ESSB5268-20260218-1030": {
+      "available": true,
+      "report_id": "2ESSB5268-20260218-1030",
+      "report_count": 5,
+      "metric_comparators": [
+        {
+          "metric": "total_submissions",
+          "label": "Total submissions",
+          "value": 220.0,
+          "percentile": 0.1,
+          "band_p10": 1488.4,
+          "band_p50": 45482.0,
+          "band_p90": 105004.8,
+          "n_reports": 5
+        },
+        {
+          "metric": "overall_pro_rate",
+          "label": "Overall pro rate",
+          "value": 0.9545454545454546,
+          "percentile": 0.9,
+          "band_p10": 0.031275671570455195,
+          "band_p50": 0.0854264718024936,
+          "band_p90": 0.6675483545237526,
+          "n_reports": 5
+        },
+        {
+          "metric": "window_high_share",
+          "label": "High-tier window share",
+          "value": 0.0,
+          "percentile": 0.5,
+          "band_p10": 0.0,
+          "band_p50": 0.0,
+          "band_p90": 0.0,
+          "n_reports": 5
+        },
+        {
+          "metric": "top_name_max_records",
+          "label": "Top repeated-name records",
+          "value": 2.0,
+          "percentile": 0.1,
+          "band_p10": 5.6,
+          "band_p50": 34.0,
+          "band_p90": 100.60000000000001,
+          "n_reports": 5
+        },
+        {
+          "metric": "off_hours_ratio",
+          "label": "Off-hours submission ratio",
+          "value": 0.04090909090909091,
+          "percentile": 0.3,
+          "band_p10": 0.03246508136511085,
+          "band_p50": 0.04601820500417748,
+          "band_p90": 0.05878566780233598,
+          "n_reports": 5
+        },
+        {
+          "metric": "dedup_drop_fraction",
+          "label": "Dedup drop fraction",
+          "value": 0.0,
+          "percentile": 0.1,
+          "band_p10": 0.001791037391616263,
+          "band_p50": 0.005254826085044633,
+          "band_p90": 0.009703270404903274,
+          "n_reports": 5
+        }
+      ],
+      "top_name_cues": [
+        {
+          "canonical_name": "HUFNAGEL|EARL||",
+          "display_name": "HUFNAGEL, EARL",
+          "current_n_records": 2,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 2,
+          "max_n_records_percentile": 0.11904761904761904
+        },
+        {
+          "canonical_name": "JUSTIN|TREVOR||",
+          "display_name": "JUSTIN, TREVOR",
+          "current_n_records": 2,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 2,
+          "max_n_records_percentile": 0.11904761904761904
+        },
+        {
+          "canonical_name": "KARTHER|MADELYN||",
+          "display_name": "KARTHER, MADELYN",
+          "current_n_records": 2,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 2,
+          "max_n_records_percentile": 0.11904761904761904
+        },
+        {
+          "canonical_name": "KLUDT|MICHELLE||",
+          "display_name": "KLUDT, MICHELLE",
+          "current_n_records": 2,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 2,
+          "max_n_records_percentile": 0.11904761904761904
+        },
+        {
+          "canonical_name": "RHUE|ERIKA||",
+          "display_name": "RHUE, ERIKA",
+          "current_n_records": 2,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 2,
+          "max_n_records_percentile": 0.11904761904761904
+        }
+      ]
+    },
+    "ESSB6346-20260224-0800": {
+      "available": true,
+      "report_id": "ESSB6346-20260224-0800",
+      "report_count": 5,
+      "metric_comparators": [
+        {
+          "metric": "total_submissions",
+          "label": "Total submissions",
+          "value": 121110.0,
+          "percentile": 0.9,
+          "band_p10": 1488.4,
+          "band_p50": 45482.0,
+          "band_p90": 105004.8,
+          "n_reports": 5
+        },
+        {
+          "metric": "overall_pro_rate",
+          "label": "Overall pro rate",
+          "value": 0.0854264718024936,
+          "percentile": 0.5,
+          "band_p10": 0.031275671570455195,
+          "band_p50": 0.0854264718024936,
+          "band_p90": 0.6675483545237526,
+          "n_reports": 5
+        },
+        {
+          "metric": "window_high_share",
+          "label": "High-tier window share",
+          "value": 0.0,
+          "percentile": 0.5,
+          "band_p10": 0.0,
+          "band_p50": 0.0,
+          "band_p90": 0.0,
+          "n_reports": 5
+        },
+        {
+          "metric": "top_name_max_records",
+          "label": "Top repeated-name records",
+          "value": 141.0,
+          "percentile": 0.9,
+          "band_p10": 5.6,
+          "band_p50": 34.0,
+          "band_p90": 100.60000000000001,
+          "n_reports": 5
+        },
+        {
+          "metric": "off_hours_ratio",
+          "label": "Off-hours submission ratio",
+          "value": 0.049335315002889936,
+          "percentile": 0.7,
+          "band_p10": 0.03246508136511085,
+          "band_p50": 0.04601820500417748,
+          "band_p90": 0.05878566780233598,
+          "n_reports": 5
+        },
+        {
+          "metric": "dedup_drop_fraction",
+          "label": "Dedup drop fraction",
+          "value": 0.006564280406242259,
+          "percentile": 0.7,
+          "band_p10": 0.001791037391616263,
+          "band_p50": 0.005254826085044633,
+          "band_p90": 0.009703270404903274,
+          "n_reports": 5
+        }
+      ],
+      "top_name_cues": [
+        {
+          "canonical_name": "HUFFMAN|TRACY||",
+          "display_name": "HUFFMAN, TRACY",
+          "current_n_records": 141,
+          "report_count": 2,
+          "report_share": 0.4,
+          "max_n_records_across_reports": 141,
+          "max_n_records_percentile": 0.9761904761904762
+        },
+        {
+          "canonical_name": "KESSELRING|BEVERLY||",
+          "display_name": "KESSELRING, BEVERLY",
+          "current_n_records": 68,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 68,
+          "max_n_records_percentile": 0.9285714285714286
+        },
+        {
+          "canonical_name": "BACKOUS|KATHLEEN||",
+          "display_name": "BACKOUS, KATHLEEN",
+          "current_n_records": 42,
+          "report_count": 3,
+          "report_share": 0.6,
+          "max_n_records_across_reports": 42,
+          "max_n_records_percentile": 0.8809523809523809
+        },
+        {
+          "canonical_name": "KESSELRING|JERRY||",
+          "display_name": "KESSELRING, JERRY",
+          "current_n_records": 41,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 41,
+          "max_n_records_percentile": 0.8333333333333334
+        },
+        {
+          "canonical_name": "DURHAM|RHONDA||",
+          "display_name": "DURHAM, RHONDA",
+          "current_n_records": 36,
+          "report_count": 2,
+          "report_share": 0.4,
+          "max_n_records_across_reports": 36,
+          "max_n_records_percentile": 0.7857142857142857
+        }
+      ]
+    },
+    "HB2289-20260223-1600": {
+      "available": true,
+      "report_id": "HB2289-20260223-1600",
+      "report_count": 5,
+      "metric_comparators": [
+        {
+          "metric": "total_submissions",
+          "label": "Total submissions",
+          "value": 3391.0,
+          "percentile": 0.3,
+          "band_p10": 1488.4,
+          "band_p50": 45482.0,
+          "band_p90": 105004.8,
+          "n_reports": 5
+        },
+        {
+          "metric": "overall_pro_rate",
+          "label": "Overall pro rate",
+          "value": 0.020347979946918313,
+          "percentile": 0.1,
+          "band_p10": 0.031275671570455195,
+          "band_p50": 0.0854264718024936,
+          "band_p90": 0.6675483545237526,
+          "n_reports": 5
+        },
+        {
+          "metric": "window_high_share",
+          "label": "High-tier window share",
+          "value": 0.0,
+          "percentile": 0.5,
+          "band_p10": 0.0,
+          "band_p50": 0.0,
+          "band_p90": 0.0,
+          "n_reports": 5
+        },
+        {
+          "metric": "top_name_max_records",
+          "label": "Top repeated-name records",
+          "value": 11.0,
+          "percentile": 0.3,
+          "band_p10": 5.6,
+          "band_p50": 34.0,
+          "band_p90": 100.60000000000001,
+          "n_reports": 5
+        },
+        {
+          "metric": "off_hours_ratio",
+          "label": "Off-hours submission ratio",
+          "value": 0.02683574166912415,
+          "percentile": 0.1,
+          "band_p10": 0.03246508136511085,
+          "band_p50": 0.04601820500417748,
+          "band_p90": 0.05878566780233598,
+          "n_reports": 5
+        },
+        {
+          "metric": "dedup_drop_fraction",
+          "label": "Dedup drop fraction",
+          "value": 0.011795930404010616,
+          "percentile": 0.9,
+          "band_p10": 0.001791037391616263,
+          "band_p50": 0.005254826085044633,
+          "band_p90": 0.009703270404903274,
+          "n_reports": 5
+        }
+      ],
+      "top_name_cues": [
+        {
+          "canonical_name": "BORDEN|BRETT||",
+          "display_name": "BORDEN, BRETT",
+          "current_n_records": 11,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 11,
+          "max_n_records_percentile": 0.4523809523809524
+        },
+        {
+          "canonical_name": "STAHL|TAMI||",
+          "display_name": "STAHL, TAMI",
+          "current_n_records": 6,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 6,
+          "max_n_records_percentile": 0.40476190476190477
+        },
+        {
+          "canonical_name": "MARTIN|ANNELLE||",
+          "display_name": "MARTIN, ANNELLE",
+          "current_n_records": 5,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 5,
+          "max_n_records_percentile": 0.35714285714285715
+        },
+        {
+          "canonical_name": "LEBRUN|PATRICK||",
+          "display_name": "LEBRUN, PATRICK",
+          "current_n_records": 4,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 4,
+          "max_n_records_percentile": 0.2857142857142857
+        },
+        {
+          "canonical_name": "MASON|MARY||",
+          "display_name": "MASON, MARY",
+          "current_n_records": 4,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 4,
+          "max_n_records_percentile": 0.2857142857142857
+        }
+      ]
+    },
+    "SB5798-20250331-1600": {
+      "available": true,
+      "report_id": "SB5798-20250331-1600",
+      "report_count": 5,
+      "metric_comparators": [
+        {
+          "metric": "total_submissions",
+          "label": "Total submissions",
+          "value": 45482.0,
+          "percentile": 0.5,
+          "band_p10": 1488.4,
+          "band_p50": 45482.0,
+          "band_p90": 105004.8,
+          "n_reports": 5
+        },
+        {
+          "metric": "overall_pro_rate",
+          "label": "Overall pro rate",
+          "value": 0.04766720900576052,
+          "percentile": 0.3,
+          "band_p10": 0.031275671570455195,
+          "band_p50": 0.0854264718024936,
+          "band_p90": 0.6675483545237526,
+          "n_reports": 5
+        },
+        {
+          "metric": "window_high_share",
+          "label": "High-tier window share",
+          "value": 0.0,
+          "percentile": 0.5,
+          "band_p10": 0.0,
+          "band_p50": 0.0,
+          "band_p90": 0.0,
+          "n_reports": 5
+        },
+        {
+          "metric": "top_name_max_records",
+          "label": "Top repeated-name records",
+          "value": 40.0,
+          "percentile": 0.7,
+          "band_p10": 5.6,
+          "band_p50": 34.0,
+          "band_p90": 100.60000000000001,
+          "n_reports": 5
+        },
+        {
+          "metric": "off_hours_ratio",
+          "label": "Off-hours submission ratio",
+          "value": 0.04601820500417748,
+          "percentile": 0.5,
+          "band_p10": 0.03246508136511085,
+          "band_p50": 0.04601820500417748,
+          "band_p90": 0.05878566780233598,
+          "n_reports": 5
+        },
+        {
+          "metric": "dedup_drop_fraction",
+          "label": "Dedup drop fraction",
+          "value": 0.005254826085044633,
+          "percentile": 0.5,
+          "band_p10": 0.001791037391616263,
+          "band_p50": 0.005254826085044633,
+          "band_p90": 0.009703270404903274,
+          "n_reports": 5
+        }
+      ],
+      "top_name_cues": [
+        {
+          "canonical_name": "BACKOUS|KATHLEEN||",
+          "display_name": "BACKOUS, KATHLEEN",
+          "current_n_records": 40,
+          "report_count": 3,
+          "report_share": 0.6,
+          "max_n_records_across_reports": 42,
+          "max_n_records_percentile": 0.8809523809523809
+        },
+        {
+          "canonical_name": "ROUBAL|SANDRA||",
+          "display_name": "ROUBAL, SANDRA",
+          "current_n_records": 18,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 18,
+          "max_n_records_percentile": 0.6904761904761905
+        },
+        {
+          "canonical_name": "VANDER HOUWEN|CAROL||",
+          "display_name": "VANDER HOUWEN, CAROL",
+          "current_n_records": 16,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 16,
+          "max_n_records_percentile": 0.6190476190476191
+        },
+        {
+          "canonical_name": "PALADY|CHERYL||",
+          "display_name": "PALADY, CHERYL",
+          "current_n_records": 15,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 15,
+          "max_n_records_percentile": 0.5476190476190477
+        },
+        {
+          "canonical_name": "BOLINGER|JON||",
+          "display_name": "BOLINGER, JON",
+          "current_n_records": 13,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 13,
+          "max_n_records_percentile": 0.5
+        }
+      ]
+    },
+    "SB6346-20260206-1330": {
+      "available": true,
+      "report_id": "SB6346-20260206-1330",
+      "report_count": 5,
+      "metric_comparators": [
+        {
+          "metric": "total_submissions",
+          "label": "Total submissions",
+          "value": 80847.0,
+          "percentile": 0.7,
+          "band_p10": 1488.4,
+          "band_p50": 45482.0,
+          "band_p90": 105004.8,
+          "n_reports": 5
+        },
+        {
+          "metric": "overall_pro_rate",
+          "label": "Overall pro rate",
+          "value": 0.23705270449119942,
+          "percentile": 0.7,
+          "band_p10": 0.031275671570455195,
+          "band_p50": 0.0854264718024936,
+          "band_p90": 0.6675483545237526,
+          "n_reports": 5
+        },
+        {
+          "metric": "window_high_share",
+          "label": "High-tier window share",
+          "value": 0.0,
+          "percentile": 0.5,
+          "band_p10": 0.0,
+          "band_p50": 0.0,
+          "band_p90": 0.0,
+          "n_reports": 5
+        },
+        {
+          "metric": "top_name_max_records",
+          "label": "Top repeated-name records",
+          "value": 34.0,
+          "percentile": 0.5,
+          "band_p10": 5.6,
+          "band_p50": 34.0,
+          "band_p90": 100.60000000000001,
+          "n_reports": 5
+        },
+        {
+          "metric": "off_hours_ratio",
+          "label": "Off-hours submission ratio",
+          "value": 0.06508590300196668,
+          "percentile": 0.9,
+          "band_p10": 0.03246508136511085,
+          "band_p50": 0.04601820500417748,
+          "band_p90": 0.05878566780233598,
+          "n_reports": 5
+        },
+        {
+          "metric": "dedup_drop_fraction",
+          "label": "Dedup drop fraction",
+          "value": 0.004477593479040657,
+          "percentile": 0.3,
+          "band_p10": 0.001791037391616263,
+          "band_p50": 0.005254826085044633,
+          "band_p90": 0.009703270404903274,
+          "n_reports": 5
+        }
+      ],
+      "top_name_cues": [
+        {
+          "canonical_name": "HUFFMAN|TRACY||",
+          "display_name": "HUFFMAN, TRACY",
+          "current_n_records": 34,
+          "report_count": 2,
+          "report_share": 0.4,
+          "max_n_records_across_reports": 141,
+          "max_n_records_percentile": 0.9761904761904762
+        },
+        {
+          "canonical_name": "BACKOUS|KATHLEEN||",
+          "display_name": "BACKOUS, KATHLEEN",
+          "current_n_records": 29,
+          "report_count": 3,
+          "report_share": 0.6,
+          "max_n_records_across_reports": 42,
+          "max_n_records_percentile": 0.8809523809523809
+        },
+        {
+          "canonical_name": "YONKMAN|MIKE||",
+          "display_name": "YONKMAN, MIKE",
+          "current_n_records": 20,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 20,
+          "max_n_records_percentile": 0.7380952380952381
+        },
+        {
+          "canonical_name": "DURHAM|RHONDA||",
+          "display_name": "DURHAM, RHONDA",
+          "current_n_records": 17,
+          "report_count": 2,
+          "report_share": 0.4,
+          "max_n_records_across_reports": 36,
+          "max_n_records_percentile": 0.7857142857142857
+        },
+        {
+          "canonical_name": "HARSHAW|NORMAN||",
+          "display_name": "HARSHAW, NORMAN",
+          "current_n_records": 16,
+          "report_count": 1,
+          "report_share": 0.2,
+          "max_n_records_across_reports": 16,
+          "max_n_records_percentile": 0.6190476190476191
+        }
+      ]
+    }
+  }
+}

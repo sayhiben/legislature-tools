@@ -501,7 +501,7 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     }
     assert required.issubset(timing.columns)
     assert not timing.empty
-    assert set(timing["match_mode"]) == {"exact", "medium", "loose"}
+    assert set(timing["match_mode"]) == {"exact"}
     assert (timing["duplicate_rows"] >= 2).all()
     assert (timing["n_other"] >= 0).all()
     assert (
@@ -512,27 +512,14 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     ).all()
 
     exact_names = set(timing[timing["match_mode"] == "exact"]["name_key"])
-    medium_names = set(timing[timing["match_mode"] == "medium"]["name_key"])
-    loose_names = set(timing[timing["match_mode"] == "loose"]["name_key"])
     assert exact_names == {"DOE|ROBERT", "DOE|BOB", "DOE|BEN", "LEE|ALICE"}
-    assert medium_names == {"DOE|ROBERT", "DOE|BEN", "LEE|ALICE"}
-    assert loose_names == {"DOE|B", "LEE|A"}
-
-    medium_top = timing[(timing["match_mode"] == "medium") & (timing["name_key"] == "DOE|ROBERT")]
-    assert int(medium_top["total_repeated_rows"].max()) == 4
-    loose_top = timing[(timing["match_mode"] == "loose") & (timing["name_key"] == "DOE|B")]
-    assert int(loose_top["total_repeated_rows"].max()) == 6
-
-    for match_mode in ("exact", "medium", "loose"):
-        mode_ranked = (
-            timing[timing["match_mode"] == match_mode][
-                ["name_key", "rank", "total_repeated_rows"]
-            ]
-            .drop_duplicates()
-            .sort_values(["rank", "name_key"])
-        )
-        assert len(mode_ranked) <= 50
-        expected_ranks = list(range(1, len(mode_ranked) + 1))
-        assert mode_ranked["rank"].astype(int).tolist() == expected_ranks
-        totals = mode_ranked["total_repeated_rows"].astype(int).tolist()
-        assert totals == sorted(totals, reverse=True)
+    mode_ranked = (
+        timing[timing["match_mode"] == "exact"][["name_key", "rank", "total_repeated_rows"]]
+        .drop_duplicates()
+        .sort_values(["rank", "name_key"])
+    )
+    assert len(mode_ranked) <= 50
+    expected_ranks = list(range(1, len(mode_ranked) + 1))
+    assert mode_ranked["rank"].astype(int).tolist() == expected_ranks
+    totals = mode_ranked["total_repeated_rows"].astype(int).tolist()
+    assert totals == sorted(totals, reverse=True)

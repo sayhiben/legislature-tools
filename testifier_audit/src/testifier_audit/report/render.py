@@ -88,10 +88,10 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "canonical_name": "Normalized name used for duplicate and match analysis.",
     "sample_name": "Representative example name for the cluster/score row.",
     "organization_clean": "Normalized organization text after cleanup rules.",
-    "left_display_name": "First name in a near-duplicate similarity edge.",
-    "right_display_name": "Second name in a near-duplicate similarity edge.",
-    "block_key": "Blocking key used to limit candidate pairs for near-duplicate matching.",
-    "cluster_id": "Identifier of a near-duplicate name cluster.",
+    "left_display_name": "Left display name in a pairwise similarity row.",
+    "right_display_name": "Right display name in a pairwise similarity row.",
+    "block_key": "Blocking key used to limit candidate-pair generation.",
+    "cluster_id": "Identifier for a clustered grouping.",
     "cluster_size": "Number of unique names contained in the cluster.",
     "time_span_minutes": "Minutes between first and last observed record in this grouping.",
     "first_seen": "First observed Pacific timestamp for this entity/group.",
@@ -100,6 +100,9 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "n_total": "Total records in the bucket/group (all positions combined).",
     "n_pro": "Count of records labeled pro within the bucket/group.",
     "n_con": "Count of records labeled con within the bucket/group.",
+    "n_other_position": (
+        "Count of records in the bucket not labeled pro/con (derived as unknown or residual)."
+    ),
     "n_records": "Total raw records represented by this row.",
     "n_unique_names": "Count of distinct canonical names in the bucket/group.",
     "n_matches": "Count of records whose name matched the voter registry reference.",
@@ -143,7 +146,7 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "n_runs": "Number of directional runs identified for the grouping.",
     "n_long_runs": "Number of directional runs meeting the long-run threshold.",
     "n_changes": "Number of changepoints detected in that summarized bucket.",
-    "n_clusters": "Number of near-duplicate clusters with that size.",
+    "n_clusters": "Number of clusters with that size.",
     "n_events": "Observed event count for the periodicity slot.",
     "expected_n_events_uniform": "Expected event count under a uniform minute-of-hour baseline.",
     "observed_count": "Observed submission count in the tested burst window.",
@@ -686,13 +689,13 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "max_run_length_buckets": "Maximum run length (in buckets) observed for the grouping.",
     "max_run_mean_abs_delta": "Largest run-level mean absolute pro-rate delta in the grouping.",
     "max_run_total_n": "Largest support volume observed among runs in the grouping.",
-    "similarity": "String similarity score for near-duplicate candidate pair.",
-    "n_active_buckets": "Number of time buckets in which a near-duplicate cluster appears.",
+    "similarity": "String similarity score for a candidate pair.",
+    "n_active_buckets": "Number of time buckets in which a cluster appears.",
     "peak_bucket_start": "Timestamp of the highest-density bucket for a cluster.",
     "peak_bucket_records": "Record count in the highest-density bucket for a cluster.",
     "peak_bucket_fraction": "Share of cluster records contained in the highest-density bucket.",
     "concentration_hhi": "Herfindahl index of cluster bucket concentration (higher = tighter).",
-    "records_per_cluster": "Average near-duplicate records per active cluster in the bucket.",
+    "records_per_cluster": "Average records per active cluster in the bucket.",
     "match_tier": (
         "Probabilistic voter-linkage tier (`exact`, `strong_fuzzy`, `weak_fuzzy`, "
         "`unmatched`)."
@@ -1649,23 +1652,6 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
                 "rather than organic participation."
             ),
         ],
-        "duplicates_near": [
-            (
-                "Many small near-duplicate clusters are often benign "
-                "typo/transliteration noise; stronger signals are rapid growth of "
-                "large clusters in compressed time spans."
-            ),
-            (
-                "High similarity edges among many distinct names during high-volume "
-                "windows can indicate templated naming patterns or normalization "
-                "collisions that warrant manual spot checks."
-            ),
-            (
-                "Extended periods where cluster size and record counts rise together "
-                "can point to coordinated intake streams, especially when aligned "
-                "with burst and swing flags."
-            ),
-        ],
         "sortedness": [
             (
                 "Single alphabetical spikes in small buckets can be accidental; "
@@ -1882,16 +1868,6 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             ),
             "extended_low": "healthy name diversity with limited exact repetition pressure",
         },
-        "duplicates_near": {
-            "primary_metric": "near-duplicate cluster growth and similarity structure",
-            "momentary_high": "short typo/transliteration bursts around outreach windows",
-            "momentary_low": "periods where naming variation is naturally broader",
-            "extended_high": (
-                "templated or normalization-colliding naming behavior over sustained "
-                "windows"
-            ),
-            "extended_low": "low cluster cohesion and reduced near-duplicate pressure",
-        },
         "sortedness": {
             "primary_metric": "alphabetical/ordered submission behavior",
             "momentary_high": (
@@ -2049,9 +2025,6 @@ _SCATTER_CHART_IDS = {
     "multivariate_top_buckets",
     "off_hours_funnel_plot",
     "duplicates_exact_top_name_timing_exact",
-    "duplicates_exact_top_name_timing_medium",
-    "duplicates_exact_top_name_timing_loose",
-    "duplicates_near_time_concentration",
 }
 
 
@@ -2676,8 +2649,42 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 },
             ],
         },
+        "overview_position_volume_by_bucket": {
+            "summary": "Stacked pro/con/other volume by time bucket.",
+            "items": [
+                {
+                    "label": "Stacked columns",
+                    "description": (
+                        "Each bucket stacks Pro, Con, and Other testimony counts so composition "
+                        "and total support are visible at once."
+                    ),
+                },
+                {
+                    "label": "Axes",
+                    "description": (
+                        "X-axis is bucket timestamp in report timezone; Y-axis is submission count."
+                    ),
+                },
+            ],
+        },
+        "off_hours_day_hour_heatmap": {
+            "summary": "Day x hour heatmap for testimony position composition.",
+            "items": [
+                {
+                    "label": "Cell color",
+                    "description": "Pro share for each weekday/hour cell.",
+                },
+                {
+                    "label": "Axes",
+                    "description": (
+                        "X-axis is hour of day; Y-axis is weekday in chronological "
+                        "top-down order (Monday to Sunday)."
+                    ),
+                },
+            ],
+        },
         "off_hours_date_hour_pro_heatmap": {
-            "summary": "Date x hour heatmap for off-hours composition.",
+            "summary": "Date x hour heatmap for testimony position composition.",
             "items": [
                 {
                     "label": "Cell color",
@@ -2731,7 +2738,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "off_hours_date_hour_volume_heatmap": {
-            "summary": "Date x hour heatmap for off-hours volume.",
+            "summary": "Date x hour heatmap for submission volume.",
             "items": [
                 {"label": "Cell color", "description": "Submission count for that date/hour cell."},
                 {
@@ -2837,64 +2844,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 },
             ],
         },
-        "duplicates_exact_top_name_timing_medium": {
-            "summary": (
-                "Nickname-root match tier top names shown as time points sized by per-position duplicate rows."
-            ),
-            "items": [
-                {
-                    "label": "Point",
-                    "description": (
-                        "Each point is one active-bucket occurrence for a ranked top nickname-root "
-                        "match name-position pair (x = bucket time, y = name). Colors encode "
-                        "Pro/Con/Other and point size scales duplicate rows for that position in the bucket."
-                    ),
-                },
-                {
-                    "label": "Y-axis order",
-                    "description": (
-                        "Names are ranked by total repeated rows (rank 1 = most repeated) and "
-                        "paginated 10 at a time up to the top 50 names."
-                    ),
-                },
-                {
-                    "label": "Tooltip context",
-                    "description": (
-                        "Tooltips include medium-tier definition, rank, bucket span, Pro/Con split, "
-                        "bucket duplicate rows, and total repeated rows."
-                    ),
-                },
-            ],
-        },
-        "duplicates_exact_top_name_timing_loose": {
-            "summary": (
-                "First-initial match tier top names shown as time points sized by per-position duplicate rows."
-            ),
-            "items": [
-                {
-                    "label": "Point",
-                    "description": (
-                        "Each point is one active-bucket occurrence for a ranked top first-initial "
-                        "match name-position pair (x = bucket time, y = name). Colors encode "
-                        "Pro/Con/Other and point size scales duplicate rows for that position in the bucket."
-                    ),
-                },
-                {
-                    "label": "Y-axis order",
-                    "description": (
-                        "Names are ranked by total repeated rows (rank 1 = most repeated) and "
-                        "paginated 10 at a time up to the top 50 names."
-                    ),
-                },
-                {
-                    "label": "Tooltip context",
-                    "description": (
-                        "Tooltips include loose-tier definition, rank, bucket span, Pro/Con split, "
-                        "bucket duplicate rows, and total repeated rows."
-                    ),
-                },
-            ],
-        },
         "duplicates_exact_position_concentration": {
             "summary": "Position concentration test (Pro vs Con duplicate burden).",
             "items": [
@@ -2959,92 +2908,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Effective pro share under each collision-adjustment scenario.",
                 },
                 {"label": "X-axis", "description": "Scenario (raw, strict dedupe, excess-adjusted)."},
-            ],
-        },
-        "duplicates_near_cluster_timeline": timebar(
-            summary=(
-                "Near-duplicate cluster activity over time at the selected bucket size, "
-                "including within-bucket density."
-            ),
-            primary_label="Records per active cluster",
-            primary_desc=(
-                "Line shows average near-duplicate records per active cluster in each "
-                "selected time bucket."
-            ),
-            include_low_power=False,
-            include_wilson=False,
-            volume_label="Near-duplicate records",
-            volume_desc="Bar height is total near-duplicate records in each selected bucket.",
-        ),
-        "duplicates_near_cluster_size": {
-            "summary": "Cluster-size distribution for the selected bucket size.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": (
-                        "Number of active near-duplicate clusters observed at each cluster size "
-                        "for the current bucket selection."
-                    ),
-                },
-                {
-                    "label": "Cluster definition",
-                    "description": (
-                        "A cluster is a connected group of highly similar names linked by "
-                        "near-duplicate edges."
-                    ),
-                },
-                {"label": "X-axis", "description": "Cluster size (count of unique names)."},
-            ],
-        },
-        "duplicates_near_similarity": {
-            "summary": (
-                "Distribution of near-duplicate similarity scores with both count and share context."
-            ),
-            "items": [
-                {
-                    "label": "Bars",
-                    "description": "Count of near-duplicate edges falling in each similarity bin.",
-                },
-                {
-                    "label": "Line",
-                    "description": "Share of all near-duplicate edges in each similarity bin.",
-                },
-                {
-                    "label": "X-axis bin",
-                    "description": (
-                        "Adaptive similarity-score ranges (narrow bins when values are tightly "
-                        "clustered near the threshold)."
-                    ),
-                },
-                {
-                    "label": "Intended use",
-                    "description": (
-                        "Use this to judge whether the edge set is concentrated near the threshold "
-                        "or dominated by very-high-similarity pairs."
-                    ),
-                },
-            ],
-        },
-        "duplicates_near_time_concentration": {
-            "summary": (
-                "Near-duplicate cluster time concentration for the selected bucket size "
-                "(dispersion vs peak-share view)."
-            ),
-            "items": [
-                {
-                    "label": "Point",
-                    "description": (
-                        "Each point is one near-duplicate cluster (x = active bucket count, "
-                        "y = peak bucket share, size = peak bucket records, color = HHI)."
-                    ),
-                },
-                {
-                    "label": "Interpretation",
-                    "description": (
-                        "Upper-left points indicate tight short-window concentration; rightward points "
-                        "indicate spread across more buckets."
-                    ),
-                },
             ],
         },
         "sortedness_bucket_ratio": timebar(
@@ -3378,257 +3241,6 @@ def _with_expected_columns(frame: pd.DataFrame, expected: list[str]) -> pd.DataF
         if column not in working.columns:
             working[column] = pd.NA
     return working
-
-
-def _build_near_duplicate_bucket_profiles(
-    concentration: pd.DataFrame,
-    *,
-    bucket_minutes: list[int] | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    timeline_expected = [
-        "bucket_start",
-        "bucket_minutes",
-        "n_records",
-        "n_clusters",
-        "n_pro",
-        "n_con",
-    ]
-    concentration_expected = [
-        "cluster_id",
-        "bucket_minutes",
-        "n_active_buckets",
-        "peak_bucket_start",
-        "peak_bucket_records",
-        "peak_bucket_fraction",
-        "concentration_hhi",
-    ]
-    if concentration.empty:
-        return (
-            _with_expected_columns(pd.DataFrame(), timeline_expected),
-            _with_expected_columns(pd.DataFrame(), concentration_expected),
-        )
-
-    working = concentration.copy()
-    working["cluster_id"] = working.get("cluster_id", pd.Series(dtype=str)).fillna("").astype(str)
-    working["minute_bucket"] = pd.to_datetime(working.get("minute_bucket"), errors="coerce")
-    working["n_records"] = pd.to_numeric(working.get("n_records"), errors="coerce").fillna(0.0)
-    working["n_pro"] = pd.to_numeric(working.get("n_pro"), errors="coerce").fillna(0.0)
-    working["n_con"] = pd.to_numeric(working.get("n_con"), errors="coerce").fillna(0.0)
-    working = working[
-        (working["cluster_id"] != "")
-        & working["minute_bucket"].notna()
-        & (working["n_records"] > 0)
-    ].copy()
-    if working.empty:
-        return (
-            _with_expected_columns(pd.DataFrame(), timeline_expected),
-            _with_expected_columns(pd.DataFrame(), concentration_expected),
-        )
-
-    windows = sorted(
-        {
-            int(value)
-            for value in (bucket_minutes or BASELINE_PROFILE_BUCKET_MINUTES)
-            if int(value) > 0
-        }
-    )
-    if not windows:
-        return (
-            _with_expected_columns(pd.DataFrame(), timeline_expected),
-            _with_expected_columns(pd.DataFrame(), concentration_expected),
-        )
-
-    timeline_frames: list[pd.DataFrame] = []
-    concentration_frames: list[pd.DataFrame] = []
-    for minutes in windows:
-        bucketed = working.copy()
-        bucketed["bucket_start"] = bucketed["minute_bucket"].dt.floor(f"{int(minutes)}min")
-        bucketed["bucket_minutes"] = int(minutes)
-
-        timeline = (
-            bucketed.groupby(["bucket_minutes", "bucket_start"], dropna=True)
-            .agg(
-                n_records=("n_records", "sum"),
-                n_clusters=("cluster_id", "nunique"),
-                n_pro=("n_pro", "sum"),
-                n_con=("n_con", "sum"),
-            )
-            .reset_index()
-            .sort_values(["bucket_minutes", "bucket_start"])
-        )
-        if not timeline.empty:
-            timeline_frames.append(timeline)
-
-        bucket_cluster = (
-            bucketed.groupby(["bucket_minutes", "cluster_id", "bucket_start"], dropna=True)
-            .agg(n_records=("n_records", "sum"))
-            .reset_index()
-        )
-        if bucket_cluster.empty:
-            continue
-        totals = (
-            bucket_cluster.groupby(["bucket_minutes", "cluster_id"], dropna=True)["n_records"]
-            .transform("sum")
-            .replace(0.0, np.nan)
-        )
-        bucket_cluster["bucket_fraction"] = (
-            pd.to_numeric(bucket_cluster["n_records"], errors="coerce") / totals
-        ).fillna(0.0)
-        peak_rows = (
-            bucket_cluster.sort_values(
-                ["bucket_minutes", "cluster_id", "bucket_fraction", "n_records", "bucket_start"],
-                ascending=[True, True, False, False, True],
-            )
-            .groupby(["bucket_minutes", "cluster_id"], as_index=False)
-            .head(1)
-            .loc[
-                :,
-                ["bucket_minutes", "cluster_id", "bucket_start", "n_records", "bucket_fraction"],
-            ]
-            .rename(
-                columns={
-                    "bucket_start": "peak_bucket_start",
-                    "n_records": "peak_bucket_records",
-                    "bucket_fraction": "peak_bucket_fraction",
-                }
-            )
-        )
-        bucket_summary = (
-            bucket_cluster.groupby(["bucket_minutes", "cluster_id"], dropna=True)
-            .agg(
-                n_active_buckets=("bucket_start", "nunique"),
-                concentration_hhi=(
-                    "bucket_fraction",
-                    lambda series: float(
-                        (
-                            pd.to_numeric(series, errors="coerce").fillna(0.0).astype(float) ** 2
-                        ).sum()
-                    ),
-                ),
-            )
-            .reset_index()
-            .merge(peak_rows, on=["bucket_minutes", "cluster_id"], how="left")
-            .sort_values(
-                ["bucket_minutes", "peak_bucket_fraction", "peak_bucket_records", "cluster_id"],
-                ascending=[True, False, False, True],
-            )
-        )
-        concentration_frames.append(bucket_summary)
-
-    timeline_combined = (
-        pd.concat(timeline_frames, ignore_index=True)
-        if timeline_frames
-        else pd.DataFrame(columns=timeline_expected)
-    )
-    if not timeline_combined.empty:
-        for column_name in ("bucket_minutes", "n_records", "n_clusters", "n_pro", "n_con"):
-            timeline_combined[column_name] = (
-                pd.to_numeric(timeline_combined[column_name], errors="coerce")
-                .fillna(0)
-                .astype(int)
-            )
-        timeline_combined = timeline_combined.sort_values(
-            ["bucket_minutes", "bucket_start"]
-        ).reset_index(drop=True)
-
-    concentration_combined = (
-        pd.concat(concentration_frames, ignore_index=True)
-        if concentration_frames
-        else pd.DataFrame(columns=concentration_expected)
-    )
-    if not concentration_combined.empty:
-        concentration_combined["bucket_minutes"] = (
-            pd.to_numeric(concentration_combined["bucket_minutes"], errors="coerce")
-            .fillna(0)
-            .astype(int)
-        )
-        concentration_combined["n_active_buckets"] = (
-            pd.to_numeric(concentration_combined["n_active_buckets"], errors="coerce")
-            .fillna(0)
-            .astype(int)
-        )
-        concentration_combined["peak_bucket_records"] = (
-            pd.to_numeric(concentration_combined["peak_bucket_records"], errors="coerce")
-            .fillna(0)
-            .astype(int)
-        )
-        concentration_combined["peak_bucket_fraction"] = (
-            pd.to_numeric(concentration_combined["peak_bucket_fraction"], errors="coerce")
-            .fillna(0.0)
-            .astype(float)
-        )
-        concentration_combined["concentration_hhi"] = (
-            pd.to_numeric(concentration_combined["concentration_hhi"], errors="coerce")
-            .fillna(0.0)
-            .astype(float)
-        )
-        concentration_combined = concentration_combined.sort_values(
-            ["bucket_minutes", "peak_bucket_fraction", "peak_bucket_records", "cluster_id"],
-            ascending=[True, False, False, True],
-        ).reset_index(drop=True)
-
-    return (
-        _with_expected_columns(timeline_combined, timeline_expected),
-        _with_expected_columns(concentration_combined, concentration_expected),
-    )
-
-
-def _build_near_duplicate_similarity_histogram(
-    edges: pd.DataFrame,
-    *,
-    bin_width: int | None = None,
-) -> pd.DataFrame:
-    expected = [
-        "similarity_bin",
-        "similarity_bin_start",
-        "similarity_bin_end",
-        "n_pairs",
-        "share_pairs",
-    ]
-    if edges.empty or "similarity" not in edges.columns:
-        return _with_expected_columns(pd.DataFrame(), expected)
-
-    scores = pd.to_numeric(edges["similarity"], errors="coerce").dropna().astype(float)
-    if scores.empty:
-        return _with_expected_columns(pd.DataFrame(), expected)
-
-    score_min_raw = float(scores.min())
-    score_max_raw = float(scores.max())
-    score_span = max(1.0, score_max_raw - score_min_raw)
-    if bin_width is None:
-        # Keep enough bins to avoid degenerate 1-2 bar charts when edges are tightly clustered.
-        target_bins = 10
-        width = max(1, int(math.ceil(score_span / target_bins)))
-    else:
-        width = max(1, int(bin_width))
-    min_score = int(math.floor(score_min_raw / width) * width)
-    max_score = int(math.ceil(score_max_raw / width) * width)
-    if max_score <= min_score:
-        max_score = min_score + width
-    bins = np.arange(min_score, max_score + width, width, dtype=int)
-    if len(bins) < 2:
-        bins = np.array([min_score, min_score + width], dtype=int)
-
-    histogram = pd.cut(scores, bins=bins, right=False, include_lowest=True).value_counts(sort=False)
-    total = float(len(scores))
-    rows: list[dict[str, Any]] = []
-    for interval, count in histogram.items():
-        if not isinstance(interval, pd.Interval):
-            continue
-        start = int(interval.left)
-        end = int(interval.right)
-        rows.append(
-            {
-                "similarity_bin": f"{start}-{max(start, end - 1)}",
-                "similarity_bin_start": start,
-                "similarity_bin_end": end,
-                "n_pairs": int(count),
-                "share_pairs": float(count / total) if total > 0 else 0.0,
-            }
-        )
-
-    summary = pd.DataFrame(rows).sort_values("similarity_bin_start").reset_index(drop=True)
-    return _with_expected_columns(summary, expected)
 
 
 def _build_bucketed_baseline_profiles(
@@ -4818,103 +4430,6 @@ def _build_interactive_chart_payload_v2(
         ],
     )
 
-    dup_near_clusters = _with_expected_columns(
-        table_map.get(_table_key("duplicates_near", "cluster_summary"), pd.DataFrame()),
-        [
-            "cluster_id",
-            "first_seen",
-            "last_seen",
-            "cluster_size",
-            "n_records",
-            "n_pro",
-            "n_con",
-            "time_span_minutes",
-        ],
-    )
-    dup_near_edges = _with_expected_columns(
-        table_map.get(_table_key("duplicates_near", "similarity_edges"), pd.DataFrame()),
-        ["similarity", "left_display_name", "right_display_name", "block_key"],
-    )
-    dup_near_concentration = _with_expected_columns(
-        table_map.get(
-            _table_key("duplicates_near", "cluster_time_concentration_summary"), pd.DataFrame()
-        ),
-        [
-            "cluster_id",
-            "n_active_buckets",
-            "peak_bucket_start",
-            "peak_bucket_records",
-            "peak_bucket_fraction",
-            "concentration_hhi",
-        ],
-    )
-    dup_near_concentration_detail = _with_expected_columns(
-        table_map.get(_table_key("duplicates_near", "cluster_time_concentration"), pd.DataFrame()),
-        [
-            "cluster_id",
-            "minute_bucket",
-            "n_records",
-            "n_pro",
-            "n_con",
-            "bucket_fraction",
-        ],
-    )
-    dup_near_bucket_timeline, dup_near_bucket_concentration = _build_near_duplicate_bucket_profiles(
-        dup_near_concentration_detail,
-        bucket_minutes=BASELINE_PROFILE_BUCKET_MINUTES,
-    )
-    if dup_near_bucket_timeline.empty and not dup_near_clusters.empty:
-        legacy_timeline = dup_near_clusters.copy()
-        legacy_timeline["bucket_start"] = pd.to_datetime(
-            legacy_timeline.get("first_seen"), errors="coerce"
-        ).dt.floor("min")
-        legacy_timeline["bucket_minutes"] = 1
-        legacy_timeline["n_clusters"] = 1
-        legacy_timeline["n_records"] = pd.to_numeric(
-            legacy_timeline.get("n_records"), errors="coerce"
-        ).fillna(0)
-        legacy_timeline["n_pro"] = pd.to_numeric(legacy_timeline.get("n_pro"), errors="coerce").fillna(
-            0
-        )
-        legacy_timeline["n_con"] = pd.to_numeric(legacy_timeline.get("n_con"), errors="coerce").fillna(
-            0
-        )
-        legacy_timeline = (
-            legacy_timeline.dropna(subset=["bucket_start"])
-            .groupby(["bucket_minutes", "bucket_start"], dropna=True)
-            .agg(
-                n_records=("n_records", "sum"),
-                n_clusters=("n_clusters", "sum"),
-                n_pro=("n_pro", "sum"),
-                n_con=("n_con", "sum"),
-            )
-            .reset_index()
-            .sort_values(["bucket_minutes", "bucket_start"])
-        )
-        dup_near_bucket_timeline = _with_expected_columns(
-            legacy_timeline,
-            ["bucket_start", "bucket_minutes", "n_records", "n_clusters", "n_pro", "n_con"],
-        )
-    if dup_near_bucket_concentration.empty and not dup_near_concentration.empty:
-        legacy_concentration = dup_near_concentration.copy()
-        legacy_concentration["bucket_minutes"] = 1
-        dup_near_bucket_concentration = _with_expected_columns(
-            legacy_concentration,
-            [
-                "cluster_id",
-                "bucket_minutes",
-                "n_active_buckets",
-                "peak_bucket_start",
-                "peak_bucket_records",
-                "peak_bucket_fraction",
-                "concentration_hhi",
-            ],
-        )
-    dup_near_similarity_hist = _build_near_duplicate_similarity_histogram(
-        dup_near_edges,
-        bin_width=None,
-    )
-
     sorted_bucket = _with_expected_columns(
         table_map.get(_table_key("sortedness", "bucket_ordering"), pd.DataFrame()),
         [
@@ -5298,7 +4813,6 @@ def _build_interactive_chart_payload_v2(
         (pro_rate_changepoints, "change_minute"),
         (off_hours_window_control, "bucket_start"),
         (dup_exact_bucket, "bucket_start"),
-        (dup_near_clusters, "first_seen"),
         (sorted_bucket, "bucket_start"),
         (sorted_minute, "minute_bucket"),
         (rare_unique_ratio, "minute_bucket"),
@@ -6002,6 +5516,35 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=100_000,
     )
+    overview_position_volume = off_hours_window_control.copy()
+    if not overview_position_volume.empty:
+        n_total = pd.to_numeric(overview_position_volume["n_total"], errors="coerce").fillna(0.0)
+        n_pro = pd.to_numeric(overview_position_volume["n_pro"], errors="coerce").fillna(0.0)
+        n_con = pd.to_numeric(overview_position_volume["n_con"], errors="coerce").fillna(0.0)
+        n_unknown = pd.to_numeric(
+            overview_position_volume["n_unknown"], errors="coerce"
+        ).fillna(0.0)
+        residual_other = (n_total - n_pro - n_con).clip(lower=0.0)
+        overview_position_volume["n_other_position"] = n_unknown.where(
+            n_unknown > 0, residual_other
+        )
+    charts["overview_position_volume_by_bucket"] = _records_from_frame(
+        overview_position_volume.sort_values(["bucket_minutes", "bucket_start"]),
+        columns=[
+            "bucket_start",
+            "bucket_minutes",
+            "n_total",
+            "n_pro",
+            "n_con",
+            "n_other_position",
+            "n_unknown",
+            "n_known",
+            "is_off_hours_window",
+            "is_alert_off_hours_window",
+            "is_low_power",
+        ],
+        max_rows=100_000,
+    )
     off_hours_residual_timeline = off_hours_window_control.copy()
     if not off_hours_residual_timeline.empty:
         off_hours_residual_timeline["z_ref_zero"] = 0.0
@@ -6297,10 +5840,11 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=15,
     )
+    top_name_timing_sorted = dup_exact_top_name_timing.sort_values(
+        ["match_mode", "rank", "bucket_minutes", "bucket_start", "name_key"]
+    )
     top_name_timing_rows = _records_from_frame(
-        dup_exact_top_name_timing.sort_values(
-            ["match_mode", "rank", "bucket_minutes", "bucket_start", "name_key"]
-        ),
+        top_name_timing_sorted,
         columns=[
             "scope",
             "match_mode",
@@ -6321,21 +5865,39 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=100_000,
     )
-    charts["duplicates_exact_top_name_timing_exact"] = [
-        row
-        for row in top_name_timing_rows
-        if str(row.get("match_mode", "")).strip().lower() == "exact"
-    ]
-    charts["duplicates_exact_top_name_timing_medium"] = [
-        row
-        for row in top_name_timing_rows
-        if str(row.get("match_mode", "")).strip().lower() == "medium"
-    ]
-    charts["duplicates_exact_top_name_timing_loose"] = [
-        row
-        for row in top_name_timing_rows
-        if str(row.get("match_mode", "")).strip().lower() == "loose"
-    ]
+    top_name_timing_rank_rows = _records_from_frame(
+        top_name_timing_sorted.drop_duplicates(
+            subset=["scope", "match_mode", "rank", "name_key"],
+            keep="first",
+        ),
+        columns=[
+            "scope",
+            "match_mode",
+            "match_label",
+            "match_definition",
+            "rank",
+            "name_key",
+            "display_name",
+            "total_repeated_rows",
+        ],
+        max_rows=100_000,
+    )
+
+    def _top_name_timing_rows_for_mode(match_mode: str) -> list[dict[str, Any]]:
+        normalized_mode = str(match_mode).strip().lower()
+        bucket_rows = [
+            row
+            for row in top_name_timing_rows
+            if str(row.get("match_mode", "")).strip().lower() == normalized_mode
+        ]
+        rank_rows = [
+            {**row, "row_kind": "name_rank"}
+            for row in top_name_timing_rank_rows
+            if str(row.get("match_mode", "")).strip().lower() == normalized_mode
+        ]
+        return bucket_rows + rank_rows
+
+    charts["duplicates_exact_top_name_timing_exact"] = _top_name_timing_rows_for_mode("exact")
     charts["duplicates_exact_position_concentration"] = _records_from_frame(
         dup_exact_position_tests.assign(
             pair_label=(
@@ -6411,116 +5973,6 @@ def _build_interactive_chart_payload_v2(
     # Compatibility aliases retained during contract migration.
     charts["duplicates_exact_top_names"] = charts["duplicates_exact_per_name_anomalies"]
     charts["duplicates_exact_position_switch"] = charts["duplicates_exact_per_name_anomalies"]
-
-    dup_near_bucket_timeline_chart = dup_near_bucket_timeline.copy()
-    if not dup_near_bucket_timeline_chart.empty:
-        dup_near_bucket_timeline_chart["n_records"] = pd.to_numeric(
-            dup_near_bucket_timeline_chart.get("n_records"), errors="coerce"
-        ).fillna(0.0)
-        dup_near_bucket_timeline_chart["n_clusters"] = pd.to_numeric(
-            dup_near_bucket_timeline_chart.get("n_clusters"), errors="coerce"
-        ).fillna(0.0)
-        dup_near_bucket_timeline_chart["records_per_cluster"] = (
-            dup_near_bucket_timeline_chart["n_records"]
-            / dup_near_bucket_timeline_chart["n_clusters"].replace(0.0, np.nan)
-        )
-    else:
-        dup_near_bucket_timeline_chart["records_per_cluster"] = pd.Series(dtype=float)
-    charts["duplicates_near_cluster_timeline"] = _records_from_frame(
-        dup_near_bucket_timeline_chart.sort_values(["bucket_minutes", "bucket_start"]),
-        columns=[
-            "bucket_start",
-            "bucket_minutes",
-            "n_clusters",
-            "n_records",
-            "records_per_cluster",
-            "n_pro",
-            "n_con",
-        ],
-        max_rows=50_000,
-    )
-    cluster_size_lookup = pd.DataFrame()
-    if not dup_near_clusters.empty and {"cluster_id", "cluster_size"}.issubset(
-        set(dup_near_clusters.columns)
-    ):
-        cluster_size_lookup = (
-            dup_near_clusters[["cluster_id", "cluster_size"]]
-            .copy()
-            .dropna(subset=["cluster_id", "cluster_size"])
-            .drop_duplicates(subset=["cluster_id"])
-        )
-    if not dup_near_bucket_concentration.empty and not cluster_size_lookup.empty:
-        cluster_size_summary = (
-            dup_near_bucket_concentration[["bucket_minutes", "cluster_id"]]
-            .copy()
-            .dropna(subset=["bucket_minutes", "cluster_id"])
-            .drop_duplicates(subset=["bucket_minutes", "cluster_id"])
-            .merge(cluster_size_lookup, on="cluster_id", how="left")
-            .dropna(subset=["cluster_size"])
-            .groupby(["bucket_minutes", "cluster_size"], dropna=False)
-            .size()
-            .rename("n_clusters")
-            .reset_index()
-            .sort_values(["bucket_minutes", "cluster_size"])
-        )
-        cluster_size_summary["bucket_minutes"] = (
-            pd.to_numeric(cluster_size_summary["bucket_minutes"], errors="coerce")
-            .fillna(0)
-            .astype(int)
-        )
-        cluster_size_summary["cluster_size"] = (
-            pd.to_numeric(cluster_size_summary["cluster_size"], errors="coerce")
-            .fillna(0)
-            .astype(int)
-        )
-        cluster_size_summary["n_clusters"] = (
-            pd.to_numeric(cluster_size_summary["n_clusters"], errors="coerce")
-            .fillna(0)
-            .astype(int)
-        )
-    elif not cluster_size_lookup.empty:
-        cluster_size_summary = (
-            cluster_size_lookup.groupby("cluster_size", dropna=False)
-            .size()
-            .rename("n_clusters")
-            .reset_index()
-            .sort_values("cluster_size")
-        )
-        cluster_size_summary["bucket_minutes"] = 1
-    else:
-        cluster_size_summary = pd.DataFrame()
-    charts["duplicates_near_cluster_size"] = _records_from_frame(
-        cluster_size_summary,
-        columns=["bucket_minutes", "cluster_size", "n_clusters"],
-        max_rows=1_000,
-    )
-    charts["duplicates_near_similarity"] = _records_from_frame(
-        dup_near_similarity_hist.sort_values("similarity_bin_start"),
-        columns=[
-            "similarity_bin",
-            "similarity_bin_start",
-            "similarity_bin_end",
-            "n_pairs",
-            "share_pairs",
-        ],
-        max_rows=200,
-    )
-    charts["duplicates_near_time_concentration"] = _records_from_frame(
-        dup_near_bucket_concentration.sort_values(
-            ["bucket_minutes", "peak_bucket_fraction", "peak_bucket_records"],
-            ascending=[True, False, False],
-        ),
-        columns=[
-            "cluster_id",
-            "bucket_minutes",
-            "n_active_buckets",
-            "peak_bucket_start",
-            "peak_bucket_records",
-            "peak_bucket_fraction",
-            "concentration_hhi",
-        ],
-        max_rows=2_000,
-    )
 
     charts["sortedness_bucket_ratio"] = _records_from_frame(
         sorted_bucket.sort_values(["bucket_minutes", "bucket_start"]),
@@ -6990,10 +6442,6 @@ def _build_interactive_chart_payload_v2(
         "changepoints": [],
         "off_hours": _extract_bucket_options(off_hours_window_control),
         "duplicates_exact": _extract_bucket_options(dup_exact_bucket),
-        "duplicates_near": _extract_bucket_options(
-            dup_near_bucket_timeline,
-            dup_near_bucket_concentration,
-        ),
         "sortedness": _extract_bucket_options(sorted_bucket, sorted_summary),
         "rare_names": _extract_bucket_options(rare_unique_ratio, rare_rarity),
         "org_anomalies": _extract_bucket_options(org_blank_rates, org_position_rates),
@@ -7044,6 +6492,10 @@ def _build_interactive_chart_payload_v2(
             for analysis in analysis_catalog
             if str(analysis.get("id") or "").strip() in allowset
         ]
+        allowlist_order = {analysis_id: index for index, analysis_id in enumerate(analysis_allowlist)}
+        analysis_catalog.sort(
+            key=lambda analysis: allowlist_order.get(str(analysis.get("id") or ""), len(allowlist_order))
+        )
     visible_analysis_ids = [str(analysis.get("id") or "").strip() for analysis in analysis_catalog]
     visible_analysis_id_set = set(visible_analysis_ids)
     focus_analysis_ids = [
@@ -7060,6 +6512,10 @@ def _build_interactive_chart_payload_v2(
         "off_hours_hourly_profile",
         "off_hours_summary_compare",
         "off_hours_day_hour_heatmap",
+        "off_hours_date_hour_pro_heatmap",
+        "off_hours_date_hour_primary_residual_heatmap",
+        "off_hours_date_hour_volume_heatmap",
+        "overview_position_volume_by_bucket",
         "duplicates_exact_null_distribution",
         "duplicates_exact_top_names",
         "duplicates_exact_position_switch",
@@ -7103,10 +6559,10 @@ def _build_interactive_chart_payload_v2(
         "bursts_hero_timeline",
         "procon_swings_hero_bucket_trend",
         "changepoints_hero_timeline",
+        "overview_position_volume_by_bucket",
         "off_hours_control_timeline",
         "off_hours_primary_residual_timeline",
         "duplicates_exact_bucket_concentration",
-        "duplicates_near_cluster_timeline",
         "sortedness_bucket_ratio",
         "rare_names_unique_ratio",
         "org_anomalies_blank_rate",

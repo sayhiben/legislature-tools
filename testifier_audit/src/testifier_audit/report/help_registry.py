@@ -111,8 +111,8 @@ _TESTS_USED: tuple[dict[str, str], ...] = (
         "notes": "Require repeatability across adjacent lags/windows for escalation.",
     },
     {
-        "analysis_family": "Duplicate and near-duplicate concentration",
-        "test_or_calibration": "Exact duplicate concentration and near-duplicate cluster timing",
+        "analysis_family": "Duplicate-name concentration",
+        "test_or_calibration": "Exact duplicate concentration with temporal diagnostics",
         "evidence_kind": "heuristic, calibrated_empirical",
         "notes": "Combine with volume/timing context to reduce false positives.",
     },

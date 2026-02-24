@@ -4,7 +4,6 @@ from testifier_audit.config import AppConfig
 from testifier_audit.detectors.base import Detector
 from testifier_audit.detectors.bursts import BurstsDetector
 from testifier_audit.detectors.duplicates_exact import DuplicatesExactDetector
-from testifier_audit.detectors.duplicates_near import DuplicatesNearDetector
 from testifier_audit.detectors.off_hours import OffHoursDetector
 from testifier_audit.detectors.org_anomalies import OrganizationAnomaliesDetector
 from testifier_audit.detectors.procon_swings import ProConSwingsDetector
@@ -71,10 +70,6 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             voter_db_url=config.voter_registry.db_url,
             voter_table_name=config.voter_registry.table_name,
             voter_active_only=config.voter_registry.active_only,
-        ),
-        DuplicatesNearDetector(
-            similarity_threshold=config.thresholds.near_dup_similarity_threshold,
-            max_candidates_per_block=config.thresholds.near_dup_max_candidates_per_block,
         ),
         BurstsDetector(
             window_minutes=sorted(set(config.windows.scan_window_minutes + bucket_minutes)),

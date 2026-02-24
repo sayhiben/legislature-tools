@@ -1,22 +1,5 @@
-          {% if not off_hours_focus_only %}
-            <nav class="workflow-tabs panel" aria-label="Investigation tabs">
-              <a class="workflow-tab" href="#triage">Triage</a>
-              <a class="workflow-tab" href="#methodology">Methodology</a>
-            </nav>
-          {% endif %}
-
-          <section id="zoom-active-banner" class="zoom-active-banner hidden" role="status" aria-live="polite" aria-atomic="true">
-            <div class="zoom-active-banner-copy">
-              <p class="zoom-active-banner-title">Filtered Timeline View</p>
-              <p id="zoom-active-banner-text" class="zoom-active-banner-text"></p>
-              <p id="zoom-active-banner-meta" class="zoom-active-banner-meta"></p>
-            </div>
-            <div class="zoom-active-banner-actions">
-              <span id="zoom-active-banner-chip" class="zoom-active-banner-chip"></span>
-              <button id="zoom-banner-copy-button" class="zoom-banner-button" type="button">Copy link</button>
-              <button id="zoom-banner-reset-button" class="zoom-banner-button" type="button">Reset zoom</button>
-            </div>
-          </section>
+{% import "macros/chart_help.j2" as chart_help %}
+{% import "macros/chart_host.j2" as chart_host %}
 
           <section id="section-overview" class="report-section panel">
             <h2 id="overview" class="toc-heading">How To Use This Report</h2>
@@ -75,6 +58,53 @@
                 <div class="kpi-meta" id="kpi-low-power-meta"></div>
               </article>
             </section>
+
+            <div class="analysis-detail-grid">
+              <article class="detail-card">
+                <h3 class="detail-title">Position Volume By Bucket</h3>
+                <p class="tiny-note"><code>overview_position_volume_by_bucket</code></p>
+                {{ chart_host.render_chart_host("overview_position_volume_by_bucket", "detail", "chart-host-detail") }}
+                {% set overview_bucket_help = interactive_charts.chart_help_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_help_docs else None %}
+                {% set overview_bucket_legend = interactive_charts.chart_legend_docs.get("overview_position_volume_by_bucket") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(overview_bucket_help, overview_bucket_legend) }}
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Day/Hour Position Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_day_hour_heatmap</code></p>
+                {{ chart_host.render_chart_host("off_hours_day_hour_heatmap", "detail", "chart-host-detail") }}
+                {% set day_hour_help = interactive_charts.chart_help_docs.get("off_hours_day_hour_heatmap") if interactive_charts.chart_help_docs else None %}
+                {% set day_hour_legend = interactive_charts.chart_legend_docs.get("off_hours_day_hour_heatmap") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(day_hour_help, day_hour_legend) }}
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Position Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_pro_heatmap</code></p>
+                {{ chart_host.render_chart_host("off_hours_date_hour_pro_heatmap", "detail", "chart-host-detail") }}
+                {% set position_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_pro_heatmap") if interactive_charts.chart_help_docs else None %}
+                {% set position_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_pro_heatmap") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(position_heatmap_help, position_heatmap_legend) }}
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Position Residual Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_primary_residual_heatmap</code></p>
+                {{ chart_host.render_chart_host("off_hours_date_hour_primary_residual_heatmap", "detail", "chart-host-detail") }}
+                {% set residual_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_primary_residual_heatmap") if interactive_charts.chart_help_docs else None %}
+                {% set residual_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_primary_residual_heatmap") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(residual_heatmap_help, residual_heatmap_legend) }}
+              </article>
+
+              <article class="detail-card">
+                <h3 class="detail-title">Volume Heatmap</h3>
+                <p class="tiny-note"><code>off_hours_date_hour_volume_heatmap</code></p>
+                {{ chart_host.render_chart_host("off_hours_date_hour_volume_heatmap", "detail", "chart-host-detail") }}
+                {% set volume_heatmap_help = interactive_charts.chart_help_docs.get("off_hours_date_hour_volume_heatmap") if interactive_charts.chart_help_docs else None %}
+                {% set volume_heatmap_legend = interactive_charts.chart_legend_docs.get("off_hours_date_hour_volume_heatmap") if interactive_charts.chart_legend_docs else None %}
+                {{ chart_help.render_chart_help(volume_heatmap_help, volume_heatmap_legend) }}
+              </article>
+            </div>
           </section>
 
           {% if not off_hours_focus_only %}
@@ -137,12 +167,6 @@
                 <h3 class="detail-title">Top Repeated Names</h3>
                 <div class="table-wrap">
                   <div id="forensics-top-names-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Top Near-Dup Clusters</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-clusters-host" class="table-host"></div>
                 </div>
               </article>
               <article class="detail-card">

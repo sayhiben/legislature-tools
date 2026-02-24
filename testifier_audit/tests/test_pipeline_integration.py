@@ -173,7 +173,6 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
             "procon_swings",
             "changepoints",
             "duplicates_exact",
-            "duplicates_near",
             "sortedness",
             "rare_names",
             "org_anomalies",
@@ -244,7 +243,7 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert 'data-analysis-id="periodicity"' not in report_text
     elif _configured_focus_analysis_ids():
         assert "Composite Evidence Score" not in report_text
-        assert "Exact Duplicate Names" in report_text
+        assert "Duplicate Names" in report_text
         assert "Registered Voter Match" in report_text
     assert 'data-analysis-id="composite_score"' not in report_text
     assert 'data-analysis-id="rare_names"' not in report_text
@@ -262,11 +261,14 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     expected_analyses = {entry["id"] for entry in expected_definitions}
     expected_hero_ids = {entry["hero_chart_id"] for entry in expected_definitions}
     rendered_analysis_ids = set(re.findall(r'data-analysis-id="([^"]+)"', report_text))
+    rendered_analysis_order = re.findall(r'data-analysis-id="([^"]+)"', report_text)
     rendered_hero_ids = set(
         re.findall(r'data-chart-id="([^"]+)"\s+data-chart-role="hero"', report_text)
     )
     assert rendered_analysis_ids == expected_analyses
     assert rendered_hero_ids == expected_hero_ids
+    if _configured_focus_analysis_ids() and not _is_off_hours_only_view():
+        assert rendered_analysis_order == _configured_focus_analysis_ids()
 
     report_result = runner.invoke(
         app,
@@ -286,7 +288,7 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert 'data-analysis-id="periodicity"' not in reloaded_report_text
     elif _configured_focus_analysis_ids():
         assert "Composite Evidence Score" not in reloaded_report_text
-        assert "Exact Duplicate Names" in reloaded_report_text
+        assert "Duplicate Names" in reloaded_report_text
         assert "Registered Voter Match" in reloaded_report_text
     assert 'data-analysis-id="composite_score"' not in reloaded_report_text
     assert 'data-analysis-id="rare_names"' not in reloaded_report_text
@@ -296,8 +298,11 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert 'data-analysis-id="changepoints"' not in reloaded_report_text
     assert "Static Figure Exports" not in reloaded_report_text
     reloaded_analysis_ids = set(re.findall(r'data-analysis-id="([^"]+)"', reloaded_report_text))
+    reloaded_analysis_order = re.findall(r'data-analysis-id="([^"]+)"', reloaded_report_text)
     reloaded_hero_ids = set(
         re.findall(r'data-chart-id="([^"]+)"\s+data-chart-role="hero"', reloaded_report_text)
     )
     assert reloaded_analysis_ids == expected_analyses
     assert reloaded_hero_ids == expected_hero_ids
+    if _configured_focus_analysis_ids() and not _is_off_hours_only_view():
+        assert reloaded_analysis_order == _configured_focus_analysis_ids()

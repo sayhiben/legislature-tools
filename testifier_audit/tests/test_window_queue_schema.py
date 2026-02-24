@@ -13,7 +13,6 @@ REQUIRED_TRIAGE_SUMMARY_FIELDS = {
     "top_burst_windows",
     "top_swing_windows",
     "top_repeated_names",
-    "top_near_dup_clusters",
     "off_hours_summary",
     "queue_counts",
     "window_tier_counts",
@@ -73,18 +72,6 @@ def test_triage_summary_schema_contains_required_fields() -> None:
                 "n_pro": [4],
                 "n_con": [2],
                 "time_span_minutes": [15],
-            }
-        ),
-        "duplicates_near.cluster_summary": pd.DataFrame(
-            {
-                "cluster_id": ["cluster_0001"],
-                "cluster_size": [4],
-                "n_records": [8],
-                "n_pro": [4],
-                "n_con": [4],
-                "first_seen": pd.to_datetime(["2026-02-01T00:00:00Z"]),
-                "last_seen": pd.to_datetime(["2026-02-01T00:03:00Z"]),
-                "time_span_minutes": [3.0],
             }
         ),
     }

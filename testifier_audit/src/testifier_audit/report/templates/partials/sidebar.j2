@@ -1,112 +1,12 @@
     <div class="page-shell" id="page-shell">
-      <button
-        id="sidebar-launcher"
-        class="sidebar-launcher"
-        type="button"
-        aria-controls="toc-sidebar"
-        aria-expanded="false"
-        aria-label="Show menu"
-      >
-        ☰
-      </button>
       <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
       <div class="report-layout">
-        <section class="sidebar-global-controls panel" id="sidebar-global-controls" aria-label="Global controls">
-          <div class="sidebar-control-group" id="theme-sync-panel">
-            <div class="sidebar-control-row sidebar-compact-row">
-              <span
-                class="sidebar-control-icon"
-                aria-hidden="true"
-                data-tooltip="Theme controls"
-                title="Theme controls"
-              >
-                ◐
-              </span>
-              <div class="theme-icon-controls" id="theme-controls" role="group" aria-label="Theme controls">
-                <button
-                  id="theme-light-button"
-                  class="theme-icon-button"
-                  type="button"
-                  data-theme-option="light"
-                  aria-label="Use light theme"
-                  title="Light theme"
-                >
-                  ☀
-                </button>
-                <button
-                  id="theme-dark-button"
-                  class="theme-icon-button"
-                  type="button"
-                  data-theme-option="dark"
-                  aria-label="Use dark theme"
-                  title="Dark theme"
-                >
-                  ☾
-                </button>
-              </div>
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="Theme changes only appearance; detector semantics and alert logic are unchanged."
-                aria-label="Theme selector help"
-              >
-                ?
-              </button>
-            </div>
-          </div>
-          <div class="sidebar-control-group hidden" id="zoom-sync-panel">
-            <div class="sidebar-control-row sidebar-compact-row">
-              <span
-                class="sidebar-control-icon"
-                aria-hidden="true"
-                data-tooltip="Linked zoom controls"
-                title="Linked zoom controls"
-              >
-                🔍
-              </span>
-              <span id="zoom-status-chip" class="zoom-status-chip">All</span>
-              <button id="zoom-reset-button" class="control-icon-button" type="button" aria-label="Reset zoom" title="Reset zoom">
-                ↺
-              </button>
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="Absolute-time charts share one zoom range. Reset returns all linked charts to full timeline."
-                aria-label="Linked zoom help"
-              >
-                ?
-              </button>
-            </div>
-            <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
-          </div>
-          <div class="sidebar-control-group" id="bucket-sync-panel">
-            <div class="sidebar-control-row sidebar-compact-row">
-              <span
-                class="sidebar-control-icon"
-                aria-hidden="true"
-                data-tooltip="Linked bucket selector"
-                title="Linked bucket selector"
-              >
-                ⌗
-              </span>
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="Choose one bucket and all bucket-aware charts update together when that bucket exists."
-                aria-label="Bucket selector help"
-              >
-                ?
-              </button>
-            </div>
-            <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
-          </div>
-        </section>
 
         <aside class="toc-sidebar panel" id="toc-sidebar" aria-label="Section navigation">
           <div class="sidebar-header">
             <div class="sidebar-title-block">
-              <h1 class="sidebar-report-title">Testifier Audit Report</h1>
-              <p class="tiny-note sidebar-bill-meta hidden" id="sidebar-bill-meta"></p>
+              <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
+              <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
               <p class="tiny-note sidebar-meta">Generated ({{ generated_at_label }}): <code>{{ generated_at }}</code></p>
             </div>
             <button
@@ -120,48 +20,6 @@
               ←
             </button>
           </div>
-
-          <section class="sidebar-controls-panel panel hidden" id="section-view-controls-panel" aria-live="polite" aria-label="Section view controls">
-            <h3 class="sidebar-controls-title">
-              View Controls
-              <button
-                class="help-tip"
-                type="button"
-                data-tooltip="These controls change based on the section currently in view."
-                aria-label="Section view controls help"
-              >
-                ?
-              </button>
-            </h3>
-            <p id="section-view-controls-context" class="tiny-note sidebar-view-controls-context"></p>
-            <div id="section-view-controls-body">
-              <div
-                class="sidebar-control-group hidden"
-                id="duplicate-collision-panel"
-                data-section-control-for="duplicates_exact"
-              >
-                <div class="sidebar-control-row sidebar-compact-row">
-                  <span class="sidebar-control-icon" aria-hidden="true">⌬</span>
-                  <button
-                    class="help-tip"
-                    type="button"
-                    data-tooltip="Choose duplicate scope and metric for duplicate-name charts and diagnostics."
-                    aria-label="Duplicate collision controls help"
-                  >
-                    ?
-                  </button>
-                </div>
-                <div class="sidebar-control-row">
-                  <label class="tiny-note" for="duplicate-scope-select">Scope</label>
-                  <select id="duplicate-scope-select" class="control-button"></select>
-                </div>
-                <div class="sidebar-control-row">
-                  <label class="tiny-note" for="duplicate-metric-select">Metric</label>
-                  <select id="duplicate-metric-select" class="control-button"></select>
-                </div>
-              </div>
-            </div>
-          </section>
 
           <hr class="sidebar-divider" />
           <h2 class="toc-title">
@@ -181,3 +39,133 @@
         </aside>
 
         <main id="toc-content" class="report-main">
+          <section class="sidebar-global-controls panel" id="sidebar-global-controls" aria-label="Global controls">
+            <div class="global-controls-strip">
+              <button
+                id="sidebar-launcher"
+                class="sidebar-launcher"
+                type="button"
+                aria-controls="toc-sidebar"
+                aria-expanded="false"
+                aria-label="Show menu"
+              >
+                ☰
+              </button>
+              <div class="global-header-block">
+                <h1 class="global-header-title hidden" id="header-bill-title"></h1>
+                <p class="tiny-note global-header-context hidden" id="header-context-meta"></p>
+                <p class="tiny-note global-header-bill-title hidden" id="header-bill-long-title"></p>
+              </div>
+              <button
+                id="global-controls-toggle"
+                class="global-controls-toggle"
+                type="button"
+                aria-controls="global-controls-grid"
+                aria-expanded="false"
+                aria-label="Show global controls"
+              >
+                Controls
+              </button>
+              <div class="global-controls-grid" id="global-controls-grid">
+                <div class="sidebar-control-group hidden" id="zoom-sync-panel">
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span
+                      class="sidebar-control-label"
+                      aria-hidden="true"
+                      data-tooltip="Linked zoom controls"
+                      title="Linked zoom controls"
+                    >
+                      Zoom
+                    </span>
+                    <span id="zoom-status-chip" class="zoom-status-chip">All</span>
+                    <button id="zoom-reset-button" class="control-icon-button" type="button" aria-label="Reset" title="Reset">
+                      Reset
+                    </button>
+                    <button
+                      class="help-tip"
+                      type="button"
+                      data-tooltip="Absolute-time charts share one zoom range. Reset returns all linked charts to full timeline."
+                      aria-label="Linked zoom help"
+                    >
+                      ?
+                    </button>
+                  </div>
+                  <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
+                </div>
+                <div class="sidebar-control-group" id="bucket-sync-panel">
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span
+                      class="sidebar-control-label"
+                      aria-hidden="true"
+                      data-tooltip="Linked bucket selector"
+                      title="Linked bucket selector"
+                    >
+                      Bucket Size
+                    </span>
+                    <button
+                      class="help-tip"
+                      type="button"
+                      data-tooltip="Choose one bucket and all bucket-aware charts update together when that bucket exists."
+                      aria-label="Bucket selector help"
+                    >
+                      ?
+                    </button>
+                  </div>
+                  <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
+                </div>
+                <div class="sidebar-control-group" id="theme-sync-panel">
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span
+                      class="sidebar-control-icon"
+                      aria-hidden="true"
+                      data-tooltip="Theme controls"
+                      title="Theme controls"
+                    >
+                      ◐
+                    </span>
+                    <div class="theme-icon-controls" id="theme-controls" role="group" aria-label="Theme controls">
+                      <button
+                        id="theme-light-button"
+                        class="theme-icon-button"
+                        type="button"
+                        data-theme-option="light"
+                        aria-label="Use light theme"
+                        title="Light theme"
+                      >
+                        ☀
+                      </button>
+                      <button
+                        id="theme-dark-button"
+                        class="theme-icon-button"
+                        type="button"
+                        data-theme-option="dark"
+                        aria-label="Use dark theme"
+                        title="Dark theme"
+                      >
+                        ☾
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="header-view-controls panel hidden" id="section-view-controls-panel" aria-live="polite" aria-label="Section view controls">
+            <div class="header-view-controls-row">
+              <div id="section-view-controls-body" class="header-view-controls-body">
+                <div
+                  class="sidebar-control-group hidden header-view-control-group"
+                  id="duplicate-collision-panel"
+                  data-section-control-for="duplicates_exact"
+                >
+                  <div class="sidebar-control-row sidebar-compact-row">
+                    <span class="tiny-note header-view-control-label">Duplicate controls</span>
+                    <label class="tiny-note" for="duplicate-scope-select">Scope</label>
+                    <select id="duplicate-scope-select" class="control-button"></select>
+                    <label class="tiny-note" for="duplicate-metric-select">Metric</label>
+                    <select id="duplicate-metric-select" class="control-button"></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>

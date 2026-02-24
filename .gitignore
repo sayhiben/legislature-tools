@@ -209,6 +209,10 @@ __marimo__/
 # Local raw data extracts
 data/raw/
 
+# Keep hearing metadata sidecars versioned
+!data/metadata/
+!data/metadata/*.hearing.yaml
+
 # Local screenshot artifacts
 output/playwright/
 

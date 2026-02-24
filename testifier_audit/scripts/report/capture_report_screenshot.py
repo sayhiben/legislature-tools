@@ -118,8 +118,54 @@ def _ensure_browser_installed(cwd: Path, *, timeout_seconds: float) -> None:
     )
 
 
+def _needs_browser_install(output: str) -> bool:
+    normalized = output.lower()
+    return any(
+        marker in normalized
+        for marker in (
+            "install-browser",
+            "executable doesn't exist",
+            "browser has not been installed",
+            "download new browsers",
+        )
+    )
+
+
+def _is_stale_browser_session_error(output: str) -> bool:
+    normalized = output.lower()
+    return any(
+        marker in normalized
+        for marker in (
+            "opening in existing browser session",
+            "existing browser session",
+            "processsingleton",
+            "singletonlock",
+            "user data directory is already in use",
+        )
+    )
+
+
+def _recover_stale_browser_sessions(*, cwd: Path, timeout_seconds: float) -> None:
+    _run(
+        ["playwright-cli", "close-all"],
+        cwd=cwd,
+        check=False,
+        timeout_seconds=timeout_seconds,
+    )
+    _run(
+        ["playwright-cli", "kill-all"],
+        cwd=cwd,
+        check=False,
+        timeout_seconds=timeout_seconds,
+    )
+    time.sleep(0.2)
+
+
 def _open_with_retry(session: str, url: str, *, cwd: Path, timeout_seconds: float) -> None:
-    for attempt in (1, 2):
+    installed_browser = False
+    recovered_stale_sessions = False
+    last_proc: subprocess.CompletedProcess[str] | None = None
+    for _attempt in range(3):
         proc = _run(
             ["playwright-cli", "--session", session, "open", url],
             cwd=cwd,
@@ -129,18 +175,29 @@ def _open_with_retry(session: str, url: str, *, cwd: Path, timeout_seconds: floa
         if proc.returncode == 0:
             return
         output = f"{proc.stdout}\n{proc.stderr}"
-        needs_install = (
-            "install-browser" in output
-            or "Executable doesn't exist" in output
-            or "Failed to launch" in output
-            or "browserType.launch" in output
-        )
-        if attempt == 1 and needs_install:
-            _ensure_browser_installed(cwd, timeout_seconds=timeout_seconds)
+        if _is_stale_browser_session_error(output) and not recovered_stale_sessions:
+            _recover_stale_browser_sessions(cwd=cwd, timeout_seconds=timeout_seconds)
+            recovered_stale_sessions = True
             continue
-        raise RuntimeError(
-            f"Failed to open browser session.\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
-        )
+        if _needs_browser_install(output) and not installed_browser:
+            _ensure_browser_installed(cwd, timeout_seconds=timeout_seconds)
+            installed_browser = True
+            continue
+        last_proc = proc
+        break
+    if last_proc is None:
+        last_proc = proc
+
+    attempted_recovery: list[str] = []
+    if recovered_stale_sessions:
+        attempted_recovery.append("stale-session recovery")
+    if installed_browser:
+        attempted_recovery.append("browser install")
+    attempted_text = f" (attempted {', '.join(attempted_recovery)})" if attempted_recovery else ""
+    raise RuntimeError(
+        f"Failed to open browser session{attempted_text}.\n"
+        f"stdout:\n{last_proc.stdout}\nstderr:\n{last_proc.stderr}"
+    )
 
 
 def _prepare_page(

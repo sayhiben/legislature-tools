@@ -383,8 +383,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
 
     assert css_asset_path.exists()
     assert js_asset_path.exists()
-    assert 'href="assets/report/report.css"' in rendered
-    assert 'type="module" src="assets/report/main.js"' in rendered
+    assert 'href="assets/report/report.css?v=' in rendered
+    assert 'type="module" src="assets/report/main.js?v=' in rendered
     assert "mountAllSections()" in js_text
     assert "Loading report sections..." in js_text
     assert "initLazySectionMounting" not in js_text
@@ -402,6 +402,9 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "parseLinkedZoomFromQueryParams" in js_text
     assert "parseDuplicateOptionFromQueryParams" in js_text
     assert "normalizeReportMatchMode(rawValue, fallbackValue)" in js_text
+    assert "buildTableSummaryAnchorId(" in js_text
+    assert 'setAttribute("data-toc-entry", "table")' in js_text
+    assert "summary.toc-entry-anchor" in js_text
     assert "initializeLinkedZoomOnLoad()" in js_text
     assert "updateSectionViewControlsForHeading" in js_text
     assert "bucketSelectorLabel" in js_text
@@ -675,7 +678,7 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
     assert "table_column_docs" in report_data_payload
     assert isinstance(interactive_payload, dict)
     assert "chart_legend_docs" in interactive_payload
-    assert 'type="module" src="assets/report/main.js"' in rendered
+    assert 'type="module" src="assets/report/main.js?v=' in rendered
     assert "<strong>Legend guide:</strong>" in rendered
     assert "Matched-rate axis auto-zooms to observed values" in rendered
     assert "status-ready" not in rendered

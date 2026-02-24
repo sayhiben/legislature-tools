@@ -1692,6 +1692,18 @@ details.table-group > summary::-webkit-details-marker {
   display: block;
 }
 
+.tabulator .tabulator-row.duplicate-name-row-expandable.is-expanded,
+.tabulator .tabulator-row.duplicate-name-row-expandable.is-expanded .tabulator-cell {
+  background: var(--table-bg-selected) !important;
+}
+
+.tabulator
+  .tabulator-row.duplicate-name-row-expandable.is-expanded
+  .tabulator-cell:first-child {
+  box-shadow: inset 3px 0 0 0 var(--brand);
+  font-weight: 700;
+}
+
 .tabulator .tabulator-cell {
   border-right: 1px solid var(--table-cell-border);
   color: var(--table-row-text);
@@ -1772,6 +1784,15 @@ tr.duplicate-name-inline-detail-row > td {
   border-top: none;
   background: var(--table-bg-alt);
   padding: 0.58rem 0.62rem 0.64rem;
+}
+
+.table-wrap table tbody tr.duplicate-name-row-expandable.is-expanded > td {
+  background: var(--table-bg-selected);
+}
+
+.table-wrap table tbody tr.duplicate-name-row-expandable.is-expanded > td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--brand);
+  font-weight: 700;
 }
 
 .duplicate-name-inline-detail {

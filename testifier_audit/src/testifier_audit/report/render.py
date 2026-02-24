@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -764,9 +765,14 @@ def _copy_report_static_assets(out_dir: Path) -> dict[str, str]:
         missing_label = ", ".join(missing)
         raise FileNotFoundError(f"Missing required report static asset(s): {missing_label}")
 
+    css_path = destination_root / "report.css"
+    js_path = destination_root / "main.js"
+    css_version = hashlib.sha256(css_path.read_bytes()).hexdigest()[:12]
+    js_version = hashlib.sha256(js_path.read_bytes()).hexdigest()[:12]
+
     return {
-        "css_url": REPORT_CSS_ASSET_FILENAME,
-        "js_url": REPORT_JS_ASSET_FILENAME,
+        "css_url": f"{REPORT_CSS_ASSET_FILENAME}?v={css_version}",
+        "js_url": f"{REPORT_JS_ASSET_FILENAME}?v={js_version}",
     }
 
 

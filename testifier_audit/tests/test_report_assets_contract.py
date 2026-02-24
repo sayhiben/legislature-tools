@@ -17,8 +17,8 @@ def test_render_report_copies_report_static_assets(tmp_path: Path) -> None:
     assert js_asset.exists()
     assert css_asset.stat().st_size > 0
     assert js_asset.stat().st_size > 0
-    assert 'href="assets/report/report.css"' in rendered
-    assert 'type="module" src="assets/report/main.js"' in rendered
+    assert 'href="assets/report/report.css?v=' in rendered
+    assert 'type="module" src="assets/report/main.js?v=' in rendered
 
 
 def test_report_js_uses_single_mount_flow(tmp_path: Path) -> None:

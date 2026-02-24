@@ -7632,6 +7632,29 @@
     return normalized.replace(/\|+$/g, "");
   }
 
+  function slugifyTocToken(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function buildTableSummaryAnchorId(analysisId, tableName) {
+    const analysisToken = slugifyTocToken(analysisId) || "analysis";
+    const tableToken = slugifyTocToken(tableName) || "table";
+    return "analysis-" + analysisToken + "-table-" + tableToken;
+  }
+
+  function decorateTableSummaryAnchor(summaryElement, analysisId, tableName) {
+    if (!summaryElement) {
+      return;
+    }
+    const anchorId = buildTableSummaryAnchorId(analysisId, tableName);
+    summaryElement.id = anchorId;
+    summaryElement.classList.add("toc-entry-anchor");
+    summaryElement.setAttribute("data-toc-entry", "table");
+  }
+
   function formatMinutesAsDayHourMinute(rawMinutes) {
     const parsed = toFiniteNumberOrNull(rawMinutes);
     if (parsed === null || parsed < 0) {
@@ -8176,7 +8199,7 @@
     activeState.current = null;
   }
 
-  function renderUnifiedDuplicateNameTable(container, detectorTables, detectorKey) {
+  function renderUnifiedDuplicateNameTable(container, detectorTables, detectorKey, analysisId) {
     const rows = buildUnifiedDuplicateNameRows(detectorTables);
     if (!rows.length) {
       return false;
@@ -8188,6 +8211,7 @@
 
     const summary = document.createElement("summary");
     summary.textContent = "per_name_duplicates";
+    decorateTableSummaryAnchor(summary, analysisId || "duplicates_exact", "per_name_duplicates");
     details.appendChild(summary);
 
     const wrap = document.createElement("div");
@@ -8686,7 +8710,7 @@
           ". Interpret duplicate expectations descriptively.";
         container.appendChild(warning);
       }
-      renderUnifiedDuplicateNameTable(container, detectorTables, detectorKey);
+      renderUnifiedDuplicateNameTable(container, detectorTables, detectorKey, analysis.id);
     }
     let tableNames = Object.keys(detectorTables).sort();
     if (analysis.id === "duplicates_exact") {
@@ -8719,6 +8743,7 @@
       evidenceDetails.open = true;
       const evidenceSummary = document.createElement("summary");
       evidenceSummary.textContent = "evidence_bundle_preview";
+      decorateTableSummaryAnchor(evidenceSummary, analysis.id, "evidence_bundle_preview");
       evidenceDetails.appendChild(evidenceSummary);
       const evidenceWrap = document.createElement("div");
       evidenceWrap.className = "table-wrap";
@@ -8761,6 +8786,7 @@
         details.open = index === 0;
         const summary = document.createElement("summary");
         summary.textContent = entry[0];
+        decorateTableSummaryAnchor(summary, analysis.id, entry[0]);
         details.appendChild(summary);
         const wrap = document.createElement("div");
         wrap.className = "table-wrap";
@@ -8786,6 +8812,7 @@
         details.open = true;
         const summary = document.createElement("summary");
         summary.textContent = "clockface_top_preview";
+        decorateTableSummaryAnchor(summary, analysis.id, "clockface_top_preview");
         details.appendChild(summary);
         const wrap = document.createElement("div");
         wrap.className = "table-wrap";
@@ -8864,6 +8891,7 @@
 
       const summary = document.createElement("summary");
       summary.textContent = tableTitle;
+      decorateTableSummaryAnchor(summary, analysis.id, tableName);
       details.appendChild(summary);
 
       const wrap = document.createElement("div");
@@ -9636,12 +9664,6 @@
       return;
     }
 
-    const slugify = (value) =>
-      String(value || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
     const usedIds = new Set(
       Array.from(document.querySelectorAll("[id]"))
         .map((node) => String(node.id || "").trim())
@@ -9657,7 +9679,7 @@
         usedIds.add(existing);
         return existing;
       }
-      const slug = slugify(heading.textContent || "");
+      const slug = slugifyTocToken(heading.textContent || "");
       const base = slug ? fallbackPrefix + "-" + slug : fallbackPrefix + "-item";
       let candidate = base;
       let counter = 2;
@@ -9672,21 +9694,25 @@
 
     const topEntries = topHeadings
       .map((heading, index) => {
+        const topLabel = String(heading.textContent || "").trim();
         const topId = ensureHeadingId(heading, "section-" + (index + 1));
         const sectionRoot = heading.closest("section");
         const children = sectionRoot
-          ? Array.from(sectionRoot.querySelectorAll("h3, h4"))
+          ? Array.from(sectionRoot.querySelectorAll("h3, h4, summary.toc-entry-anchor"))
               .filter((child) => {
                 const childText = String(child.textContent || "").trim();
                 return !!childText;
               })
               .map((child, childIndex) => {
-                ensureHeadingId(child, topId + "-sub-" + (childIndex + 1));
-                return child;
+                const childId = ensureHeadingId(child, topId + "-sub-" + (childIndex + 1));
+                return {
+                  id: childId,
+                  label: String(child.textContent || "").trim() || childId,
+                };
               })
           : [];
         return {
-          heading: heading,
+          label: topLabel || topId,
           topId: topId,
           sectionRoot: sectionRoot,
           children: children,
@@ -9707,8 +9733,10 @@
       });
     });
 
-    const trackedHeadings = topEntries.flatMap((entry) => [entry.heading].concat(entry.children));
-    if (!trackedHeadings.length) {
+    const trackedHeadingIds = topEntries.flatMap((entry) =>
+      [entry.topId].concat(entry.children.map((child) => child.id))
+    );
+    if (!trackedHeadingIds.length) {
       sidebar.classList.add("hidden");
       return;
     }
@@ -9731,6 +9759,11 @@
     const renderToc = (activeHeadingId) => {
       const activeHeading = normalizeHashId(activeHeadingId) || topEntries[0].topId;
       const activeTop = topForHeading(activeHeading);
+      const readHeadingLabel = (headingId, fallbackLabel) => {
+        const node = document.getElementById(headingId);
+        const text = node ? String(node.textContent || "").trim() : "";
+        return text || fallbackLabel || headingId;
+      };
       const list = document.createElement("ul");
       list.className = "toc-list";
 
@@ -9740,7 +9773,7 @@
         const topLink = document.createElement("a");
         topLink.className = "toc-link";
         topLink.href = "#" + entry.topId;
-        topLink.textContent = String(entry.heading.textContent || "").trim() || entry.topId;
+        topLink.textContent = readHeadingLabel(entry.topId, entry.label);
 
         const topIsActive = entry.topId === activeHeading;
         topLink.classList.toggle("is-active-link", topIsActive);
@@ -9758,7 +9791,7 @@
             const childLink = document.createElement("a");
             childLink.className = "toc-link toc-link-child";
             childLink.href = "#" + child.id;
-            childLink.textContent = String(child.textContent || "").trim() || child.id;
+            childLink.textContent = readHeadingLabel(child.id, child.label);
             const childIsActive = child.id === activeHeading;
             childLink.classList.toggle("is-active-link", childIsActive);
             if (childIsActive) {
@@ -9780,6 +9813,12 @@
     state.renderToc = renderToc;
 
     const pickActiveHeading = () => {
+      const trackedHeadings = trackedHeadingIds
+        .map((headingId) => document.getElementById(headingId))
+        .filter((heading) => !!heading);
+      if (!trackedHeadings.length) {
+        return "";
+      }
       const topOffset = headerStackOffsetPx(16);
       const lastHeading = trackedHeadings[trackedHeadings.length - 1];
       const doc = document.documentElement;
@@ -10497,10 +10536,10 @@
   initVoterMatchModeControls();
   initZoomControls();
   initSidebarFloatingOffsetsObserver();
-  initSidebarToc();
   await runWithBusyIndicator("Loading report sections...", async () => {
     await mountAllSections();
   });
+  initSidebarToc();
   initializeLinkedZoomOnLoad();
   syncControlOverridesToUrl();
   updateCursorAcrossTimeCharts();

@@ -9,7 +9,6 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 - `reports/`: cached rendered reports published to GitHub Pages.
 - `output/`: local working artifacts/screenshots (not committed).
 - `anomaly-detection-guidance.md`: detector and statistical guidance.
-- `initial-implementation-plan.txt`: implementation plan notes.
 - `IMPLEMENTATION-PLAN-v2.md`: current comprehensive implementation roadmap.
 - `AGENTS.md`: repository-specific operating guidance for agents and contributors.
 

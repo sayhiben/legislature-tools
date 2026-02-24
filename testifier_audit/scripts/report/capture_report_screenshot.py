@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @dataclass
@@ -36,6 +37,13 @@ class StitchMetrics:
     stitched_height: int
     tile_height: int
     max_covered_y: int
+
+
+def _resolve_repo_relative(path_text: str) -> Path:
+    path = Path(path_text).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (REPO_ROOT / path).resolve()
 
 
 def _run(
@@ -451,7 +459,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--tiles-dir",
-        default="/Users/sayhiben/dev/legislature-tools/output/playwright/tiles",
+        default="./output/playwright/tiles",
         help="Directory for temporary tile images",
     )
     parser.add_argument(
@@ -483,9 +491,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
-    cwd = Path("/Users/sayhiben/dev/legislature-tools")
+    cwd = REPO_ROOT
     output_path = Path(args.output).expanduser().resolve()
-    tiles_root = Path(args.tiles_dir).expanduser().resolve() / output_path.stem
+    tiles_root = _resolve_repo_relative(args.tiles_dir) / output_path.stem
     command_timeout_sec = max(1.0, float(args.command_timeout_sec))
     max_tiles = int(args.max_tiles) if int(args.max_tiles) > 0 else None
 

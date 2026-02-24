@@ -7,7 +7,7 @@ HTML report for anomaly review.
 - This app is pre-production.
 - Prioritize rapid, test-backed improvements to accuracy, interpretability, and UX.
 - Avoid feature flags and backward-compatibility scaffolding unless explicitly requested.
-- Development direction and guardrails: `/Users/sayhiben/dev/legislature-tools/AGENTS.md`
+- Development direction and guardrails: `./AGENTS.md`
 
 ## What This App Covers
 - Burst detection and calibrated significance windows.
@@ -27,32 +27,32 @@ HTML report for anomaly review.
 - Docker + Docker Compose
 
 ## Primary Workflow (Recommended)
-Run from `/Users/sayhiben/dev/legislature-tools/testifier_audit`.
+Run from repo root.
 
 ```bash
-./scripts/report/run_unified_report.sh \
-  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
-  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt
+./testifier_audit/scripts/report/run_unified_report.sh \
+  ./data/raw/SB6346-20260206-1330.csv \
+  ./data/raw/20260202_VRDB_Extract.txt
 
 # Optional hearing metadata sidecar
-./scripts/report/run_unified_report.sh \
-  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
-  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
-  /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
+./testifier_audit/scripts/report/run_unified_report.sh \
+  ./data/raw/SB6346-20260206-1330.csv \
+  ./data/raw/20260202_VRDB_Extract.txt \
+  ./data/metadata/SB6346-20260206-1330.hearing.yaml
 
 # Preferred visual-regression flow (run + stitched capture)
-./scripts/report/run_unified_report_and_capture.sh \
-  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
-  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
-  /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
+./testifier_audit/scripts/report/run_unified_report_and_capture.sh \
+  ./data/raw/SB6346-20260206-1330.csv \
+  ./data/raw/20260202_VRDB_Extract.txt \
+  ./data/metadata/SB6346-20260206-1330.hearing.yaml
 ```
 
-Outputs are written to `/Users/sayhiben/dev/legislature-tools/reports/<csv-stem>/`.
+Outputs are written to `./reports/<csv-stem>/`.
 
 ## Local Setup
 
 ```bash
-cd /Users/sayhiben/dev/legislature-tools/testifier_audit
+cd ./testifier_audit
 cp .env.example .env
 # Edit .env as needed
 
@@ -86,24 +86,24 @@ Schema helpers:
 # Download testifier CSV + hearing metadata sidecar from WA CSI
 python -m testifier_audit.cli download-csi-testifiers \
   "SB 6005" \
-  --csv-out-dir /Users/sayhiben/dev/legislature-tools/data/raw \
-  --metadata-out-dir /Users/sayhiben/dev/legislature-tools/data/metadata
+  --csv-out-dir ./data/raw \
+  --metadata-out-dir ./data/metadata
 
 # Import submissions CSV
 python -m testifier_audit.cli import-submissions \
-  --csv /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
+  --csv ./data/raw/SB6346-20260206-1330.csv \
   --db-url "$TESTIFIER_AUDIT_DB_URL"
 
 # Import VRDB extract
 python -m testifier_audit.cli import-vrdb \
-  --extract /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
+  --extract ./data/raw/20260202_VRDB_Extract.txt \
   --db-url "$TESTIFIER_AUDIT_DB_URL"
 
 # Full pipeline (profile + detect + report)
 python -m testifier_audit.cli run-all \
-  --config /Users/sayhiben/dev/legislature-tools/testifier_audit/configs/voter_registry_enabled.yaml \
-  --hearing-metadata /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml \
-  --out /Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330
+  --config ./testifier_audit/configs/voter_registry_enabled.yaml \
+  --hearing-metadata ./data/metadata/SB6346-20260206-1330.hearing.yaml \
+  --out ./reports/SB6346-20260206-1330
 ```
 
 ## Configuration Highlights
@@ -124,17 +124,17 @@ python -m testifier_audit.cli run-all \
 ## Local Quality Checks
 
 ```bash
-cd /Users/sayhiben/dev/legislature-tools/testifier_audit
+cd ./testifier_audit
 ./scripts/ci/lint.sh
 ./scripts/ci/test.sh
 ./scripts/ci/run.sh
 ```
 
 ## Data and Artifacts
-- Raw source files belong in `../data/raw/` (git-ignored).
-- Cached report outputs in `../reports/` are tracked and published.
-- Ephemeral local captures belong in `../output/` (not committed).
+- Raw source files belong in `./data/raw/` (git-ignored).
+- Cached report outputs in `./reports/` are tracked and published.
+- Ephemeral local captures belong in `./output/` (not committed).
 
 ## Additional Guidance
 Development contracts, guardrails, and QA expectations are documented in:
-`/Users/sayhiben/dev/legislature-tools/AGENTS.md`.
+`./AGENTS.md`.

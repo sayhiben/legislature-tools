@@ -3,17 +3,21 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-
-cd "${PROJECT_ROOT}"
+CALLER_CWD="$(pwd)"
 
 if [[ $# -lt 1 ]]; then
   echo "Usage: $0 <vrdb_extract_path> [additional testifier-audit import-vrdb args]" >&2
-  echo "Example: $0 /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt" >&2
+  echo "Example: $0 ./data/raw/20260202_VRDB_Extract.txt" >&2
   exit 1
 fi
 
 EXTRACT_PATH="$1"
 shift
+if [[ "${EXTRACT_PATH}" != /* ]]; then
+  EXTRACT_PATH="${CALLER_CWD}/${EXTRACT_PATH#./}"
+fi
+
+cd "${PROJECT_ROOT}"
 
 DB_URL="${TESTIFIER_AUDIT_DB_URL:-${DATABASE_URL:-}}"
 if [[ -z "${DB_URL}" ]]; then

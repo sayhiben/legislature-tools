@@ -21,4 +21,4 @@
    - `BILL -> WILLIAM`
    - `JIM -> JAMES`
 
-Use `/Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/data/update_nicknames.py` to regenerate.
+Use `./testifier_audit/scripts/data/update_nicknames.py` to regenerate.

@@ -3,145 +3,58 @@
 `testifier_audit` analyzes WA Legislature sign-in/testifier exports and generates a detector-first
 HTML report for anomaly review.
 
-## Current Development Posture
-- This project is in pre-production and is expected to remain in pre-production while we iterate.
+## Development Posture
+- This app is pre-production.
 - Prioritize rapid, test-backed improvements to accuracy, interpretability, and UX.
-- Do not treat feature-flagging or backward-compatibility scaffolding as default work during this phase.
-- The current end-to-end roadmap is documented in:
-  - `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
+- Avoid feature flags and backward-compatibility scaffolding unless explicitly requested.
+- Roadmap source of truth: `/Users/sayhiben/dev/legislature-tools/IMPLEMENTATION-PLAN-v2.md`
 
-## Lessons Learned (Phase 0 Foundations)
-- Analysis catalog and status logic now belong in `src/testifier_audit/report/analysis_registry.py`.
-  Do not duplicate these definitions in `report/render.py`.
-- Triage evidence semantics should stay centralized in:
-  - `src/testifier_audit/report/contracts.py`
-  - `src/testifier_audit/report/triage_builder.py`
-- Report runtime metrics are now part of the contract:
-  - payload controls include `controls.runtime.*`
-  - render timings are written to `artifacts/report_runtime.json`
-- For report-architecture refactors, run targeted parity checks:
-  - `python -m pytest tests/test_analysis_registry.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py tests/test_pipeline_integration.py`
-
-## Lessons Learned (Phase 1 UX Reliability)
-- Hide routine `ready` section badges and keep explicit status labels only for non-ready states.
-- For sidebar open/close and major layout changes, trigger chart resize in a short sequence (not a
-  single resize call) to prevent clipped/distorted canvases.
-- During global bucket changes, show a visible loading/progress indicator while charts rerender.
-- Keep linked zoom UX explicit: provide a reset action and a visible shared range label.
-- Treat timezone and bucket labels as payload-backed UI contracts; default to explicit `UTC` when
-  no hearing metadata is provided, and override with sidecar timezone when present.
-
-## Lessons Learned (Phase 2 Investigation IA)
-- Keep the report flow investigation-first with explicit sections:
-  `Triage`, `Window Drilldown`, `Name/Cluster Forensics`, and `Methodology`.
-- Keep queue/summary schema changes contract-backed:
-  update builders, payload wiring, template rendering, and tests in one change set.
-- Preserve drilldown selection behavior in both table runtimes:
-  Tabulator and fallback HTML table (with keyboard activation support).
-- Use existing timeline artifacts for Phase 2 causative context to avoid avoidable payload growth;
-  defer per-submission raw-row drilldown contracts until explicitly prioritized.
-- Validate major report IA changes on a real dataset using desktop/mobile screenshot captures and
-  browser console checks, then back with targeted contract + integration tests.
-
-## Lessons Learned (Phase 3 Analysis Pack A)
-- Extend existing detector contracts when possible instead of creating duplicate detector families:
-  burst composition (`bursts`), regularity (`periodicity`), and directional runs (`procon_swings`).
-- Keep burst/swing composition metrics proportion-safe by emitting Wilson bounds and low-power
-  markers in detector outputs and report payloads.
-- Treat external-frequency name improbability as an extension of rarity contracts already provided by
-  `rare_names` (`rarity_by_minute`, lookup coverage, unmatched-token diagnostics).
-- For each new detail chart, enforce 4-way parity updates:
-  `analysis_registry.py`, `render.py`, `report.html.j2`, and chart payload/contract tests.
-
-## Lessons Learned (Phase 4 Data Quality and Dual-Lens Reporting)
-- Keep raw/dedup triage modes as explicit report contracts:
-  build all three lens views (`raw`, `exact_row_dedup`, `side_by_side`) and set active default via
-  config (`report.default_dedup_mode`).
-- Keep data-quality checks high-value and investigator-first:
-  triage should foreground warning signals and material raw-vs-dedup deltas; profiling-only table
-  inventories should live in methodology/detail contexts.
-- Thread warning support thresholds from config, not local constants:
-  `report.min_cell_n_for_rates` should be the source for rate-cell support gating in quality
-  warning builders.
-- Scope side-by-side deltas to the window queue unless explicitly requested for deeper queue levels,
-  to avoid payload/schema bloat during pre-production iteration.
-
-## Lessons Learned (Phase 5 Hearing-Relative Context)
-- Keep hearing metadata sidecar parsing strict and early:
-  validate schema version, timezone, and process timestamp ordering before pipeline/report stages.
-- Support sidecar timestamps authored as either ISO strings or YAML-native datetimes to avoid
-  brittle ingestion failures.
-- Treat VRDB extract timestamps as import/export metadata, not hearing schedule metadata.
-  Hearing-relative markers belong to the hearing sidecar and submissions timeline context.
-- Keep Phase 5 implementation scope detector-light:
-  derive deadline-ramp and stance-by-deadline context from existing minute artifacts instead of
-  introducing duplicate detector families.
-
-## Lessons Learned (Phase 6 Probabilistic Voter Linkage)
-- Replace binary voter matching with explicit probabilistic tiers:
-  `exact`, `strong_fuzzy`, `weak_fuzzy`, `unmatched`.
-- Bound fuzzy candidate search by canonical last name and score within that pool instead of global
-  all-name matching, to keep runtime and false-positive risk controlled.
-- Keep voter-linkage uncertainty first-class in tables/payload:
-  include `match_confidence`, expected-match metrics, and uncertainty caveat summaries.
-- Preserve guardrail semantics in UX and contracts:
-  voter linkage remains supporting evidence only, not a standalone attribution signal.
-
-## Lessons Learned (Phase 7 Cross-Hearing Baselines)
-- Keep per-run comparative fields in `summary/feature_vector.json` and maintain a schema-versioned
-  contract so cross-hearing baselines can evolve safely.
-- Build comparative baselines from existing report outputs first:
-  aggregate from `reports/*/summary/feature_vector.json` and use `investigation_summary.json`
-  backfill for older runs, rather than introducing a parallel persistence layer.
-- Keep cross-hearing chart overlays intentional and scoped:
-  apply percentile/band overlays to selected hero charts before considering broader rollout.
-- Keep runtime contracts robust when no corpus exists:
-  always emit a fallback `cross_hearing_baseline` object so template logic remains deterministic.
-
-## What this app covers
-- Baseline profile diagnostics (volume, day/hour heatmaps, name distributions).
+## What This App Covers
 - Burst detection and calibrated significance windows.
-- Pro/Con ratio swing detection across bucket sizes.
+- Pro/Con ratio swings across bucket sizes.
 - Volume and Pro-rate changepoints.
 - Off-hours concentration checks.
 - Exact and near-duplicate name detection.
 - Alphabetical/sortedness pattern detection.
 - Rare-name and singleton concentration checks.
 - Organization blank/null and concentration anomalies.
-- Voter-registry match-rate analysis (overall, by position, by time bucket).
+- Voter-registry match-rate analysis (overall, by position, and by time bucket).
 - Periodicity diagnostics (clock-face, autocorrelation, spectrum).
-- Multivariate anomaly scoring.
-- Composite priority scoring from multiple detector signals.
+- Multivariate and composite scoring built from detector evidence.
 
-## Primary workflow (recommended)
-Run the unified script. It imports submissions + VRDB into Postgres, executes all analyses, and
-writes one consolidated report directory under `../reports/<csv-stem>/`.
+## Prerequisites
+- Python 3.11+
+- Docker + Docker Compose
+
+## Primary Workflow (Recommended)
+Run from `/Users/sayhiben/dev/legislature-tools/testifier_audit`.
 
 ```bash
-cd /Users/sayhiben/dev/legislature-tools/testifier_audit
 ./scripts/report/run_unified_report.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt
 
-# Optional: include hearing metadata sidecar for hearing-relative context and marker overlays
+# Optional hearing metadata sidecar
 ./scripts/report/run_unified_report.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
   /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
 
-# Rebuild cross-hearing comparative baselines (run from repo root)
-python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/build_global_baselines.py
+# Preferred visual-regression flow (run + stitched capture)
+./scripts/report/run_unified_report_and_capture.sh \
+  /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
+  /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
+  /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
 ```
 
-Result:
-- `../reports/SB6346-20260206-1330/report.html`
-- `../reports/SB6346-20260206-1330/{tables,summary,figures,artifacts,screenshots}`
+Outputs are written to `/Users/sayhiben/dev/legislature-tools/reports/<csv-stem>/`.
 
-## Local setup
+## Local Setup
+
 ```bash
 cd /Users/sayhiben/dev/legislature-tools/testifier_audit
 cp .env.example .env
-# Edit .env as needed for your machine/dataset paths.
+# Edit .env as needed
 
 make setup-env
 
@@ -150,59 +63,38 @@ export DATABASE_URL="$TESTIFIER_AUDIT_DB_URL"
 export TESTIFIER_AUDIT_SKIP_DOCKER_POSTGRES=1
 ```
 
-What setup does:
-- Installs dependencies via Homebrew (`python@3.12`, `postgresql@17`, `curl`, `unzip`).
-- Creates/updates `.venv` and installs `-e .[dev]`.
-- Initializes a local PostgreSQL 17 cluster on `localhost:55432`.
-- Applies committed schema from `sql/schema.sql`.
-- Attempts monthly VRDB download from `https://sos.wa.gov/_assets/elections/02.2026.WA.zip` only
-  when a `YYYYMMDD_VRDB_Extract.txt` for the current month is missing under `../data/raw/`.
-- Reads configuration from `.env` and `.env.local` in addition to shell env vars.
+Lifecycle:
 
-Local lifecycle targets:
 ```bash
-# Start postgres + local web server (http://127.0.0.1:8774 by default)
 make start
-
-# Stop both services
 make stop
-
-# Restart both services
 make restart
-
-# Status for both services
 make status
-
-# Rebuild local postgres cluster and re-apply schema
 make reset-db
 ```
 
-Schema maintenance helpers:
-```bash
-# Apply committed schema
-./scripts/db/apply_schema.sh "$TESTIFIER_AUDIT_DB_URL"
+Schema helpers:
 
-# Re-extract schema from a live DB (for commits after schema changes)
+```bash
+./scripts/db/apply_schema.sh "$TESTIFIER_AUDIT_DB_URL"
 ./scripts/db/extract_schema.sh "$TESTIFIER_AUDIT_DB_URL" ./sql/schema.sql
 ```
 
-## CLI commands
+## CLI Commands
+
 ```bash
-# Download testifier CSV + hearing metadata sidecar directly from WA CSI endpoints
+# Download testifier CSV + hearing metadata sidecar from WA CSI
 python -m testifier_audit.cli download-csi-testifiers \
   "SB 6005" \
   --csv-out-dir /Users/sayhiben/dev/legislature-tools/data/raw \
   --metadata-out-dir /Users/sayhiben/dev/legislature-tools/data/metadata
 
-# Convenience wrapper with same defaults as this repository
-./scripts/data/download_csi_testifiers.sh "SB 6005"
-
-# Import submissions CSV into normalized PostgreSQL tables
+# Import submissions CSV
 python -m testifier_audit.cli import-submissions \
   --csv /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   --db-url "$TESTIFIER_AUDIT_DB_URL"
 
-# Import VRDB extract with upsert semantics
+# Import VRDB extract
 python -m testifier_audit.cli import-vrdb \
   --extract /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
   --db-url "$TESTIFIER_AUDIT_DB_URL"
@@ -214,37 +106,23 @@ python -m testifier_audit.cli run-all \
   --out /Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330
 ```
 
-## Configuration highlights
+## Configuration Highlights
 - Default config: `configs/default.yaml`
-- Voter-registry-enabled config: `configs/voter_registry_enabled.yaml`
-- Supported detector bucket windows:
+- Voter-enabled config: `configs/voter_registry_enabled.yaml`
+- Input modes: `csv | postgres` via `input.mode`
+- Optional sidecar path: `input.hearing_metadata_path`
+- Bucket windows (must stay aligned across detector/payload/UI):
   - `windows.scan_window_minutes: [1,5,15,30,60,120,240]`
   - `windows.analysis_bucket_minutes: [1,5,15,30,60,120,240]`
-- Input hydration:
-  - `input.mode: csv | postgres`
-  - `input.db_url`, `input.submissions_table`, `input.source_file`
-  - `input.hearing_metadata_path` (optional sidecar for hearing-relative context)
-- Voter matching:
-  - `voter_registry.enabled`, `voter_registry.db_url`, `voter_registry.table_name`,
-    `voter_registry.active_only`, `voter_registry.match_bucket_minutes`
 
-## Report UX stack
-- Interactive charts: ECharts
-- Interactive tables: Tabulator
-- Linked global bucket selector (1/5/15/30/60/120/240)
-- Linked time cursor and synchronized zoom for absolute-time charts
-- Detector-first sections with interpretation/help text and low-power context
+## Report Stack
+- Charts: ECharts
+- Tables: Tabulator
+- Global bucket selector and synchronized time-zoom/cursor behavior
+- Detector-first section layout with interpretation/help content
 
-## GitHub Pages publishing
-- Workflow: `../.github/workflows/pages.yml`
-- Index builder: `scripts/report/build_reports_index.py`
-- Published root: `../reports/`
+## Local Quality Checks
 
-When Pages is enabled (GitHub Actions source), reports are available at:
-- `https://<github-user>.github.io/<repo>/`
-- `https://<github-user>.github.io/<repo>/<report-id>/report.html`
-
-## Local quality checks
 ```bash
 cd /Users/sayhiben/dev/legislature-tools/testifier_audit
 ./scripts/ci/lint.sh
@@ -252,7 +130,11 @@ cd /Users/sayhiben/dev/legislature-tools/testifier_audit
 ./scripts/ci/run.sh
 ```
 
-## Data and artifacts
-- Keep raw source files in `../data/raw/` (git-ignored).
-- Cached report outputs are tracked in `../reports/`.
-- Ephemeral local captures live in `../output/` (not committed).
+## Data and Artifacts
+- Raw source files belong in `../data/raw/` (git-ignored).
+- Cached report outputs in `../reports/` are tracked and published.
+- Ephemeral local captures belong in `../output/` (not committed).
+
+## Additional Guidance
+Development contracts, guardrails, and QA expectations are documented in:
+`/Users/sayhiben/dev/legislature-tools/AGENTS.md`.

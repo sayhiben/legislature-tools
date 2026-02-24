@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: ESSB6346-34045-28388
+timezone: America/Los_Angeles
+meeting_start: '2026-02-24T08:00:00-08:00'
+stats:
+  total_rows: 121110
+  total_testifying: 218
+  total_not_testifying: 120892
+  total_pro: 10346
+  total_con: 110402
+  total_other: 362
+  total_pro_pct: 8.54264718024936
+  total_con_pct: 91.15845099496326
+  total_other_pct: 0.29890182478738336
+source:
+  provider: wa_leg_csi
+  search_query: ESSB6346
+  meeting_family_id: '34045'
+  agenda_item_family_id: '170828'
+  agenda_item_id: '28388'
+  agenda_item_description: ESSB 6346 Tax on millionaires
+  short_bill_id: ESSB 6346
+  bill_number: '6346'
+  bill_title: Investing in Washington families and businesses to fund K-12 education,
+    health care, higher education, other essential governmental services, and the
+    working families' tax credit, and to reduce certain sales and use taxes and certain
+    business and occupation taxes by establishing a tax on millionaires
+  committee_name: Finance
+  chamber: House
+  downloaded_at: '2026-02-24T00:05:08.002809+00:00'

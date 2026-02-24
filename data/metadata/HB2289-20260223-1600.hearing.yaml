@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2289-34022-28373
+timezone: America/Los_Angeles
+meeting_start: '2026-02-23T16:00:00-08:00'
+stats:
+  total_rows: 3391
+  total_testifying: 235
+  total_not_testifying: 3156
+  total_pro: 69
+  total_con: 3128
+  total_other: 194
+  total_pro_pct: 2.0347979946918313
+  total_con_pct: 92.24417575936302
+  total_other_pct: 5.721026245945149
+source:
+  provider: wa_leg_csi
+  search_query: HB2289
+  meeting_family_id: '34022'
+  agenda_item_family_id: '170752'
+  agenda_item_id: '28373'
+  agenda_item_description: PSHB 2289 - Making 2025-2027 fiscal biennium supplemental
+    operating appropriations. (Remote Testimony Available).
+  short_bill_id: HB 2289
+  bill_number: '2289'
+  bill_title: Fiscal matters
+  committee_name: Appropriations
+  chamber: House
+  downloaded_at: '2026-02-24T00:05:13.111835+00:00'

@@ -233,7 +233,10 @@
     "procon_swings_shift_heatmap",
   ]);
   const DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE = 10;
-  const DUPLICATE_TOP_NAME_TIMING_MAX_NAMES = 50;
+  const DUPLICATE_TOP_NAME_TIMING_MAX_PAGES = 10;
+  const DUPLICATE_TOP_NAME_TIMING_MAX_NAMES =
+    DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE * DUPLICATE_TOP_NAME_TIMING_MAX_PAGES;
+  const DUPLICATE_INLINE_TIMING_CHART_HEIGHT_PX = 136;
   const zonedDateTimeEpochCache = new Map();
   const semanticTokenCache = new Map();
   let sidebarFloatingControlsObserver = null;
@@ -7287,6 +7290,18 @@
     if (Object.prototype.hasOwnProperty.call(tableOptions, "tableKey")) {
       delete tableOptions.tableKey;
     }
+    const defaultTableMaxHeightPx = 340;
+    const tableHeightBumpPx = 64;
+    const requestedMaxHeight = Object.prototype.hasOwnProperty.call(tableOptions, "maxHeight")
+      ? tableOptions.maxHeight
+      : defaultTableMaxHeightPx;
+    const requestedMaxHeightPx = parsePixelLikeValue(requestedMaxHeight);
+    if (requestedMaxHeightPx !== null) {
+      tableOptions.maxHeight = `${Math.max(
+        160,
+        Math.round(requestedMaxHeightPx + tableHeightBumpPx)
+      )}px`;
+    }
 
     const columns = Array.from(
       new Set(dataset.flatMap((row) => Object.keys(row || {})))
@@ -7400,6 +7415,680 @@
       table: null,
       data: dataset,
     };
+  }
+
+  function normalizeDuplicateNameLookupKey(value) {
+    const normalized = String(value || "").trim().toUpperCase();
+    if (!normalized) {
+      return "";
+    }
+    return normalized.replace(/\|+$/g, "");
+  }
+
+  function formatMinutesAsDayHourMinute(rawMinutes) {
+    const parsed = toFiniteNumberOrNull(rawMinutes);
+    if (parsed === null || parsed < 0) {
+      return "-";
+    }
+    const totalMinutes = Math.max(0, Math.round(parsed));
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const minutes = totalMinutes % 60;
+    return String(days) + "d " + String(hours) + "h " + String(minutes) + "m";
+  }
+
+  function duplicateNameCountForRow(row) {
+    const observed = toFiniteNumberOrNull((row || {}).observed_count);
+    if (observed !== null) {
+      return Math.max(0, Math.round(observed));
+    }
+    const legacyCount = toFiniteNumberOrNull((row || {}).n);
+    return legacyCount === null ? 0 : Math.max(0, Math.round(legacyCount));
+  }
+
+  function duplicateNameDisplayForRow(row) {
+    const displayName = String((row || {}).display_name || "").trim();
+    if (displayName) {
+      return displayName;
+    }
+    const canonical = String((row || {}).canonical_name || (row || {}).name_key || "").trim();
+    return canonical || "Unknown";
+  }
+
+  function buildUnifiedDuplicateNameRows(detectorTables) {
+    const sourcePriorities = {
+      per_name_tests: 3,
+      per_name_display: 2,
+      per_name_anomalies: 1,
+    };
+    const sources = [
+      ["per_name_tests", Array.isArray(detectorTables.per_name_tests) ? detectorTables.per_name_tests : []],
+      ["per_name_display", Array.isArray(detectorTables.per_name_display) ? detectorTables.per_name_display : []],
+      ["per_name_anomalies", Array.isArray(detectorTables.per_name_anomalies) ? detectorTables.per_name_anomalies : []],
+    ];
+
+    const mergedByKey = new Map();
+    sources.forEach((entry) => {
+      const sourceName = entry[0];
+      const rows = entry[1];
+      const sourcePriority = sourcePriorities[sourceName] || 0;
+      rows.forEach((row) => {
+        const signIns = duplicateNameCountForRow(row);
+        if (signIns < 2) {
+          return;
+        }
+        const scope = String((row || {}).scope || "").trim();
+        const canonicalName = String((row || {}).canonical_name || (row || {}).name_key || "").trim();
+        const displayName = duplicateNameDisplayForRow(row);
+        const canonicalLookupKey = normalizeDuplicateNameLookupKey(canonicalName);
+        const displayLookupKey = normalizeDuplicateNameLookupKey(displayName);
+        const lookupKey = canonicalLookupKey || displayLookupKey;
+        if (!lookupKey) {
+          return;
+        }
+        const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
+        const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
+        const timeSpanMinutes = toFiniteNumberOrNull((row || {}).time_span_minutes);
+        const mapKey = String(scope || "all") + "::" + lookupKey;
+        const candidate = {
+          mapKey: mapKey,
+          scope: scope,
+          lookupKey: lookupKey,
+          displayLookupKey: displayLookupKey,
+          canonicalName: canonicalName,
+          displayName: displayName,
+          signIns: signIns,
+          nPro: nPro,
+          nCon: nCon,
+          timeSpanMinutes: timeSpanMinutes,
+          sourcePriority: sourcePriority,
+        };
+        const existing = mergedByKey.get(mapKey);
+        if (!existing) {
+          mergedByKey.set(mapKey, candidate);
+          return;
+        }
+        if (candidate.signIns > existing.signIns) {
+          mergedByKey.set(mapKey, candidate);
+          return;
+        }
+        if (candidate.signIns === existing.signIns && candidate.sourcePriority > existing.sourcePriority) {
+          mergedByKey.set(mapKey, candidate);
+          return;
+        }
+        if (
+          candidate.signIns === existing.signIns &&
+          candidate.sourcePriority === existing.sourcePriority &&
+          candidate.timeSpanMinutes !== null &&
+          existing.timeSpanMinutes === null
+        ) {
+          mergedByKey.set(mapKey, candidate);
+        }
+      });
+    });
+
+    const mergedRows = Array.from(mergedByKey.values());
+    const scopedRows = mergedRows.filter(
+      (row) => row.scope && row.scope === String(state.activeDuplicateScope || "")
+    );
+    const activeRows = scopedRows.length ? scopedRows : mergedRows;
+    activeRows.sort((left, right) => {
+      const signInDelta = toNumber(right.signIns) - toNumber(left.signIns);
+      if (signInDelta !== 0) {
+        return signInDelta;
+      }
+      return String(left.displayName || "").localeCompare(String(right.displayName || ""));
+    });
+
+    return activeRows.map((row) => ({
+      __row_id: row.mapKey,
+      __lookup_key: row.lookupKey,
+      __display_lookup_key: row.displayLookupKey,
+      __scope: row.scope,
+      Name: row.displayName,
+      "# Sign-ins": row.signIns,
+      "# Pro": row.nPro,
+      "# Con": row.nCon,
+      "Submission period": formatMinutesAsDayHourMinute(row.timeSpanMinutes),
+    }));
+  }
+
+  function buildDuplicateNameTimingLookup(detectorTables) {
+    const lookup = new Map();
+    const addEntry = (lookupKey, entry) => {
+      const key = String(lookupKey || "").trim();
+      if (!key) {
+        return;
+      }
+      const list = lookup.get(key) || [];
+      list.push(entry);
+      lookup.set(key, list);
+    };
+
+    const repeatedRowsRaw = Array.isArray(detectorTables.repeated_same_bucket)
+      ? detectorTables.repeated_same_bucket
+      : [];
+    const repeatedRowsSelection = filterRowsByDuplicateTableBucket(
+      "repeated_same_bucket",
+      repeatedRowsRaw
+    );
+    repeatedRowsSelection.rows.forEach((row) => {
+      const lookupKey = normalizeDuplicateNameLookupKey((row || {}).canonical_name);
+      const timestamp = toEpochMillis((row || {}).bucket_start);
+      const nTotal = toFiniteNumberOrNull((row || {}).n);
+      if (!lookupKey || timestamp === null || nTotal === null || nTotal <= 0) {
+        return;
+      }
+      const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
+      const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
+      const reportedOther = toFiniteNumberOrNull((row || {}).n_unknown);
+      const nOther =
+        reportedOther === null
+          ? Math.max(0, Math.round(nTotal) - nPro - nCon)
+          : Math.max(0, Math.round(reportedOther));
+      addEntry(lookupKey, {
+        timestamp: timestamp,
+        nTotal: Math.max(1, Math.round(nTotal)),
+        nPro: nPro,
+        nCon: nCon,
+        nOther: nOther,
+        bucketMinutes: toFiniteNumberOrNull((row || {}).bucket_minutes),
+      });
+    });
+
+    const topTimingRaw = Array.isArray(detectorTables.top_name_timing_by_mode)
+      ? detectorTables.top_name_timing_by_mode
+      : [];
+    const topTimingSelection = filterRowsByDuplicateTableBucket("top_name_timing_by_mode", topTimingRaw);
+    const topTimingRows = topTimingSelection.rows.filter((row) => {
+      const scope = String((row || {}).scope || "").trim();
+      if (scope && scope !== String(state.activeDuplicateScope || "")) {
+        return false;
+      }
+      const matchMode = String((row || {}).match_mode || "").trim().toLowerCase();
+      return !matchMode || matchMode === "exact";
+    });
+    topTimingRows.forEach((row) => {
+      const lookupKey = normalizeDuplicateNameLookupKey((row || {}).name_key || (row || {}).canonical_name);
+      if (!lookupKey || (lookup.get(lookupKey) || []).length) {
+        return;
+      }
+      const timestamp = toEpochMillis((row || {}).bucket_start);
+      const nTotal = toFiniteNumberOrNull((row || {}).duplicate_rows);
+      if (timestamp === null || nTotal === null || nTotal <= 0) {
+        return;
+      }
+      const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
+      const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
+      const reportedOther = toFiniteNumberOrNull((row || {}).n_other);
+      const nOther =
+        reportedOther === null
+          ? Math.max(0, Math.round(nTotal) - nPro - nCon)
+          : Math.max(0, Math.round(reportedOther));
+      addEntry(lookupKey, {
+        timestamp: timestamp,
+        nTotal: Math.max(1, Math.round(nTotal)),
+        nPro: nPro,
+        nCon: nCon,
+        nOther: nOther,
+        bucketMinutes: toFiniteNumberOrNull((row || {}).bucket_minutes),
+      });
+    });
+
+    lookup.forEach((entries, key) => {
+      entries.sort((left, right) => toNumber(left.timestamp) - toNumber(right.timestamp));
+      const deduped = [];
+      const seen = new Set();
+      entries.forEach((entry) => {
+        const signature = [
+          toNumber(entry.timestamp),
+          toNumber(entry.nTotal),
+          toNumber(entry.nPro),
+          toNumber(entry.nCon),
+          toNumber(entry.nOther),
+        ].join("|");
+        if (seen.has(signature)) {
+          return;
+        }
+        seen.add(signature);
+        deduped.push(entry);
+      });
+      lookup.set(key, deduped);
+    });
+
+    return {
+      rowsByLookupKey: lookup,
+      bucketNote: repeatedRowsSelection.note || topTimingSelection.note || "",
+    };
+  }
+
+  function ensureDuplicateInlineDetailScaffold(detailElement) {
+    if (!detailElement) {
+      return null;
+    }
+    let summary = detailElement.querySelector(".duplicate-name-inline-summary");
+    if (!summary) {
+      summary = document.createElement("p");
+      summary.className = "duplicate-name-inline-summary";
+      detailElement.appendChild(summary);
+    }
+    let note = detailElement.querySelector(".duplicate-name-inline-note");
+    if (!note) {
+      note = document.createElement("p");
+      note.className = "duplicate-name-inline-note";
+      detailElement.appendChild(note);
+    }
+    let legend = detailElement.querySelector(".duplicate-name-inline-legend");
+    if (!legend) {
+      legend = document.createElement("div");
+      legend.className = "duplicate-name-inline-legend";
+      detailElement.appendChild(legend);
+    }
+    let chartHost = detailElement.querySelector(".duplicate-name-inline-chart");
+    if (!chartHost) {
+      chartHost = document.createElement("div");
+      chartHost.className = "duplicate-name-inline-chart";
+      chartHost.style.height = String(DUPLICATE_INLINE_TIMING_CHART_HEIGHT_PX) + "px";
+      detailElement.appendChild(chartHost);
+    }
+    return {
+      summary: summary,
+      note: note,
+      legend: legend,
+      chartHost: chartHost,
+    };
+  }
+
+  function disposeDuplicateInlineTimingChart(chartHost) {
+    if (!chartHost) {
+      return;
+    }
+    const chart = chartHost.__duplicateInlineChart;
+    if (!chart || typeof chart.dispose !== "function") {
+      return;
+    }
+    try {
+      chart.dispose();
+    } catch (_error) {}
+    chartHost.__duplicateInlineChart = null;
+  }
+
+  function renderDuplicateInlineTimingChart(chartHost, displayName, timelineRows) {
+    if (!chartHost) {
+      return;
+    }
+    if (!Array.isArray(timelineRows) || !timelineRows.length || !hasEcharts) {
+      disposeDuplicateInlineTimingChart(chartHost);
+      return;
+    }
+    const theme = currentChartTheme();
+    const positionColors = {
+      Pro: theme.contextLine,
+      Con: theme.alertLower,
+      Other: theme.referenceLine,
+    };
+
+    const points = [];
+    timelineRows.forEach((entry) => {
+      const timestamp = toFiniteNumberOrNull((entry || {}).timestamp);
+      if (timestamp === null) {
+        return;
+      }
+      [
+        ["Pro", (entry || {}).nPro],
+        ["Con", (entry || {}).nCon],
+        ["Other", (entry || {}).nOther],
+      ].forEach((positionEntry) => {
+        const position = positionEntry[0];
+        const positionRows = Math.max(0, Math.round(toNumber(positionEntry[1])));
+        if (positionRows <= 0) {
+          return;
+        }
+        points.push({
+          value: [timestamp, String(displayName || "Name"), positionRows],
+          position: position,
+          position_rows: positionRows,
+          n_total: Math.max(1, Math.round(toNumber((entry || {}).nTotal))),
+          n_pro: Math.max(0, Math.round(toNumber((entry || {}).nPro))),
+          n_con: Math.max(0, Math.round(toNumber((entry || {}).nCon))),
+          n_other: Math.max(0, Math.round(toNumber((entry || {}).nOther))),
+          bucket_minutes: toFiniteNumberOrNull((entry || {}).bucketMinutes),
+        });
+      });
+    });
+
+    if (!points.length) {
+      disposeDuplicateInlineTimingChart(chartHost);
+      return;
+    }
+
+    let chart = chartHost.__duplicateInlineChart;
+    if (!chart || typeof chart.setOption !== "function" || (chart.isDisposed && chart.isDisposed())) {
+      chart = window.echarts.init(chartHost);
+      chartHost.__duplicateInlineChart = chart;
+    }
+
+    const pointSizes = points.map((point) => Math.max(1, toNumber(point.position_rows)));
+    const minRows = pointSizes.length ? Math.min(...pointSizes) : 1;
+    const maxRowsRaw = pointSizes.length ? Math.max(...pointSizes) : 1;
+    const maxRows = maxRowsRaw > minRows ? maxRowsRaw : minRows + 1;
+    const symbolSizeFor = (valueRaw) => {
+      const value = Math.max(1, toNumber(valueRaw));
+      if (!(maxRows > minRows)) {
+        return 12;
+      }
+      const ratio = Math.max(0, Math.min(1, (value - minRows) / (maxRows - minRows)));
+      return 8 + ratio * 14;
+    };
+
+    const option = {
+      animation: false,
+      grid: { left: 62, right: 22, top: 18, bottom: 48 },
+      tooltip: {
+        trigger: "item",
+        appendToBody: true,
+        confine: false,
+        formatter: (params) => {
+          const raw = params && typeof params.data === "object" ? params.data : {};
+          const timestamp = toFiniteNumberOrNull(Array.isArray(params.value) ? params.value[0] : null);
+          const bucketMinutes = toFiniteNumberOrNull(raw.bucket_minutes);
+          const lines = ["<strong>" + escapeHtml(String(displayName || "")) + "</strong>"];
+          if (timestamp !== null) {
+            lines.push("<strong>Bucket start:</strong> " + formatEpochMillis(timestamp));
+            if (bucketMinutes !== null) {
+              const bucketEnd = timestamp + Math.max(1, Math.round(bucketMinutes)) * 60 * 1000 - 1;
+              lines.push("<strong>Bucket end:</strong> " + formatEpochMillis(bucketEnd));
+            }
+          }
+          lines.push(
+            "<strong>Position rows:</strong> " + Number(toNumber(raw.position_rows)).toLocaleString()
+          );
+          lines.push(
+            "<strong>Pro/Con/Other:</strong> " +
+              Number(toNumber(raw.n_pro)).toLocaleString() +
+              "/" +
+              Number(toNumber(raw.n_con)).toLocaleString() +
+              "/" +
+              Number(toNumber(raw.n_other)).toLocaleString()
+          );
+          lines.push(
+            "<strong>Total repeated rows (bucket):</strong> " +
+              Number(toNumber(raw.n_total)).toLocaleString()
+          );
+          return lines.join("<br/>");
+        },
+      },
+      xAxis: {
+        type: "time",
+        name: "Time (" + reportTimezoneLabel + ")",
+        axisLabel: {
+          color: theme.axisText,
+          formatter: (value) => formatEpochMillis(value),
+        },
+        axisLine: { lineStyle: { color: theme.axisLine } },
+      },
+      yAxis: {
+        type: "category",
+        data: [String(displayName || "Name")],
+        axisLabel: { show: false },
+        axisTick: { show: false },
+        axisLine: { show: false },
+        splitLine: { show: false },
+      },
+      series: [
+        {
+          type: "scatter",
+          data: points,
+          symbolSize: (value, params) => {
+            const sizeValue =
+              params && params.data && params.data.position_rows !== undefined
+                ? params.data.position_rows
+                : Array.isArray(value)
+                  ? value[2]
+                  : null;
+            return symbolSizeFor(sizeValue);
+          },
+          itemStyle: {
+            opacity: 0.86,
+            color: (params) => {
+              const raw = params && params.data && typeof params.data === "object" ? params.data : {};
+              return positionColors[String(raw.position || "").trim()] || theme.primaryLine;
+            },
+          },
+          emphasis: {
+            itemStyle: {
+              borderColor: theme.axisLine,
+              borderWidth: 1.0,
+              opacity: 0.98,
+            },
+          },
+        },
+      ],
+    };
+
+    chart.setOption(
+      ensureReadableAxes(option, { chartId: "duplicates_exact_inline_timing", host: chartHost }),
+      true
+    );
+    chart.resize();
+  }
+
+  function ensureDuplicateNameInlineDetailElement(rowElement) {
+    if (!rowElement) {
+      return null;
+    }
+    const tagName = String(rowElement.tagName || "").toUpperCase();
+    if (tagName === "TR") {
+      let detailRow = rowElement.nextElementSibling;
+      if (!detailRow || !detailRow.classList.contains("duplicate-name-inline-detail-row")) {
+        detailRow = document.createElement("tr");
+        detailRow.className = "duplicate-name-inline-detail-row hidden";
+        const detailCell = document.createElement("td");
+        detailCell.colSpan = Math.max(1, rowElement.children.length);
+        const detailElement = document.createElement("div");
+        detailElement.className = "duplicate-name-inline-detail";
+        detailCell.appendChild(detailElement);
+        detailRow.appendChild(detailCell);
+        if (rowElement.parentNode) {
+          rowElement.parentNode.insertBefore(detailRow, rowElement.nextSibling);
+        }
+      }
+      const detailElement = detailRow.querySelector(".duplicate-name-inline-detail");
+      return {
+        rowElement: rowElement,
+        detailRow: detailRow,
+        detailElement: detailElement,
+      };
+    }
+
+    rowElement.classList.add("duplicate-name-row-expandable");
+    let detailElement = rowElement.querySelector(":scope > .duplicate-name-inline-detail");
+    if (!detailElement) {
+      detailElement = document.createElement("div");
+      detailElement.className = "duplicate-name-inline-detail";
+      rowElement.appendChild(detailElement);
+    }
+    return {
+      rowElement: rowElement,
+      detailRow: null,
+      detailElement: detailElement,
+    };
+  }
+
+  function collapseDuplicateNameInlineDetail(activeState) {
+    if (!activeState || !activeState.current) {
+      return;
+    }
+    const current = activeState.current;
+    if (current.rowElement) {
+      current.rowElement.classList.remove("is-expanded");
+    }
+    if (current.detailRow) {
+      current.detailRow.classList.add("hidden");
+    }
+    if (current.detailElement) {
+      current.detailElement.classList.remove("is-open");
+      const chartHost = current.detailElement.querySelector(".duplicate-name-inline-chart");
+      disposeDuplicateInlineTimingChart(chartHost);
+    }
+    activeState.current = null;
+  }
+
+  function renderUnifiedDuplicateNameTable(container, detectorTables, detectorKey) {
+    const rows = buildUnifiedDuplicateNameRows(detectorTables);
+    if (!rows.length) {
+      return false;
+    }
+
+    const details = document.createElement("details");
+    details.className = "table-group";
+    details.open = true;
+
+    const summary = document.createElement("summary");
+    summary.textContent = "per_name_duplicates";
+    details.appendChild(summary);
+
+    const wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+
+    const host = document.createElement("div");
+    host.className = "table-host";
+
+    const displayRows = rows.map((row) => ({
+      Name: row.Name,
+      "# Sign-ins": row["# Sign-ins"],
+      "# Pro": row["# Pro"],
+      "# Con": row["# Con"],
+      "Submission period": row["Submission period"],
+    }));
+    const tableKey = detectorKey ? detectorKey + ".per_name_duplicates" : "duplicates_exact.per_name_duplicates";
+    renderTableHelpCard(wrap, tableKey, displayRows);
+    wrap.appendChild(host);
+    details.appendChild(wrap);
+    container.appendChild(details);
+
+    const timingLookup = buildDuplicateNameTimingLookup(detectorTables);
+    const activeInlineDetail = { current: null };
+    const onRowClick = (_event, rowComponent) => {
+      const rowData =
+        rowComponent && typeof rowComponent.getData === "function" ? rowComponent.getData() : null;
+      const rowElement =
+        rowComponent && typeof rowComponent.getElement === "function"
+          ? rowComponent.getElement()
+          : null;
+      if (!rowData || !rowElement) {
+        return;
+      }
+      if (activeInlineDetail.current && activeInlineDetail.current.rowElement === rowElement) {
+        collapseDuplicateNameInlineDetail(activeInlineDetail);
+        return;
+      }
+      collapseDuplicateNameInlineDetail(activeInlineDetail);
+
+      const detailRefs = ensureDuplicateNameInlineDetailElement(rowElement);
+      if (!detailRefs || !detailRefs.detailElement) {
+        return;
+      }
+      const scaffold = ensureDuplicateInlineDetailScaffold(detailRefs.detailElement);
+      if (!scaffold) {
+        return;
+      }
+
+      const lookupKey = normalizeDuplicateNameLookupKey(rowData.__lookup_key);
+      const displayLookupKey = normalizeDuplicateNameLookupKey(rowData.__display_lookup_key);
+      let timelineRows = lookupKey ? timingLookup.rowsByLookupKey.get(lookupKey) || [] : [];
+      if (!timelineRows.length && displayLookupKey) {
+        timelineRows = timingLookup.rowsByLookupKey.get(displayLookupKey) || [];
+      }
+      const bucketLabel = bucketLabelFromValue(state.activeBucket);
+      const displayName = String(rowData.Name || "").trim();
+      const nSignIns = Math.max(0, Math.round(toNumber(rowData["# Sign-ins"])));
+      scaffold.summary.textContent =
+        displayName +
+        " · " +
+        nSignIns.toLocaleString() +
+        " sign-ins (" +
+        Math.max(0, Math.round(toNumber(rowData["# Pro"]))).toLocaleString() +
+        " Pro / " +
+        Math.max(0, Math.round(toNumber(rowData["# Con"]))).toLocaleString() +
+        " Con)";
+
+      scaffold.legend.innerHTML = "";
+      [
+        ["Pro", currentChartTheme().contextLine],
+        ["Con", currentChartTheme().alertLower],
+        ["Other", currentChartTheme().referenceLine],
+      ].forEach((entry) => {
+        const item = document.createElement("span");
+        item.className = "duplicate-name-inline-legend-item";
+        const swatch = document.createElement("span");
+        swatch.className = "duplicate-name-inline-legend-swatch";
+        swatch.style.backgroundColor = entry[1];
+        const label = document.createElement("span");
+        label.textContent = entry[0];
+        item.appendChild(swatch);
+        item.appendChild(label);
+        scaffold.legend.appendChild(item);
+      });
+
+      if (!timelineRows.length) {
+        scaffold.note.textContent =
+          "No repeated-bucket timing points are available for this name at the current bucket view" +
+          (bucketLabel ? " (" + bucketLabel + ")" : "") +
+          ".";
+        scaffold.chartHost.classList.add("hidden");
+        disposeDuplicateInlineTimingChart(scaffold.chartHost);
+      } else {
+        scaffold.note.textContent =
+          "Timing row shows bucket-level repeated sign-ins for this name" +
+          (bucketLabel ? " at " + bucketLabel : "") +
+          " (" +
+          reportTimezoneLabel +
+          "). Point size scales per-position rows; colors map to Pro/Con/Other." +
+          (timingLookup.bucketNote ? " " + timingLookup.bucketNote : "");
+        scaffold.chartHost.classList.remove("hidden");
+        renderDuplicateInlineTimingChart(scaffold.chartHost, displayName, timelineRows);
+      }
+
+      detailRefs.rowElement.classList.add("is-expanded");
+      detailRefs.detailElement.classList.add("is-open");
+      if (detailRefs.detailRow) {
+        detailRefs.detailRow.classList.remove("hidden");
+      }
+      activeInlineDetail.current = detailRefs;
+    };
+
+    mountTable(host, rows, {
+      paginationSize: 8,
+      maxHeight: "380px",
+      tableKey: tableKey,
+      layout: "fitData",
+      initialSort: [{ column: "# Sign-ins", dir: "desc" }],
+      rowClick: onRowClick,
+      columns: [
+        { title: "Name", field: "Name", headerFilter: "input", minWidth: 230 },
+        { title: "# Sign-ins", field: "# Sign-ins", headerFilter: "input", hozAlign: "right" },
+        { title: "# Pro", field: "# Pro", headerFilter: "input", hozAlign: "right" },
+        { title: "# Con", field: "# Con", headerFilter: "input", hozAlign: "right" },
+        {
+          title: "Submission period",
+          field: "Submission period",
+          headerFilter: "input",
+          minWidth: 170,
+        },
+        { title: "__row_id", field: "__row_id", visible: false, headerFilter: false },
+        { title: "__lookup_key", field: "__lookup_key", visible: false, headerFilter: false },
+        {
+          title: "__display_lookup_key",
+          field: "__display_lookup_key",
+          visible: false,
+          headerFilter: false,
+        },
+        { title: "__scope", field: "__scope", visible: false, headerFilter: false },
+      ],
+    });
+
+    return true;
   }
 
   function renderTriageSummary() {
@@ -7664,6 +8353,9 @@
     if (!container) {
       return;
     }
+    Array.from(container.querySelectorAll(".duplicate-name-inline-chart")).forEach((host) => {
+      disposeDuplicateInlineTimingChart(host);
+    });
     container.innerHTML = "";
 
     const detectorKey = analysis.detector;
@@ -7694,8 +8386,17 @@
           ". Interpret duplicate expectations descriptively.";
         container.appendChild(warning);
       }
+      renderUnifiedDuplicateNameTable(container, detectorTables, detectorKey);
     }
     let tableNames = Object.keys(detectorTables).sort();
+    if (analysis.id === "duplicates_exact") {
+      const mergedDuplicateNameSourceTables = new Set([
+        "per_name_anomalies",
+        "per_name_display",
+        "per_name_tests",
+      ]);
+      tableNames = tableNames.filter((name) => !mergedDuplicateNameSourceTables.has(name));
+    }
     if (isOffHoursFocusOnly && analysis.id === "off_hours") {
       const preferred = [
         "off_hours_summary",
@@ -8113,6 +8814,7 @@
     const panel = document.getElementById("duplicate-collision-panel");
     const scopeSelect = document.getElementById("duplicate-scope-select");
     const metricSelect = document.getElementById("duplicate-metric-select");
+    const scopeLabel = panel ? panel.querySelector('label[for="duplicate-scope-select"]') : null;
     if (!panel || !scopeSelect || !metricSelect) {
       return;
     }
@@ -8171,6 +8873,12 @@
       scopeSelect.appendChild(option);
     });
     scopeSelect.value = state.activeDuplicateScope;
+    const hideScopeControl = scopeOptions.length === 1 && scopeOptions[0] === "full_hearing";
+    scopeSelect.classList.toggle("hidden", hideScopeControl);
+    scopeSelect.disabled = hideScopeControl;
+    if (scopeLabel) {
+      scopeLabel.classList.toggle("hidden", hideScopeControl);
+    }
 
     metricSelect.innerHTML = "";
     metricOptions.forEach((value) => {

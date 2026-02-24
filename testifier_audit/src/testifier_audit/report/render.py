@@ -1082,6 +1082,47 @@ def _preview_columns_for_detector_table(
             "best_similarity_score",
             "candidate_pool_size",
         ]
+    if detector_name == "duplicates_exact":
+        preview_columns: dict[str, list[str]] = {
+            "per_name_tests": [
+                "scope",
+                "canonical_name",
+                "display_name",
+                "observed_count",
+                "n_pro",
+                "n_con",
+                "time_span_minutes",
+            ],
+            "per_name_display": [
+                "scope",
+                "canonical_name",
+                "display_name",
+                "observed_count",
+                "n_pro",
+                "n_con",
+                "time_span_minutes",
+            ],
+            "per_name_anomalies": [
+                "scope",
+                "canonical_name",
+                "display_name",
+                "n",
+                "n_pro",
+                "n_con",
+                "time_span_minutes",
+            ],
+            "repeated_same_bucket": [
+                "canonical_name",
+                "bucket_start",
+                "bucket_minutes",
+                "n",
+                "n_pro",
+                "n_con",
+                "n_unknown",
+                "bucket_end",
+            ],
+        }
+        return preview_columns.get(table_name)
     if detector_name != "off_hours":
         return None
     preview_columns: dict[str, list[str]] = {
@@ -1273,8 +1314,10 @@ def _preview_columns_for_detector_table(
 
 _DUPLICATES_EXACT_FULL_PREVIEW_TABLES = frozenset(
     {
+        "per_name_tests",
         "per_name_display",
         "per_name_anomalies",
+        "repeated_same_bucket",
         "position_switching_names",
         "top_repeated_names",
         "top_name_timing_by_mode",
@@ -1303,6 +1346,44 @@ def _prepare_table_for_preview(
 ) -> pd.DataFrame:
     if table.empty:
         return table
+    if detector_name == "duplicates_exact":
+        prepared = table.copy()
+        if table_name in {"per_name_tests", "per_name_display", "per_name_anomalies"}:
+            count_column = (
+                "observed_count"
+                if "observed_count" in prepared.columns
+                else "n"
+                if "n" in prepared.columns
+                else None
+            )
+            if count_column is not None:
+                counts = pd.to_numeric(prepared[count_column], errors="coerce")
+                prepared = prepared[counts >= 2].copy()
+            sort_columns: list[str] = []
+            ascending: list[bool] = []
+            if count_column is not None and count_column in prepared.columns:
+                sort_columns.append(count_column)
+                ascending.append(False)
+            if "display_name" in prepared.columns:
+                sort_columns.append("display_name")
+                ascending.append(True)
+            if "canonical_name" in prepared.columns:
+                sort_columns.append("canonical_name")
+                ascending.append(True)
+            if sort_columns:
+                prepared = prepared.sort_values(sort_columns, ascending=ascending)
+            return prepared
+        if table_name == "repeated_same_bucket":
+            sort_columns = [
+                column
+                for column in ("bucket_minutes", "bucket_start", "canonical_name")
+                if column in prepared.columns
+            ]
+            if sort_columns:
+                prepared = prepared.sort_values(sort_columns)
+            return prepared
+        return prepared
+
     if detector_name != "voter_registry_match" or table_name != "unmatched_names":
         return table
 

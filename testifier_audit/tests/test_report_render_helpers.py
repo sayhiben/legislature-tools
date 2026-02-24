@@ -199,6 +199,53 @@ def test_table_previews_from_results_keep_full_duplicate_name_tables() -> None:
     assert len(previews["duplicates_exact"]["collision_overview"]) == 5
 
 
+def test_table_previews_from_results_filter_duplicate_name_tests_and_keep_full_repeated_bucket_rows() -> None:
+    per_name_tests = pd.DataFrame(
+        [
+            {
+                "scope": "full_hearing",
+                "canonical_name": f"NAME|{index}||",
+                "display_name": f"NAME {index}",
+                "observed_count": observed_count,
+                "n_pro": observed_count,
+                "n_con": 0,
+                "time_span_minutes": float(index + 5),
+            }
+            for index, observed_count in enumerate([4, 3, 2, 1, 1])
+        ]
+    )
+    repeated_same_bucket = pd.DataFrame(
+        [
+            {
+                "canonical_name": f"NAME|{index}||",
+                "bucket_start": f"2026-02-01T00:0{index}:00-08:00",
+                "bucket_minutes": 5,
+                "n": index + 2,
+                "n_pro": index + 1,
+                "n_con": 1,
+                "n_unknown": 0,
+            }
+            for index in range(4)
+        ]
+    )
+    results = {
+        "duplicates_exact": DetectorResult(
+            detector="duplicates_exact",
+            summary={},
+            tables={
+                "per_name_tests": per_name_tests,
+                "repeated_same_bucket": repeated_same_bucket,
+            },
+        )
+    }
+
+    previews = _table_previews_from_results(results, max_rows=1)
+    duplicate_test_rows = previews["duplicates_exact"]["per_name_tests"]
+    assert len(duplicate_test_rows) == 3
+    assert all(int(row["observed_count"]) >= 2 for row in duplicate_test_rows)
+    assert len(previews["duplicates_exact"]["repeated_same_bucket"]) == 4
+
+
 def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     (out_dir / "summary").mkdir(parents=True)
@@ -543,6 +590,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert 'tablePreviewRows("duplicates_exact", "per_name_display")' in js_text
     assert "filterRowsByDuplicateTableBucket(" in js_text
     assert "rerenderBucketAwareTables();" in js_text
+    assert 'scopeOptions.length === 1 && scopeOptions[0] === "full_hearing"' in js_text
+    assert 'scopeSelect.classList.toggle("hidden", hideScopeControl);' in js_text
     assert "triage-overall-procon" not in js_text
     assert "triage-top-tier-count" not in js_text
     assert '"Total Sign-ins"' in js_text

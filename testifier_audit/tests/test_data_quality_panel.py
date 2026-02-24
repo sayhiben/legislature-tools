@@ -55,8 +55,10 @@ def test_data_quality_panel_emits_high_value_warnings_and_dedup_metrics() -> Non
         ),
     }
     triage_views = {
-        "raw": {"window_evidence_queue": [{"evidence_tier": "high"}]},
-        "exact_row_dedup": {"window_evidence_queue": []},
+        "raw": {"triage_summary": {"window_tier_counts": {"high": 3, "medium": 1, "watch": 2}}},
+        "exact_row_dedup": {
+            "triage_summary": {"window_tier_counts": {"high": 0, "medium": 1, "watch": 2}}
+        },
     }
 
     panel = build_data_quality_panel(table_map=table_map, triage_views=triage_views)

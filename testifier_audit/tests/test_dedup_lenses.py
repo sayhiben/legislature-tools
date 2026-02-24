@@ -89,10 +89,5 @@ def test_investigation_views_expose_raw_dedup_and_side_by_side_lenses() -> None:
     assert summary["total_submissions_raw"] == 30
     assert summary["total_submissions_exact_row_dedup"] == 24
     assert summary["total_submissions_delta"] == -6.0
-
-    window_rows = side["window_evidence_queue"]
-    assert window_rows
-    row = window_rows[0]
-    assert "count_raw" in row
-    assert "count_exact_row_dedup" in row
-    assert "count_delta" in row
+    assert summary["queue_counts"] == {"window": 0, "record": 0, "cluster": 0}
+    assert summary["window_tier_counts"] == {"high": 0, "medium": 0, "watch": 0}

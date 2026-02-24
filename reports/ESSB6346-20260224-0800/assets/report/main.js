@@ -137,18 +137,8 @@
 
   const triageViews = interactive.triage_views || {};
   const triageSummary = interactive.triage_summary || {};
-  const windowEvidenceQueue = Array.isArray(interactive.window_evidence_queue)
-    ? interactive.window_evidence_queue
-    : [];
-  const recordEvidenceQueue = Array.isArray(interactive.record_evidence_queue)
-    ? interactive.record_evidence_queue
-    : [];
-  const clusterEvidenceQueue = Array.isArray(interactive.cluster_evidence_queue)
-    ? interactive.cluster_evidence_queue
-    : [];
   const dataQualityPanel = interactive.data_quality_panel || {};
   const hearingContextPanel = interactive.hearing_context_panel || {};
-  const crossHearingBaseline = interactive.cross_hearing_baseline || {};
   const controls = interactive.controls || {};
   const focusAnalysisIds = Array.isArray(controls.focus_analysis_ids)
     ? controls.focus_analysis_ids
@@ -185,14 +175,6 @@
   const processMarkers = Array.isArray(controls.process_markers)
     ? controls.process_markers
     : [];
-  const crossHearingComparatorRows = Array.isArray(crossHearingBaseline.metric_comparators)
-    ? crossHearingBaseline.metric_comparators
-    : [];
-  const crossHearingComparatorByMetric = new Map(
-    crossHearingComparatorRows
-      .filter((row) => row && typeof row.metric === "string")
-      .map((row) => [String(row.metric), row])
-  );
   const defaultDedupMode =
     typeof controls.default_dedup_mode === "string" && dedupModes.includes(controls.default_dedup_mode)
       ? controls.default_dedup_mode
@@ -215,7 +197,7 @@
     typeof controls.duplicate_collision_scope_default === "string" &&
     duplicateScopeOptions.includes(controls.duplicate_collision_scope_default)
       ? controls.duplicate_collision_scope_default
-      : duplicateScopeOptions[0] || "matched_only";
+      : duplicateScopeOptions[0] || "full_hearing";
   const defaultDuplicateMetric =
     typeof controls.duplicate_collision_metric_default === "string" &&
     duplicateMetricOptions.includes(controls.duplicate_collision_metric_default)
@@ -228,12 +210,6 @@
   const chartInstances = [];
   const mountedSections = new Set();
   const chartMounts = new Map();
-  const drilldownState = {
-    activeWindow: null,
-    windowTable: null,
-    selectedWindowIds: [],
-  };
-  let investigationActionsBound = false;
 
   const state = {
     activeBucket: null,
@@ -245,6 +221,7 @@
     defaultDuplicateMetric: defaultDuplicateMetric,
     cursorX: null,
     activeTocHeading: null,
+    activeSectionControlKey: "",
     renderToc: null,
     selectedWindowRange: null,
     zoom: {
@@ -266,8 +243,11 @@
     "off_hours_date_hour_volume_heatmap",
     "procon_swings_shift_heatmap",
   ]);
+  const DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE = 10;
+  const DUPLICATE_TOP_NAME_TIMING_MAX_NAMES = 50;
   const zonedDateTimeEpochCache = new Map();
   const semanticTokenCache = new Map();
+  let sidebarFloatingControlsObserver = null;
   const fallbackColorSemantics = {
     light: {
       axisText: "#334155",
@@ -1207,6 +1187,7 @@
     applyTheme(selectedTheme, false);
 
     if (!controlsRoot) {
+      updateSidebarFloatingOffsets();
       return;
     }
 
@@ -1233,6 +1214,7 @@
         scheduleChartResizeSequence();
       });
     });
+    updateSidebarFloatingOffsets();
   }
 
   function createChartInstance(host) {
@@ -1328,106 +1310,19 @@
     setListItems(guidanceHost, guidance);
   }
 
-  function getCrossHearingComparator(metric) {
-    const key = String(metric || "").trim();
-    if (!key) {
-      return null;
-    }
-    const row = crossHearingComparatorByMetric.get(key);
-    if (!row || typeof row !== "object") {
-      return null;
-    }
-    const bandP10 = toFiniteNumberOrNull(row.band_p10);
-    const bandP50 = toFiniteNumberOrNull(row.band_p50);
-    const bandP90 = toFiniteNumberOrNull(row.band_p90);
-    if (bandP10 === null && bandP50 === null && bandP90 === null) {
-      return null;
-    }
-    return {
-      metric: key,
-      label:
-        typeof row.label === "string" && row.label.trim()
-          ? row.label.trim()
-          : key.replace(/_/g, " "),
-      nReports: Number(toNumber(row.n_reports || crossHearingBaseline.report_count || 0)),
-      percentile: toFiniteNumberOrNull(row.percentile),
-      bandP10: bandP10,
-      bandP50: bandP50,
-      bandP90: bandP90,
-    };
-  }
-
   function getTriageView(mode) {
     const key = String(mode || "");
     const view = triageViews[key];
     if (view && typeof view === "object") {
       return view;
     }
-    if (key === "raw" || !key) {
-      return {
-        triage_summary: triageSummary,
-        window_evidence_queue: windowEvidenceQueue,
-        record_evidence_queue: recordEvidenceQueue,
-        cluster_evidence_queue: clusterEvidenceQueue,
-      };
-    }
     return {
       triage_summary: triageSummary,
-      window_evidence_queue: windowEvidenceQueue,
-      record_evidence_queue: recordEvidenceQueue,
-      cluster_evidence_queue: clusterEvidenceQueue,
     };
   }
 
   function getActiveTriageView() {
     return getTriageView(state.activeDedupMode);
-  }
-
-  function rowsToCsv(rows) {
-    const dataset = Array.isArray(rows) ? rows : [];
-    if (!dataset.length) {
-      return "";
-    }
-    const columns = Array.from(new Set(dataset.flatMap((row) => Object.keys(row || {}))));
-    const encode = (value) => {
-      if (value === null || value === undefined) {
-        return "";
-      }
-      if (Array.isArray(value) || (value && typeof value === "object")) {
-        return JSON.stringify(value);
-      }
-      return String(value);
-    };
-    const header = columns.join(",");
-    const body = dataset
-      .map((row) =>
-        columns
-          .map((column) => {
-            const raw = encode(row ? row[column] : "");
-            const escaped = raw.replace(/"/g, '""');
-            return '"' + escaped + '"';
-          })
-          .join(",")
-      )
-      .join("\n");
-    return header + "\n" + body + "\n";
-  }
-
-  function downloadCsv(filename, rows) {
-    const csv = rowsToCsv(rows);
-    if (!csv) {
-      return false;
-    }
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    return true;
   }
 
   function buildDateTimeFormatter(timezoneName) {
@@ -1528,6 +1423,17 @@
     return bucketMinutes !== null ? String(bucketMinutes) + "m" : null;
   }
 
+  function bucketSelectorLabel(value) {
+    const bucketMinutes = toFiniteNumberOrNull(value);
+    if (bucketMinutes === null) {
+      return "";
+    }
+    if (bucketMinutes >= 60 && bucketMinutes % 60 === 0) {
+      return String(Math.round(bucketMinutes / 60)) + "h";
+    }
+    return String(Math.round(bucketMinutes)) + "m";
+  }
+
   function normalizeHashId(rawValue) {
     const stripped = String(rawValue || "")
       .replace(/^#/, "")
@@ -1540,6 +1446,125 @@
     } catch (_error) {
       return stripped;
     }
+  }
+
+  function updateSidebarFloatingOffsets() {
+    const rootStyle = document.documentElement ? document.documentElement.style : null;
+    const controlsPanel = document.getElementById("sidebar-global-controls");
+    if (!rootStyle || !controlsPanel) {
+      return;
+    }
+    const panelHeight = controlsPanel.getBoundingClientRect().height;
+    if (!(panelHeight > 0)) {
+      return;
+    }
+    rootStyle.setProperty(
+      "--sidebar-global-controls-height",
+      String(Math.ceil(panelHeight)) + "px"
+    );
+  }
+
+  function initSidebarFloatingOffsetsObserver() {
+    updateSidebarFloatingOffsets();
+    if (sidebarFloatingControlsObserver || typeof window.ResizeObserver !== "function") {
+      return;
+    }
+    const controlsPanel = document.getElementById("sidebar-global-controls");
+    if (!controlsPanel) {
+      return;
+    }
+    sidebarFloatingControlsObserver = new window.ResizeObserver(() => {
+      updateSidebarFloatingOffsets();
+    });
+    sidebarFloatingControlsObserver.observe(controlsPanel);
+  }
+
+  function sectionControlKeyForHeading(headingId) {
+    const normalized = normalizeHashId(headingId);
+    if (!normalized) {
+      return "";
+    }
+    const heading = document.getElementById(normalized);
+    if (!heading) {
+      return "";
+    }
+    const analysisSection = heading.closest("[data-analysis-id]");
+    if (analysisSection) {
+      return String(analysisSection.getAttribute("data-analysis-id") || "").trim();
+    }
+    const reportSection = heading.closest("section[id]");
+    if (reportSection) {
+      return String(reportSection.id || "").trim();
+    }
+    return "";
+  }
+
+  function sectionLabelForHeading(headingId) {
+    const normalized = normalizeHashId(headingId);
+    if (!normalized) {
+      return "";
+    }
+    const heading = document.getElementById(normalized);
+    if (!heading) {
+      return "";
+    }
+    return String(heading.textContent || "").trim();
+  }
+
+  function updateSectionViewControlsForHeading(headingId) {
+    const root = document.getElementById("section-view-controls-panel");
+    if (!root) {
+      return;
+    }
+    const context = document.getElementById("section-view-controls-context");
+    const panels = Array.from(root.querySelectorAll("[data-section-control-for]"));
+    if (!panels.length) {
+      root.classList.add("hidden");
+      if (context) {
+        context.textContent = "";
+      }
+      state.activeSectionControlKey = "";
+      return;
+    }
+
+    const key = sectionControlKeyForHeading(headingId);
+    let activePanel = null;
+    panels.forEach((panel) => {
+      const panelKey = String(panel.getAttribute("data-section-control-for") || "").trim();
+      const enabled = panel.getAttribute("data-section-control-enabled") !== "false";
+      const isActive = enabled && !!panelKey && panelKey === key;
+      panel.classList.toggle("hidden", !isActive);
+      if (isActive) {
+        activePanel = panel;
+      }
+    });
+
+    if (!activePanel) {
+      root.classList.add("hidden");
+      if (context) {
+        context.textContent = "";
+      }
+      state.activeSectionControlKey = "";
+      return;
+    }
+
+    root.classList.remove("hidden");
+    if (context) {
+      const headingLabel = sectionLabelForHeading(headingId);
+      context.textContent = headingLabel ? headingLabel : "";
+    }
+
+    const activeKey = String(activePanel.getAttribute("data-section-control-for") || "").trim();
+    if (state.activeSectionControlKey !== activeKey) {
+      activePanel.classList.remove("is-spotlight");
+      // Force restart so each section switch replays the cue.
+      void activePanel.offsetWidth;
+      activePanel.classList.add("is-spotlight");
+      window.setTimeout(() => {
+        activePanel.classList.remove("is-spotlight");
+      }, 980);
+    }
+    state.activeSectionControlKey = activeKey;
   }
 
   function replaceUrlHashWithoutHistory(headingId) {
@@ -1697,6 +1722,7 @@
         }
       });
     }
+    updateSectionViewControlsForHeading(normalized);
 
     if (syncUrl) {
       replaceUrlHashWithoutHistory(normalized);
@@ -1758,13 +1784,40 @@
     element.textContent = text || "";
   }
 
+  function ensureChartControlsHost(chartId) {
+    const note = document.querySelector('[data-chart-note-for="' + chartId + '"]');
+    if (!note || !note.parentElement) {
+      return null;
+    }
+    const parent = note.parentElement;
+    let controlsHost = parent.querySelector('[data-chart-controls-for="' + chartId + '"]');
+    if (!controlsHost) {
+      controlsHost = document.createElement("div");
+      controlsHost.className = "chart-inline-controls hidden";
+      controlsHost.setAttribute("data-chart-controls-for", chartId);
+      parent.insertBefore(controlsHost, note);
+    }
+    return controlsHost;
+  }
+
+  function setChartControls(chartId, contentNode) {
+    const host = ensureChartControlsHost(chartId);
+    if (!host) {
+      return;
+    }
+    host.replaceChildren();
+    if (!contentNode) {
+      host.classList.add("hidden");
+      return;
+    }
+    host.appendChild(contentNode);
+    host.classList.remove("hidden");
+  }
+
   function composeChartNote(mount, fallbackNote) {
     const parts = [];
     if (mount && Number.isFinite(mount.activeBucket)) {
       parts.push("Bucket: " + mount.activeBucket + "m.");
-    }
-    if (mount && mount.crossHearingComparatorNote) {
-      parts.push(mount.crossHearingComparatorNote);
     }
     if (mount && mount.customChartNote) {
       parts.push(mount.customChartNote);
@@ -2861,11 +2914,12 @@
       panel.classList.remove("zoom-state-active");
       if (statusChip) {
         statusChip.classList.remove("is-active");
-        statusChip.textContent = "Full timeline";
+        statusChip.textContent = "All";
       }
       if (banner) {
         banner.classList.add("hidden");
       }
+      updateSidebarFloatingOffsets();
       return;
     }
     panel.classList.remove("hidden");
@@ -2877,7 +2931,7 @@
     if (statusChip) {
       statusChip.classList.toggle("is-active", hasZoom);
       if (!hasZoom) {
-        statusChip.textContent = "Full timeline";
+        statusChip.textContent = "All";
       }
     }
     if (bannerResetButton) {
@@ -2890,7 +2944,7 @@
       }
     }
     if (!hasZoom) {
-      label.textContent = "Range: full timeline.";
+      label.textContent = "Full timeline";
       if (banner) {
         banner.classList.add("hidden");
       }
@@ -2900,6 +2954,7 @@
       if (bannerChip) {
         bannerChip.textContent = "";
       }
+      updateSidebarFloatingOffsets();
       return;
     }
 
@@ -2907,10 +2962,7 @@
       formatEpochMillis(state.zoom.minTime) +
       " to " +
       formatEpochMillis(state.zoom.maxTime);
-    label.textContent =
-      "Range: " +
-      rangeText +
-      ".";
+    label.textContent = rangeText;
     const selectedDuration = Math.max(0, state.zoom.maxTime - state.zoom.minTime);
     const selectedDurationText = formatDurationCompact(selectedDuration);
     const fullExtent = collectAbsoluteTimeExtent();
@@ -2922,9 +2974,7 @@
       fullDuration && fullDuration > 0 ? selectedDuration / fullDuration : null;
     const coverageText = formatCoveragePercent(coverageRatio);
     if (statusChip) {
-      statusChip.textContent = coverageText
-        ? "Filtered: " + coverageText
-        : "Filtered";
+      statusChip.textContent = coverageText ? coverageText : "Zoom";
     }
     if (banner && bannerText) {
       banner.classList.remove("hidden");
@@ -2946,6 +2996,7 @@
           : selectedDurationText;
       }
     }
+    updateSidebarFloatingOffsets();
   }
 
   function propagateZoom(minTime, maxTime, sourceChartId, isReset) {
@@ -3031,8 +3082,6 @@
     const extraLines = Array.isArray(config.extraLines) ? config.extraLines : [];
     const lowPowerField = config.lowPowerField;
     const flaggedField = config.flaggedField;
-    const comparatorMetric =
-      typeof config.comparatorMetric === "string" ? config.comparatorMetric.trim() : "";
     const inferentialWindowField =
       typeof config.inferentialWindowField === "string"
         ? config.inferentialWindowField.trim()
@@ -3046,6 +3095,17 @@
       0,
       Math.min(1, toNumber(config.sparseMinTestedShare || 0.35))
     );
+    const adaptiveLineRange = toBool(config.adaptiveLineRange);
+    const adaptiveLineRangePadding =
+      toFiniteNumberOrNull(config.adaptiveLineRangePadding) === null
+        ? 0.12
+        : Math.max(0, toNumber(config.adaptiveLineRangePadding));
+    const adaptiveLineRangeMinSpan =
+      toFiniteNumberOrNull(config.adaptiveLineRangeMinSpan) === null
+        ? 0.08
+        : Math.max(0.02, toNumber(config.adaptiveLineRangeMinSpan));
+    const adaptiveLineRangeClampMin = toFiniteNumberOrNull(config.adaptiveLineRangeClampMin);
+    const adaptiveLineRangeClampMax = toFiniteNumberOrNull(config.adaptiveLineRangeClampMax);
     const runOverlayField =
       typeof config.runOverlayField === "string" ? config.runOverlayField.trim() : "";
     const denseOffHoursMarkers =
@@ -3062,7 +3122,6 @@
     }
 
     mount.timeExtent = extentFromRows(sorted, "__time");
-    mount.crossHearingComparatorNote = null;
     mount.customChartNote = null;
     const mainSeriesId = "main-" + mount.chartId;
 
@@ -3256,6 +3315,107 @@
       }
     });
 
+    const resolveAdaptiveLineAxisRange = (fields) => {
+      const candidateFields = Array.from(
+        new Set(
+          (Array.isArray(fields) ? fields : [])
+            .map((field) => (typeof field === "string" ? field.trim() : ""))
+            .filter((field) => !!field)
+        )
+      );
+      if (!candidateFields.length) {
+        return null;
+      }
+      const values = [];
+      sorted.forEach((row) => {
+        candidateFields.forEach((field) => {
+          const value = toFiniteNumberOrNull(row[field]);
+          if (value !== null) {
+            values.push(value);
+          }
+        });
+      });
+      if (!values.length) {
+        return null;
+      }
+
+      let minValue = Math.min.apply(null, values);
+      let maxValue = Math.max.apply(null, values);
+      if (!(Number.isFinite(minValue) && Number.isFinite(maxValue))) {
+        return null;
+      }
+
+      if (maxValue > minValue) {
+        const span = maxValue - minValue;
+        const padding = Math.max(span * adaptiveLineRangePadding, adaptiveLineRangeMinSpan * 0.2);
+        minValue -= padding;
+        maxValue += padding;
+      } else {
+        minValue -= adaptiveLineRangeMinSpan / 2;
+        maxValue += adaptiveLineRangeMinSpan / 2;
+      }
+
+      if (adaptiveLineRangeClampMin !== null) {
+        minValue = Math.max(adaptiveLineRangeClampMin, minValue);
+      }
+      if (adaptiveLineRangeClampMax !== null) {
+        maxValue = Math.min(adaptiveLineRangeClampMax, maxValue);
+      }
+
+      if (!(maxValue > minValue)) {
+        return null;
+      }
+
+      if (maxValue - minValue < adaptiveLineRangeMinSpan) {
+        const midpoint = (minValue + maxValue) / 2;
+        minValue = midpoint - adaptiveLineRangeMinSpan / 2;
+        maxValue = midpoint + adaptiveLineRangeMinSpan / 2;
+        if (adaptiveLineRangeClampMin !== null && minValue < adaptiveLineRangeClampMin) {
+          maxValue += adaptiveLineRangeClampMin - minValue;
+          minValue = adaptiveLineRangeClampMin;
+        }
+        if (adaptiveLineRangeClampMax !== null && maxValue > adaptiveLineRangeClampMax) {
+          minValue -= maxValue - adaptiveLineRangeClampMax;
+          maxValue = adaptiveLineRangeClampMax;
+        }
+        if (adaptiveLineRangeClampMin !== null) {
+          minValue = Math.max(adaptiveLineRangeClampMin, minValue);
+        }
+        if (adaptiveLineRangeClampMax !== null) {
+          maxValue = Math.min(adaptiveLineRangeClampMax, maxValue);
+        }
+      }
+
+      if (!(maxValue > minValue)) {
+        return null;
+      }
+      return { min: minValue, max: maxValue };
+    };
+
+    const lineAxisBase = {
+      type: "value",
+      name: config.lineAxisName || "Value",
+    };
+    const adaptiveLineAxisFields = Array.isArray(config.adaptiveLineRangeFields)
+      ? config.adaptiveLineRangeFields
+      : [lineField, lineLow, lineHigh].concat(extraLines);
+    const adaptiveLineAxisRange = adaptiveLineRange
+      ? resolveAdaptiveLineAxisRange(adaptiveLineAxisFields)
+      : null;
+    const configuredLineMin = toFiniteNumberOrNull(config.lineMin);
+    const configuredLineMax = toFiniteNumberOrNull(config.lineMax);
+    const lineAxisMin = adaptiveLineAxisRange ? adaptiveLineAxisRange.min : configuredLineMin;
+    const lineAxisMax = adaptiveLineAxisRange ? adaptiveLineAxisRange.max : configuredLineMax;
+    if (lineAxisMin !== null) {
+      lineAxisBase.min = lineAxisMin;
+    }
+    if (lineAxisMax !== null) {
+      lineAxisBase.max = lineAxisMax;
+    }
+    if (adaptiveLineAxisRange || toBool(config.lineScale)) {
+      lineAxisBase.scale = true;
+    }
+
     const option = {
       animation: false,
       color: theme.seriesPalette,
@@ -3306,13 +3466,10 @@
       grid: { left: 56, right: 56, top: 18, bottom: 88 },
       xAxis: { type: "time", name: "Time (" + reportTimezoneLabel + ")" },
       yAxis: [
-        barField ? { type: "value", name: config.barAxisName || "Volume" } : { type: "value", name: config.lineAxisName || "Value" },
-        {
-          type: "value",
-          name: config.lineAxisName || "Value",
-          min: config.lineMin,
-          max: config.lineMax,
-        },
+        barField
+          ? { type: "value", name: config.barAxisName || "Volume" }
+          : Object.assign({}, lineAxisBase),
+        Object.assign({}, lineAxisBase),
       ],
       dataZoom: [
         {
@@ -3515,70 +3672,6 @@
           },
         });
       }
-    }
-
-    const comparator = comparatorMetric ? getCrossHearingComparator(comparatorMetric) : null;
-    if (comparator && lineField) {
-      const comparatorYAxisIndex = barField ? 1 : 0;
-      const startTime = sorted[0].__time;
-      const endTime = sorted[sorted.length - 1].__time;
-
-      if (
-        comparator.bandP10 !== null &&
-        comparator.bandP90 !== null &&
-        comparator.bandP90 >= comparator.bandP10
-      ) {
-        const bandAnchor =
-          comparator.bandP50 !== null ? comparator.bandP50 : comparator.bandP10;
-        option.series.push({
-          name: "Cross-hearing p10-p90 band",
-          type: "line",
-          yAxisIndex: comparatorYAxisIndex,
-          data: sorted.map((row) => [row.__time, bandAnchor]),
-          showSymbol: false,
-          tooltip: { show: false },
-          lineStyle: { opacity: 0 },
-          markArea: {
-            silent: true,
-            itemStyle: { color: theme.comparatorBandFill },
-            data: [
-              [
-                { xAxis: startTime, yAxis: comparator.bandP10 },
-                { xAxis: endTime, yAxis: comparator.bandP90 },
-              ],
-            ],
-          },
-        });
-      }
-
-      if (comparator.bandP50 !== null) {
-        option.series.push({
-          name: "Cross-hearing p50",
-          type: "line",
-          yAxisIndex: comparatorYAxisIndex,
-          data: sorted.map((row) => [row.__time, comparator.bandP50]),
-          showSymbol: false,
-          lineStyle: {
-            color: theme.contextLine,
-            width: 1.5,
-            type: "dashed",
-            opacity: 0.95,
-          },
-        });
-      }
-
-      const percentileLabel =
-        comparator.percentile !== null
-          ? formatPercent(comparator.percentile, 0)
-          : "n/a";
-      mount.crossHearingComparatorNote =
-        "Cross-hearing baseline (" +
-        comparator.label +
-        ", n=" +
-        comparator.nReports.toLocaleString() +
-        "): percentile " +
-        percentileLabel +
-        ".";
     }
 
     if (robustLowerData.length) {
@@ -5462,72 +5555,143 @@
         }
         return String(left.displayName).localeCompare(String(right.displayName));
       })
-      .slice(0, 12);
+      .slice(0, DUPLICATE_TOP_NAME_TIMING_MAX_NAMES);
     if (!topNames.length) {
       return false;
     }
 
+    const totalPages = Math.max(
+      1,
+      Math.ceil(topNames.length / DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE)
+    );
+    const requestedPage = Number.isFinite(mount.topNameTimingPage)
+      ? Math.round(mount.topNameTimingPage)
+      : 0;
+    const pageIndex = Math.max(0, Math.min(totalPages - 1, requestedPage));
+    mount.topNameTimingPage = pageIndex;
+    const pageStart = pageIndex * DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE;
+    const pageEndExclusive = Math.min(
+      topNames.length,
+      pageStart + DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE
+    );
+    const pageNames = topNames.slice(pageStart, pageEndExclusive);
+    if (!pageNames.length) {
+      return false;
+    }
+
     const yLabelByKey = new Map(
-      topNames.map((entry) => [
+      pageNames.map((entry) => [
         entry.key,
         Number.isFinite(entry.rank)
           ? String(entry.rank) + ". " + entry.displayName
           : entry.displayName,
       ])
     );
-    const yCategories = topNames.map((entry) => yLabelByKey.get(entry.key) || entry.displayName);
-    const points = filtered
-      .map((row) => {
-        const key = String(row.name_key || "").trim();
-        if (!yLabelByKey.has(key)) {
-          return null;
-        }
-        const timestamp = toEpochMillis(row.bucket_start);
-        const duplicateRows = toFiniteNumberOrNull(row.duplicate_rows);
-        if (timestamp === null || duplicateRows === null) {
-          return null;
-        }
-        return {
-          value: [timestamp, yLabelByKey.get(key), duplicateRows],
+    const yCategories = pageNames.map((entry) => yLabelByKey.get(entry.key) || entry.displayName);
+    const visibleKeys = new Set(pageNames.map((entry) => entry.key));
+    const points = [];
+    filtered.forEach((row) => {
+      const key = String(row.name_key || "").trim();
+      if (!visibleKeys.has(key)) {
+        return;
+      }
+      const timestamp = toEpochMillis(row.bucket_start);
+      const duplicateRows = toFiniteNumberOrNull(row.duplicate_rows);
+      if (timestamp === null || duplicateRows === null) {
+        return;
+      }
+      const nPro = Math.max(0, Math.round(toNumber(row.n_pro)));
+      const nCon = Math.max(0, Math.round(toNumber(row.n_con)));
+      const reportedOther = toFiniteNumberOrNull(row.n_other);
+      let nOther =
+        reportedOther === null
+          ? Math.max(0, Math.round(duplicateRows) - nPro - nCon)
+          : Math.max(0, Math.round(reportedOther));
+      if (nPro + nCon + nOther === 0) {
+        nOther = Math.max(1, Math.round(duplicateRows));
+      }
+      const bucketPositionRows = [
+        { position: "Pro", rows: nPro },
+        { position: "Con", rows: nCon },
+        { position: "Other", rows: nOther },
+      ].filter((entry) => entry.rows > 0);
+      bucketPositionRows.forEach((entry) => {
+        points.push({
+          value: [timestamp, yLabelByKey.get(key), entry.rows],
           name_key: key,
           display_name: String(row.display_name || key),
           rank: toFiniteNumberOrNull(row.rank),
           total_repeated_rows: toFiniteNumberOrNull(row.total_repeated_rows),
           bucket_minutes: toFiniteNumberOrNull(row.bucket_minutes),
           duplicate_rows: duplicateRows,
-          n_pro: toFiniteNumberOrNull(row.n_pro),
-          n_con: toFiniteNumberOrNull(row.n_con),
+          position: entry.position,
+          position_rows: entry.rows,
+          n_pro: nPro,
+          n_con: nCon,
+          n_other: nOther,
           match_label: String(row.match_label || modeInfo.label || ""),
           match_definition: String(
             row.match_definition || modeInfo.fallbackDefinition || ""
           ),
-        };
-      })
-      .filter((value) => value !== null);
+        });
+      });
+    });
     if (!points.length) {
       return false;
     }
 
-    const duplicateValues = points
-      .map((point) => toFiniteNumberOrNull(point.duplicate_rows))
+    const positionValues = points
+      .map((point) => toFiniteNumberOrNull(point.position_rows))
       .filter((value) => value !== null);
-    const minDup = duplicateValues.length ? Math.min(...duplicateValues) : 1;
-    const maxDupRaw = duplicateValues.length ? Math.max(...duplicateValues) : 1;
-    const maxDup = maxDupRaw > minDup ? maxDupRaw : minDup + 1;
+    const minRows = positionValues.length ? Math.min(...positionValues) : 1;
+    const maxRowsRaw = positionValues.length ? Math.max(...positionValues) : 1;
+    const maxRows = maxRowsRaw > minRows ? maxRowsRaw : minRows + 1;
     const symbolSizeFor = (dupRaw) => {
       const duplicateRows = Math.max(1, toNumber(dupRaw));
-      if (!(maxDup > minDup)) {
+      if (!(maxRows > minRows)) {
         return 12;
       }
-      const ratio = Math.max(0, Math.min(1, (duplicateRows - minDup) / (maxDup - minDup)));
+      const ratio = Math.max(0, Math.min(1, (duplicateRows - minRows) / (maxRows - minRows)));
       return 8 + ratio * 20;
+    };
+    const orderedPoints = points
+      .slice()
+      .sort((left, right) => {
+        const sizeDelta = toNumber(right.position_rows) - toNumber(left.position_rows);
+        if (sizeDelta !== 0) {
+          return sizeDelta;
+        }
+        const timeDelta = toNumber(left.value[0]) - toNumber(right.value[0]);
+        if (timeDelta !== 0) {
+          return timeDelta;
+        }
+        return String(left.display_name || "").localeCompare(String(right.display_name || ""));
+      });
+    const positionColors = {
+      Pro: theme.contextLine,
+      Con: theme.alertLower,
+      Other: theme.referenceLine,
     };
     const definition = String(points[0].match_definition || modeInfo.fallbackDefinition || "").trim();
     const bucketLabel = bucketLabelFromValue(mount.activeBucket);
+    const maxLabelChars = yCategories.reduce(
+      (maxChars, label) => Math.max(maxChars, String(label || "").length),
+      0
+    );
+    const hostWidth =
+      mount && mount.host && Number.isFinite(mount.host.clientWidth)
+        ? mount.host.clientWidth
+        : 0;
+    const compact = hostWidth > 0 && hostWidth < 700;
+    const axisLabelWidth = compact ? 110 : 150;
+    const leftPadding = compact
+      ? Math.max(186, Math.min(254, 122 + Math.min(maxLabelChars, 34) * 3.4))
+      : Math.max(236, Math.min(338, 142 + Math.min(maxLabelChars, 42) * 4.2));
+    const yNameGap = compact ? 84 : 96;
 
     const option = {
       animation: false,
-      grid: { left: 196, right: 30, top: 28, bottom: 78 },
+      grid: { left: leftPadding, right: 30, top: 28, bottom: 78 },
       tooltip: {
         trigger: "item",
         appendToBody: true,
@@ -5542,6 +5706,9 @@
           const bucketMinutes = toFiniteNumberOrNull(raw.bucket_minutes);
           const nPro = toFiniteNumberOrNull(raw.n_pro);
           const nCon = toFiniteNumberOrNull(raw.n_con);
+          const nOther = toFiniteNumberOrNull(raw.n_other);
+          const positionRows = toFiniteNumberOrNull(raw.position_rows);
+          const position = String(raw.position || "").trim();
           const tierDefinition = String(raw.match_definition || "").trim();
           const bucketEnd =
             timestamp !== null && bucketMinutes !== null
@@ -5568,17 +5735,27 @@
               "<strong>Duplicate rows (bucket):</strong> " + Number(duplicateRows).toLocaleString()
             );
           }
+          if (positionRows !== null) {
+            lines.push(
+              "<strong>Position rows (bucket):</strong> " + Number(positionRows).toLocaleString()
+            );
+          }
+          if (position) {
+            lines.push("<strong>Position:</strong> " + escapeHtml(position));
+          }
           if (totalRepeatedRows !== null) {
             lines.push(
               "<strong>Total repeated rows (name):</strong> " + Number(totalRepeatedRows).toLocaleString()
             );
           }
-          if (nPro !== null || nCon !== null) {
+          if (nPro !== null || nCon !== null || nOther !== null) {
             lines.push(
-              "<strong>Pro/Con:</strong> " +
+              "<strong>Pro/Con/Other:</strong> " +
                 Number(nPro || 0).toLocaleString() +
                 "/" +
-                Number(nCon || 0).toLocaleString()
+                Number(nCon || 0).toLocaleString() +
+                "/" +
+                Number(nOther || 0).toLocaleString()
             );
           }
           if (tierDefinition) {
@@ -5600,10 +5777,14 @@
       yAxis: {
         type: "category",
         name: "Top names",
+        nameGap: yNameGap,
         data: yCategories,
         inverse: true,
         axisLabel: {
           color: theme.axisText,
+          margin: 12,
+          width: axisLabelWidth,
+          overflow: "truncate",
           formatter: (value) => {
             const text = String(value || "");
             return text.length > 38 ? text.slice(0, 35) + "..." : text;
@@ -5616,17 +5797,23 @@
         {
           name: modeInfo.label,
           type: "scatter",
-          data: points,
+          data: orderedPoints,
           symbolSize: (value, params) => {
-            if (params && params.data && params.data.duplicate_rows !== undefined) {
-              return symbolSizeFor(params.data.duplicate_rows);
+            if (params && params.data && params.data.position_rows !== undefined) {
+              return symbolSizeFor(params.data.position_rows);
             }
             return symbolSizeFor(Array.isArray(value) ? value[2] : null);
           },
-          itemStyle: { color: theme.primaryLine, opacity: 0.78 },
+          itemStyle: {
+            opacity: 0.82,
+            color: (params) => {
+              const raw = params && params.data && typeof params.data === "object" ? params.data : {};
+              const position = String(raw.position || "").trim();
+              return positionColors[position] || theme.primaryLine;
+            },
+          },
           emphasis: {
             itemStyle: {
-              color: theme.alertLower,
               borderColor: theme.axisLine,
               borderWidth: 1.1,
               opacity: 0.95,
@@ -5636,9 +5823,68 @@
       ],
     };
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    const pageLabelStart = pageStart + 1;
+    const pageLabelEnd = pageEndExclusive;
+    if (totalPages > 1) {
+      const controls = document.createElement("div");
+      controls.className = "chart-inline-controls-row";
+
+      const previousButton = document.createElement("button");
+      previousButton.type = "button";
+      previousButton.className = "control-button";
+      previousButton.textContent = "Prev 10";
+      previousButton.disabled = pageIndex <= 0;
+      previousButton.addEventListener("click", () => {
+        if (mount.topNameTimingPage <= 0) {
+          return;
+        }
+        mount.topNameTimingPage = Math.max(0, mount.topNameTimingPage - 1);
+        void renderChartMount(mount);
+      });
+
+      const status = document.createElement("span");
+      status.className = "tiny-note chart-inline-controls-status";
+      status.textContent =
+        "Names " +
+        pageLabelStart +
+        "-" +
+        pageLabelEnd +
+        " of " +
+        topNames.length +
+        " (page " +
+        (pageIndex + 1) +
+        "/" +
+        totalPages +
+        ")";
+
+      const nextButton = document.createElement("button");
+      nextButton.type = "button";
+      nextButton.className = "control-button";
+      nextButton.textContent = "Next 10";
+      nextButton.disabled = pageIndex >= totalPages - 1;
+      nextButton.addEventListener("click", () => {
+        if (mount.topNameTimingPage >= totalPages - 1) {
+          return;
+        }
+        mount.topNameTimingPage = Math.min(totalPages - 1, mount.topNameTimingPage + 1);
+        void renderChartMount(mount);
+      });
+
+      controls.appendChild(previousButton);
+      controls.appendChild(status);
+      controls.appendChild(nextButton);
+      setChartControls(mount.chartId, controls);
+    }
     mount.customChartNote =
-      "Point size scales duplicate rows in each active bucket occurrence." +
-      (definition ? " Tier: " + definition : "");
+      "Point size scales per-position duplicate rows in each active bucket occurrence. Colors show Pro/Con/Other." +
+      (definition ? " Tier: " + definition : "") +
+      " Showing names " +
+      pageLabelStart +
+      "-" +
+      pageLabelEnd +
+      " of " +
+      topNames.length +
+      ".";
     mount.isTimeSeries = false;
     mount.isAbsoluteTime = false;
     return true;
@@ -5976,7 +6222,6 @@
         lineField: "pro_rate",
         lineLow: "pro_rate_wilson_low",
         lineHigh: "pro_rate_wilson_high",
-        comparatorMetric: "overall_pro_rate",
         lowPowerField: "is_low_power",
         lineAxisName: "Pro rate",
         lineMin: 0,
@@ -5991,7 +6236,6 @@
         lowPowerField: "is_low_power",
         flaggedField: "is_flagged",
         extraLines: ["baseline_pro_rate", "stable_lower", "stable_upper"],
-        comparatorMetric: "overall_pro_rate",
         lineAxisName: "Pro rate",
         lineMin: 0,
         lineMax: 1,
@@ -6074,8 +6318,12 @@
         lineField: "matched_rate",
         lineLow: "match_rate_wilson_low",
         lineHigh: "match_rate_wilson_high",
+        adaptiveLineRange: true,
+        adaptiveLineRangePadding: 0.12,
+        adaptiveLineRangeMinSpan: 0.08,
+        adaptiveLineRangeClampMin: 0,
+        adaptiveLineRangeClampMax: 1,
         extraLines: [
-          "unmatched_rate",
           "matched_rate_pro",
           "matched_rate_con",
           "expected_match_rate_global",
@@ -6822,232 +7070,6 @@
     };
   }
 
-  function withinWindow(timestamp, start, end) {
-    return timestamp !== null && start !== null && end !== null && timestamp >= start && timestamp <= end;
-  }
-
-  function overlapsWindow(startA, endA, startB, endB) {
-    return startA !== null && endA !== null && startB !== null && endB !== null && startA <= endB && endA >= startB;
-  }
-
-  function getWindowSpanRows(windowRow) {
-    const start = toEpochMillis(windowRow ? windowRow.start_time : null);
-    const end = toEpochMillis(windowRow ? windowRow.end_time : null);
-    if (start === null || end === null) {
-      return [];
-    }
-
-    const baselineRows = getChartRows("baseline_volume_pro_rate")
-      .filter((row) => withinWindow(toEpochMillis(row.minute_bucket), start, end))
-      .map((row) =>
-        Object.assign({ source: "baseline_volume_pro_rate", source_time: row.minute_bucket }, row)
-      );
-    const burstRows = getChartRows("bursts_hero_timeline")
-      .filter((row) =>
-        overlapsWindow(
-          toEpochMillis(row.start_minute),
-          toEpochMillis(row.end_minute),
-          start,
-          end
-        )
-      )
-      .map((row) =>
-        Object.assign({ source: "bursts_hero_timeline", source_time: row.start_minute }, row)
-      );
-    const swingRows = getChartRows("procon_swings_hero_bucket_trend")
-      .filter((row) => withinWindow(toEpochMillis(row.bucket_start), start, end))
-      .map((row) =>
-        Object.assign(
-          { source: "procon_swings_hero_bucket_trend", source_time: row.bucket_start },
-          row
-        )
-      );
-    const duplicateRows = getChartRows("duplicates_exact_bucket_concentration")
-      .filter((row) => withinWindow(toEpochMillis(row.bucket_start), start, end))
-      .map((row) =>
-        Object.assign(
-          { source: "duplicates_exact_bucket_concentration", source_time: row.bucket_start },
-          row
-        )
-      );
-    const rarityRows = getChartRows("rare_names_rarity_timeline")
-      .filter((row) => withinWindow(toEpochMillis(row.minute_bucket), start, end))
-      .map((row) =>
-        Object.assign({ source: "rare_names_rarity_timeline", source_time: row.minute_bucket }, row)
-      );
-
-    return baselineRows
-      .concat(burstRows, swingRows, duplicateRows, rarityRows)
-      .sort((left, right) => {
-        const leftTime = toEpochMillis(left.source_time);
-        const rightTime = toEpochMillis(right.source_time);
-        if (leftTime === null && rightTime === null) {
-          return 0;
-        }
-        if (leftTime === null) {
-          return 1;
-        }
-        if (rightTime === null) {
-          return -1;
-        }
-        return leftTime - rightTime;
-      });
-  }
-
-  function getWindowDupRows(windowRow) {
-    const start = toEpochMillis(windowRow ? windowRow.start_time : null);
-    const end = toEpochMillis(windowRow ? windowRow.end_time : null);
-    if (start === null || end === null) {
-      return [];
-    }
-    const rows = getChartRows("duplicates_exact_bucket_concentration");
-    return rows.filter((row) => {
-      const timestamp = toEpochMillis(row.bucket_start);
-      return withinWindow(timestamp, start, end);
-    });
-  }
-
-  function getWindowClusterRows(windowRow) {
-    const start = toEpochMillis(windowRow ? windowRow.start_time : null);
-    const end = toEpochMillis(windowRow ? windowRow.end_time : null);
-    if (start === null || end === null) {
-      return [];
-    }
-    const rows = getChartRows("duplicates_near_cluster_timeline");
-    return rows.filter((row) => {
-      const firstSeen = toEpochMillis(row.first_seen);
-      const lastSeen = toEpochMillis(row.last_seen);
-      if (firstSeen === null || lastSeen === null) {
-        return false;
-      }
-      return overlapsWindow(firstSeen, lastSeen, start, end);
-    });
-  }
-
-  function getRunsAndWeirdnessRows(windowRow, causativeRows) {
-    const series = Array.isArray(causativeRows) ? causativeRows : [];
-    let longestProHeavy = 0;
-    let longestConHeavy = 0;
-    let currentPro = 0;
-    let currentCon = 0;
-    series.forEach((row) => {
-      const proRate = toFiniteNumberOrNull(row.pro_rate);
-      if (proRate === null) {
-        currentPro = 0;
-        currentCon = 0;
-        return;
-      }
-      if (proRate >= 0.5) {
-        currentPro += 1;
-        currentCon = 0;
-      } else {
-        currentCon += 1;
-        currentPro = 0;
-      }
-      longestProHeavy = Math.max(longestProHeavy, currentPro);
-      longestConHeavy = Math.max(longestConHeavy, currentCon);
-    });
-
-    const start = toEpochMillis(windowRow ? windowRow.start_time : null);
-    const end = toEpochMillis(windowRow ? windowRow.end_time : null);
-    const rarityRows = getChartRows("rare_names_rarity_timeline");
-    const inWindow = rarityRows.filter((row) => {
-      const timestamp = toEpochMillis(row.minute_bucket);
-      return withinWindow(timestamp, start, end);
-    });
-    const outWindow = rarityRows.filter((row) => {
-      const timestamp = toEpochMillis(row.minute_bucket);
-      return (
-        timestamp !== null &&
-        start !== null &&
-        end !== null &&
-        !withinWindow(timestamp, start, end)
-      );
-    });
-    const mean = (rows) => {
-      const values = rows
-        .map((row) => toFiniteNumberOrNull(row.rarity_mean))
-        .filter((value) => value !== null);
-      if (!values.length) {
-        return null;
-      }
-      return values.reduce((acc, value) => acc + value, 0) / values.length;
-    };
-    const weirdnessIn = mean(inWindow);
-    const weirdnessOut = mean(outWindow);
-    const weirdnessDelta =
-      weirdnessIn !== null && weirdnessOut !== null ? weirdnessIn - weirdnessOut : null;
-
-    return [
-      {
-        metric: "longest_pro_heavy_run_buckets",
-        value: longestProHeavy,
-      },
-      {
-        metric: "longest_con_heavy_run_buckets",
-        value: longestConHeavy,
-      },
-      {
-        metric: "rarity_mean_in_window",
-        value: weirdnessIn,
-      },
-      {
-        metric: "rarity_mean_outside_window",
-        value: weirdnessOut,
-      },
-      {
-        metric: "rarity_mean_delta_window_minus_outside",
-        value: weirdnessDelta,
-      },
-    ];
-  }
-
-  function focusWindowSpan(windowRow) {
-    const start = toEpochMillis(windowRow ? windowRow.start_time : null);
-    const endRaw = toEpochMillis(windowRow ? windowRow.end_time : null);
-    if (start === null || endRaw === null) {
-      state.selectedWindowRange = null;
-      return;
-    }
-    const bucketMinutes = toFiniteNumberOrNull(windowRow ? windowRow.bucket_minutes : null);
-    const fallbackSpanMs = Math.max(
-      60_000,
-      Math.round((bucketMinutes !== null ? bucketMinutes : 30) * 60_000)
-    );
-    const end = endRaw > start ? endRaw : start + fallbackSpanMs;
-    state.selectedWindowRange = { start: start, end: end };
-    state.cursorX = start;
-    updateCursorAcrossTimeCharts();
-    scheduleZoomSync(start, end, null, false);
-  }
-
-  function renderWindowDrilldown(windowRow) {
-    drilldownState.activeWindow = windowRow || null;
-    const selectionLabel = document.getElementById("window-drilldown-selection");
-    if (selectionLabel) {
-      selectionLabel.textContent = windowRow
-        ? "Selected window: " + String(windowRow.window_id || "") + " (" + formatDateRange(windowRow.start_time, windowRow.end_time) + ")"
-        : "No window selected.";
-    }
-
-    const causativeRows = windowRow ? getWindowSpanRows(windowRow) : [];
-    const dupRows = windowRow ? getWindowDupRows(windowRow) : [];
-    const clusterRows = windowRow ? getWindowClusterRows(windowRow) : [];
-    const runsWeirdnessRows = windowRow ? getRunsAndWeirdnessRows(windowRow, causativeRows) : [];
-
-    const causativeHost = document.getElementById("drilldown-causative-rows-host");
-    const dupHost = document.getElementById("drilldown-dup-names-host");
-    const clusterHost = document.getElementById("drilldown-clusters-host");
-    const runsHost = document.getElementById("drilldown-runs-weirdness-host");
-    mountTable(causativeHost, causativeRows, { paginationSize: 12, maxHeight: "330px" });
-    mountTable(dupHost, dupRows, { paginationSize: 12, maxHeight: "330px" });
-    mountTable(clusterHost, clusterRows, { paginationSize: 12, maxHeight: "330px" });
-    mountTable(runsHost, runsWeirdnessRows, { pagination: false, maxHeight: "330px" });
-    if (windowRow) {
-      focusWindowSpan(windowRow);
-    }
-  }
-
   function renderTriageSummary() {
     const view = getActiveTriageView();
     const summary = view.triage_summary || {};
@@ -7101,10 +7123,12 @@
       );
     }
 
-    const tierCounts = summary.window_tier_counts || {};
+    const topRepeatedNames = Array.isArray(summary.top_repeated_names)
+      ? summary.top_repeated_names
+      : [];
     setText(
       "triage-top-tier-count",
-      Number(toNumber(tierCounts.high || 0)).toLocaleString()
+      Number(toNumber(topRepeatedNames.length || 0)).toLocaleString()
     );
   }
 
@@ -7134,124 +7158,14 @@
     }
   }
 
-  function renderCrossHearingComparator() {
-    const summaryHost = document.getElementById("cross-hearing-comparator-summary");
-    const comparatorHost = document.getElementById("cross-hearing-comparator-host");
-    if (!summaryHost && !comparatorHost) {
-      return;
-    }
-
-    const available = !!(crossHearingBaseline && crossHearingBaseline.available);
-    const reportCount = Number(toNumber(crossHearingBaseline.report_count || 0));
-    const rowsRaw = Array.isArray(crossHearingBaseline.metric_comparators)
-      ? crossHearingBaseline.metric_comparators
-      : [];
-    const rows = rowsRaw.map((row) => {
-      const p10 = toFiniteNumberOrNull(row.band_p10);
-      const p50 = toFiniteNumberOrNull(row.band_p50);
-      const p90 = toFiniteNumberOrNull(row.band_p90);
-      return Object.assign({}, row, {
-        percentile_label: formatPercent(row.percentile, 0),
-        comparator_band:
-          p10 !== null && p50 !== null && p90 !== null
-            ? "p10/p50/p90: " +
-              formatTooltipValue(p10) +
-              " / " +
-              formatTooltipValue(p50) +
-              " / " +
-              formatTooltipValue(p90)
-            : "n/a",
-      });
-    });
-
-    if (summaryHost) {
-      if (available && rows.length) {
-        summaryHost.textContent =
-          "Compared against " +
-          reportCount.toLocaleString() +
-          " hearing run(s). Percentiles and p10/p50/p90 bands are corpus-relative.";
-      } else {
-        const reason =
-          typeof crossHearingBaseline.reason === "string" && crossHearingBaseline.reason.trim()
-            ? crossHearingBaseline.reason.trim()
-            : "Run the global baseline aggregator to enable cross-hearing comparisons.";
-        summaryHost.textContent = reason;
-      }
-    }
-    if (comparatorHost) {
-      mountTable(comparatorHost, rows, { pagination: false, maxHeight: "280px" });
-    }
-  }
-
-  function applyCrossHearingNameCues(rows) {
-    const cueRows = Array.isArray(crossHearingBaseline.top_name_cues)
-      ? crossHearingBaseline.top_name_cues
-      : [];
-    if (!cueRows.length) {
-      return rows;
-    }
-    const cueByCanonical = new Map(
-      cueRows
-        .filter((row) => row && typeof row.canonical_name === "string")
-        .map((row) => [String(row.canonical_name), row])
-    );
-    return rows.map((row) => {
-      const canonical = String((row || {}).canonical_name || "");
-      const cue = cueByCanonical.get(canonical);
-      if (!cue) {
-        return row;
-      }
-      return Object.assign({}, row, {
-        cross_hearing_report_count: Number(toNumber(cue.report_count || 0)),
-        cross_hearing_report_share: toFiniteNumberOrNull(cue.report_share),
-        cross_hearing_max_n_records: Number(toNumber(cue.max_n_records_across_reports || 0)),
-        cross_hearing_max_records_percentile: toFiniteNumberOrNull(
-          cue.max_n_records_percentile
-        ),
-        cross_hearing_recurrent_name: Number(toNumber(cue.report_count || 0)) > 1,
-      });
-    });
-  }
-
-  function applyCrossHearingClusterCues(rows) {
-    const cueRows = Array.isArray(crossHearingBaseline.top_cluster_cues)
-      ? crossHearingBaseline.top_cluster_cues
-      : [];
-    if (!cueRows.length) {
-      return rows;
-    }
-    const cueByCluster = new Map(
-      cueRows
-        .filter((row) => row && typeof row.cluster_id === "string")
-        .map((row) => [String(row.cluster_id), row])
-    );
-    return rows.map((row) => {
-      const clusterId = String((row || {}).cluster_id || "");
-      const cue = cueByCluster.get(clusterId);
-      if (!cue) {
-        return row;
-      }
-      return Object.assign({}, row, {
-        cross_hearing_cluster_size_percentile: toFiniteNumberOrNull(
-          cue.cluster_size_percentile
-        ),
-        cross_hearing_n_records_percentile: toFiniteNumberOrNull(cue.n_records_percentile),
-      });
-    });
-  }
-
   function renderHearingContextPanel() {
     const summaryHost = document.getElementById("hearing-context-summary");
     const metadataHost = document.getElementById("hearing-context-metadata-host");
     const rampHost = document.getElementById("hearing-deadline-ramp-host");
-    const stanceHost = document.getElementById("hearing-stance-by-deadline-host");
 
     const isAvailable = !!(hearingContextPanel && hearingContextPanel.available);
     const metadataRows = Array.isArray(hearingContextPanel.metadata_rows)
       ? hearingContextPanel.metadata_rows
-      : [];
-    const stanceRows = Array.isArray(hearingContextPanel.stance_by_deadline)
-      ? hearingContextPanel.stance_by_deadline
       : [];
     const ramp = hearingContextPanel.deadline_ramp_metrics || {};
 
@@ -7295,10 +7209,6 @@
     if (rampHost) {
       mountTable(rampHost, rampRows, { pagination: false, maxHeight: "280px" });
     }
-
-    if (stanceHost) {
-      mountTable(stanceHost, stanceRows, { pagination: false, maxHeight: "320px" });
-    }
   }
 
   function renderInvestigationTables() {
@@ -7307,82 +7217,25 @@
     }
     const view = getActiveTriageView();
     const summary = view.triage_summary || {};
-    const windowQueue = Array.isArray(view.window_evidence_queue) ? view.window_evidence_queue : [];
-    const recordQueue = Array.isArray(view.record_evidence_queue) ? view.record_evidence_queue : [];
-    const clusterQueue = Array.isArray(view.cluster_evidence_queue) ? view.cluster_evidence_queue : [];
-    const drilldownHint = document.getElementById("window-drilldown-hint");
-    if (drilldownHint) {
-      drilldownHint.textContent = windowQueue.length
-        ? "Select a window row in Triage to focus linked charts and inspect causative rows, duplicate names, near-duplicate clusters, and rarity-context comparison."
-        : "No window evidence rows are available for the current triage lens. Switch lens or use chart zoom/click markers for manual context.";
-    }
-
-    const windowHost = document.getElementById("triage-window-queue-host");
-    const recordHost = document.getElementById("triage-record-queue-host");
-    const clusterHost = document.getElementById("triage-cluster-queue-host");
     const forensicsNamesHost = document.getElementById("forensics-top-names-host");
     const forensicsClustersHost = document.getElementById("forensics-top-clusters-host");
-    const comparatorHost = document.getElementById("cross-hearing-comparator-host");
     const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
     const artifactRowsHost = document.getElementById("methodology-artifact-rows-host");
 
-    const windowMount = mountTable(windowHost, windowQueue, {
-      paginationSize: 12,
-      maxHeight: "420px",
-      selectableRows: true,
-      rowClick: (_event, row) => {
-        const data = row && typeof row.getData === "function" ? row.getData() : null;
-        if (data) {
-          renderWindowDrilldown(data);
-        }
-      },
-    });
-    if (windowMount && windowMount.kind === "tabulator") {
-      drilldownState.windowTable = windowMount.table;
-      if (
-        drilldownState.windowTable &&
-        typeof drilldownState.windowTable.on === "function"
-      ) {
-        drilldownState.windowTable.on("rowClick", (_event, row) => {
-          const data = row && typeof row.getData === "function" ? row.getData() : null;
-          if (data) {
-            renderWindowDrilldown(data);
-          }
-        });
-      }
-    }
-
-    mountTable(recordHost, recordQueue, {
-      paginationSize: 10,
-      maxHeight: "380px",
-    });
-    mountTable(clusterHost, clusterQueue, {
-      paginationSize: 10,
-      maxHeight: "380px",
-    });
-
-    const topNames = Array.isArray(summary.top_repeated_names) && summary.top_repeated_names.length
+    const topNames = Array.isArray(summary.top_repeated_names)
       ? summary.top_repeated_names
-      : recordQueue.slice(0, 10);
+      : [];
     const topClusters =
-      Array.isArray(summary.top_near_dup_clusters) &&
-      summary.top_near_dup_clusters.length
-        ? summary.top_near_dup_clusters
-        : clusterQueue.slice(0, 10);
-    const topNamesWithCues = applyCrossHearingNameCues(topNames);
-    const topClustersWithCues = applyCrossHearingClusterCues(topClusters);
+      Array.isArray(summary.top_near_dup_clusters) ? summary.top_near_dup_clusters : [];
 
-    mountTable(forensicsNamesHost, topNamesWithCues, {
+    mountTable(forensicsNamesHost, topNames, {
       paginationSize: 8,
       maxHeight: "340px",
     });
-    mountTable(forensicsClustersHost, topClustersWithCues, {
+    mountTable(forensicsClustersHost, topClusters, {
       paginationSize: 8,
       maxHeight: "340px",
     });
-    if (comparatorHost) {
-      renderCrossHearingComparator();
-    }
 
     const taxonomyRows = Array.isArray(methodology.evidence_taxonomy)
       ? methodology.evidence_taxonomy
@@ -7411,74 +7264,6 @@
       maxHeight: "300px",
     });
     renderMethodologyPanel();
-
-    const currentWindowId = String((drilldownState.activeWindow || {}).window_id || "");
-    const nextActiveWindow =
-      windowQueue.find((row) => String((row || {}).window_id || "") === currentWindowId) ||
-      (windowQueue.length ? windowQueue[0] : null);
-    if (nextActiveWindow) {
-      renderWindowDrilldown(nextActiveWindow);
-    } else {
-      renderWindowDrilldown(null);
-      const selectionLabel = document.getElementById("window-drilldown-selection");
-      if (selectionLabel) {
-        selectionLabel.textContent =
-          "No window evidence rows are available for the current triage lens.";
-      }
-    }
-
-    if (!investigationActionsBound) {
-      const selectedButton = document.getElementById("download-selected-window-rows");
-      if (selectedButton) {
-        selectedButton.addEventListener("click", () => {
-          let selectedWindows = [];
-          if (
-            drilldownState.windowTable &&
-            typeof drilldownState.windowTable.getSelectedData === "function"
-          ) {
-            selectedWindows = drilldownState.windowTable.getSelectedData() || [];
-          }
-          if (!selectedWindows.length && drilldownState.activeWindow) {
-            selectedWindows = [drilldownState.activeWindow];
-          }
-          const rows = selectedWindows.flatMap((windowRow) =>
-            getWindowSpanRows(windowRow).map((row) =>
-              Object.assign({ window_id: windowRow.window_id || "" }, row)
-            )
-          );
-          if (!downloadCsv("selected_window_rows.csv", rows)) {
-            window.alert("No selected window rows available to export.");
-          }
-        });
-      }
-
-      const topWindowsButton = document.getElementById("download-top-evidence-windows");
-      if (topWindowsButton) {
-        topWindowsButton.addEventListener("click", () => {
-          const activeView = getActiveTriageView();
-          const activeRows = Array.isArray(activeView.window_evidence_queue)
-            ? activeView.window_evidence_queue
-            : [];
-          if (!downloadCsv("top_evidence_windows.csv", activeRows)) {
-            window.alert("No window evidence rows available to export.");
-          }
-        });
-      }
-
-      const topRecordsButton = document.getElementById("download-top-evidence-records");
-      if (topRecordsButton) {
-        topRecordsButton.addEventListener("click", () => {
-          const activeView = getActiveTriageView();
-          const activeRows = Array.isArray(activeView.record_evidence_queue)
-            ? activeView.record_evidence_queue
-            : [];
-          if (!downloadCsv("top_evidence_records.csv", activeRows)) {
-            window.alert("No record evidence rows available to export.");
-          }
-        });
-      }
-      investigationActionsBound = true;
-    }
   }
 
   function initDedupModeControl() {
@@ -7728,6 +7513,7 @@
         setChartLoading(mount.chartId, false);
         setEmptyForChart(mount.chartId, true);
         setChartNote(mount.chartId, "Unable to load chart data for this section.");
+        setChartControls(mount.chartId, null);
         showDataLoadError(
           "Unable to load report data files. Serve this report directory over HTTP and refresh.",
           error
@@ -7739,6 +7525,7 @@
       }
     }
 
+    setChartControls(mount.chartId, null);
     const rawRows = getChartRows(mount.chartId);
     const duplicateScopedRows = filterRowsByDuplicateCollisionControls(mount.chartId, rawRows);
     if (!duplicateScopedRows.length) {
@@ -7795,10 +7582,10 @@
       hasFunnelClickHandler: false,
       seriesId: null,
       baseMarkLines: state.absoluteTimeSet.has(chartId) ? buildProcessMarkerLines() : [],
-      crossHearingComparatorNote: null,
       customChartNote: null,
       timeExtent: null,
       activeBucket: null,
+      topNameTimingPage: 0,
     };
     chartMounts.set(chartId, mount);
     if (mount.chart) {
@@ -7971,10 +7758,13 @@
       ? duplicateMetricOptions
       : [state.defaultDuplicateMetric];
     if (!scopeOptions.length || !metricOptions.length) {
+      panel.setAttribute("data-section-control-enabled", "false");
       panel.classList.add("hidden");
+      updateSectionViewControlsForHeading(state.activeTocHeading || window.location.hash);
       return;
     }
-    panel.classList.remove("hidden");
+    panel.setAttribute("data-section-control-enabled", "true");
+    panel.classList.add("hidden");
 
     let savedScope = "";
     let savedMetric = "";
@@ -8044,6 +7834,7 @@
     };
     scopeSelect.addEventListener("change", onChange);
     metricSelect.addEventListener("change", onChange);
+    updateSectionViewControlsForHeading(state.activeTocHeading || window.location.hash);
   }
 
   function initBucketTabs() {
@@ -8058,6 +7849,7 @@
       if (panel) {
         panel.classList.add("hidden");
       }
+      updateSidebarFloatingOffsets();
       return;
     }
 
@@ -8081,12 +7873,15 @@
       tab.type = "button";
       tab.className = "bucket-tab";
       tab.setAttribute("role", "tab");
+      tab.setAttribute("data-bucket-minutes", String(Math.round(bucket)));
       tab.setAttribute("aria-selected", state.activeBucket === bucket ? "true" : "false");
-      tab.textContent = String(bucket) + "m";
+      tab.textContent = bucketSelectorLabel(bucket);
+      tab.title = String(Math.round(bucket)) + "m";
       tab.addEventListener("click", () => {
         state.activeBucket = bucket;
         Array.from(root.querySelectorAll(".bucket-tab")).forEach((node) => {
-          node.setAttribute("aria-selected", node.textContent === String(bucket) + "m" ? "true" : "false");
+          const value = toFiniteNumberOrNull(node.getAttribute("data-bucket-minutes"));
+          node.setAttribute("aria-selected", value === bucket ? "true" : "false");
         });
         syncControlOverridesToUrl();
         runWithBusyIndicator("Applying " + bucket + "m bucket...", async () =>
@@ -8095,6 +7890,7 @@
       });
       root.appendChild(tab);
     });
+    updateSidebarFloatingOffsets();
   }
 
   function initZoomControls() {
@@ -8111,6 +7907,7 @@
       if (banner) {
         banner.classList.add("hidden");
       }
+      updateSidebarFloatingOffsets();
       return;
     }
     panel.classList.remove("hidden");
@@ -8144,6 +7941,7 @@
       });
     }
     updateZoomRangeLabel();
+    updateSidebarFloatingOffsets();
   }
 
   function initSidebarToggle() {
@@ -8164,6 +7962,7 @@
       launcher.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Hide menu" : "Show menu");
       toggle.textContent = open ? "←" : "→";
+      updateSidebarFloatingOffsets();
       scheduleChartResizeSequence();
     };
 
@@ -8181,6 +7980,7 @@
         previousIsMobile = nowMobile;
         applyState(!nowMobile);
       } else {
+        updateSidebarFloatingOffsets();
         scheduleChartResizeSequence();
       }
     });
@@ -8487,6 +8287,87 @@
     host.textContent = "All times in this report are shown in " + reportTimezoneLabel + ".";
   }
 
+  function normalizeBillShortName(value) {
+    const source = String(value || "")
+      .replace(/_/g, " ")
+      .trim();
+    if (!source) {
+      return "";
+    }
+    const collapsed = source.replace(/\s+/g, " ");
+    const canonical = collapsed.match(/^([A-Za-z]{1,4})[-\s]?(\d{3,5}[A-Za-z]?)$/);
+    if (canonical) {
+      return canonical[1].toUpperCase() + " " + canonical[2].toUpperCase();
+    }
+    return collapsed;
+  }
+
+  function deriveBillShortName() {
+    const source =
+      hearingContextPanel && hearingContextPanel.source && typeof hearingContextPanel.source === "object"
+        ? hearingContextPanel.source
+        : {};
+    const fromSource = normalizeBillShortName(source.short_bill_id);
+    if (fromSource) {
+      return fromSource;
+    }
+
+    const metadataRows = Array.isArray(hearingContextPanel.metadata_rows)
+      ? hearingContextPanel.metadata_rows
+      : [];
+    for (const row of metadataRows) {
+      if (String(row && row.field ? row.field : "") !== "short_bill_id") {
+        continue;
+      }
+      const fromMetadata = normalizeBillShortName(row && row.value ? row.value : "");
+      if (fromMetadata) {
+        return fromMetadata;
+      }
+    }
+
+    const hearingId = String(hearingContextPanel.hearing_id || "").trim();
+    if (hearingId) {
+      const prefix = hearingId.split("-")[0] || "";
+      const fromPrefix = normalizeBillShortName(prefix);
+      if (fromPrefix) {
+        return fromPrefix;
+      }
+      const tokenMatch = hearingId.match(/([A-Za-z]{1,4}[-\s]?\d{3,5}[A-Za-z]?)/);
+      if (tokenMatch) {
+        const fromToken = normalizeBillShortName(tokenMatch[1]);
+        if (fromToken) {
+          return fromToken;
+        }
+      }
+    }
+
+    return "";
+  }
+
+  function applySidebarBillMeta() {
+    const host = document.getElementById("sidebar-bill-meta");
+    if (!host) {
+      return;
+    }
+    const billShortName = deriveBillShortName();
+    if (!billShortName) {
+      host.textContent = "";
+      host.classList.add("hidden");
+      return;
+    }
+    host.textContent = "Bill " + billShortName;
+    host.classList.remove("hidden");
+
+    const title = String(document.title || "").trim();
+    if (!title) {
+      document.title = "Testifier Audit Report - " + billShortName;
+      return;
+    }
+    if (!title.includes(billShortName)) {
+      document.title = title + " - " + billShortName;
+    }
+  }
+
   function buildKpis() {
     const artifactRows = Object.values(reportData.artifact_rows || {}).map((value) => toNumber(value));
     const detectorStats = collectDetectorStats();
@@ -8741,6 +8622,7 @@
     await Promise.all(available.map((analysisId) => ensureAnalysisDataLoaded(analysisId)));
   }
 
+  applySidebarBillMeta();
   updateReportTimezoneSummary();
   await ensureHeaderDataLoaded();
   buildKpis();
@@ -8758,6 +8640,7 @@
   initBucketTabs();
   initDuplicateCollisionControls();
   initZoomControls();
+  initSidebarFloatingOffsetsObserver();
   initSidebarToc();
   await runWithBusyIndicator("Loading report sections...", async () => {
     await mountAllSections();
@@ -8769,6 +8652,7 @@
   scheduleChartResizeSequence();
 
   window.addEventListener("resize", () => {
+    updateSidebarFloatingOffsets();
     scheduleChartResizeSequence();
   });
 })();

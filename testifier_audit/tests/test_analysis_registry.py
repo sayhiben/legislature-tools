@@ -17,7 +17,12 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     assert len(ids) == len(set(ids))
     assert len(hero_ids) == len(set(hero_ids))
     assert "baseline_profile" in ids
-    assert "composite_score" in ids
+    assert "composite_score" not in ids
+    assert "rare_names" not in ids
+    assert "sortedness" not in ids
+    assert "periodicity" not in ids
+    assert "multivariate_anomalies" not in ids
+    assert "changepoints" not in ids
     assert all("group" in entry for entry in definitions)
     assert all("priority" in entry for entry in definitions)
     duplicates_exact = next(entry for entry in definitions if entry["id"] == "duplicates_exact")

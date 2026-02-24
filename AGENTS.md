@@ -41,6 +41,14 @@ Repository-specific guidance for AI/code agents.
 Run from repo root unless noted.
 
 ```bash
+# Fast path for UI/template-only changes (no recompute):
+# rerender report HTML/assets from existing report_data + tables in reports/<csv-stem>
+cd ./testifier_audit
+python -m testifier_audit.cli report \
+  --out ../reports/SB6346-20260206-1330 \
+  --config ./configs/voter_registry_enabled.yaml \
+  --hearing-metadata ../data/metadata/SB6346-20260206-1330.hearing.yaml
+
 # End-to-end import + analysis + report
 ./testifier_audit/scripts/report/run_unified_report.sh \
   ./data/raw/SB6346-20260206-1330.csv \
@@ -70,6 +78,17 @@ From repo root:
 python ./testifier_audit/scripts/report/build_reports_index.py
 python ./testifier_audit/scripts/report/build_global_baselines.py
 ```
+
+### Recompute Policy
+- Default to template/assets-only rerender (`python -m testifier_audit.cli report`) for visual,
+  layout, copy, or interaction-only changes.
+- Do **not** run `run_unified_report.sh`/`run-all` unless report data is stale.
+- Treat report data as stale when any of the following is true:
+  - required cached artifacts are missing/corrupt (`report_data/`, `summary/`, `tables/`,
+    `artifacts/report_runtime.json`);
+  - source inputs changed (submissions CSV, VRDB extract, or hearing metadata values that affect
+    computed outputs);
+  - detector/pipeline/config/contract changes alter computed payload values (not just rendering).
 
 ## Import Memoization
 - Imports memoize by file checksum (not filename).

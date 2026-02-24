@@ -5,24 +5,16 @@ from typing import Any
 import pandas as pd
 
 from testifier_audit.io.hearing_metadata import parse_hearing_metadata
-from testifier_audit.report.analysis_registry import ANALYSES_TO_PERFORM
+from testifier_audit.report.analysis_registry import (
+    ANALYSES_TO_PERFORM,
+    default_analysis_definitions,
+)
 from testifier_audit.report.render import _build_interactive_chart_payload_v2
 
 EXPECTED_ANALYSES = {
-    "baseline_profile",
-    "bursts",
-    "procon_swings",
-    "changepoints",
-    "off_hours",
-    "duplicates_exact",
-    "duplicates_near",
-    "sortedness",
-    "rare_names",
-    "org_anomalies",
-    "voter_registry_match",
-    "periodicity",
-    "multivariate_anomalies",
-    "composite_score",
+    str(entry.get("id") or "")
+    for entry in default_analysis_definitions()
+    if str(entry.get("id") or "")
 }
 EXPECTED_BASELINE_BUCKETS = [1, 5, 15, 30, 60, 120, 240]
 EXPECTED_FOCUS_ANALYSIS_IDS = [
@@ -204,12 +196,8 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(payload["chart_legend_docs"], dict)
     assert isinstance(payload["triage_views"], dict)
     assert isinstance(payload["triage_summary"], dict)
-    assert isinstance(payload["window_evidence_queue"], list)
-    assert isinstance(payload["record_evidence_queue"], list)
-    assert isinstance(payload["cluster_evidence_queue"], list)
     assert isinstance(payload["data_quality_panel"], dict)
     assert isinstance(payload["hearing_context_panel"], dict)
-    assert isinstance(payload["cross_hearing_baseline"], dict)
 
     ids = {entry["id"] for entry in payload["analysis_catalog"]}
     assert ids == EXPECTED_VISIBLE_ANALYSES
@@ -236,6 +224,15 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert "matched_rate_pro" in voter_rates[0]
     assert "matched_rate_con" in voter_rates[0]
     assert "is_match_rate_alert_any" in voter_rates[0]
+    voter_legend = payload["chart_legend_docs"]["voter_registry_match_rates"]
+    voter_legend_labels = {
+        str(item.get("label", ""))
+        for item in voter_legend.get("items", [])
+        if isinstance(item, dict)
+    }
+    assert "Unmatched rate" not in voter_legend_labels
+    assert "Pro match rate" in voter_legend_labels
+    assert "Con match rate" in voter_legend_labels
     assert payload["charts"]["voter_registry_sensitivity_modes"]
 
     controls = payload["controls"]
@@ -305,7 +302,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert payload["data_quality_panel"]["status"] in {"ok", "warning"}
     assert isinstance(payload["data_quality_panel"]["triage_raw_vs_dedup_metrics"], list)
     assert payload["hearing_context_panel"]["available"] is False
-    assert payload["cross_hearing_baseline"]["available"] is False
+    assert "cross_hearing_baseline" not in payload
 
 
 def test_payload_color_semantics_cover_key_chart_families() -> None:
@@ -626,6 +623,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
                         "duplicate_rows": 3,
                         "n_pro": 1,
                         "n_con": 2,
+                        "n_other": 0,
                         "first_seen": pd.Timestamp("2026-02-01T00:00:00Z"),
                         "last_seen": pd.Timestamp("2026-02-01T00:04:00Z"),
                     },
@@ -645,6 +643,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
                         "duplicate_rows": 3,
                         "n_pro": 1,
                         "n_con": 2,
+                        "n_other": 0,
                         "first_seen": pd.Timestamp("2026-02-01T00:00:00Z"),
                         "last_seen": pd.Timestamp("2026-02-01T00:04:00Z"),
                     },
@@ -662,6 +661,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
                         "duplicate_rows": 3,
                         "n_pro": 1,
                         "n_con": 2,
+                        "n_other": 0,
                         "first_seen": pd.Timestamp("2026-02-01T00:00:00Z"),
                         "last_seen": pd.Timestamp("2026-02-01T00:04:00Z"),
                     },
@@ -708,6 +708,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
         "duplicate_rows",
         "n_pro",
         "n_con",
+        "n_other",
         "first_seen",
         "last_seen",
     }
@@ -1214,7 +1215,6 @@ def test_payload_includes_hearing_context_and_process_markers_when_metadata_pres
     assert panel["timezone"] == "America/Los_Angeles"
     assert len(panel["process_markers"]) >= 3
     assert isinstance(panel["deadline_ramp_metrics"], dict)
-    assert isinstance(panel["stance_by_deadline"], list)
 
     controls = payload["controls"]
     assert controls["timezone"] == "America/Los_Angeles"

@@ -153,8 +153,8 @@
   },
   "queue_counts": {
     "window": 0,
-    "record": 250,
-    "cluster": 250
+    "record": 0,
+    "cluster": 0
   },
   "window_tier_counts": {
     "high": 0,

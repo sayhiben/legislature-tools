@@ -169,14 +169,10 @@ def build_raw_vs_dedup_metrics(
     if triage_views:
         raw_view = triage_views.get("raw", {})
         dedup_view = triage_views.get("exact_row_dedup", {})
-        raw_queue = raw_view.get("window_evidence_queue", [])
-        dedup_queue = dedup_view.get("window_evidence_queue", [])
-        raw_high = float(
-            sum(1 for row in raw_queue if str((row or {}).get("evidence_tier")) == "high")
-        )
-        dedup_high = float(
-            sum(1 for row in dedup_queue if str((row or {}).get("evidence_tier")) == "high")
-        )
+        raw_counts = (raw_view.get("triage_summary") or {}).get("window_tier_counts") or {}
+        dedup_counts = (dedup_view.get("triage_summary") or {}).get("window_tier_counts") or {}
+        raw_high = float(_to_float(raw_counts.get("high")) or 0.0)
+        dedup_high = float(_to_float(dedup_counts.get("high")) or 0.0)
         rows.append(
             _build_delta_metric_row(
                 "high_tier_windows",

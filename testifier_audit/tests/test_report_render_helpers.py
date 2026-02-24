@@ -16,15 +16,9 @@ from testifier_audit.report.render import (
     REPORT_DATA_FILENAME,
     _artifact_rows_from_disk,
     _build_table_column_docs,
-    _evidence_bundle_preview_from_disk,
-    _evidence_bundle_preview_from_results,
     _json_safe,
     _load_summaries_from_disk,
     _load_table_previews_from_disk,
-    _periodicity_table_preview_from_disk,
-    _periodicity_table_preview_from_results,
-    _rare_names_table_preview_from_disk,
-    _rare_names_table_preview_from_results,
     _serialize_value,
     render_report,
 )
@@ -104,22 +98,13 @@ def test_build_table_column_docs_includes_detector_and_special_preview_tables() 
     docs = _build_table_column_docs(
         table_previews=table_previews,
         artifact_rows={"counts_per_minute": 120},
-        evidence_bundle_preview=[
-            {"minute_bucket": "2026-02-01T00:00:00Z", "evidence_flags": "bursts,swing_signal"}
-        ],
-        rarity_coverage_preview=[{"metric": "first_name_coverage", "value": 0.93}],
-        rarity_unmatched_first_preview=[{"token": "XYZ", "count": 2}],
-        rarity_unmatched_last_preview=[{"token": "QRS", "count": 1}],
-        clockface_top_preview=[{"minute_of_hour": 30, "n_events": 12}],
     )
 
     assert "bursts.burst_window_tests" in docs
     assert docs["bursts.burst_window_tests"]["window_minutes"]
     assert "artifacts.artifact_rows" in docs
     assert docs["artifacts.artifact_rows"]["artifact"].startswith("Artifact/table")
-    assert "composite_score.evidence_bundle_preview" in docs
-    assert "rare_names.rarity_coverage_preview" in docs
-    assert "periodicity.clockface_top_preview" in docs
+    assert "composite_score.evidence_bundle_preview" not in docs
 
 
 def test_disk_summary_artifact_and_table_preview_loaders(tmp_path: Path) -> None:
@@ -154,73 +139,6 @@ def test_disk_summary_artifact_and_table_preview_loaders(tmp_path: Path) -> None
     assert previews["detector"]["table"][0]["x"] == 1
 
 
-def test_preview_helpers_cover_results_and_disk_paths(tmp_path: Path) -> None:
-    out_dir = tmp_path / "out"
-    tables_dir = out_dir / "tables"
-    tables_dir.mkdir(parents=True)
-
-    assert _evidence_bundle_preview_from_results({}) == []
-    assert _evidence_bundle_preview_from_disk(tmp_path / "missing") == []
-    assert _rare_names_table_preview_from_results({}, "rarity_lookup_coverage") == []
-    assert _rare_names_table_preview_from_disk(tmp_path / "missing", "rarity_lookup_coverage") == []
-    assert _periodicity_table_preview_from_results({}, "clockface_top_minutes") == []
-    assert _periodicity_table_preview_from_disk(tmp_path / "missing", "clockface_top_minutes") == []
-
-    empty_composite_csv = tables_dir / "composite_score__evidence_bundle_windows.csv"
-    empty_composite_csv.write_text("minute_bucket\n", encoding="utf-8")
-    assert _evidence_bundle_preview_from_disk(out_dir) == []
-
-    pd.DataFrame({"minute_bucket": ["2026-02-01T00:00:00Z"], "score": [0.9]}).to_csv(
-        tables_dir / "composite_score__evidence_bundle_windows.csv",
-        index=False,
-    )
-    evidence_disk = _evidence_bundle_preview_from_disk(out_dir)
-    assert evidence_disk and evidence_disk[0]["score"] == 0.9
-
-    pd.DataFrame({"metric": ["a"], "value": [1]}).to_parquet(
-        tables_dir / "rare_names__rarity_lookup_coverage.parquet",
-        index=False,
-    )
-    rare_disk = _rare_names_table_preview_from_disk(out_dir, "rarity_lookup_coverage")
-    assert rare_disk and rare_disk[0]["metric"] == "a"
-
-    pd.DataFrame({"minute_of_hour": [0], "n_events": [10]}).to_parquet(
-        tables_dir / "periodicity__clockface_top_minutes.parquet",
-        index=False,
-    )
-    periodic_disk = _periodicity_table_preview_from_disk(out_dir, "clockface_top_minutes")
-    assert periodic_disk and periodic_disk[0]["minute_of_hour"] == 0
-
-    results = {
-        "composite_score": DetectorResult(
-            detector="composite_score",
-            summary={},
-            tables={"evidence_bundle_windows": pd.DataFrame({"window": [1]})},
-        ),
-        "rare_names": DetectorResult(
-            detector="rare_names",
-            summary={},
-            tables={"rarity_lookup_coverage": pd.DataFrame({"metric": ["x"]})},
-        ),
-        "periodicity": DetectorResult(
-            detector="periodicity",
-            summary={},
-            tables={"clockface_top_minutes": pd.DataFrame({"minute_of_hour": [5]})},
-        ),
-    }
-    assert _evidence_bundle_preview_from_results(results)[0]["window"] == 1
-    assert (
-        _rare_names_table_preview_from_results(results, "rarity_lookup_coverage")[0]["metric"]
-        == "x"
-    )
-    assert (
-        _periodicity_table_preview_from_results(results, "clockface_top_minutes")[0][
-            "minute_of_hour"
-        ]
-        == 5
-    )
-
-
 def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     (out_dir / "summary").mkdir(parents=True)
@@ -233,26 +151,6 @@ def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path)
     )
     pd.DataFrame({"value": [1]}).to_csv(
         out_dir / "artifacts" / "counts_per_minute.csv", index=False
-    )
-    pd.DataFrame({"window": [1], "score": [0.99]}).to_csv(
-        out_dir / "tables" / "composite_score__evidence_bundle_windows.csv",
-        index=False,
-    )
-    pd.DataFrame({"metric": ["coverage"], "value": [0.5]}).to_csv(
-        out_dir / "tables" / "rare_names__rarity_lookup_coverage.csv",
-        index=False,
-    )
-    pd.DataFrame({"token": ["ZZZ"], "count": [1]}).to_csv(
-        out_dir / "tables" / "rare_names__rarity_unmatched_first_tokens.csv",
-        index=False,
-    )
-    pd.DataFrame({"token": ["YYY"], "count": [1]}).to_csv(
-        out_dir / "tables" / "rare_names__rarity_unmatched_last_tokens.csv",
-        index=False,
-    )
-    pd.DataFrame({"minute_of_hour": [12], "n_events": [5]}).to_csv(
-        out_dir / "tables" / "periodicity__clockface_top_minutes.csv",
-        index=False,
     )
     (out_dir / "figures" / "example.png").write_bytes(b"png")
 
@@ -278,17 +176,16 @@ def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path)
         assert (out_dir / str(shard_url)).exists()
     if _is_off_hours_only_view():
         assert 'data-analysis-id="off_hours"' in rendered
-        assert 'data-analysis-id="composite_score"' not in rendered
-        assert 'data-analysis-id="rare_names"' not in rendered
-        assert 'data-analysis-id="periodicity"' not in rendered
     elif _configured_focus_analysis_ids():
         assert "Composite Evidence Score" not in rendered
         assert "Exact Duplicate Names" in rendered
         assert "Registered Voter Match" in rendered
-    else:
-        assert "Composite Evidence Score" in rendered
-        assert "Rare / Unique Names" in rendered
-        assert "Periodicity" in rendered
+    assert 'data-analysis-id="composite_score"' not in rendered
+    assert 'data-analysis-id="rare_names"' not in rendered
+    assert 'data-analysis-id="periodicity"' not in rendered
+    assert 'data-analysis-id="sortedness"' not in rendered
+    assert 'data-analysis-id="changepoints"' not in rendered
+    assert 'data-analysis-id="multivariate_anomalies"' not in rendered
     assert "Static Figure Exports" not in rendered
 
 
@@ -322,7 +219,7 @@ def test_render_report_json_payload_does_not_include_nan_literals(tmp_path: Path
         assert "NaN" not in shard_path.read_text(encoding="utf-8")
 
 
-def test_render_report_loads_cross_hearing_baseline_file_when_available(tmp_path: Path) -> None:
+def test_render_report_does_not_load_cross_hearing_baseline_payload(tmp_path: Path) -> None:
     reports_dir = tmp_path / "reports"
     out_dir = reports_dir / "SB9999-20260221-1000"
     out_dir.mkdir(parents=True)
@@ -360,17 +257,9 @@ def test_render_report_loads_cross_hearing_baseline_file_when_available(tmp_path
     rendered = report_path.read_text(encoding="utf-8")
     report_data_payload = _load_report_data_payload(out_dir)
     interactive_payload = report_data_payload.get("interactive_charts", {})
-    baseline_payload = (
-        interactive_payload.get("cross_hearing_baseline", {})
-        if isinstance(interactive_payload, dict)
-        else {}
-    )
-
-    assert baseline_payload.get("report_count") == 3
-    if _is_off_hours_only_view():
-        assert "Cross-Hearing Comparator" not in rendered
-    else:
-        assert "Cross-Hearing Comparator" in rendered
+    assert isinstance(interactive_payload, dict)
+    assert "cross_hearing_baseline" not in interactive_payload
+    assert "Cross-Hearing Comparator" not in rendered
 
 
 def test_render_report_includes_external_assets_and_runtime_contracts(
@@ -406,14 +295,20 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "parseLinkedZoomFromQueryParams" in js_text
     assert "parseDuplicateOptionFromQueryParams" in js_text
     assert "initializeLinkedZoomOnLoad()" in js_text
+    assert "updateSectionViewControlsForHeading" in js_text
+    assert "bucketSelectorLabel" in js_text
+    assert "applySidebarBillMeta();" in js_text
     assert "setChartLoading(" in js_text
     assert "is-loading" in css_text
     assert "state.zoom" in js_text
+    assert 'id="sidebar-global-controls"' in rendered
+    assert 'id="section-view-controls-panel"' in rendered
     assert 'id="zoom-sync-panel"' in rendered
     assert 'id="zoom-reset-button"' in rendered
     assert 'id="duplicate-collision-panel"' in rendered
     assert 'id="duplicate-scope-select"' in rendered
     assert 'id="duplicate-metric-select"' in rendered
+    assert 'id="sidebar-bill-meta"' in rendered
     assert 'id="report-timezone-summary"' in rendered
     assert "All times in this report are shown in " in js_text
     assert "updateZoomRangeLabel" in js_text
@@ -503,11 +398,11 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert 'id="triage-dedup-mode"' in rendered
         assert 'id="data-quality-warning-host"' in rendered
         assert 'id="data-quality-dedup-metrics-host"' in rendered
-        assert 'id="cross-hearing-comparator-host"' in rendered
-        assert 'id="cross-hearing-comparator-summary"' in rendered
+        assert 'id="cross-hearing-comparator-host"' not in rendered
+        assert 'id="cross-hearing-comparator-summary"' not in rendered
         assert 'id="hearing-context-metadata-host"' in rendered
         assert 'id="hearing-deadline-ramp-host"' in rendered
-        assert 'id="hearing-stance-by-deadline-host"' in rendered
+        assert 'id="hearing-stance-by-deadline-host"' not in rendered
         assert 'id="methodology-artifact-rows-host"' in rendered
         assert 'id="methodology-definitions-host"' in rendered
         assert 'id="methodology-tests-used-host"' in rendered
@@ -516,15 +411,24 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "renderMethodologyPanel()" in js_text
     assert "initDedupModeControl()" in js_text
     assert "renderDataQualityPanel()" in js_text
-    assert "renderCrossHearingComparator()" in js_text
-    assert "applyCrossHearingNameCues(" in js_text
-    assert "applyCrossHearingClusterCues(" in js_text
-    assert "getCrossHearingComparator(" in js_text
-    assert "Cross-hearing p10-p90 band" in js_text
-    assert 'comparatorMetric: "overall_pro_rate"' in js_text
+    assert "renderCrossHearingComparator()" not in js_text
+    assert "applyCrossHearingNameCues(" not in js_text
+    assert "applyCrossHearingClusterCues(" not in js_text
+    assert "getCrossHearingComparator(" not in js_text
+    assert "Cross-hearing p10-p90 band" not in js_text
+    assert 'comparatorMetric: "overall_pro_rate"' not in js_text
     assert "renderHearingContextPanel()" in js_text
     assert "buildProcessMarkerLines()" in js_text
     assert "voter_registry_match_tiers" in js_text
+    voter_rates_block_start = js_text.find("voter_registry_match_rates: {")
+    voter_rates_block_end = js_text.find(
+        "multivariate_score_timeline:",
+        voter_rates_block_start if voter_rates_block_start >= 0 else 0,
+    )
+    assert voter_rates_block_start >= 0 and voter_rates_block_end > voter_rates_block_start
+    voter_rates_block = js_text[voter_rates_block_start:voter_rates_block_end]
+    assert "adaptiveLineRange: true" in voter_rates_block
+    assert '"unmatched_rate",' not in voter_rates_block
     assert "statistical irregularity requiring review" in payload_text
     assert 'summary.textContent = "artifact_rows"' not in js_text
 
@@ -581,4 +485,5 @@ def test_render_report_template_contract_renders_analysis_hosts_and_placeholders
     assert "chart_legend_docs" in interactive_payload
     assert 'type="module" src="assets/report/main.js"' in rendered
     assert "<strong>Legend guide:</strong>" in rendered
+    assert "Matched-rate axis auto-zooms to observed values" in rendered
     assert "status-ready" not in rendered

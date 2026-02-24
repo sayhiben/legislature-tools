@@ -64,6 +64,7 @@ _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
         "match_definition": "Matches last-name with first-name initial only.",
     },
 )
+_TOP_NAME_TIMING_TOP_N = 50
 
 
 def _safe_str_series(series: pd.Series) -> pd.Series:
@@ -87,7 +88,7 @@ class DuplicatesExactDetector(Detector):
         collision_baseline_source: str = "hearing_empirical",
         collision_baseline_model: str = "multinomial",
         collision_uncertainty_mode: str = "monte_carlo",
-        collision_scope_primary: str = "matched_only",
+        collision_scope_primary: str = "full_hearing",
         collision_scope_overlays: list[str] | None = None,
         collision_baseline_failure_policy: str = "degrade",
         collision_stratification: str = "none",
@@ -132,11 +133,11 @@ class DuplicatesExactDetector(Detector):
         )
         uncertainty = str(collision_uncertainty_mode or "monte_carlo").strip().lower()
         self.collision_uncertainty_mode = uncertainty if uncertainty in {"monte_carlo", "analytic_only"} else "monte_carlo"
-        primary_scope = str(collision_scope_primary or "matched_only").strip().lower()
+        primary_scope = str(collision_scope_primary or "full_hearing").strip().lower()
         self.collision_scope_primary: CollisionScope = (
-            primary_scope if primary_scope in {"matched_only", "full_hearing", "unmatched_only"} else "matched_only"
+            primary_scope if primary_scope in {"matched_only", "full_hearing", "unmatched_only"} else "full_hearing"
         )
-        overlays = [str(value or "").strip().lower() for value in (collision_scope_overlays or ["full_hearing"])]
+        overlays = [str(value or "").strip().lower() for value in (collision_scope_overlays or [])]
         self.collision_scope_overlays = [
             value
             for value in overlays
@@ -963,7 +964,7 @@ class DuplicatesExactDetector(Detector):
                 mode_totals = mode_totals.sort_values(
                     ["total_repeated_rows", "display_name", "name_key"],
                     ascending=[False, True, True],
-                ).head(10)
+                ).head(_TOP_NAME_TIMING_TOP_N)
                 mode_totals = mode_totals.reset_index(drop=True)
                 mode_totals["rank"] = mode_totals.index.astype(int) + 1
 
@@ -987,6 +988,10 @@ class DuplicatesExactDetector(Detector):
                             duplicate_rows=("id", "count"),
                             n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
                             n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                            n_other=(
+                                "position_normalized",
+                                lambda series: int((~series.isin({"Pro", "Con"})).sum()),
+                            ),
                             first_seen=("timestamp", "min"),
                             last_seen=("timestamp", "max"),
                         )
@@ -1024,6 +1029,7 @@ class DuplicatesExactDetector(Detector):
                                 "duplicate_rows",
                                 "n_pro",
                                 "n_con",
+                                "n_other",
                                 "first_seen",
                                 "last_seen",
                             ]

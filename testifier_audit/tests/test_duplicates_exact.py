@@ -133,11 +133,12 @@ def test_collision_baseline_failure_policy_fail_and_degrade() -> None:
     )
     degraded_result = degraded.run(df=frame, features={})
     methods = degraded_result.tables["collision_methods"]
-    matched_only = methods[methods["scope"] == "matched_only"].reset_index(drop=True)
-    assert not matched_only.empty
-    assert bool(matched_only.loc[0, "baseline_degraded"]) is True
-    assert str(matched_only.loc[0, "baseline_source"]) == "hearing_empirical"
-    assert str(matched_only.loc[0, "fallback_policy"]) == "degrade"
+    primary_scope = degraded.collision_scope_primary
+    primary_methods = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_methods.empty
+    assert bool(primary_methods.loc[0, "baseline_degraded"]) is True
+    assert str(primary_methods.loc[0, "baseline_source"]) == "hearing_empirical"
+    assert str(primary_methods.loc[0, "fallback_policy"]) == "degrade"
     assert bool(degraded_result.summary["baseline_degraded"]) is True
     assert str(degraded_result.summary["baseline_source"]) == "hearing_empirical"
 
@@ -151,6 +152,32 @@ def test_collision_baseline_failure_policy_fail_and_degrade() -> None:
     )
     with pytest.raises(RuntimeError, match="collision baseline requires voter_registry.db_url"):
         fail_fast.run(df=frame, features={})
+
+
+def test_default_scope_analyzes_full_hearing_even_when_voter_matches_exist() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2, "BROWN|AVA": 1})
+    assignments = pd.DataFrame(
+        [
+            {"canonical_name": "DOE|JANE", "primary_outcome": "matched_unique"},
+            {"canonical_name": "SMITH|JOHN", "primary_outcome": "unmatched"},
+            {"canonical_name": "BROWN|AVA", "primary_outcome": "unmatched"},
+        ]
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+    )
+    result = detector.run(
+        df=frame,
+        features={"voter_registry_match.match_assignments": assignments},
+    )
+
+    assert detector.collision_scope_primary == "full_hearing"
+    assert str(result.summary["collision_scope_primary"]) == "full_hearing"
+    assert int(result.summary["n_records"]) == len(frame)
+    assert set(result.tables["collision_methods"]["scope"].astype(str)) == {"full_hearing"}
+    assert set(result.tables["per_name_tests"]["scope"].astype(str)) == {"full_hearing"}
 
 
 def test_per_name_display_limit_does_not_censor_tested_totals(
@@ -183,8 +210,9 @@ def test_per_name_display_limit_does_not_censor_tested_totals(
     per_name_tests = result.tables["per_name_tests"]
     per_name_display = result.tables["per_name_display"]
 
-    primary_tests = per_name_tests[per_name_tests["scope"] == "matched_only"].copy()
-    primary_display = per_name_display[per_name_display["scope"] == "matched_only"].copy()
+    primary_scope = detector.collision_scope_primary
+    primary_tests = per_name_tests[per_name_tests["scope"] == primary_scope].copy()
+    primary_display = per_name_display[per_name_display["scope"] == primary_scope].copy()
 
     assert len(primary_tests) == 30
     assert len(primary_display) == display_limit
@@ -209,7 +237,8 @@ def test_bucket_level_expectations_obey_n_equals_one_invariants() -> None:
     )
     result = detector.run(df=frame, features={})
     bucket = result.tables["collision_by_bucket"]
-    primary_bucket = bucket[bucket["scope"] == "matched_only"].copy()
+    primary_scope = detector.collision_scope_primary
+    primary_bucket = bucket[bucket["scope"] == primary_scope].copy()
     assert not primary_bucket.empty
     assert (primary_bucket["n_bucket"] == 1).all()
     assert (primary_bucket["expected"] == 0.0).all()
@@ -228,15 +257,16 @@ def test_stratification_request_degrades_when_registry_baseline_unavailable() ->
     )
     result = detector.run(df=frame, features={})
     methods = result.tables["collision_methods"]
-    matched = methods[methods["scope"] == "matched_only"].reset_index(drop=True)
-    assert not matched.empty
-    assert str(matched.loc[0, "stratification"]) == "none"
-    assert bool(matched.loc[0, "baseline_degraded"]) is True
+    primary_scope = detector.collision_scope_primary
+    primary = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary.empty
+    assert str(primary.loc[0, "stratification"]) == "none"
+    assert bool(primary.loc[0, "baseline_degraded"]) is True
     sensitivity = result.tables["collision_stratification_sensitivity"]
-    matched_sensitivity = sensitivity[sensitivity["scope"] == "matched_only"].copy()
-    assert not matched_sensitivity.empty
-    assert set(matched_sensitivity["stratification_requested"]) == {"birth_decade"}
-    assert set(matched_sensitivity["stratification_effective"]) == {"none"}
+    primary_sensitivity = sensitivity[sensitivity["scope"] == primary_scope].copy()
+    assert not primary_sensitivity.empty
+    assert set(primary_sensitivity["stratification_requested"]) == {"birth_decade"}
+    assert set(primary_sensitivity["stratification_effective"]) == {"none"}
 
 
 def test_birth_decade_stratification_updates_expectations_with_registry_mix(
@@ -277,16 +307,17 @@ def test_birth_decade_stratification_updates_expectations_with_registry_mix(
     )
     result = detector.run(df=frame, features={})
     methods = result.tables["collision_methods"]
-    matched = methods[methods["scope"] == "matched_only"].reset_index(drop=True)
-    assert not matched.empty
-    assert str(matched.loc[0, "stratification"]) == "birth_decade"
-    assert bool(matched.loc[0, "baseline_degraded"]) is False
+    primary_scope = detector.collision_scope_primary
+    primary = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary.empty
+    assert str(primary.loc[0, "stratification"]) == "birth_decade"
+    assert bool(primary.loc[0, "baseline_degraded"]) is False
 
     sensitivity = result.tables["collision_stratification_sensitivity"]
-    matched_sensitivity = sensitivity[sensitivity["scope"] == "matched_only"].copy()
-    assert not matched_sensitivity.empty
-    assert set(matched_sensitivity["stratification_effective"]) == {"birth_decade"}
-    assert (matched_sensitivity["expected_effective"] != matched_sensitivity["expected_unstratified"]).any()
+    primary_sensitivity = sensitivity[sensitivity["scope"] == primary_scope].copy()
+    assert not primary_sensitivity.empty
+    assert set(primary_sensitivity["stratification_effective"]) == {"birth_decade"}
+    assert (primary_sensitivity["expected_effective"] != primary_sensitivity["expected_unstratified"]).any()
 
 
 def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
@@ -336,8 +367,9 @@ def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
     )
     result = detector.run(df=frame, features={})
     overview = result.tables["collision_overview"]
-    matched = overview[overview["scope"] == "matched_only"].copy()
-    assert not matched.empty
+    primary_scope = detector.collision_scope_primary
+    primary = overview[overview["scope"] == primary_scope].copy()
+    assert not primary.empty
 
 
 def test_collision_monte_carlo_draw_budget_scales_with_bucket_size() -> None:
@@ -435,7 +467,7 @@ def test_low_power_bucket_skips_bucket_level_null_simulation(
     detector.run(df=frame, features={})
 
     assert simulated_n_rows
-    assert len(simulated_n_rows) == 2
+    assert len(simulated_n_rows) == 1
     assert set(simulated_n_rows) == {len(frame)}
 
 
@@ -463,6 +495,7 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
         "duplicate_rows",
         "n_pro",
         "n_con",
+        "n_other",
         "first_seen",
         "last_seen",
     }
@@ -470,6 +503,13 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     assert not timing.empty
     assert set(timing["match_mode"]) == {"exact", "medium", "loose"}
     assert (timing["duplicate_rows"] >= 2).all()
+    assert (timing["n_other"] >= 0).all()
+    assert (
+        timing["n_pro"].astype(int)
+        + timing["n_con"].astype(int)
+        + timing["n_other"].astype(int)
+        == timing["duplicate_rows"].astype(int)
+    ).all()
 
     exact_names = set(timing[timing["match_mode"] == "exact"]["name_key"])
     medium_names = set(timing[timing["match_mode"] == "medium"]["name_key"])
@@ -491,7 +531,7 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
             .drop_duplicates()
             .sort_values(["rank", "name_key"])
         )
-        assert len(mode_ranked) <= 10
+        assert len(mode_ranked) <= 50
         expected_ranks = list(range(1, len(mode_ranked) + 1))
         assert mode_ranked["rank"].astype(int).tolist() == expected_ranks
         totals = mode_ranked["total_repeated_rows"].astype(int).tolist()

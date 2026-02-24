@@ -63,8 +63,8 @@ name_analysis:
   collision_baseline_source: "vrdb_full_histogram"
   collision_baseline_model: "multinomial"
   collision_uncertainty_mode: "monte_carlo"
-  collision_scope_primary: "matched_only"
-  collision_scope_overlays: ["full_hearing"]
+  collision_scope_primary: "full_hearing"
+  collision_scope_overlays: []
   collision_baseline_failure_policy: "fail"
   collision_stratification: "none"
   per_name_significance_model: "binomial_tail"

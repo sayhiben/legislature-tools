@@ -8,6 +8,13 @@
   "top_swing_windows": [],
   "top_repeated_names": [
     {
+      "display_name": "MERRITT, BECKY",
+      "canonical_name": "MERRITT|BECKY||",
+      "n_records": 23,
+      "n_pro": 0,
+      "n_con": 23
+    },
+    {
       "display_name": "BORDEN, BRETT",
       "canonical_name": "BORDEN|BRETT||",
       "n_records": 11,
@@ -31,13 +38,6 @@
     {
       "display_name": "LEBRUN, PATRICK",
       "canonical_name": "LEBRUN|PATRICK||",
-      "n_records": 4,
-      "n_pro": 0,
-      "n_con": 4
-    },
-    {
-      "display_name": "MASON, MARY",
-      "canonical_name": "MASON|MARY||",
       "n_records": 4,
       "n_pro": 0,
       "n_con": 4
@@ -153,8 +153,8 @@
   },
   "queue_counts": {
     "window": 0,
-    "record": 250,
-    "cluster": 7
+    "record": 0,
+    "cluster": 0
   },
   "window_tier_counts": {
     "high": 0,

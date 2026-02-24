@@ -38,17 +38,11 @@ ANALYSES_TO_PERFORM: tuple[str, ...] = (
     # "baseline_profile",
     # "bursts",
     # "procon_swings",
-    # "changepoints",
     "off_hours",
     "duplicates_exact",
     "duplicates_near",
-    # "sortedness",
-    # "rare_names",
     # "org_anomalies",
     "voter_registry_match",
-    # "periodicity",
-    # "multivariate_anomalies",
-    # "composite_score",
 )
 
 
@@ -122,25 +116,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         ),
     ),
     AnalysisDefinition(
-        id="changepoints",
-        title="Structural Changepoints",
-        detector="changepoints",
-        hero_chart_id="changepoints_hero_timeline",
-        detail_chart_ids=("changepoints_magnitude", "changepoints_hour_hist"),
-        how_to_read=(
-            "Changepoints mark regime boundaries where level means differ before and "
-            "after a boundary."
-        ),
-        what_to_look_for=(
-            "Clusters of large-magnitude changes that align with other detector evidence "
-            "windows."
-        ),
-        common_benign_causes=(
-            "Hearing open/close windows and coverage surges naturally create structural "
-            "breaks."
-        ),
-    ),
-    AnalysisDefinition(
         id="off_hours",
         title="Off-Hours Profile",
         detector="off_hours",
@@ -186,8 +161,8 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "duplicates_exact_swing_impact",
         ),
         how_to_read=(
-            "Interpret exact-name collisions as observed-versus-expected burden under an "
-            "active-voter baseline with explicit uncertainty and power context."
+            "Interpret exact-name collisions as observed-versus-expected burden under the "
+            "configured baseline with explicit uncertainty and power context."
         ),
         what_to_look_for=(
             "Excess duplicate burden with low p/q values, corroborating temporal burst evidence, "
@@ -215,49 +190,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         common_benign_causes=(
             "Typos, OCR noise, and multilingual transliteration can inflate "
             "near-duplicate clusters."
-        ),
-    ),
-    AnalysisDefinition(
-        id="sortedness",
-        title="Ordering / Sortedness",
-        detector="sortedness",
-        hero_chart_id="sortedness_bucket_ratio",
-        detail_chart_ids=(
-            "sortedness_bucket_summary",
-            "sortedness_kendall_tau_summary",
-            "sortedness_minute_spikes",
-        ),
-        how_to_read=(
-            "Ordering metrics test whether names arrive in unusually sorted or monotonic "
-            "patterns."
-        ),
-        what_to_look_for=(
-            "Bucket ranges with elevated alphabetical ratios and repeated minute-level "
-            "ordering spikes."
-        ),
-        common_benign_causes=(
-            "Batch exports or admin processing can produce temporary ordering artifacts."
-        ),
-    ),
-    AnalysisDefinition(
-        id="rare_names",
-        title="Rare / Unique Names",
-        detector="rare_names",
-        hero_chart_id="rare_names_unique_ratio",
-        detail_chart_ids=(
-            "rare_names_weird_scores",
-            "rare_names_singletons",
-            "rare_names_rarity_timeline",
-        ),
-        how_to_read=(
-            "Unique-ratio and rarity indicators help identify sudden novelty surges in "
-            "the name stream."
-        ),
-        what_to_look_for=(
-            "Sustained unique-ratio lifts with concurrent weirdness-score concentration."
-        ),
-        common_benign_causes=(
-            "Reference lookup gaps and nickname coverage gaps can overstate rarity."
         ),
     ),
     AnalysisDefinition(
@@ -293,8 +225,8 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "voter_registry_unmatched_names",
         ),
         how_to_read=(
-            "Primary linkage uses a conservative outcome taxonomy "
-            "(matched unique/matched ambiguous/unmatched) with uncertainty surfaced directly."
+            "Hero chart emphasizes conservative matched-rate trajectory with uncertainty; "
+            "detail charts retain unmatched-rate diagnostics across units and linkage modes."
         ),
         what_to_look_for=(
             "Sustained unmatched-rate differences across positions at both row and unique-name "
@@ -305,90 +237,20 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "raise unmatched rates."
         ),
     ),
-    AnalysisDefinition(
-        id="periodicity",
-        title="Periodicity",
-        detector="periodicity",
-        hero_chart_id="periodicity_clockface",
-        detail_chart_ids=(
-            "periodicity_autocorr",
-            "periodicity_spectrum",
-            "periodicity_rolling_fano",
-        ),
-        how_to_read=(
-            "Clock-face, autocorrelation, and spectrum views test for recurring timing "
-            "patterns."
-        ),
-        what_to_look_for=(
-            "Narrow periodic peaks and elevated rolling overdispersion that recur over "
-            "long spans and align across methods."
-        ),
-        common_benign_causes=(
-            "Calendar reminders and regular campaign sends can produce expected periodic "
-            "structure."
-        ),
-    ),
-    AnalysisDefinition(
-        id="multivariate_anomalies",
-        title="Multivariate Anomalies",
-        detector="multivariate_anomalies",
-        hero_chart_id="multivariate_score_timeline",
-        detail_chart_ids=("multivariate_top_buckets", "multivariate_feature_projection"),
-        how_to_read=(
-            "Composite feature-space anomaly scoring identifies unusual bucket "
-            "combinations."
-        ),
-        what_to_look_for=(
-            "Consecutive high anomaly-score buckets supported by other detector flags."
-        ),
-        common_benign_causes=(
-            "Correlated event shocks can move multiple features together without abuse."
-        ),
-    ),
-    AnalysisDefinition(
-        id="composite_score",
-        title="Composite Evidence Score",
-        detector="composite_score",
-        hero_chart_id="composite_score_timeline",
-        detail_chart_ids=("composite_evidence_flags", "composite_high_priority"),
-        how_to_read=(
-            "Composite score ranks windows by multi-detector agreement and evidence density."
-        ),
-        what_to_look_for=(
-            "High-score windows with overlapping detector flags and strong local support."
-        ),
-        common_benign_causes=(
-            "Major events can legitimately raise multiple detectors in the same period."
-        ),
-    ),
 )
 
-_ANALYSIS_DETECTOR_DEPENDENCIES: dict[str, tuple[str, ...]] = {
-    "composite_score": (
-        "bursts",
-        "procon_swings",
-        "changepoints",
-        "rare_names",
-        "multivariate_anomalies",
-    ),
-}
+_ANALYSIS_DETECTOR_DEPENDENCIES: dict[str, tuple[str, ...]] = {}
 
 
 _ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
     "baseline_profile": ("baseline", 100),
     "bursts": ("window_signals", 95),
     "procon_swings": ("window_signals", 94),
-    "changepoints": ("window_signals", 90),
     "off_hours": ("window_signals", 86),
     "duplicates_exact": ("identity_forensics", 88),
     "duplicates_near": ("identity_forensics", 87),
-    "sortedness": ("process_signals", 80),
-    "rare_names": ("identity_forensics", 82),
     "org_anomalies": ("field_quality", 78),
     "voter_registry_match": ("external_enrichment", 65),
-    "periodicity": ("temporal_structure", 70),
-    "multivariate_anomalies": ("multisignal", 92),
-    "composite_score": ("triage", 99),
 }
 
 

@@ -26,11 +26,103 @@
       </button>
       <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
       <div class="report-layout">
+        <section class="sidebar-global-controls panel" id="sidebar-global-controls" aria-label="Global controls">
+          <div class="sidebar-control-group" id="theme-sync-panel">
+            <div class="sidebar-control-row sidebar-compact-row">
+              <span
+                class="sidebar-control-icon"
+                aria-hidden="true"
+                data-tooltip="Theme controls"
+                title="Theme controls"
+              >
+                ◐
+              </span>
+              <div class="theme-icon-controls" id="theme-controls" role="group" aria-label="Theme controls">
+                <button
+                  id="theme-light-button"
+                  class="theme-icon-button"
+                  type="button"
+                  data-theme-option="light"
+                  aria-label="Use light theme"
+                  title="Light theme"
+                >
+                  ☀
+                </button>
+                <button
+                  id="theme-dark-button"
+                  class="theme-icon-button"
+                  type="button"
+                  data-theme-option="dark"
+                  aria-label="Use dark theme"
+                  title="Dark theme"
+                >
+                  ☾
+                </button>
+              </div>
+              <button
+                class="help-tip"
+                type="button"
+                data-tooltip="Theme changes only appearance; detector semantics and alert logic are unchanged."
+                aria-label="Theme selector help"
+              >
+                ?
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-control-group hidden" id="zoom-sync-panel">
+            <div class="sidebar-control-row sidebar-compact-row">
+              <span
+                class="sidebar-control-icon"
+                aria-hidden="true"
+                data-tooltip="Linked zoom controls"
+                title="Linked zoom controls"
+              >
+                🔍
+              </span>
+              <span id="zoom-status-chip" class="zoom-status-chip">All</span>
+              <button id="zoom-reset-button" class="control-icon-button" type="button" aria-label="Reset zoom" title="Reset zoom">
+                ↺
+              </button>
+              <button
+                class="help-tip"
+                type="button"
+                data-tooltip="Absolute-time charts share one zoom range. Reset returns all linked charts to full timeline."
+                aria-label="Linked zoom help"
+              >
+                ?
+              </button>
+            </div>
+            <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
+          </div>
+          <div class="sidebar-control-group" id="bucket-sync-panel">
+            <div class="sidebar-control-row sidebar-compact-row">
+              <span
+                class="sidebar-control-icon"
+                aria-hidden="true"
+                data-tooltip="Linked bucket selector"
+                title="Linked bucket selector"
+              >
+                ⌗
+              </span>
+              <button
+                class="help-tip"
+                type="button"
+                data-tooltip="Choose one bucket and all bucket-aware charts update together when that bucket exists."
+                aria-label="Bucket selector help"
+              >
+                ?
+              </button>
+            </div>
+            <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
+          </div>
+        </section>
+
         <aside class="toc-sidebar panel" id="toc-sidebar" aria-label="Section navigation">
           <div class="sidebar-header">
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title">Testifier Audit Report</h1>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-23T16:16:47.929407-08:00</code></p>
+              <p class="tiny-note sidebar-bill-meta hidden" id="sidebar-bill-meta"></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-23T18:41:41.747833-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -44,105 +136,43 @@
             </button>
           </div>
 
-          <section class="sidebar-controls-panel panel" id="sidebar-controls-panel">
+          <section class="sidebar-controls-panel panel hidden" id="section-view-controls-panel" aria-live="polite" aria-label="Section view controls">
             <h3 class="sidebar-controls-title">
-              Linked Controls
+              View Controls
               <button
                 class="help-tip"
                 type="button"
-                data-tooltip="Bucket changes rerender bucket-aware charts; absolute-time charts share linked zoom and cursor context."
-                aria-label="Linked controls help"
+                data-tooltip="These controls change based on the section currently in view."
+                aria-label="Section view controls help"
               >
                 ?
               </button>
             </h3>
-            <div class="sidebar-control-group" id="bucket-sync-panel">
-              <p class="sidebar-control-label">
-                Bucket
-                <button
-                  class="help-tip"
-                  type="button"
-                  data-tooltip="Choose one bucket and all bucket-aware charts update together when that bucket exists."
-                  aria-label="Bucket selector help"
-                >
-                  ?
-                </button>
-              </p>
-              <div class="bucket-tablist" id="bucket-sync-tabs" role="tablist" aria-label="Linked bucket selector"></div>
-            </div>
-            <div class="sidebar-control-group hidden" id="duplicate-collision-panel">
-              <p class="sidebar-control-label">
-                Duplicate Collision
-                <button
-                  class="help-tip"
-                  type="button"
-                  data-tooltip="Choose duplicate scope/metric for the duplicate-name charts and diagnostics."
-                  aria-label="Duplicate collision controls help"
-                >
-                  ?
-                </button>
-              </p>
-              <div class="sidebar-control-row">
-                <label class="tiny-note" for="duplicate-scope-select">Scope</label>
-                <select id="duplicate-scope-select" class="control-button"></select>
-              </div>
-              <div class="sidebar-control-row">
-                <label class="tiny-note" for="duplicate-metric-select">Metric</label>
-                <select id="duplicate-metric-select" class="control-button"></select>
-              </div>
-            </div>
-            <div class="sidebar-control-group hidden" id="zoom-sync-panel">
-              <div class="sidebar-control-row">
-                <p class="sidebar-control-label">
-                  Zoom
+            <p id="section-view-controls-context" class="tiny-note sidebar-view-controls-context"></p>
+            <div id="section-view-controls-body">
+              <div
+                class="sidebar-control-group hidden"
+                id="duplicate-collision-panel"
+                data-section-control-for="duplicates_exact"
+              >
+                <div class="sidebar-control-row sidebar-compact-row">
+                  <span class="sidebar-control-icon" aria-hidden="true">⌬</span>
                   <button
                     class="help-tip"
                     type="button"
-                    data-tooltip="Absolute-time charts share one zoom range. Reset returns all linked charts to full timeline."
-                    aria-label="Linked zoom help"
+                    data-tooltip="Choose duplicate scope and metric for duplicate-name charts and diagnostics."
+                    aria-label="Duplicate collision controls help"
                   >
                     ?
                   </button>
-                </p>
-                <span id="zoom-status-chip" class="zoom-status-chip">Full timeline</span>
-                <button id="zoom-reset-button" class="control-button" type="button">Reset</button>
-              </div>
-              <p class="tiny-note zoom-range-label" id="zoom-range-label"></p>
-            </div>
-            <div class="sidebar-control-group">
-              <div class="sidebar-control-row">
-                <p class="sidebar-control-label">
-                  Theme
-                  <button
-                    class="help-tip"
-                    type="button"
-                    data-tooltip="Theme changes only appearance; detector semantics and alert logic are unchanged."
-                    aria-label="Theme selector help"
-                  >
-                    ?
-                  </button>
-                </p>
-                <div class="theme-icon-controls" id="theme-controls" role="group" aria-label="Theme controls">
-                  <button
-                    id="theme-light-button"
-                    class="theme-icon-button"
-                    type="button"
-                    data-theme-option="light"
-                    aria-label="Use light theme"
-                    title="Light theme"
-                  >
-                    ☀
-                  </button>
-                  <button
-                    id="theme-dark-button"
-                    class="theme-icon-button"
-                    type="button"
-                    data-theme-option="dark"
-                    aria-label="Use dark theme"
-                    title="Dark theme"
-                  >
-                    ☾
-                  </button>
+                </div>
+                <div class="sidebar-control-row">
+                  <label class="tiny-note" for="duplicate-scope-select">Scope</label>
+                  <select id="duplicate-scope-select" class="control-button"></select>
+                </div>
+                <div class="sidebar-control-row">
+                  <label class="tiny-note" for="duplicate-metric-select">Metric</label>
+                  <select id="duplicate-metric-select" class="control-button"></select>
                 </div>
               </div>
             </div>
@@ -167,8 +197,6 @@
 
         <main id="toc-content" class="report-main">            <nav class="workflow-tabs panel" aria-label="Investigation tabs">
               <a class="workflow-tab" href="#triage">Triage</a>
-              <a class="workflow-tab" href="#window-drilldown">Window Drilldown</a>
-              <a class="workflow-tab" href="#name-cluster-forensics">Name/Cluster Forensics</a>
               <a class="workflow-tab" href="#methodology">Methodology</a>
             </nav>
 
@@ -188,9 +216,8 @@
           <section id="section-overview" class="report-section panel">
             <h2 id="overview" class="toc-heading">How To Use This Report</h2>
               <p>
-                This report is investigation-first. Start in <strong>Triage</strong> to rank windows/records/clusters, then move to
-                <strong>Window Drilldown</strong> for linked chart context and supporting evidence, and use
-                <strong>Name/Cluster Forensics</strong> before final interpretation.
+                This report is investigation-first. Start in <strong>Triage</strong> for data quality and high-level context,
+                then inspect detector sections before final interpretation.
               </p>
             <aside class="definition-callout">
               <p>
@@ -234,7 +261,7 @@ Low-power Windows                </div>
           <section id="section-triage" class="report-section panel">
             <h2 id="triage" class="toc-heading">Triage</h2>
             <p class="tiny-note">
-              Prioritize windows first, then record and cluster evidence. Click a window row to sync drilldown context.
+              Use this section for quality checks, hearing context, and top repeated-name/cluster summaries.
             </p>
             <div class="triage-lens-controls">
               <label for="triage-dedup-mode" class="triage-lens-label">Triage lens</label>
@@ -255,7 +282,7 @@ Low-power Windows                </div>
                 <div class="kpi-value" id="triage-overall-procon">-</div>
               </article>
               <article class="kpi-card">
-                <div class="kpi-label">Top-tier windows</div>
+                <div class="kpi-label">Top repeated names</div>
                 <div class="kpi-value" id="triage-top-tier-count">0</div>
               </article>
             </section>
@@ -274,13 +301,6 @@ Low-power Windows                </div>
                 </div>
               </article>
               <article class="detail-card">
-                <h3 class="detail-title">Cross-Hearing Comparator</h3>
-                <p id="cross-hearing-comparator-summary" class="tiny-note"></p>
-                <div class="table-wrap">
-                  <div id="cross-hearing-comparator-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
                 <h3 class="detail-title">Hearing Context Metadata</h3>
                 <p id="hearing-context-summary" class="tiny-note"></p>
                 <div class="table-wrap">
@@ -294,75 +314,24 @@ Low-power Windows                </div>
                 </div>
               </article>
               <article class="detail-card">
-                <h3 class="detail-title">Stance By Deadline Window</h3>
+                <h3 class="detail-title">Top Repeated Names</h3>
                 <div class="table-wrap">
-                  <div id="hearing-stance-by-deadline-host" class="table-host"></div>
-                </div>
-              </article>
-            </div>
-            <div class="triage-actions">
-              <button id="download-selected-window-rows" class="control-button" type="button">
-                download selected window rows
-              </button>
-              <button id="download-top-evidence-windows" class="control-button" type="button">
-                download top evidence windows
-              </button>
-              <button id="download-top-evidence-records" class="control-button" type="button">
-                download top evidence records
-              </button>
-            </div>
-            <div class="analysis-detail-grid">
-              <article class="detail-card">
-                <h3 class="detail-title">window_evidence_queue</h3>
-                <div class="table-wrap">
-                  <div id="triage-window-queue-host" class="table-host"></div>
+                  <div id="forensics-top-names-host" class="table-host"></div>
                 </div>
               </article>
               <article class="detail-card">
-                <h3 class="detail-title">record_evidence_queue</h3>
+                <h3 class="detail-title">Top Near-Dup Clusters</h3>
                 <div class="table-wrap">
-                  <div id="triage-record-queue-host" class="table-host"></div>
+                  <div id="forensics-top-clusters-host" class="table-host"></div>
                 </div>
               </article>
               <article class="detail-card">
-                <h3 class="detail-title">cluster_evidence_queue</h3>
+                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
+                <p class="tiny-note">
+                  Artifact/table row counts are retained for reproducibility.
+                </p>
                 <div class="table-wrap">
-                  <div id="triage-cluster-queue-host" class="table-host"></div>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section id="section-window-drilldown" class="report-section panel">
-            <h2 id="window-drilldown" class="toc-heading">Window Drilldown</h2>
-            <p id="window-drilldown-hint" class="tiny-note">
-              Select a window row from Triage to focus linked charts and inspect causative rows, duplicate names,
-              near-duplicate clusters, and rarity-context comparison.
-            </p>
-            <p id="window-drilldown-selection" class="tiny-note"></p>
-            <div class="analysis-detail-grid">
-              <article class="detail-card">
-                <h3 class="detail-title">Causative Rows</h3>
-                <div class="table-wrap">
-                  <div id="drilldown-causative-rows-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Exact Dup Names (Window)</h3>
-                <div class="table-wrap">
-                  <div id="drilldown-dup-names-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Near-Dup Clusters (Window)</h3>
-                <div class="table-wrap">
-                  <div id="drilldown-clusters-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Runs + Weirdness Comparison</h3>
-                <div class="table-wrap">
-                  <div id="drilldown-runs-weirdness-host" class="table-host"></div>
+                  <div id="methodology-artifact-rows-host" class="table-host"></div>
                 </div>
               </article>
             </div>
@@ -637,7 +606,7 @@ Low-power Windows                </div>
         <ul>
             <li><strong>Rows:</strong> Total rows in each bucket.</li>
             <li><strong>Observed duplicate rows:</strong> Line shows observed duplicate-row burden in each bucket.</li>
-            <li><strong>Expected duplicate rows:</strong> Model baseline expectation from active-voter name frequencies.</li>
+            <li><strong>Expected duplicate rows:</strong> Model baseline expectation from the configured name-frequency baseline.</li>
             <li><strong>Excess duplicate rows:</strong> Observed minus expected duplicate burden (floored at zero).</li>
         </ul>
   </div>
@@ -724,16 +693,16 @@ Low-power Windows                </div>
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Exact-match top duplicate names shown as time points sized by duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
+      <p><strong>What is this?</strong> Exact-match top duplicate names shown as time points sized by per-position duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
       <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
       <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
       <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Y-axis order, Tooltip context.</p>
       <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
       <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> Exact-match top duplicate names shown as time points sized by duplicate rows.</p>
+      <p><strong>Legend guide:</strong> Exact-match top duplicate names shown as time points sized by per-position duplicate rows.</p>
         <ul>
-            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top exact-match name (x = bucket time, y = name). Point size scales duplicate rows in that bucket.</li>
-            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated).</li>
+            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top exact-match name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales duplicate rows for that position in the bucket.</li>
+            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated) and paginated 10 at a time up to the top 50 names.</li>
             <li><strong>Tooltip context:</strong> Tooltips include exact-tier definition, rank, bucket span, Pro/Con split, bucket duplicate rows, and total repeated rows.</li>
         </ul>
   </div>
@@ -749,16 +718,16 @@ Low-power Windows                </div>
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Nickname-root match tier top names shown as time points sized by duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
+      <p><strong>What is this?</strong> Nickname-root match tier top names shown as time points sized by per-position duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
       <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
       <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
       <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Y-axis order, Tooltip context.</p>
       <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
       <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> Nickname-root match tier top names shown as time points sized by duplicate rows.</p>
+      <p><strong>Legend guide:</strong> Nickname-root match tier top names shown as time points sized by per-position duplicate rows.</p>
         <ul>
-            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top nickname-root match name (x = bucket time, y = name). Point size scales duplicate rows in that bucket.</li>
-            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated).</li>
+            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top nickname-root match name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales duplicate rows for that position in the bucket.</li>
+            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated) and paginated 10 at a time up to the top 50 names.</li>
             <li><strong>Tooltip context:</strong> Tooltips include medium-tier definition, rank, bucket span, Pro/Con split, bucket duplicate rows, and total repeated rows.</li>
         </ul>
   </div>
@@ -774,16 +743,16 @@ Low-power Windows                </div>
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> First-initial match tier top names shown as time points sized by duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
+      <p><strong>What is this?</strong> First-initial match tier top names shown as time points sized by per-position duplicate rows. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
       <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
       <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
       <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: Point, Y-axis order, Tooltip context.</p>
       <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
       <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
-      <p><strong>Legend guide:</strong> First-initial match tier top names shown as time points sized by duplicate rows.</p>
+      <p><strong>Legend guide:</strong> First-initial match tier top names shown as time points sized by per-position duplicate rows.</p>
         <ul>
-            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top first-initial match name (x = bucket time, y = name). Point size scales duplicate rows in that bucket.</li>
-            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated).</li>
+            <li><strong>Point:</strong> Each point is one active-bucket occurrence for a ranked top first-initial match name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other and point size scales duplicate rows for that position in the bucket.</li>
+            <li><strong>Y-axis order:</strong> Names are ranked by total repeated rows (rank 1 = most repeated) and paginated 10 at a time up to the top 50 names.</li>
             <li><strong>Tooltip context:</strong> Tooltips include loose-tier definition, rank, bucket span, Pro/Con split, bucket duplicate rows, and total repeated rows.</li>
         </ul>
   </div>
@@ -1015,21 +984,23 @@ Low-power Windows                </div>
         <div class="chart-host chart-host-hero" data-chart-id="voter_registry_match_rates" data-chart-role="hero"></div>
 <p class="empty-message hidden" data-chart-empty-for="voter_registry_match_rates">No chartable records for this run.</p>
 <p class="tiny-note chart-note" data-chart-note-for="voter_registry_match_rates"></p>
+          <p class="tiny-note">
+            Matched-rate axis auto-zooms to observed values (bounded to 0-1) for readability; use detail charts for unmatched-rate diagnostics.
+          </p>
         <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Conservative voter-linkage trend (matched vs unmatched). This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>What is this?</strong> Conservative voter-linkage trend with matched-rate focus. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
       <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
       <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Volume, Matched rate, Wilson low / Wilson high, Unmatched rate, Pro match rate, Con match rate, Global control references, Extreme match-rate anomaly, Low-power.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Volume, Matched rate, Wilson low / Wilson high, Pro match rate, Con match rate, Global control references, Extreme match-rate anomaly, Low-power.</p>
       <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
       <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
-      <p><strong>Legend guide:</strong> Conservative voter-linkage trend (matched vs unmatched).</p>
+      <p><strong>Legend guide:</strong> Conservative voter-linkage trend with matched-rate focus.</p>
         <ul>
             <li><strong>Volume:</strong> Bars show record volume in each time bucket.</li>
             <li><strong>Matched rate:</strong> Share of rows classified as matched under conservative primary linkage.</li>
             <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
-            <li><strong>Unmatched rate:</strong> Share of rows unmatched to WA active voter file.</li>
             <li><strong>Pro match rate:</strong> Matched-rate trajectory for Pro rows in each bucket.</li>
             <li><strong>Con match rate:</strong> Matched-rate trajectory for Con rows in each bucket.</li>
             <li><strong>Global control references:</strong> Expected matched rate and 95% control bounds under the hearing-wide global linkage baseline.</li>
@@ -1184,32 +1155,11 @@ Low-power Windows                </div>
 
       <div class="analysis-tables" data-analysis-tables-for="voter_registry_match"></div>
     </section>
-</section>          <section id="section-name-cluster-forensics" class="report-section panel">
-            <h2 id="name-cluster-forensics" class="toc-heading">Name/Cluster Forensics</h2>
-            <p class="tiny-note">
-              High-frequency names and compressed near-duplicate clusters are shown here for rapid adjudication.
-            </p>
-            <div class="analysis-detail-grid">
-              <article class="detail-card">
-                <h3 class="detail-title">Top Repeated Names</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-names-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Top Near-Dup Clusters</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-clusters-host" class="table-host"></div>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section id="section-methodology" class="report-section panel">
+</section>          <section id="section-methodology" class="report-section panel">
             <h2 id="methodology" class="toc-heading">Methodology</h2>
             <p>
-              Queue tiers combine statistically controlled contributors (when available) with heuristic contributors.
-              Low-support items are explicitly caveated and cannot be promoted to high tier.
+              Detector interpretation combines statistically controlled contributors (when available) with heuristic contributors.
+              Low-support windows are explicitly caveated.
             </p>
             <div class="analysis-detail-grid">
               <article class="detail-card">
@@ -1246,15 +1196,6 @@ Low-power Windows                </div>
                 <h3 class="detail-title">Ethical Guardrails</h3>
                 <div class="table-wrap">
                   <div id="methodology-guardrails-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
-                <p class="tiny-note">
-                  Artifact/table row counts are retained for reproducibility and moved here to keep triage focused on actionable evidence.
-                </p>
-                <div class="table-wrap">
-                  <div id="methodology-artifact-rows-host" class="table-host"></div>
                 </div>
               </article>
             </div>

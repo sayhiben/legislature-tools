@@ -36,11 +36,6 @@ from testifier_audit.report.analysis_registry import (
     focus_mode_for_analysis_ids as registry_focus_mode_for_analysis_ids,
 )
 from testifier_audit.report.contracts import default_color_semantics
-from testifier_audit.report.global_baselines import (
-    build_feature_vector,
-    default_cross_hearing_baseline_payload,
-    load_cross_hearing_baseline,
-)
 from testifier_audit.report.help_registry import (
     build_methodology_content,
     default_evidence_taxonomy,
@@ -1034,11 +1029,6 @@ def _build_report_data_payload(
     artifact_rows_safe: dict[str, Any],
     detector_summaries_safe: dict[str, Any],
     table_previews_safe: dict[str, Any],
-    evidence_bundle_preview_safe: list[dict[str, Any]],
-    rarity_coverage_preview_safe: list[dict[str, Any]],
-    rarity_unmatched_first_preview_safe: list[dict[str, Any]],
-    rarity_unmatched_last_preview_safe: list[dict[str, Any]],
-    clockface_top_preview_safe: list[dict[str, Any]],
     table_column_docs_safe: dict[str, Any],
     table_help_docs_safe: dict[str, Any],
     interactive_charts_safe: dict[str, Any],
@@ -1056,11 +1046,6 @@ def _build_report_data_payload(
             "artifact_rows": artifact_rows_safe,
             "detector_summaries": detector_summaries_safe,
             "table_previews": table_previews_safe,
-            "evidence_bundle_preview": evidence_bundle_preview_safe,
-            "rarity_coverage_preview": rarity_coverage_preview_safe,
-            "rarity_unmatched_first_preview": rarity_unmatched_first_preview_safe,
-            "rarity_unmatched_last_preview": rarity_unmatched_last_preview_safe,
-            "clockface_top_preview": clockface_top_preview_safe,
             "table_column_docs": table_column_docs_safe,
             "table_help_docs": table_help_docs_safe,
             "interactive_charts": interactive_without_rows,
@@ -1363,133 +1348,6 @@ def _load_table_previews_from_disk(
     return dict(previews)
 
 
-def _evidence_bundle_preview_from_results(
-    results: dict[str, DetectorResult],
-    max_rows: int = 25,
-) -> list[dict[str, Any]]:
-    composite = results.get("composite_score")
-    if composite is None:
-        return []
-    table = composite.tables.get("evidence_bundle_windows")
-    if table is None or table.empty:
-        return []
-    return _table_preview(table, max_rows=max_rows)
-
-
-def _evidence_bundle_preview_from_disk(
-    out_dir: Path,
-    max_rows: int = 25,
-) -> list[dict[str, Any]]:
-    tables_dir = out_dir / "tables"
-    if not tables_dir.exists():
-        return []
-
-    candidates = [
-        tables_dir / "composite_score__evidence_bundle_windows.parquet",
-        tables_dir / "composite_score__evidence_bundle_windows.csv",
-    ]
-    for path in candidates:
-        if not path.exists():
-            continue
-        try:
-            if path.suffix == ".parquet":
-                table = pd.read_parquet(path).head(max_rows)
-            else:
-                table = pd.read_csv(path, nrows=max_rows)
-        except Exception:
-            continue
-        if table.empty:
-            return []
-        return _table_preview(table, max_rows=max_rows)
-    return []
-
-
-def _rare_names_table_preview_from_results(
-    results: dict[str, DetectorResult],
-    table_name: str,
-    max_rows: int = 25,
-) -> list[dict[str, Any]]:
-    rare_names = results.get("rare_names")
-    if rare_names is None:
-        return []
-    table = rare_names.tables.get(table_name)
-    if table is None or table.empty:
-        return []
-    return _table_preview(table, max_rows=max_rows)
-
-
-def _rare_names_table_preview_from_disk(
-    out_dir: Path,
-    table_name: str,
-    max_rows: int = 25,
-) -> list[dict[str, Any]]:
-    tables_dir = out_dir / "tables"
-    if not tables_dir.exists():
-        return []
-
-    candidates = [
-        tables_dir / f"rare_names__{table_name}.parquet",
-        tables_dir / f"rare_names__{table_name}.csv",
-    ]
-    for path in candidates:
-        if not path.exists():
-            continue
-        try:
-            if path.suffix == ".parquet":
-                table = pd.read_parquet(path).head(max_rows)
-            else:
-                table = pd.read_csv(path, nrows=max_rows)
-        except Exception:
-            continue
-        if table.empty:
-            return []
-        return _table_preview(table, max_rows=max_rows)
-    return []
-
-
-def _periodicity_table_preview_from_results(
-    results: dict[str, DetectorResult],
-    table_name: str,
-    max_rows: int = 25,
-) -> list[dict[str, Any]]:
-    periodicity = results.get("periodicity")
-    if periodicity is None:
-        return []
-    table = periodicity.tables.get(table_name)
-    if table is None or table.empty:
-        return []
-    return _table_preview(table, max_rows=max_rows)
-
-
-def _periodicity_table_preview_from_disk(
-    out_dir: Path,
-    table_name: str,
-    max_rows: int = 25,
-) -> list[dict[str, Any]]:
-    tables_dir = out_dir / "tables"
-    if not tables_dir.exists():
-        return []
-
-    candidates = [
-        tables_dir / f"periodicity__{table_name}.parquet",
-        tables_dir / f"periodicity__{table_name}.csv",
-    ]
-    for path in candidates:
-        if not path.exists():
-            continue
-        try:
-            if path.suffix == ".parquet":
-                table = pd.read_parquet(path).head(max_rows)
-            else:
-                table = pd.read_csv(path, nrows=max_rows)
-        except Exception:
-            continue
-        if table.empty:
-            return []
-        return _table_preview(table, max_rows=max_rows)
-    return []
-
-
 def _load_frame_from_candidates(candidates: list[Path]) -> pd.DataFrame:
     for path in candidates:
         if not path.exists():
@@ -1579,11 +1437,6 @@ def _table_column_docs_from_rows(rows: list[dict[str, Any]]) -> dict[str, str]:
 def _build_table_column_docs(
     table_previews: dict[str, dict[str, list[dict[str, Any]]]],
     artifact_rows: dict[str, int],
-    evidence_bundle_preview: list[dict[str, Any]],
-    rarity_coverage_preview: list[dict[str, Any]],
-    rarity_unmatched_first_preview: list[dict[str, Any]],
-    rarity_unmatched_last_preview: list[dict[str, Any]],
-    clockface_top_preview: list[dict[str, Any]],
 ) -> dict[str, dict[str, str]]:
     docs: dict[str, dict[str, str]] = {}
     for detector_name, detector_tables in sorted(table_previews.items()):
@@ -1597,19 +1450,6 @@ def _build_table_column_docs(
             for artifact_name, row_count in sorted(artifact_rows.items())
         ]
     )
-    docs["composite_score.evidence_bundle_preview"] = _table_column_docs_from_rows(
-        evidence_bundle_preview
-    )
-    docs["rare_names.rarity_coverage_preview"] = _table_column_docs_from_rows(
-        rarity_coverage_preview
-    )
-    docs["rare_names.rarity_unmatched_first_preview"] = _table_column_docs_from_rows(
-        rarity_unmatched_first_preview
-    )
-    docs["rare_names.rarity_unmatched_last_preview"] = _table_column_docs_from_rows(
-        rarity_unmatched_last_preview
-    )
-    docs["periodicity.clockface_top_preview"] = _table_column_docs_from_rows(clockface_top_preview)
 
     return docs
 
@@ -2914,7 +2754,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             extra=[
                 {
                     "label": "Expected duplicate rows",
-                    "description": "Model baseline expectation from active-voter name frequencies.",
+                    "description": "Model baseline expectation from the configured name-frequency baseline.",
                 },
                 {
                     "label": "Excess duplicate rows",
@@ -2970,22 +2810,22 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "duplicates_exact_top_name_timing_exact": {
             "summary": (
-                "Exact-match top duplicate names shown as time points sized by duplicate rows."
+                "Exact-match top duplicate names shown as time points sized by per-position duplicate rows."
             ),
             "items": [
                 {
                     "label": "Point",
                     "description": (
                         "Each point is one active-bucket occurrence for a ranked top exact-match "
-                        "name (x = bucket time, y = name). Point size scales duplicate rows in "
-                        "that bucket."
+                        "name-position pair (x = bucket time, y = name). Colors encode Pro/Con/Other "
+                        "and point size scales duplicate rows for that position in the bucket."
                     ),
                 },
                 {
                     "label": "Y-axis order",
                     "description": (
-                        "Names are ranked by total repeated rows "
-                        "(rank 1 = most repeated)."
+                        "Names are ranked by total repeated rows (rank 1 = most repeated) and "
+                        "paginated 10 at a time up to the top 50 names."
                     ),
                 },
                 {
@@ -2999,22 +2839,22 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "duplicates_exact_top_name_timing_medium": {
             "summary": (
-                "Nickname-root match tier top names shown as time points sized by duplicate rows."
+                "Nickname-root match tier top names shown as time points sized by per-position duplicate rows."
             ),
             "items": [
                 {
                     "label": "Point",
                     "description": (
                         "Each point is one active-bucket occurrence for a ranked top nickname-root "
-                        "match name (x = bucket time, y = name). Point size scales duplicate rows "
-                        "in that bucket."
+                        "match name-position pair (x = bucket time, y = name). Colors encode "
+                        "Pro/Con/Other and point size scales duplicate rows for that position in the bucket."
                     ),
                 },
                 {
                     "label": "Y-axis order",
                     "description": (
-                        "Names are ranked by total repeated rows "
-                        "(rank 1 = most repeated)."
+                        "Names are ranked by total repeated rows (rank 1 = most repeated) and "
+                        "paginated 10 at a time up to the top 50 names."
                     ),
                 },
                 {
@@ -3028,22 +2868,22 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "duplicates_exact_top_name_timing_loose": {
             "summary": (
-                "First-initial match tier top names shown as time points sized by duplicate rows."
+                "First-initial match tier top names shown as time points sized by per-position duplicate rows."
             ),
             "items": [
                 {
                     "label": "Point",
                     "description": (
                         "Each point is one active-bucket occurrence for a ranked top first-initial "
-                        "match name (x = bucket time, y = name). Point size scales duplicate rows "
-                        "in that bucket."
+                        "match name-position pair (x = bucket time, y = name). Colors encode "
+                        "Pro/Con/Other and point size scales duplicate rows for that position in the bucket."
                     ),
                 },
                 {
                     "label": "Y-axis order",
                     "description": (
-                        "Names are ranked by total repeated rows "
-                        "(rank 1 = most repeated)."
+                        "Names are ranked by total repeated rows (rank 1 = most repeated) and "
+                        "paginated 10 at a time up to the top 50 names."
                     ),
                 },
                 {
@@ -3080,7 +2920,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Simulated duplicate burden metric under active-voter baseline.",
+                    "description": "Simulated duplicate burden metric under the configured baseline.",
                 },
                 {"label": "X-axis", "description": "Simulation iteration."},
             ],
@@ -3337,7 +3177,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "voter_registry_match_rates": timebar(
-            summary="Conservative voter-linkage trend (matched vs unmatched).",
+            summary="Conservative voter-linkage trend with matched-rate focus.",
             primary_label="Matched rate",
             primary_desc=("Share of rows classified as matched under conservative primary linkage."),
             include_wilson=True,
@@ -3347,10 +3187,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 "(after low-power filtering), directionally marked as lower or upper."
             ),
             extra=[
-                {
-                    "label": "Unmatched rate",
-                    "description": "Share of rows unmatched to WA active voter file.",
-                },
                 {
                     "label": "Pro match rate",
                     "description": "Matched-rate trajectory for Pro rows in each bucket.",
@@ -3931,100 +3767,6 @@ def _build_bucketed_day_hour_profiles(
     return _with_expected_columns(grouped, expected)
 
 
-def _scalar_interval_bounds(successes: float, totals: float) -> tuple[float | None, float | None]:
-    lower, upper = wilson_interval(
-        successes=pd.Series([successes], dtype=float),
-        totals=pd.Series([totals], dtype=float),
-    )
-    low = float(lower[0]) if len(lower) and np.isfinite(lower[0]) else None
-    high = float(upper[0]) if len(upper) and np.isfinite(upper[0]) else None
-    return low, high
-
-
-def _build_stance_by_deadline(
-    counts_per_minute: pd.DataFrame,
-    *,
-    cutoff_time: datetime,
-    min_cell_n_for_rates: int,
-) -> list[dict[str, Any]]:
-    if counts_per_minute.empty:
-        return []
-
-    working = _with_expected_columns(
-        counts_per_minute,
-        ["minute_bucket", "n_total", "n_pro", "n_con"],
-    ).copy()
-    working["minute_bucket"] = pd.to_datetime(working["minute_bucket"], errors="coerce")
-    working = working.dropna(subset=["minute_bucket"])
-    if working.empty:
-        return []
-    for column in ["n_total", "n_pro", "n_con"]:
-        working[column] = pd.to_numeric(working[column], errors="coerce").fillna(0.0)
-
-    cutoff = pd.Timestamp(cutoff_time)
-    working["minutes_to_cutoff"] = (
-        (cutoff - working["minute_bucket"]).dt.total_seconds() / 60.0
-    )
-
-    buckets: list[tuple[str, str, pd.Series]] = [
-        (
-            "after_cutoff",
-            "After cutoff",
-            working["minutes_to_cutoff"] <= 0.0,
-        ),
-        (
-            "0_30m_before_cutoff",
-            "0-30m before cutoff",
-            (working["minutes_to_cutoff"] > 0.0) & (working["minutes_to_cutoff"] <= 30.0),
-        ),
-        (
-            "30_120m_before_cutoff",
-            "30-120m before cutoff",
-            (working["minutes_to_cutoff"] > 30.0) & (working["minutes_to_cutoff"] <= 120.0),
-        ),
-        (
-            "2h_24h_before_cutoff",
-            "2h-24h before cutoff",
-            (working["minutes_to_cutoff"] > 120.0) & (working["minutes_to_cutoff"] <= 1440.0),
-        ),
-        (
-            "over_24h_before_cutoff",
-            ">24h before cutoff",
-            working["minutes_to_cutoff"] > 1440.0,
-        ),
-    ]
-
-    rows: list[dict[str, Any]] = []
-    for key, label, mask in buckets:
-        subset = working.loc[mask]
-        n_total = float(subset["n_total"].sum())
-        n_pro = float(subset["n_pro"].sum())
-        n_con = float(subset["n_con"].sum())
-        if n_total <= 0:
-            pro_rate = None
-            con_rate = None
-            low, high = (None, None)
-        else:
-            pro_rate = float(n_pro / n_total)
-            con_rate = float(n_con / n_total)
-            low, high = _scalar_interval_bounds(n_pro, n_total)
-        rows.append(
-            {
-                "deadline_window": label,
-                "deadline_window_key": key,
-                "n_total": int(round(n_total)),
-                "n_pro": int(round(n_pro)),
-                "n_con": int(round(n_con)),
-                "pro_rate": pro_rate,
-                "con_rate": con_rate,
-                "pro_rate_wilson_low": low,
-                "pro_rate_wilson_high": high,
-                "is_low_power": bool(n_total < float(max(1, min_cell_n_for_rates))),
-            }
-        )
-    return rows
-
-
 def _build_deadline_ramp_metrics(
     counts_per_minute: pd.DataFrame,
     *,
@@ -4121,7 +3863,6 @@ def _build_hearing_context_panel(
                 "status": "unavailable",
                 "reason": "No sign_in_cutoff provided in hearing metadata.",
             },
-            "stance_by_deadline": [],
         }
 
     process_markers = []
@@ -4221,14 +3962,8 @@ def _build_hearing_context_panel(
             "status": "unavailable",
             "reason": "No sign_in_cutoff provided in hearing metadata.",
         }
-        stance_by_deadline: list[dict[str, Any]] = []
     else:
         deadline_ramp_metrics = _build_deadline_ramp_metrics(
-            counts_per_minute,
-            cutoff_time=hearing_metadata.sign_in_cutoff,
-            min_cell_n_for_rates=min_cell_n_for_rates,
-        )
-        stance_by_deadline = _build_stance_by_deadline(
             counts_per_minute,
             cutoff_time=hearing_metadata.sign_in_cutoff,
             min_cell_n_for_rates=min_cell_n_for_rates,
@@ -4246,7 +3981,6 @@ def _build_hearing_context_panel(
         "process_markers": process_markers,
         "metadata_rows": metadata_rows,
         "deadline_ramp_metrics": deadline_ramp_metrics,
-        "stance_by_deadline": stance_by_deadline,
     }
 
 
@@ -5018,6 +4752,7 @@ def _build_interactive_chart_payload_v2(
             "duplicate_rows",
             "n_pro",
             "n_con",
+            "n_other",
             "first_seen",
             "last_seen",
         ],
@@ -6580,6 +6315,7 @@ def _build_interactive_chart_payload_v2(
             "duplicate_rows",
             "n_pro",
             "n_con",
+            "n_other",
             "first_seen",
             "last_seen",
         ],
@@ -7314,6 +7050,39 @@ def _build_interactive_chart_payload_v2(
         analysis_id for analysis_id in analysis_allowlist if analysis_id in visible_analysis_id_set
     ]
     focus_mode = registry_focus_mode_for_analysis_ids(focus_analysis_ids)
+    visible_chart_ids = {
+        str(chart_id)
+        for analysis in analysis_catalog
+        for chart_id in [analysis.get("hero_chart_id"), *(analysis.get("detail_chart_ids") or [])]
+        if isinstance(chart_id, str) and chart_id
+    }
+    supplemental_chart_ids = {
+        "off_hours_hourly_profile",
+        "off_hours_summary_compare",
+        "off_hours_day_hour_heatmap",
+        "duplicates_exact_null_distribution",
+        "duplicates_exact_top_names",
+        "duplicates_exact_position_switch",
+        "voter_registry_position_buckets",
+        "voter_registry_match_by_position",
+        "voter_registry_match_tiers",
+    }
+    retained_chart_ids = visible_chart_ids | supplemental_chart_ids
+    charts = {
+        chart_id: rows
+        for chart_id, rows in charts.items()
+        if chart_id in retained_chart_ids
+    }
+    chart_legend_docs = {
+        chart_id: legend
+        for chart_id, legend in chart_legend_docs.items()
+        if chart_id in retained_chart_ids
+    }
+    chart_help_docs = {
+        chart_id: help_doc
+        for chart_id, help_doc in chart_help_docs.items()
+        if chart_id in retained_chart_ids
+    }
 
     global_bucket_options = sorted(
         {
@@ -7358,9 +7127,6 @@ def _build_interactive_chart_payload_v2(
     triage_views = build_investigation_views(table_map=table_map)
     investigation = triage_views.get(resolved_default_dedup_mode, triage_views.get("raw", {}))
     triage_summary = investigation.get("triage_summary", {})
-    window_evidence_queue = investigation.get("window_evidence_queue", [])
-    record_evidence_queue = investigation.get("record_evidence_queue", [])
-    cluster_evidence_queue = investigation.get("cluster_evidence_queue", [])
     data_quality_panel = build_data_quality_panel(
         table_map=table_map,
         triage_views=triage_views,
@@ -7443,12 +7209,8 @@ def _build_interactive_chart_payload_v2(
         "chart_help_docs": chart_help_docs,
         "triage_views": triage_views,
         "triage_summary": triage_summary,
-        "window_evidence_queue": window_evidence_queue,
-        "record_evidence_queue": record_evidence_queue,
-        "cluster_evidence_queue": cluster_evidence_queue,
         "data_quality_panel": data_quality_panel,
         "hearing_context_panel": hearing_context_panel,
-        "cross_hearing_baseline": default_cross_hearing_baseline_payload(),
         "controls": {
             "default_bucket_minutes": 30
             if 30 in global_bucket_options
@@ -7577,11 +7339,7 @@ def _rows_to_frame(rows: Any) -> pd.DataFrame:
 
 def _write_investigation_artifacts(
     out_dir: Path,
-    report_id: str,
     triage_summary: dict[str, Any],
-    window_evidence_queue: Any,
-    record_evidence_queue: Any,
-    cluster_evidence_queue: Any,
     data_quality_panel: Any,
 ) -> None:
     summary_dir = out_dir / "summary"
@@ -7595,35 +7353,14 @@ def _write_investigation_artifacts(
         encoding="utf-8",
     )
 
-    window_rows = window_evidence_queue if isinstance(window_evidence_queue, list) else []
-    record_rows = record_evidence_queue if isinstance(record_evidence_queue, list) else []
-    cluster_rows = cluster_evidence_queue if isinstance(cluster_evidence_queue, list) else []
     raw_vs_dedup_rows = []
     if isinstance(data_quality_panel, dict):
         candidate_rows = data_quality_panel.get("raw_vs_dedup_metrics", [])
         if isinstance(candidate_rows, list):
             raw_vs_dedup_rows = candidate_rows
 
-    feature_vector = build_feature_vector(
-        report_id=report_id,
-        triage_summary=summary_payload,
-        window_evidence_queue=window_rows,
-        record_evidence_queue=record_rows,
-        cluster_evidence_queue=cluster_rows,
-        data_quality_panel=data_quality_panel if isinstance(data_quality_panel, dict) else {},
-    )
-    (summary_dir / "feature_vector.json").write_text(
-        json.dumps(_json_safe(feature_vector), indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
-
-    queue_tables = {
-        "triage__window_evidence_queue": _rows_to_frame(window_rows),
-        "triage__record_evidence_queue": _rows_to_frame(record_rows),
-        "triage__cluster_evidence_queue": _rows_to_frame(cluster_rows),
-        "data_quality__raw_vs_dedup_metrics": _rows_to_frame(raw_vs_dedup_rows),
-    }
-    for table_name, frame in queue_tables.items():
+    queue_table = _rows_to_frame(raw_vs_dedup_rows)
+    for table_name, frame in {"data_quality__raw_vs_dedup_metrics": queue_table}.items():
         csv_path = tables_dir / f"{table_name}.csv"
         frame.to_csv(csv_path, index=False)
         if pq is not None:
@@ -7661,55 +7398,9 @@ def render_report(
         if results
         else _load_table_previews_from_disk(out_dir)
     )
-    evidence_bundle_preview = (
-        _evidence_bundle_preview_from_results(results)
-        if results
-        else _evidence_bundle_preview_from_disk(out_dir)
-    )
-    rarity_coverage_preview = (
-        _rare_names_table_preview_from_results(
-            results, table_name="rarity_lookup_coverage", max_rows=5
-        )
-        if results
-        else _rare_names_table_preview_from_disk(
-            out_dir, table_name="rarity_lookup_coverage", max_rows=5
-        )
-    )
-    rarity_unmatched_first_preview = (
-        _rare_names_table_preview_from_results(
-            results, table_name="rarity_unmatched_first_tokens", max_rows=12
-        )
-        if results
-        else _rare_names_table_preview_from_disk(
-            out_dir, table_name="rarity_unmatched_first_tokens", max_rows=12
-        )
-    )
-    rarity_unmatched_last_preview = (
-        _rare_names_table_preview_from_results(
-            results, table_name="rarity_unmatched_last_tokens", max_rows=12
-        )
-        if results
-        else _rare_names_table_preview_from_disk(
-            out_dir, table_name="rarity_unmatched_last_tokens", max_rows=12
-        )
-    )
-    clockface_top_preview = (
-        _periodicity_table_preview_from_results(
-            results, table_name="clockface_top_minutes", max_rows=12
-        )
-        if results
-        else _periodicity_table_preview_from_disk(
-            out_dir, table_name="clockface_top_minutes", max_rows=12
-        )
-    )
     table_column_docs = _build_table_column_docs(
         table_previews=table_previews,
         artifact_rows=artifact_rows,
-        evidence_bundle_preview=evidence_bundle_preview,
-        rarity_coverage_preview=rarity_coverage_preview,
-        rarity_unmatched_first_preview=rarity_unmatched_first_preview,
-        rarity_unmatched_last_preview=rarity_unmatched_last_preview,
-        clockface_top_preview=clockface_top_preview,
     )
     table_help_docs = _build_table_help_docs(table_column_docs=table_column_docs)
     interactive_started = perf_counter()
@@ -7736,29 +7427,15 @@ def render_report(
             runtime_metrics = {}
         runtime_metrics["interactive_payload_build_ms"] = interactive_build_ms
         interactive_charts["controls"]["runtime"] = runtime_metrics
-    interactive_charts["cross_hearing_baseline"] = load_cross_hearing_baseline(
-        out_dir=out_dir,
-        report_id=out_dir.name,
-    )
-
     _write_investigation_artifacts(
         out_dir=out_dir,
-        report_id=out_dir.name,
         triage_summary=interactive_charts.get("triage_summary", {}),
-        window_evidence_queue=interactive_charts.get("window_evidence_queue", []),
-        record_evidence_queue=interactive_charts.get("record_evidence_queue", []),
-        cluster_evidence_queue=interactive_charts.get("cluster_evidence_queue", []),
         data_quality_panel=interactive_charts.get("data_quality_panel", {}),
     )
 
     detector_summaries_safe = _json_safe(detector_summaries)
     artifact_rows_safe = _json_safe(artifact_rows)
     table_previews_safe = _json_safe(table_previews)
-    evidence_bundle_preview_safe = _json_safe(evidence_bundle_preview)
-    rarity_coverage_preview_safe = _json_safe(rarity_coverage_preview)
-    rarity_unmatched_first_preview_safe = _json_safe(rarity_unmatched_first_preview)
-    rarity_unmatched_last_preview_safe = _json_safe(rarity_unmatched_last_preview)
-    clockface_top_preview_safe = _json_safe(clockface_top_preview)
     table_column_docs_safe = _json_safe(table_column_docs)
     table_help_docs_safe = _json_safe(table_help_docs)
     interactive_charts_safe = _json_safe(interactive_charts)
@@ -7774,11 +7451,6 @@ def render_report(
         artifact_rows_safe=artifact_rows_safe,
         detector_summaries_safe=detector_summaries_safe,
         table_previews_safe=table_previews_safe,
-        evidence_bundle_preview_safe=evidence_bundle_preview_safe,
-        rarity_coverage_preview_safe=rarity_coverage_preview_safe,
-        rarity_unmatched_first_preview_safe=rarity_unmatched_first_preview_safe,
-        rarity_unmatched_last_preview_safe=rarity_unmatched_last_preview_safe,
-        clockface_top_preview_safe=clockface_top_preview_safe,
         table_column_docs_safe=table_column_docs_safe,
         table_help_docs_safe=table_help_docs_safe,
         interactive_charts_safe=interactive_charts_safe,
@@ -7801,11 +7473,6 @@ def render_report(
         detector_summaries=detector_summaries_safe,
         artifact_rows=artifact_rows_safe,
         table_previews=table_previews_safe,
-        evidence_bundle_preview=evidence_bundle_preview_safe,
-        rarity_coverage_preview=rarity_coverage_preview_safe,
-        rarity_unmatched_first_preview=rarity_unmatched_first_preview_safe,
-        rarity_unmatched_last_preview=rarity_unmatched_last_preview_safe,
-        clockface_top_preview=clockface_top_preview_safe,
         table_column_docs=table_column_docs_safe,
         table_help_docs=table_help_docs_safe,
         interactive_charts=interactive_charts_for_template,

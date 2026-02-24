@@ -8,6 +8,13 @@
   "top_swing_windows": [],
   "top_repeated_names": [
     {
+      "display_name": "HARSHAW, NORM",
+      "canonical_name": "HARSHAW|NORM||",
+      "n_records": 40,
+      "n_pro": 0,
+      "n_con": 40
+    },
+    {
       "display_name": "HUFFMAN, TRACY",
       "canonical_name": "HUFFMAN|TRACY||",
       "n_records": 34,
@@ -34,13 +41,6 @@
       "n_records": 17,
       "n_pro": 0,
       "n_con": 17
-    },
-    {
-      "display_name": "HARSHAW, NORMAN",
-      "canonical_name": "HARSHAW|NORMAN||",
-      "n_records": 16,
-      "n_pro": 0,
-      "n_con": 16
     }
   ],
   "top_near_dup_clusters": [
@@ -153,8 +153,8 @@
   },
   "queue_counts": {
     "window": 0,
-    "record": 250,
-    "cluster": 250
+    "record": 0,
+    "cluster": 0
   },
   "window_tier_counts": {
     "high": 0,

@@ -97,4 +97,5 @@ def test_triage_summary_contract_contains_required_phase2_fields() -> None:
     assert isinstance(summary["top_repeated_names"], list)
     assert isinstance(summary["top_near_dup_clusters"], list)
     assert isinstance(summary["off_hours_summary"], dict)
-    assert summary["queue_counts"]["window"] >= 1
+    assert summary["queue_counts"] == {"window": 0, "record": 0, "cluster": 0}
+    assert summary["window_tier_counts"] == {"high": 0, "medium": 0, "watch": 0}

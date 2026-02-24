@@ -1,30 +1,9 @@
           {% if not off_hours_focus_only %}
-          <section id="section-name-cluster-forensics" class="report-section panel">
-            <h2 id="name-cluster-forensics" class="toc-heading">Name/Cluster Forensics</h2>
-            <p class="tiny-note">
-              High-frequency names and compressed near-duplicate clusters are shown here for rapid adjudication.
-            </p>
-            <div class="analysis-detail-grid">
-              <article class="detail-card">
-                <h3 class="detail-title">Top Repeated Names</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-names-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Top Near-Dup Clusters</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-clusters-host" class="table-host"></div>
-                </div>
-              </article>
-            </div>
-          </section>
-
           <section id="section-methodology" class="report-section panel">
             <h2 id="methodology" class="toc-heading">Methodology</h2>
             <p>
-              Queue tiers combine statistically controlled contributors (when available) with heuristic contributors.
-              Low-support items are explicitly caveated and cannot be promoted to high tier.
+              Detector interpretation combines statistically controlled contributors (when available) with heuristic contributors.
+              Low-support windows are explicitly caveated.
             </p>
             <div class="analysis-detail-grid">
               <article class="detail-card">
@@ -61,15 +40,6 @@
                 <h3 class="detail-title">Ethical Guardrails</h3>
                 <div class="table-wrap">
                   <div id="methodology-guardrails-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Profiling Coverage (Artifacts)</h3>
-                <p class="tiny-note">
-                  Artifact/table row counts are retained for reproducibility and moved here to keep triage focused on actionable evidence.
-                </p>
-                <div class="table-wrap">
-                  <div id="methodology-artifact-rows-host" class="table-host"></div>
                 </div>
               </article>
             </div>

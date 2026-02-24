@@ -97,9 +97,9 @@ class NameAnalysisConfig(BaseModel):
     ] = "hearing_empirical"
     collision_baseline_model: Literal["multinomial", "hypergeometric"] = "multinomial"
     collision_uncertainty_mode: Literal["monte_carlo", "analytic_only"] = "monte_carlo"
-    collision_scope_primary: Literal["matched_only", "full_hearing"] = "matched_only"
+    collision_scope_primary: Literal["matched_only", "full_hearing"] = "full_hearing"
     collision_scope_overlays: list[Literal["matched_only", "full_hearing", "unmatched_only"]] = (
-        Field(default_factory=lambda: ["full_hearing"])
+        Field(default_factory=list)
     )
     collision_baseline_failure_policy: Literal["fail", "degrade"] = "degrade"
     collision_stratification: str = "none"

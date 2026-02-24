@@ -158,7 +158,6 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert (out_dir / "report_data" / "index.json").exists()
     assert any((out_dir / "report_data" / "analyses").rglob("base.json"))
     assert (out_dir / "summary" / "investigation_summary.json").exists()
-    assert (out_dir / "summary" / "feature_vector.json").exists()
     enabled_detector_names = configured_detector_names()
     if _configured_focus_analysis_ids():
         assert enabled_detector_names
@@ -190,15 +189,12 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     else:
         assert (out_dir / "summary" / "bursts.json").exists()
         assert (out_dir / "summary" / "procon_swings.json").exists()
-        assert (out_dir / "summary" / "changepoints.json").exists()
+        assert (out_dir / "summary" / "off_hours.json").exists()
         assert (out_dir / "summary" / "voter_registry_match.json").exists()
-        assert (out_dir / "summary" / "multivariate_anomalies.json").exists()
         assert (out_dir / "tables" / "bursts__burst_window_tests.csv").exists()
         assert (out_dir / "tables" / "procon_swings__swing_window_tests.csv").exists()
         assert (out_dir / "tables" / "duplicates_exact__repeated_same_bucket.csv").exists()
         assert (out_dir / "tables" / "duplicates_exact__repeated_same_bucket_summary.csv").exists()
-        assert (out_dir / "tables" / "sortedness__bucket_ordering.csv").exists()
-        assert (out_dir / "tables" / "sortedness__bucket_ordering_summary.csv").exists()
         assert (out_dir / "tables" / "procon_swings__time_bucket_profiles.csv").exists()
         assert (out_dir / "tables" / "procon_swings__time_of_day_bucket_profiles.csv").exists()
         assert (out_dir / "tables" / "procon_swings__day_bucket_profiles.csv").exists()
@@ -210,16 +206,6 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         ).exists()
         assert (out_dir / "tables" / "org_anomalies__organization_blank_rate_summary.csv").exists()
         assert (out_dir / "tables" / "voter_registry_match__match_overview.csv").exists()
-        assert (out_dir / "tables" / "multivariate_anomalies__bucket_anomaly_scores.csv").exists()
-        assert (out_dir / "tables" / "multivariate_anomalies__top_bucket_anomalies.csv").exists()
-        assert (out_dir / "tables" / "changepoints__all_changepoints.csv").exists()
-        assert (out_dir / "tables" / "rare_names__rarity_by_minute.csv").exists()
-        assert (out_dir / "tables" / "rare_names__rarity_top_records.csv").exists()
-        assert (out_dir / "tables" / "rare_names__rarity_lookup_coverage.csv").exists()
-        assert (out_dir / "tables" / "composite_score__evidence_bundle_windows.csv").exists()
-        assert (out_dir / "tables" / "triage__window_evidence_queue.csv").exists()
-        assert (out_dir / "tables" / "triage__record_evidence_queue.csv").exists()
-        assert (out_dir / "tables" / "triage__cluster_evidence_queue.csv").exists()
         assert (out_dir / "tables" / "data_quality__raw_vs_dedup_metrics.csv").exists()
         assert (out_dir / "figures" / "counts_with_anomalies.png").exists()
         assert (out_dir / "figures" / "pro_rate_with_anomalies.png").exists()
@@ -250,10 +236,6 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert (out_dir / "figures" / "organization_blank_rates.png").exists()
         assert (out_dir / "figures" / "bursts_null_distribution.png").exists()
         assert (out_dir / "figures" / "swing_null_distribution.png").exists()
-        assert (out_dir / "figures" / "periodicity_autocorr.png").exists()
-        assert (out_dir / "figures" / "periodicity_spectrum.png").exists()
-        assert (out_dir / "figures" / "periodicity_clockface.png").exists()
-        assert (out_dir / "figures" / "multivariate_anomaly_scores.png").exists()
     report_text = (out_dir / "report.html").read_text(encoding="utf-8")
     if _is_off_hours_only_view():
         assert 'data-analysis-id="off_hours"' in report_text
@@ -264,10 +246,12 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert "Composite Evidence Score" not in report_text
         assert "Exact Duplicate Names" in report_text
         assert "Registered Voter Match" in report_text
-    else:
-        assert "Composite Evidence Score" in report_text
-        assert "Rare / Unique Names" in report_text
-        assert "Periodicity" in report_text
+    assert 'data-analysis-id="composite_score"' not in report_text
+    assert 'data-analysis-id="rare_names"' not in report_text
+    assert 'data-analysis-id="periodicity"' not in report_text
+    assert 'data-analysis-id="sortedness"' not in report_text
+    assert 'data-analysis-id="multivariate_anomalies"' not in report_text
+    assert 'data-analysis-id="changepoints"' not in report_text
     assert "Static Figure Exports" not in report_text
     expected_definitions = default_analysis_definitions()
     configured_ids = set(_configured_focus_analysis_ids())
@@ -304,9 +288,12 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert "Composite Evidence Score" not in reloaded_report_text
         assert "Exact Duplicate Names" in reloaded_report_text
         assert "Registered Voter Match" in reloaded_report_text
-    else:
-        assert "Composite Evidence Score" in reloaded_report_text
-        assert "Periodicity" in reloaded_report_text
+    assert 'data-analysis-id="composite_score"' not in reloaded_report_text
+    assert 'data-analysis-id="rare_names"' not in reloaded_report_text
+    assert 'data-analysis-id="periodicity"' not in reloaded_report_text
+    assert 'data-analysis-id="sortedness"' not in reloaded_report_text
+    assert 'data-analysis-id="multivariate_anomalies"' not in reloaded_report_text
+    assert 'data-analysis-id="changepoints"' not in reloaded_report_text
     assert "Static Figure Exports" not in reloaded_report_text
     reloaded_analysis_ids = set(re.findall(r'data-analysis-id="([^"]+)"', reloaded_report_text))
     reloaded_hero_ids = set(

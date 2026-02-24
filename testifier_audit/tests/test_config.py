@@ -86,6 +86,8 @@ def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
     base_cfg = load_config(base_path)
     assert base_cfg.report.default_dedup_mode == "side_by_side"
     assert base_cfg.report.min_cell_n_for_rates == 25
+    assert base_cfg.name_analysis.collision_scope_primary == "full_hearing"
+    assert base_cfg.name_analysis.collision_scope_overlays == []
 
     override = {
         **base,

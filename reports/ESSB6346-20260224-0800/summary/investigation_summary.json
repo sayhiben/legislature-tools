@@ -15,6 +15,20 @@
       "n_con": 141
     },
     {
+      "display_name": "MERRITT, BECKY",
+      "canonical_name": "MERRITT|BECKY||",
+      "n_records": 90,
+      "n_pro": 0,
+      "n_con": 90
+    },
+    {
+      "display_name": "HARSHAW, NORM",
+      "canonical_name": "HARSHAW|NORM||",
+      "n_records": 82,
+      "n_pro": 0,
+      "n_con": 82
+    },
+    {
       "display_name": "KESSELRING, BEVERLY",
       "canonical_name": "KESSELRING|BEVERLY||",
       "n_records": 68,
@@ -22,25 +36,11 @@
       "n_con": 68
     },
     {
-      "display_name": "BACKOUS, KATHLEEN",
-      "canonical_name": "BACKOUS|KATHLEEN||",
-      "n_records": 42,
+      "display_name": "CONNER, DOUG",
+      "canonical_name": "CONNER|DOUG||",
+      "n_records": 46,
       "n_pro": 0,
-      "n_con": 42
-    },
-    {
-      "display_name": "KESSELRING, JERRY",
-      "canonical_name": "KESSELRING|JERRY||",
-      "n_records": 41,
-      "n_pro": 0,
-      "n_con": 41
-    },
-    {
-      "display_name": "DURHAM, RHONDA",
-      "canonical_name": "DURHAM|RHONDA||",
-      "n_records": 36,
-      "n_pro": 0,
-      "n_con": 36
+      "n_con": 46
     }
   ],
   "top_near_dup_clusters": [
@@ -153,8 +153,8 @@
   },
   "queue_counts": {
     "window": 0,
-    "record": 250,
-    "cluster": 250
+    "record": 0,
+    "cluster": 0
   },
   "window_tier_counts": {
     "high": 0,

@@ -26,7 +26,6 @@ def test_report_layout_contains_phase2_investigation_sections(tmp_path: Path) ->
     if _is_off_hours_only_view():
         assert "Triage" not in rendered
         assert "Window Drilldown" not in rendered
-        assert "Name/Cluster Forensics" not in rendered
         assert "Methodology" not in rendered
         assert 'href="#triage"' not in rendered
         assert 'href="#window-drilldown"' not in rendered
@@ -38,14 +37,13 @@ def test_report_layout_contains_phase2_investigation_sections(tmp_path: Path) ->
         assert 'id="section-methodology"' not in rendered
     else:
         assert "Triage" in rendered
-        assert "Window Drilldown" in rendered
-        assert "Name/Cluster Forensics" in rendered
+        assert "Window Drilldown" not in rendered
         assert "Methodology" in rendered
         assert 'href="#triage"' in rendered
-        assert 'href="#window-drilldown"' in rendered
-        assert 'href="#name-cluster-forensics"' in rendered
+        assert 'href="#window-drilldown"' not in rendered
+        assert 'href="#name-cluster-forensics"' not in rendered
         assert 'href="#methodology"' in rendered
         assert 'id="section-triage"' in rendered
-        assert 'id="section-window-drilldown"' in rendered
-        assert 'id="section-name-cluster-forensics"' in rendered
+        assert 'id="section-window-drilldown"' not in rendered
+        assert 'id="section-name-cluster-forensics"' not in rendered
         assert 'id="section-methodology"' in rendered

@@ -24,6 +24,11 @@
 
       <div class="analysis-hero-block">
         {{ chart_host.render_chart_host(analysis.hero_chart_id, "hero", "chart-host-hero") }}
+        {% if analysis.hero_chart_id == "voter_registry_match_rates" %}
+          <p class="tiny-note">
+            Matched-rate axis auto-zooms to observed values (bounded to 0-1) for readability; use detail charts for unmatched-rate diagnostics.
+          </p>
+        {% endif %}
         {% set hero_help = interactive_charts.chart_help_docs.get(analysis.hero_chart_id) if interactive_charts.chart_help_docs else None %}
         {% set hero_legend = interactive_charts.chart_legend_docs.get(analysis.hero_chart_id) if interactive_charts.chart_legend_docs else None %}
         {{ chart_help.render_chart_help(hero_help, hero_legend) }}

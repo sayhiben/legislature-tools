@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 from typer.testing import CliRunner
 
 from testifier_audit.cli import app
+from testifier_audit.io.csi_testifiers import CSIDownloadResult
 from testifier_audit.io.submissions_postgres import SubmissionImportResult
 from testifier_audit.io.vrdb_postgres import VRDBImportResult
 
@@ -15,10 +18,73 @@ def test_cli_help() -> None:
     result = runner.invoke(app, ["--help"])
 
     assert result.exit_code == 0
+    assert "download-csi-testifiers" in result.stdout
     assert "import-submissions" in result.stdout
     assert "import-vrdb" in result.stdout
     assert "run-all" in result.stdout
     assert "prepare-rarity-baselines" in result.stdout
+
+
+def test_download_csi_testifiers_command_runs(monkeypatch, tmp_path: Path) -> None:
+    csv_out_dir = tmp_path / "raw"
+    metadata_out_dir = tmp_path / "hearing_metadata"
+    captured: dict[str, object] = {}
+
+    def _fake_download(**kwargs: object) -> CSIDownloadResult:
+        captured.update(kwargs)
+        return CSIDownloadResult(
+            search_query="sb 6005",
+            csv_path=csv_out_dir / "SB6005-20260224-1600.csv",
+            metadata_path=metadata_out_dir / "SB6005-20260224-1600.hearing.yaml",
+            short_bill_id="SB 6005",
+            bill_title="Transportation funding and appropriations",
+            meeting_family_id="34001",
+            agenda_item_family_id="170646",
+            agenda_item_id="28434",
+            meeting_start=datetime(2026, 2, 24, 16, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+            testifying_rows=7,
+            not_testifying_rows=204,
+        )
+
+    monkeypatch.setattr("testifier_audit.cli.download_csi_testifier_csv", _fake_download)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "download-csi-testifiers",
+            "sb 6005",
+            "--csv-out-dir",
+            str(csv_out_dir),
+            "--metadata-out-dir",
+            str(metadata_out_dir),
+            "--meeting-index",
+            "1",
+            "--agenda-index",
+            "0",
+            "--top",
+            "50",
+            "--timeout-seconds",
+            "15",
+            "--max-retries",
+            "2",
+            "--retry-backoff-seconds",
+            "0.5",
+            "--no-overwrite",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert captured["bill_query"] == "sb 6005"
+    assert captured["meeting_index"] == 1
+    assert captured["agenda_index"] == 0
+    assert captured["top"] == 50
+    assert captured["timeout_seconds"] == 15.0
+    assert captured["max_retries"] == 2
+    assert captured["retry_backoff_seconds"] == 0.5
+    assert captured["overwrite"] is False
+    assert "CSI testifier download complete" in result.stdout
+    assert "total_rows: 211" in result.stdout
 
 
 def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Path) -> None:
@@ -131,8 +197,8 @@ def test_import_submissions_command_runs_with_config_defaults(
     csv_path.write_text(
         "\n".join(
             [
-                "Count,Name,Organization,Position,Time Signed In",
-                '1,"Doe, Jane",,Pro,2/3/2026 5:07 PM',
+                "Group,Name,Organization,Position,Time Signed In",
+                'Testifying,"Doe, Jane",,Pro,2/3/2026 5:07 PM',
             ]
         ),
         encoding="utf-8",
@@ -144,7 +210,7 @@ def test_import_submissions_command_runs_with_config_defaults(
         "testifier_audit.cli._load_app_config",
         lambda _path: SimpleNamespace(
             columns=SimpleNamespace(
-                id="Count",
+                id="Group",
                 name="Name",
                 organization="Organization",
                 position="Position",
@@ -222,9 +288,8 @@ def test_run_all_requires_source_file_in_postgres_mode(monkeypatch, tmp_path: Pa
     combined_output = result.stdout
     if hasattr(result, "stderr") and result.stderr:
         combined_output += result.stderr
-    assert "requires a single source_file" in combined_output or "requires a single source_file" in str(
-        result.exception
-    )
+    message = "requires a single source_file"
+    assert message in combined_output or message in str(result.exception)
 
 
 def test_run_all_allows_postgres_mode_without_source_file_when_comparative(

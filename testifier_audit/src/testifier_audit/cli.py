@@ -8,6 +8,7 @@ import typer
 import yaml
 
 from testifier_audit.config import DEFAULT_CONFIG_PATH, AppConfig, load_config
+from testifier_audit.io.csi_testifiers import download_csi_testifier_csv
 from testifier_audit.io.hearing_metadata import load_hearing_metadata
 from testifier_audit.io.rarity_baselines import BaselineProfileName, build_frequency_baseline_file
 from testifier_audit.io.submissions_postgres import import_submission_csv_to_postgres
@@ -20,6 +21,9 @@ from testifier_audit.pipeline.run_all import run_all
 from testifier_audit.report.render import render_report
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_CSI_CSV_OUT_DIR = REPO_ROOT / "data" / "raw"
+DEFAULT_CSI_METADATA_OUT_DIR = REPO_ROOT / "data" / "metadata"
 
 
 def _load_app_config(config_path: Path) -> AppConfig:
@@ -294,6 +298,106 @@ def prepare_rarity_baselines(
     typer.echo("Prepared rarity baselines")
     for line in output_messages:
         typer.echo(f"- {line}")
+
+
+@app.command("download-csi-testifiers")
+def download_csi_testifiers_command(
+    bill_query: str = typer.Argument(
+        ...,
+        help="Partial or full bill identifier/title used in CSI search.",
+    ),
+    csv_out_dir: Path = typer.Option(
+        DEFAULT_CSI_CSV_OUT_DIR,
+        resolve_path=True,
+        help="Directory where combined CSV output will be written.",
+    ),
+    metadata_out_dir: Path = typer.Option(
+        DEFAULT_CSI_METADATA_OUT_DIR,
+        resolve_path=True,
+        help="Directory where hearing metadata sidecar YAML will be written.",
+    ),
+    meeting_index: int = typer.Option(
+        0,
+        min=0,
+        help="Index within matching meeting candidates (0 = most recent).",
+    ),
+    agenda_index: int = typer.Option(
+        0,
+        min=0,
+        help="Index within matching agenda-item candidates (0 = first best match).",
+    ),
+    meeting_family_id: str | None = typer.Option(
+        None,
+        help="Optional explicit meetingFamilyId to force selection.",
+    ),
+    agenda_item_id: str | None = typer.Option(
+        None,
+        help="Optional explicit agenda item id to force selection.",
+    ),
+    top: int = typer.Option(
+        100,
+        min=1,
+        max=500,
+        help="Max number of meetings to request from SearchMeetings.",
+    ),
+    timeout_seconds: float = typer.Option(
+        30.0,
+        min=1.0,
+        help="HTTP timeout in seconds for each request.",
+    ),
+    max_retries: int = typer.Option(
+        3,
+        min=0,
+        max=10,
+        help="Number of retries for transient HTTP/network failures.",
+    ),
+    retry_backoff_seconds: float = typer.Option(
+        1.5,
+        min=0.1,
+        help="Base backoff seconds for retry delays (exponential).",
+    ),
+    overwrite: bool = typer.Option(
+        True,
+        "--overwrite/--no-overwrite",
+        help="Replace existing CSV/sidecar files when output paths already exist.",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable debug logging for request/selection details.",
+    ),
+) -> None:
+    """Download WA CSI testifier data, write combined CSV, and write hearing metadata sidecar."""
+    configure_logging(level="DEBUG" if verbose else "INFO")
+    result = download_csi_testifier_csv(
+        bill_query=bill_query,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        meeting_index=meeting_index,
+        agenda_index=agenda_index,
+        meeting_family_id=meeting_family_id,
+        agenda_item_id=agenda_item_id,
+        top=top,
+        timeout_seconds=timeout_seconds,
+        max_retries=max_retries,
+        retry_backoff_seconds=retry_backoff_seconds,
+        overwrite=overwrite,
+    )
+
+    typer.echo("CSI testifier download complete")
+    typer.echo(f"- search_query: {result.search_query}")
+    typer.echo(f"- short_bill_id: {result.short_bill_id}")
+    typer.echo(f"- bill_title: {result.bill_title}")
+    typer.echo(f"- meeting_family_id: {result.meeting_family_id}")
+    typer.echo(f"- agenda_item_family_id: {result.agenda_item_family_id}")
+    typer.echo(f"- agenda_item_id: {result.agenda_item_id}")
+    typer.echo(f"- meeting_start_pacific: {result.meeting_start.isoformat()}")
+    typer.echo(f"- testifying_rows: {result.testifying_rows}")
+    typer.echo(f"- not_testifying_rows: {result.not_testifying_rows}")
+    typer.echo(f"- total_rows: {result.total_rows}")
+    typer.echo(f"- csv_path: {result.csv_path}")
+    typer.echo(f"- hearing_metadata_path: {result.metadata_path}")
 
 
 @app.command("import-submissions")

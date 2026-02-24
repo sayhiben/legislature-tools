@@ -14,7 +14,7 @@ def _config_with_custom_columns() -> AppConfig:
     return AppConfig.model_validate(
         {
             "columns": {
-                "id": "Count",
+                "id": "Group",
                 "name": "Name",
                 "organization": "Organization",
                 "position": "Position",
@@ -29,8 +29,8 @@ def test_load_records_normalizes_source_columns(tmp_path: Path) -> None:
     csv_path.write_text(
         "\n".join(
             [
-                "Count,Name,Organization,Position,Time Signed In",
-                '1,"Doe, Jane",,Pro,2/3/2026 5:07 PM',
+                "Group,Name,Organization,Position,Time Signed In",
+                'Testifying,"Doe, Jane",,Pro,2/3/2026 5:07 PM',
             ]
         ),
         encoding="utf-8",
@@ -47,7 +47,10 @@ def test_load_records_raises_when_normalized_output_is_missing_required_column(
 ) -> None:
     csv_path = tmp_path / "records.csv"
     csv_path.write_text(
-        "Count,Name,Organization,Position,Time Signed In\n1,Doe,Org,Pro,2/3/2026 5:07 PM\n",
+        (
+            "Group,Name,Organization,Position,Time Signed In\n"
+            "Testifying,Doe,Org,Pro,2/3/2026 5:07 PM\n"
+        ),
         encoding="utf-8",
     )
 
@@ -90,7 +93,7 @@ def test_load_records_reads_from_postgres_when_enabled(monkeypatch: pytest.Monke
     config = AppConfig.model_validate(
         {
             "columns": {
-                "id": "Count",
+                "id": "Group",
                 "name": "Name",
                 "organization": "Organization",
                 "position": "Position",
@@ -126,7 +129,7 @@ def test_load_records_postgres_mode_requires_db_url() -> None:
     config = AppConfig.model_validate(
         {
             "columns": {
-                "id": "Count",
+                "id": "Group",
                 "name": "Name",
                 "organization": "Organization",
                 "position": "Position",

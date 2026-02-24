@@ -160,10 +160,10 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "(model-based when available, day-adjusted fallback otherwise) at each bucket size."
         ),
         what_to_look_for=(
-            "Sustained robust primary alerts (alert-eligible, below primary 99.8% "
-            "lower control band, lower-tail FDR-supported, and materially negative) "
-            "at adequate support, then verify whether the pattern repeats or clusters "
-            "in specific dates/hours."
+            "Sustained robust primary alerts (alert-eligible, beyond primary 99.8% "
+            "control bands with tail-consistent FDR support and material effect size) "
+            "at adequate support, then verify whether lower- or upper-tail patterns "
+            "repeat or cluster in specific dates/hours."
         ),
         common_benign_causes=(
             "Time-zone spillover, campaign scheduling, and hearing-deadline pushes can "
@@ -178,7 +178,9 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         detail_chart_ids=(
             "duplicates_exact_metric_diagnostics",
             "duplicates_exact_per_name_anomalies",
-            "duplicates_exact_top_name_timing",
+            "duplicates_exact_top_name_timing_exact",
+            "duplicates_exact_top_name_timing_medium",
+            "duplicates_exact_top_name_timing_loose",
             "duplicates_exact_position_concentration",
             "duplicates_exact_temporal_burst",
             "duplicates_exact_swing_impact",

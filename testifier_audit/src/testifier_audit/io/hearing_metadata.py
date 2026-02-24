@@ -22,6 +22,8 @@ class HearingMetadata:
     sign_in_cutoff: datetime | None
     written_testimony_deadline: datetime | None
     source_path: str | None = None
+    stats: dict[str, Any] | None = None
+    source: dict[str, Any] | None = None
 
     def marker_times(self) -> dict[str, datetime]:
         markers: dict[str, datetime] = {}
@@ -82,6 +84,14 @@ def _parse_timestamp(
     return parsed.to_pydatetime()
 
 
+def _optional_mapping(raw_value: Any, *, field_name: str) -> dict[str, Any] | None:
+    if raw_value is None:
+        return None
+    if not isinstance(raw_value, Mapping):
+        raise ValueError(f"hearing metadata field '{field_name}' must be a mapping/object")
+    return dict(raw_value)
+
+
 def parse_hearing_metadata(
     payload: Mapping[str, Any],
     *,
@@ -116,6 +126,8 @@ def parse_hearing_metadata(
         field_name="written_testimony_deadline",
         timezone_name=timezone_name,
     )
+    stats = _optional_mapping(payload.get("stats"), field_name="stats")
+    source = _optional_mapping(payload.get("source"), field_name="source")
 
     if all(
         value is None
@@ -134,6 +146,8 @@ def parse_hearing_metadata(
         sign_in_cutoff=sign_in_cutoff,
         written_testimony_deadline=written_deadline,
         source_path=str(source_path) if source_path else None,
+        stats=stats,
+        source=source,
     )
 
 

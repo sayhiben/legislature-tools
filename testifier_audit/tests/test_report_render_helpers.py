@@ -459,7 +459,9 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "Wilson high (tested)" in js_text
     assert "Robust lower-tail alert" in js_text
     assert "Robust upper-tail alert" in js_text
-    assert "duplicates_exact_top_name_timing" in rendered
+    assert "duplicates_exact_top_name_timing_exact" in rendered
+    assert "duplicates_exact_top_name_timing_medium" in rendered
+    assert "duplicates_exact_top_name_timing_loose" in rendered
     assert "SPC-only flag" in js_text
     assert "FDR-only flag" in js_text
     assert "simpleBarCategoricalChartIds" in js_text

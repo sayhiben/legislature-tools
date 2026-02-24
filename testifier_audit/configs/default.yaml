@@ -1,5 +1,5 @@
 columns:
-  id: "Count"
+  id: "Group"
   name: "Name"
   organization: "Organization"
   position: "Position"

@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "report_id": "ESSB6346-20260224-0800",
-  "generated_at_utc": "2026-02-23T21:28:03.027807+00:00",
+  "generated_at_utc": "2026-02-24T00:10:49.134772+00:00",
   "lens": "side_by_side",
   "date_range_start": "2026-02-18T16:08:00-08:00",
-  "date_range_end": "2026-02-23T13:20:00-08:00",
+  "date_range_end": "2026-02-23T16:04:00-08:00",
   "metrics": {
-    "total_submissions": 116760,
-    "overall_pro_rate": 0.07960774237752655,
-    "overall_con_rate": 0.9176515930113053,
+    "total_submissions": 121110,
+    "overall_pro_rate": 0.0854264718024936,
+    "overall_con_rate": 0.9115845099496326,
     "window_queue_size": 0,
     "record_queue_size": 250,
     "cluster_queue_size": 250,
@@ -21,9 +21,9 @@
     "window_top_dup_fraction": null,
     "window_min_q_value": null,
     "top_name_max_records": 141,
-    "top_cluster_max_records": 35,
-    "off_hours_ratio": 0.05114765330592669,
-    "dedup_drop_fraction": 0.00631209318259678
+    "top_cluster_max_records": 36,
+    "off_hours_ratio": 0.049335315002889936,
+    "dedup_drop_fraction": 0.006564280406242259
   },
   "top_repeated_names": [
     {
@@ -43,9 +43,9 @@
     {
       "canonical_name": "BACKOUS|KATHLEEN||",
       "display_name": "BACKOUS, KATHLEEN",
-      "n_records": 41,
+      "n_records": 42,
       "n_pro": 0,
-      "n_con": 41
+      "n_con": 42
     },
     {
       "canonical_name": "KESSELRING|JERRY||",
@@ -66,7 +66,7 @@
     {
       "cluster_id": "cluster_0001",
       "cluster_size": 16,
-      "n_records": 35
+      "n_records": 36
     },
     {
       "cluster_id": "cluster_0003",
@@ -81,7 +81,7 @@
     {
       "cluster_id": "cluster_0002",
       "cluster_size": 11,
-      "n_records": 14
+      "n_records": 15
     },
     {
       "cluster_id": "cluster_0004",
@@ -90,9 +90,9 @@
     }
   ],
   "material_quality_metric_count": 0,
-  "total_submissions": 116760,
-  "overall_pro_rate": 0.07960774237752655,
-  "overall_con_rate": 0.9176515930113053,
+  "total_submissions": 121110,
+  "overall_pro_rate": 0.0854264718024936,
+  "overall_con_rate": 0.9115845099496326,
   "window_queue_size": 0,
   "record_queue_size": 250,
   "cluster_queue_size": 250,

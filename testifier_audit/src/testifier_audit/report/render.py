@@ -465,6 +465,17 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
         "True for robust primary alerts: alert-eligible off-hours window with adequate support, "
         "below primary 99.8% lower limit, lower-tail FDR-significant, and material effect size."
     ),
+    "is_primary_lower_alert_window": (
+        "True for robust lower-tail primary alerts (alert-eligible, support-qualified, below "
+        "99.8% primary lower limit, lower-tail FDR-supported, and materially negative)."
+    ),
+    "is_primary_upper_alert_window": (
+        "True for robust upper-tail primary alerts (alert-eligible, support-qualified, above "
+        "99.8% primary upper limit, upper-tail FDR-supported, and materially positive)."
+    ),
+    "is_primary_two_sided_alert_window": (
+        "True when either robust lower-tail or robust upper-tail primary alert criteria are met."
+    ),
     "is_primary_spc_998_two_sided": (
         "True when an inferentially tested off-hours window is outside primary-baseline "
         "99.8% control limits (either direction)."
@@ -550,6 +561,39 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     ),
     "rate_ratio": "Observed/expected rate ratio for burst testing.",
     "match_rate": "Share of records matched to voter registry (0 to 1).",
+    "matched_rate_pro": "Matched-rate share for Pro rows in the bucket.",
+    "matched_rate_con": "Matched-rate share for Con rows in the bucket.",
+    "matched_rate_pro_wilson_low": "Lower Wilson bound for Pro-only matched-rate share.",
+    "matched_rate_pro_wilson_high": "Upper Wilson bound for Pro-only matched-rate share.",
+    "matched_rate_con_wilson_low": "Lower Wilson bound for Con-only matched-rate share.",
+    "matched_rate_con_wilson_high": "Upper Wilson bound for Con-only matched-rate share.",
+    "expected_match_rate_global": "Global matched-rate baseline used for bucket anomaly checks.",
+    "control_low_95_match_global": (
+        "Lower 95% control limit for matched rate under the global matched-rate baseline."
+    ),
+    "control_high_95_match_global": (
+        "Upper 95% control limit for matched rate under the global matched-rate baseline."
+    ),
+    "control_low_998_match_global": (
+        "Lower 99.8% control limit for matched rate under the global matched-rate baseline."
+    ),
+    "control_high_998_match_global": (
+        "Upper 99.8% control limit for matched rate under the global matched-rate baseline."
+    ),
+    "match_rate_delta_global": (
+        "Observed matched rate minus global matched-rate baseline for the bucket."
+    ),
+    "is_match_rate_alert_lower": (
+        "True when matched rate is below the global 99.8% lower control limit and support is "
+        "not low-power."
+    ),
+    "is_match_rate_alert_upper": (
+        "True when matched rate is above the global 99.8% upper control limit and support is "
+        "not low-power."
+    ),
+    "is_match_rate_alert_any": (
+        "True when either lower- or upper-tail global 99.8% matched-rate alert criteria are met."
+    ),
     "exact_match_rate": "Share of records in the exact voter-linkage tier.",
     "strong_fuzzy_match_rate": "Share of records in the strong fuzzy linkage tier.",
     "weak_fuzzy_match_rate": "Share of records in the weak fuzzy linkage tier.",
@@ -653,6 +697,7 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "peak_bucket_records": "Record count in the highest-density bucket for a cluster.",
     "peak_bucket_fraction": "Share of cluster records contained in the highest-density bucket.",
     "concentration_hhi": "Herfindahl index of cluster bucket concentration (higher = tighter).",
+    "records_per_cluster": "Average near-duplicate records per active cluster in the bucket.",
     "match_tier": (
         "Probabilistic voter-linkage tier (`exact`, `strong_fuzzy`, `weak_fuzzy`, "
         "`unmatched`)."
@@ -2163,6 +2208,10 @@ _SCATTER_CHART_IDS = {
     "multivariate_feature_projection",
     "multivariate_top_buckets",
     "off_hours_funnel_plot",
+    "duplicates_exact_top_name_timing_exact",
+    "duplicates_exact_top_name_timing_medium",
+    "duplicates_exact_top_name_timing_loose",
+    "duplicates_near_time_concentration",
 }
 
 
@@ -2653,9 +2702,9 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             volume_desc="Total records per bucket for support context.",
             flagged_label="Robust primary alert",
             flagged_desc=(
-                "Alert-eligible windows below the primary 99.8% lower control limit "
-                "with lower-tail FDR support and material effect size. Shaded spans "
-                "mark contiguous robust-alert runs."
+                "Alert-eligible windows beyond the primary 99.8% control limits "
+                "with tail-consistent FDR support and material effect size. Shaded spans "
+                "mark contiguous robust-alert runs (lower or upper tail)."
             ),
         ),
         "off_hours_funnel_plot": {
@@ -2683,8 +2732,16 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "label": "Color",
                     "description": (
                         "Off-hours-dominant windows are highlighted; red points mark "
-                        "robust primary alerts (99.8% lower breach + lower-tail FDR + "
-                        "material effect size)."
+                        "robust lower-tail alerts and pink triangles mark robust upper-tail "
+                        "alerts (99.8% control-limit breach + tail-consistent FDR + material "
+                        "effect size)."
+                    ),
+                },
+                {
+                    "label": "Y-axis scaling",
+                    "description": (
+                        "The pro-rate axis uses a tail-stretch transform so dense extreme-tail "
+                        "regions remain readable instead of collapsing at chart boundaries."
                     ),
                 },
             ],
@@ -2706,7 +2763,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             flagged_label="Robust primary alert",
             flagged_desc=(
                 "Alert-eligible windows meeting robust-primary criteria "
-                "(99.8% lower breach + lower-tail FDR + material effect size)."
+                "(99.8% control-limit breach + tail-consistent FDR + material effect size)."
             ),
             extra=[
                 {
@@ -2911,37 +2968,88 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {"label": "X-axis", "description": "Canonical/display names sorted by q then count."},
             ],
         },
-        "duplicates_exact_top_name_timing": {
+        "duplicates_exact_top_name_timing_exact": {
             "summary": (
-                "Top-10 duplicate names by match tier with bucketed timing concentration "
-                "(exact, nickname-root, and first-initial tiers)."
+                "Exact-match top duplicate names shown as time points sized by duplicate rows."
             ),
             "items": [
                 {
-                    "label": "Facet rows",
+                    "label": "Point",
                     "description": (
-                        "Three stacked facets show match tiers: exact (last+first), medium "
-                        "(last+nickname root), and loose (last+first initial)."
-                    ),
-                },
-                {
-                    "label": "Cell intensity",
-                    "description": (
-                        "Color intensity is duplicate rows for that name in the bucket. "
-                        "Darker cells indicate stronger short-window concentration."
+                        "Each point is one active-bucket occurrence for a ranked top exact-match "
+                        "name (x = bucket time, y = name). Point size scales duplicate rows in "
+                        "that bucket."
                     ),
                 },
                 {
                     "label": "Y-axis order",
                     "description": (
-                        "Names are ranked within each facet by total repeated rows "
+                        "Names are ranked by total repeated rows "
                         "(rank 1 = most repeated)."
                     ),
                 },
                 {
                     "label": "Tooltip context",
                     "description": (
-                        "Tooltips include tier definition, rank, bucket span, Pro/Con split, "
+                        "Tooltips include exact-tier definition, rank, bucket span, Pro/Con split, "
+                        "bucket duplicate rows, and total repeated rows."
+                    ),
+                },
+            ],
+        },
+        "duplicates_exact_top_name_timing_medium": {
+            "summary": (
+                "Nickname-root match tier top names shown as time points sized by duplicate rows."
+            ),
+            "items": [
+                {
+                    "label": "Point",
+                    "description": (
+                        "Each point is one active-bucket occurrence for a ranked top nickname-root "
+                        "match name (x = bucket time, y = name). Point size scales duplicate rows "
+                        "in that bucket."
+                    ),
+                },
+                {
+                    "label": "Y-axis order",
+                    "description": (
+                        "Names are ranked by total repeated rows "
+                        "(rank 1 = most repeated)."
+                    ),
+                },
+                {
+                    "label": "Tooltip context",
+                    "description": (
+                        "Tooltips include medium-tier definition, rank, bucket span, Pro/Con split, "
+                        "bucket duplicate rows, and total repeated rows."
+                    ),
+                },
+            ],
+        },
+        "duplicates_exact_top_name_timing_loose": {
+            "summary": (
+                "First-initial match tier top names shown as time points sized by duplicate rows."
+            ),
+            "items": [
+                {
+                    "label": "Point",
+                    "description": (
+                        "Each point is one active-bucket occurrence for a ranked top first-initial "
+                        "match name (x = bucket time, y = name). Point size scales duplicate rows "
+                        "in that bucket."
+                    ),
+                },
+                {
+                    "label": "Y-axis order",
+                    "description": (
+                        "Names are ranked by total repeated rows "
+                        "(rank 1 = most repeated)."
+                    ),
+                },
+                {
+                    "label": "Tooltip context",
+                    "description": (
+                        "Tooltips include loose-tier definition, rank, bucket span, Pro/Con split, "
                         "bucket duplicate rows, and total repeated rows."
                     ),
                 },
@@ -3014,34 +3122,59 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_near_cluster_timeline": timebar(
-            summary="Near-duplicate cluster activity over time at the selected bucket size.",
-            primary_label="Cluster records",
-            primary_desc="Line shows total near-duplicate records in each selected time bucket.",
+            summary=(
+                "Near-duplicate cluster activity over time at the selected bucket size, "
+                "including within-bucket density."
+            ),
+            primary_label="Records per active cluster",
+            primary_desc=(
+                "Line shows average near-duplicate records per active cluster in each "
+                "selected time bucket."
+            ),
             include_low_power=False,
             include_wilson=False,
-            volume_label="Active clusters",
-            volume_desc="Bar height is the number of clusters active in each selected bucket.",
+            volume_label="Near-duplicate records",
+            volume_desc="Bar height is total near-duplicate records in each selected bucket.",
         ),
         "duplicates_near_cluster_size": {
-            "summary": "Cluster-size distribution.",
+            "summary": "Cluster-size distribution for the selected bucket size.",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Number of clusters observed at each cluster size.",
+                    "description": (
+                        "Number of active near-duplicate clusters observed at each cluster size "
+                        "for the current bucket selection."
+                    ),
                 },
-                {"label": "X-axis", "description": "Cluster size (count of names)."},
+                {
+                    "label": "Cluster definition",
+                    "description": (
+                        "A cluster is a connected group of highly similar names linked by "
+                        "near-duplicate edges."
+                    ),
+                },
+                {"label": "X-axis", "description": "Cluster size (count of unique names)."},
             ],
         },
         "duplicates_near_similarity": {
-            "summary": "Distribution of near-duplicate similarity scores (binned histogram).",
+            "summary": (
+                "Distribution of near-duplicate similarity scores with both count and share context."
+            ),
             "items": [
                 {
-                    "label": "Bar height",
+                    "label": "Bars",
                     "description": "Count of near-duplicate edges falling in each similarity bin.",
                 },
                 {
+                    "label": "Line",
+                    "description": "Share of all near-duplicate edges in each similarity bin.",
+                },
+                {
                     "label": "X-axis bin",
-                    "description": "Similarity-score range (for example 90-94, 95-99).",
+                    "description": (
+                        "Adaptive similarity-score ranges (narrow bins when values are tightly "
+                        "clustered near the threshold)."
+                    ),
                 },
                 {
                     "label": "Intended use",
@@ -3053,18 +3186,24 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_near_time_concentration": {
-            "summary": "Near-duplicate cluster time concentration for the selected bucket size.",
+            "summary": (
+                "Near-duplicate cluster time concentration for the selected bucket size "
+                "(dispersion vs peak-share view)."
+            ),
             "items": [
                 {
-                    "label": "Bar height",
+                    "label": "Point",
                     "description": (
-                        "Peak time-bucket share of records "
-                        "for each near-duplicate cluster."
+                        "Each point is one near-duplicate cluster (x = active bucket count, "
+                        "y = peak bucket share, size = peak bucket records, color = HHI)."
                     ),
                 },
                 {
-                    "label": "X-axis",
-                    "description": "Near-duplicate cluster identifier ranked by peak bucket share.",
+                    "label": "Interpretation",
+                    "description": (
+                        "Upper-left points indicate tight short-window concentration; rightward points "
+                        "indicate spread across more buckets."
+                    ),
                 },
             ],
         },
@@ -3202,14 +3341,30 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             primary_label="Matched rate",
             primary_desc=("Share of rows classified as matched under conservative primary linkage."),
             include_wilson=True,
+            flagged_label="Extreme match-rate anomaly",
+            flagged_desc=(
+                "Buckets outside global 99.8% matched-rate control limits "
+                "(after low-power filtering), directionally marked as lower or upper."
+            ),
             extra=[
                 {
                     "label": "Unmatched rate",
                     "description": "Share of rows unmatched to WA active voter file.",
                 },
                 {
-                    "label": "Matched ambiguous rate",
-                    "description": "Share of rows mapped to ambiguous matched outcomes.",
+                    "label": "Pro match rate",
+                    "description": "Matched-rate trajectory for Pro rows in each bucket.",
+                },
+                {
+                    "label": "Con match rate",
+                    "description": "Matched-rate trajectory for Con rows in each bucket.",
+                },
+                {
+                    "label": "Global control references",
+                    "description": (
+                        "Expected matched rate and 95% control bounds under the hearing-wide "
+                        "global linkage baseline."
+                    ),
                 },
             ],
         ),
@@ -3585,7 +3740,7 @@ def _build_near_duplicate_bucket_profiles(
 def _build_near_duplicate_similarity_histogram(
     edges: pd.DataFrame,
     *,
-    bin_width: int = 5,
+    bin_width: int | None = None,
 ) -> pd.DataFrame:
     expected = [
         "similarity_bin",
@@ -3601,9 +3756,17 @@ def _build_near_duplicate_similarity_histogram(
     if scores.empty:
         return _with_expected_columns(pd.DataFrame(), expected)
 
-    width = max(1, int(bin_width))
-    min_score = int(math.floor(float(scores.min()) / width) * width)
-    max_score = int(math.ceil(float(scores.max()) / width) * width)
+    score_min_raw = float(scores.min())
+    score_max_raw = float(scores.max())
+    score_span = max(1.0, score_max_raw - score_min_raw)
+    if bin_width is None:
+        # Keep enough bins to avoid degenerate 1-2 bar charts when edges are tightly clustered.
+        target_bins = 10
+        width = max(1, int(math.ceil(score_span / target_bins)))
+    else:
+        width = max(1, int(bin_width))
+    min_score = int(math.floor(score_min_raw / width) * width)
+    max_score = int(math.ceil(score_max_raw / width) * width)
     if max_score <= min_score:
         max_score = min_score + width
     bins = np.arange(min_score, max_score + width, width, dtype=int)
@@ -3974,6 +4137,13 @@ def _build_hearing_context_panel(
             }
         )
     process_markers = sorted(process_markers, key=lambda item: item["time_iso"])
+    sidecar_source = dict(hearing_metadata.source or {})
+    sidecar_stats = dict(hearing_metadata.stats or {})
+    meeting_start_iso = (
+        _to_pacific_timestamp(pd.Timestamp(hearing_metadata.meeting_start)).isoformat()
+        if hearing_metadata.meeting_start is not None
+        else None
+    )
 
     metadata_rows = [
         {
@@ -3986,11 +4156,7 @@ def _build_hearing_context_panel(
         },
         {
             "field": "meeting_start",
-            "value": (
-                _to_pacific_timestamp(pd.Timestamp(hearing_metadata.meeting_start)).isoformat()
-                if hearing_metadata.meeting_start is not None
-                else None
-            ),
+            "value": meeting_start_iso,
         },
         {
             "field": "sign_in_open",
@@ -4019,6 +4185,36 @@ def _build_hearing_context_panel(
             ),
         },
     ]
+    if sidecar_source:
+        metadata_rows.extend(
+            [
+                {
+                    "field": "short_bill_id",
+                    "value": sidecar_source.get("short_bill_id"),
+                },
+                {
+                    "field": "agenda_item_description",
+                    "value": sidecar_source.get("agenda_item_description"),
+                },
+            ]
+        )
+    if sidecar_stats:
+        metadata_rows.extend(
+            [
+                {
+                    "field": "total_rows",
+                    "value": sidecar_stats.get("total_rows"),
+                },
+                {
+                    "field": "total_pro_pct",
+                    "value": sidecar_stats.get("total_pro_pct"),
+                },
+                {
+                    "field": "total_con_pct",
+                    "value": sidecar_stats.get("total_con_pct"),
+                },
+            ]
+        )
 
     if hearing_metadata.sign_in_cutoff is None:
         deadline_ramp_metrics = {
@@ -4043,7 +4239,10 @@ def _build_hearing_context_panel(
         "available": True,
         "hearing_id": hearing_metadata.hearing_id,
         "timezone": PACIFIC_TIMEZONE_NAME,
+        "meeting_start": meeting_start_iso,
         "source_path": hearing_metadata.source_path,
+        "source": sidecar_source,
+        "stats": sidecar_stats,
         "process_markers": process_markers,
         "metadata_rows": metadata_rows,
         "deadline_ramp_metrics": deadline_ramp_metrics,
@@ -4470,6 +4669,9 @@ def _build_interactive_chart_payload_v2(
             "is_material_primary_lower_shift",
             "is_material_primary_upper_shift",
             "is_primary_alert_window",
+            "is_primary_lower_alert_window",
+            "is_primary_upper_alert_window",
+            "is_primary_two_sided_alert_window",
             "is_primary_spc_998_two_sided",
             "is_primary_fdr_two_sided",
             "is_primary_any_flag_channel",
@@ -4975,7 +5177,7 @@ def _build_interactive_chart_payload_v2(
         )
     dup_near_similarity_hist = _build_near_duplicate_similarity_histogram(
         dup_near_edges,
-        bin_width=5,
+        bin_width=None,
     )
 
     sorted_bucket = _with_expected_columns(
@@ -5392,6 +5594,159 @@ def _build_interactive_chart_payload_v2(
         bucket_minutes = pd.to_numeric(frame["bucket_minutes"], errors="coerce")
         frame["bucket_minutes"] = bucket_minutes.where(bucket_minutes.notna(), window_minutes)
 
+    if not off_hours_window_control.empty:
+        def _off_hours_bool(column_name: str) -> pd.Series:
+            if column_name not in off_hours_window_control.columns:
+                return pd.Series(False, index=off_hours_window_control.index, dtype=bool)
+            return (
+                pd.to_numeric(off_hours_window_control[column_name], errors="coerce")
+                .fillna(0)
+                .astype(int)
+                .astype(bool)
+            )
+
+        lower_alert = _off_hours_bool("is_primary_alert_window")
+        upper_alert = (
+            _off_hours_bool("is_alert_off_hours_window")
+            & (~_off_hours_bool("is_low_power"))
+            & _off_hours_bool("is_above_primary_control_998")
+            & (
+                _off_hours_bool("is_significant_primary_upper")
+                | _off_hours_bool("is_significant_primary_two_sided")
+                | _off_hours_bool("is_primary_fdr_two_sided")
+            )
+            & _off_hours_bool("is_material_primary_upper_shift")
+        )
+        off_hours_window_control["is_primary_alert_window"] = lower_alert
+        off_hours_window_control["is_primary_lower_alert_window"] = lower_alert
+        off_hours_window_control["is_primary_upper_alert_window"] = upper_alert
+        off_hours_window_control["is_primary_two_sided_alert_window"] = (
+            lower_alert | upper_alert
+        )
+
+    if not voter_bucket.empty:
+        voter_bucket["n_total"] = pd.to_numeric(
+            voter_bucket.get("n_total"), errors="coerce"
+        ).fillna(0)
+        voter_bucket["n_matched_unique"] = pd.to_numeric(
+            voter_bucket.get("n_matched_unique"), errors="coerce"
+        ).fillna(0)
+        voter_bucket["n_matched_ambiguous"] = pd.to_numeric(
+            voter_bucket.get("n_matched_ambiguous"), errors="coerce"
+        ).fillna(0)
+        voter_bucket["matched_rate"] = pd.to_numeric(
+            voter_bucket.get("matched_rate"), errors="coerce"
+        )
+        voter_bucket["n_matched"] = (
+            voter_bucket["n_matched_unique"] + voter_bucket["n_matched_ambiguous"]
+        )
+
+        if not voter_bucket_position.empty:
+            position_frame = voter_bucket_position.copy()
+            position_frame["bucket_start"] = pd.to_datetime(
+                position_frame.get("bucket_start"), errors="coerce"
+            )
+            position_frame["bucket_minutes"] = pd.to_numeric(
+                position_frame.get("bucket_minutes"), errors="coerce"
+            )
+            position_frame["position_key"] = (
+                position_frame.get("position_normalized", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.lower()
+            )
+            for position_key, prefix in (("pro", "pro"), ("con", "con")):
+                position_subset = position_frame[
+                    position_frame["position_key"] == position_key
+                ].copy()
+                if position_subset.empty:
+                    continue
+                position_subset = position_subset[
+                    [
+                        "bucket_start",
+                        "bucket_minutes",
+                        "matched_rate",
+                        "matched_rate_wilson_low",
+                        "matched_rate_wilson_high",
+                    ]
+                ].rename(
+                    columns={
+                        "matched_rate": f"matched_rate_{prefix}",
+                        "matched_rate_wilson_low": f"matched_rate_{prefix}_wilson_low",
+                        "matched_rate_wilson_high": f"matched_rate_{prefix}_wilson_high",
+                    }
+                )
+                voter_bucket = voter_bucket.merge(
+                    position_subset,
+                    on=["bucket_start", "bucket_minutes"],
+                    how="left",
+                )
+        for position_column in [
+            "matched_rate_pro",
+            "matched_rate_pro_wilson_low",
+            "matched_rate_pro_wilson_high",
+            "matched_rate_con",
+            "matched_rate_con_wilson_low",
+            "matched_rate_con_wilson_high",
+        ]:
+            if position_column not in voter_bucket.columns:
+                voter_bucket[position_column] = np.nan
+
+        n_total_all = float(pd.to_numeric(voter_bucket["n_total"], errors="coerce").sum())
+        n_matched_all = float(
+            pd.to_numeric(voter_bucket["n_matched"], errors="coerce").sum()
+        )
+        global_match_rate = (
+            (n_matched_all / n_total_all) if n_total_all > 0 else float("nan")
+        )
+        voter_bucket["expected_match_rate_global"] = global_match_rate
+        n_series = pd.to_numeric(voter_bucket["n_total"], errors="coerce").replace(0, np.nan)
+        variance = global_match_rate * (1.0 - global_match_rate)
+        std_error = np.sqrt(variance / n_series) if np.isfinite(global_match_rate) else np.nan
+        voter_bucket["control_low_95_match_global"] = np.clip(
+            global_match_rate - 1.96 * std_error, 0.0, 1.0
+        )
+        voter_bucket["control_high_95_match_global"] = np.clip(
+            global_match_rate + 1.96 * std_error, 0.0, 1.0
+        )
+        voter_bucket["control_low_998_match_global"] = np.clip(
+            global_match_rate - 3.0 * std_error, 0.0, 1.0
+        )
+        voter_bucket["control_high_998_match_global"] = np.clip(
+            global_match_rate + 3.0 * std_error, 0.0, 1.0
+        )
+        voter_bucket["match_rate_delta_global"] = (
+            pd.to_numeric(voter_bucket["matched_rate"], errors="coerce")
+            - pd.to_numeric(voter_bucket["expected_match_rate_global"], errors="coerce")
+        )
+        voter_low_power = (
+            pd.to_numeric(voter_bucket.get("is_low_power"), errors="coerce")
+            .fillna(0)
+            .astype(int)
+            .astype(bool)
+        )
+        voter_bucket["is_match_rate_alert_lower"] = (
+            (~voter_low_power)
+            & pd.to_numeric(voter_bucket["matched_rate"], errors="coerce").notna()
+            & (
+                pd.to_numeric(voter_bucket["matched_rate"], errors="coerce")
+                < pd.to_numeric(voter_bucket["control_low_998_match_global"], errors="coerce")
+            )
+        )
+        voter_bucket["is_match_rate_alert_upper"] = (
+            (~voter_low_power)
+            & pd.to_numeric(voter_bucket["matched_rate"], errors="coerce").notna()
+            & (
+                pd.to_numeric(voter_bucket["matched_rate"], errors="coerce")
+                > pd.to_numeric(voter_bucket["control_high_998_match_global"], errors="coerce")
+            )
+        )
+        voter_bucket["is_match_rate_alert_any"] = (
+            voter_bucket["is_match_rate_alert_lower"].astype(bool)
+            | voter_bucket["is_match_rate_alert_upper"].astype(bool)
+        )
+
     baseline_bucket_profiles = _build_bucketed_baseline_profiles(
         counts_per_minute=counts_per_minute,
         bucket_minutes=BASELINE_PROFILE_BUCKET_MINUTES,
@@ -5795,6 +6150,9 @@ def _build_interactive_chart_payload_v2(
             "is_material_primary_lower_shift",
             "is_material_primary_upper_shift",
             "is_primary_alert_window",
+            "is_primary_lower_alert_window",
+            "is_primary_upper_alert_window",
+            "is_primary_two_sided_alert_window",
             "is_primary_spc_998_two_sided",
             "is_primary_fdr_two_sided",
             "is_primary_any_flag_channel",
@@ -5889,6 +6247,9 @@ def _build_interactive_chart_payload_v2(
             "is_material_primary_lower_shift",
             "is_material_primary_upper_shift",
             "is_primary_alert_window",
+            "is_primary_lower_alert_window",
+            "is_primary_upper_alert_window",
+            "is_primary_two_sided_alert_window",
             "is_primary_spc_998_two_sided",
             "is_primary_fdr_two_sided",
             "is_primary_any_flag_channel",
@@ -5940,6 +6301,9 @@ def _build_interactive_chart_payload_v2(
             "is_primary_any_flag_channel",
             "is_primary_both_flag_channels",
             "is_primary_alert_window",
+            "is_primary_lower_alert_window",
+            "is_primary_upper_alert_window",
+            "is_primary_two_sided_alert_window",
             "primary_baseline_source",
             "is_model_baseline_available",
             "model_fit_method",
@@ -6196,9 +6560,9 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_within_5m",
             "temporal_p_value_min_gap",
         ],
-        max_rows=10,
+        max_rows=15,
     )
-    charts["duplicates_exact_top_name_timing"] = _records_from_frame(
+    top_name_timing_rows = _records_from_frame(
         dup_exact_top_name_timing.sort_values(
             ["match_mode", "rank", "bucket_minutes", "bucket_start", "name_key"]
         ),
@@ -6221,6 +6585,21 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=100_000,
     )
+    charts["duplicates_exact_top_name_timing_exact"] = [
+        row
+        for row in top_name_timing_rows
+        if str(row.get("match_mode", "")).strip().lower() == "exact"
+    ]
+    charts["duplicates_exact_top_name_timing_medium"] = [
+        row
+        for row in top_name_timing_rows
+        if str(row.get("match_mode", "")).strip().lower() == "medium"
+    ]
+    charts["duplicates_exact_top_name_timing_loose"] = [
+        row
+        for row in top_name_timing_rows
+        if str(row.get("match_mode", "")).strip().lower() == "loose"
+    ]
     charts["duplicates_exact_position_concentration"] = _records_from_frame(
         dup_exact_position_tests.assign(
             pair_label=(
@@ -6280,7 +6659,7 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_within_5m",
             "temporal_p_value_within_15m",
         ],
-        max_rows=10,
+        max_rows=15,
     )
     charts["duplicates_exact_swing_impact"] = _records_from_frame(
         dup_exact_swing_impact,
@@ -6297,31 +6676,86 @@ def _build_interactive_chart_payload_v2(
     charts["duplicates_exact_top_names"] = charts["duplicates_exact_per_name_anomalies"]
     charts["duplicates_exact_position_switch"] = charts["duplicates_exact_per_name_anomalies"]
 
+    dup_near_bucket_timeline_chart = dup_near_bucket_timeline.copy()
+    if not dup_near_bucket_timeline_chart.empty:
+        dup_near_bucket_timeline_chart["n_records"] = pd.to_numeric(
+            dup_near_bucket_timeline_chart.get("n_records"), errors="coerce"
+        ).fillna(0.0)
+        dup_near_bucket_timeline_chart["n_clusters"] = pd.to_numeric(
+            dup_near_bucket_timeline_chart.get("n_clusters"), errors="coerce"
+        ).fillna(0.0)
+        dup_near_bucket_timeline_chart["records_per_cluster"] = (
+            dup_near_bucket_timeline_chart["n_records"]
+            / dup_near_bucket_timeline_chart["n_clusters"].replace(0.0, np.nan)
+        )
+    else:
+        dup_near_bucket_timeline_chart["records_per_cluster"] = pd.Series(dtype=float)
     charts["duplicates_near_cluster_timeline"] = _records_from_frame(
-        dup_near_bucket_timeline.sort_values(["bucket_minutes", "bucket_start"]),
+        dup_near_bucket_timeline_chart.sort_values(["bucket_minutes", "bucket_start"]),
         columns=[
             "bucket_start",
             "bucket_minutes",
             "n_clusters",
             "n_records",
+            "records_per_cluster",
             "n_pro",
             "n_con",
         ],
         max_rows=50_000,
     )
-    if not dup_near_clusters.empty and "cluster_size" in dup_near_clusters.columns:
+    cluster_size_lookup = pd.DataFrame()
+    if not dup_near_clusters.empty and {"cluster_id", "cluster_size"}.issubset(
+        set(dup_near_clusters.columns)
+    ):
+        cluster_size_lookup = (
+            dup_near_clusters[["cluster_id", "cluster_size"]]
+            .copy()
+            .dropna(subset=["cluster_id", "cluster_size"])
+            .drop_duplicates(subset=["cluster_id"])
+        )
+    if not dup_near_bucket_concentration.empty and not cluster_size_lookup.empty:
         cluster_size_summary = (
-            dup_near_clusters.groupby("cluster_size", dropna=False)
+            dup_near_bucket_concentration[["bucket_minutes", "cluster_id"]]
+            .copy()
+            .dropna(subset=["bucket_minutes", "cluster_id"])
+            .drop_duplicates(subset=["bucket_minutes", "cluster_id"])
+            .merge(cluster_size_lookup, on="cluster_id", how="left")
+            .dropna(subset=["cluster_size"])
+            .groupby(["bucket_minutes", "cluster_size"], dropna=False)
+            .size()
+            .rename("n_clusters")
+            .reset_index()
+            .sort_values(["bucket_minutes", "cluster_size"])
+        )
+        cluster_size_summary["bucket_minutes"] = (
+            pd.to_numeric(cluster_size_summary["bucket_minutes"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        cluster_size_summary["cluster_size"] = (
+            pd.to_numeric(cluster_size_summary["cluster_size"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+        cluster_size_summary["n_clusters"] = (
+            pd.to_numeric(cluster_size_summary["n_clusters"], errors="coerce")
+            .fillna(0)
+            .astype(int)
+        )
+    elif not cluster_size_lookup.empty:
+        cluster_size_summary = (
+            cluster_size_lookup.groupby("cluster_size", dropna=False)
             .size()
             .rename("n_clusters")
             .reset_index()
             .sort_values("cluster_size")
         )
+        cluster_size_summary["bucket_minutes"] = 1
     else:
         cluster_size_summary = pd.DataFrame()
     charts["duplicates_near_cluster_size"] = _records_from_frame(
         cluster_size_summary,
-        columns=["cluster_size", "n_clusters"],
+        columns=["bucket_minutes", "cluster_size", "n_clusters"],
         max_rows=1_000,
     )
     charts["duplicates_near_similarity"] = _records_from_frame(
@@ -6514,6 +6948,21 @@ def _build_interactive_chart_payload_v2(
             "match_rate_wilson_high",
             "unmatched_rate_wilson_low",
             "unmatched_rate_wilson_high",
+            "matched_rate_pro",
+            "matched_rate_pro_wilson_low",
+            "matched_rate_pro_wilson_high",
+            "matched_rate_con",
+            "matched_rate_con_wilson_low",
+            "matched_rate_con_wilson_high",
+            "expected_match_rate_global",
+            "control_low_95_match_global",
+            "control_high_95_match_global",
+            "control_low_998_match_global",
+            "control_high_998_match_global",
+            "match_rate_delta_global",
+            "is_match_rate_alert_lower",
+            "is_match_rate_alert_upper",
+            "is_match_rate_alert_any",
             "is_low_power",
             "n_pro",
             "n_con",

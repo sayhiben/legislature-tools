@@ -37,13 +37,13 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     csv_path.write_text(
         "\n".join(
             [
-                "Count,Name,Organization,Position,Time Signed In",
-                '1,"Doe, Jane",,Pro,2/3/2026 5:07 PM',
-                '2,"Doe, Jane",,Con,2/3/2026 5:08 PM',
-                '3,"Smith, John",Org A,Pro,2/3/2026 5:09 PM',
-                '4,"Smyth, Jon",Org A,Pro,2/3/2026 5:10 PM',
-                '5,"Brown, Ava",,Con,2/3/2026 5:12 PM',
-                '6,"Brown, Ava",,Con,2/3/2026 5:13 PM',
+                "Group,Name,Organization,Position,Time Signed In",
+                'Testifying,"Doe, Jane",,Pro,2/3/2026 5:07 PM',
+                'Not Testifying,"Doe, Jane",,Con,2/3/2026 5:08 PM',
+                'Testifying,"Smith, John",Org A,Pro,2/3/2026 5:09 PM',
+                'Testifying,"Smyth, Jon",Org A,Pro,2/3/2026 5:10 PM',
+                'Not Testifying,"Brown, Ava",,Con,2/3/2026 5:12 PM',
+                'Not Testifying,"Brown, Ava",,Con,2/3/2026 5:13 PM',
             ]
         ),
         encoding="utf-8",
@@ -78,7 +78,7 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
 
     config = {
         "columns": {
-            "id": "Count",
+            "id": "Group",
             "name": "Name",
             "organization": "Organization",
             "position": "Position",

@@ -3180,11 +3180,26 @@
     const spcOnlyData = [];
     const fdrOnlyData = [];
     const classifyDirection = (row, value) => {
+      if (toBool(row.is_match_rate_alert_lower)) {
+        return "lower";
+      }
+      if (toBool(row.is_match_rate_alert_upper)) {
+        return "upper";
+      }
+      if (toBool(row.is_primary_lower_alert_window)) {
+        return "lower";
+      }
+      if (toBool(row.is_primary_upper_alert_window)) {
+        return "upper";
+      }
       if (toBool(row.is_material_primary_lower_shift) || toBool(row.is_significant_primary_lower)) {
         return "lower";
       }
       if (toBool(row.is_material_primary_upper_shift) || toBool(row.is_significant_primary_upper)) {
         return "upper";
+      }
+      if (toFiniteNumberOrNull(row.match_rate_delta_global) !== null) {
+        return toNumber(row.match_rate_delta_global) < 0 ? "lower" : "upper";
       }
       if (value !== null && value < 0) {
         return "lower";
@@ -4284,6 +4299,17 @@
         abovePrimary998: toBool(row.is_above_primary_control_998),
         alertOffHoursWindow: toBool(row.is_alert_off_hours_window),
         primaryAlertWindow: toBool(row.is_primary_alert_window),
+        primaryLowerAlertWindow: toBool(
+          Object.prototype.hasOwnProperty.call(row, "is_primary_lower_alert_window")
+            ? row.is_primary_lower_alert_window
+            : row.is_primary_alert_window
+        ),
+        primaryUpperAlertWindow: toBool(row.is_primary_upper_alert_window),
+        primaryTwoSidedAlertWindow: toBool(
+          Object.prototype.hasOwnProperty.call(row, "is_primary_two_sided_alert_window")
+            ? row.is_primary_two_sided_alert_window
+            : row.is_primary_alert_window
+        ),
         primarySpcTwoSided: toBool(row.is_primary_spc_998_two_sided),
         primaryFdrTwoSided: toBool(row.is_primary_fdr_two_sided),
         modelAvailable: toBool(row.is_model_baseline_available),
@@ -4302,6 +4328,31 @@
     }
 
     const sorted = subset.slice().sort((left, right) => left.nKnown - right.nKnown);
+    const tailStretchEpsilon = 1e-3;
+    const clampRateForDisplay = (value) => {
+      if (value === null || value === undefined) {
+        return null;
+      }
+      return Math.max(
+        tailStretchEpsilon,
+        Math.min(1 - tailStretchEpsilon, toNumber(value))
+      );
+    };
+    const toTailStretchScale = (value) => {
+      const clamped = clampRateForDisplay(value);
+      if (clamped === null) {
+        return null;
+      }
+      return Math.log(clamped / (1 - clamped));
+    };
+    const fromTailStretchScale = (value) => {
+      const numeric = toFiniteNumberOrNull(value);
+      if (numeric === null) {
+        return null;
+      }
+      return 1 / (1 + Math.exp(-numeric));
+    };
+
     const curveByN = new Map();
     sorted.forEach((row) => {
       const nKey = Math.round(row.nKnown);
@@ -4316,22 +4367,32 @@
 
     const expectedSeries = curveRows
       .filter((entry) => entry.row.expectedGlobal !== null)
-      .map((entry) => [entry.n, entry.row.expectedGlobal]);
+      .map((entry) => [entry.n, toTailStretchScale(entry.row.expectedGlobal)]);
     const low95Series = curveRows
       .filter((entry) => entry.row.low95Global !== null)
-      .map((entry) => [entry.n, entry.row.low95Global]);
+      .map((entry) => [entry.n, toTailStretchScale(entry.row.low95Global)]);
     const high95Series = curveRows
       .filter((entry) => entry.row.high95Global !== null)
-      .map((entry) => [entry.n, entry.row.high95Global]);
+      .map((entry) => [entry.n, toTailStretchScale(entry.row.high95Global)]);
     const low998Series = curveRows
       .filter((entry) => entry.row.low998Global !== null)
-      .map((entry) => [entry.n, entry.row.low998Global]);
+      .map((entry) => [entry.n, toTailStretchScale(entry.row.low998Global)]);
     const high998Series = curveRows
       .filter((entry) => entry.row.high998Global !== null)
-      .map((entry) => [entry.n, entry.row.high998Global]);
+      .map((entry) => [entry.n, toTailStretchScale(entry.row.high998Global)]);
+
+    const scaledValues = sorted
+      .map((row) => toTailStretchScale(row.proRate))
+      .filter((value) => value !== null);
+    const minScaled = scaledValues.length ? Math.min(...scaledValues) : -2.2;
+    const maxScaledRaw = scaledValues.length ? Math.max(...scaledValues) : 2.2;
+    const maxScaled = maxScaledRaw > minScaled ? maxScaledRaw : minScaled + 0.3;
+    const padding = Math.max(0.15, (maxScaled - minScaled) * 0.08);
+    const yMinScaled = minScaled - padding;
+    const yMaxScaled = maxScaled + padding;
 
     const toPoint = (row) => ({
-      value: [row.nKnown, row.proRate, row.bucketStart],
+      value: [row.nKnown, toTailStretchScale(row.proRate), row.bucketStart],
       meta: row,
     });
     const classifyDirection = (row) => {
@@ -4368,15 +4429,16 @@
       }
       const direction = classifyDirection(row);
       const robustLower =
-        row.primaryAlertWindow ||
+        row.primaryLowerAlertWindow ||
         (row.significantPrimaryTwoSided &&
           row.belowPrimary998 &&
           row.materialPrimaryLowerShift);
       const robustUpper =
+        row.primaryUpperAlertWindow ||
         (row.significantPrimaryTwoSided &&
           row.abovePrimary998 &&
           row.materialPrimaryUpperShift) ||
-        (row.primaryAlertWindow && direction === "upper");
+        (row.primaryTwoSidedAlertWindow && direction === "upper");
       if (robustLower && direction === "lower") {
         robustLowerPoints.push(toPoint(row));
       } else if (robustUpper && direction === "upper") {
@@ -4393,7 +4455,7 @@
             const payload = params && params.data && params.data.meta ? params.data.meta : null;
             const dataValue = Array.isArray(params.value) ? params.value : [];
             const nKnown = payload ? payload.nKnown : toFiniteNumberOrNull(dataValue[0]);
-            const proRate = payload ? payload.proRate : toFiniteNumberOrNull(dataValue[1]);
+            const proRate = payload ? payload.proRate : fromTailStretchScale(dataValue[1]);
             const lines = [];
             if (nKnown !== null) {
               lines.push(
@@ -4491,7 +4553,15 @@
             if (payload && payload.materialPrimaryUpperShift) {
               lines.push("<strong>Material upper shift:</strong> yes");
             }
-            if (payload && payload.primaryAlertWindow) {
+            if (
+              payload &&
+              (
+                payload.primaryAlertWindow ||
+                payload.primaryLowerAlertWindow ||
+                payload.primaryUpperAlertWindow ||
+                payload.primaryTwoSidedAlertWindow
+              )
+            ) {
               lines.push("<strong>Robust primary alert:</strong> yes");
             }
             if (payload && payload.abovePrimary998) {
@@ -4518,9 +4588,15 @@
         },
       yAxis: {
           type: "value",
-          name: "Pro rate",
-          min: 0,
-          max: 1,
+          name: "Pro rate (tail-stretched)",
+          min: yMinScaled,
+          max: yMaxScaled,
+          axisLabel: {
+            formatter: (value) => {
+              const rawRate = fromTailStretchScale(value);
+              return rawRate === null ? "-" : formatPercent(rawRate);
+            },
+          },
         },
       series: [
           {
@@ -5315,242 +5391,143 @@
     return true;
   }
 
-  function renderDuplicateTopNameTiming(mount, rows) {
+  function renderDuplicateTopNameTiming(mount, rows, matchModeOverride) {
     const theme = currentChartTheme();
-    const facetDefinitions = [
-      {
-        mode: "exact",
+    const modeMeta = {
+      exact: {
         label: "Exact (last + first)",
         fallbackDefinition: "Exact match on last-name and first-name tokens.",
       },
-      {
-        mode: "medium",
+      medium: {
         label: "Medium (last + nickname root)",
-        fallbackDefinition:
-          "Matches last-name with nickname-root first-name normalization.",
+        fallbackDefinition: "Matches last-name with nickname-root first-name normalization.",
       },
-      {
-        mode: "loose",
+      loose: {
         label: "Loose (last + first initial)",
         fallbackDefinition: "Matches last-name with first-name initial only.",
       },
-    ];
-
+    };
     const normalizeMode = (value) => String(value || "").trim().toLowerCase();
-    const byMode = new Map();
-    facetDefinitions.forEach((facet) => {
-      byMode.set(facet.mode, []);
-    });
-    rows.forEach((row) => {
-      const mode = normalizeMode(row.match_mode);
-      if (byMode.has(mode)) {
-        byMode.get(mode).push(row);
+    const targetMode = normalizeMode(matchModeOverride || "");
+    const filtered = rows.filter((row) => {
+      if (!targetMode) {
+        return true;
       }
+      return normalizeMode(row.match_mode) === targetMode;
     });
-
-    const facets = facetDefinitions
-      .map((facet) => {
-        const subset = byMode.get(facet.mode) || [];
-        if (!subset.length) {
-          return null;
-        }
-        const keyedNames = new Map();
-        subset.forEach((row) => {
-          const nameKey = String(row.name_key || "").trim();
-          if (!nameKey) {
-            return;
-          }
-          const rank = toFiniteNumberOrNull(row.rank);
-          const numericRank = rank === null ? Number.POSITIVE_INFINITY : Math.round(rank);
-          const displayName = String(row.display_name || row.name_key || "").trim();
-          const existing = keyedNames.get(nameKey);
-          if (
-            !existing ||
-            numericRank < existing.rank ||
-            (numericRank === existing.rank && displayName.localeCompare(existing.displayName) < 0)
-          ) {
-            keyedNames.set(nameKey, {
-              key: nameKey,
-              rank: numericRank,
-              displayName: displayName,
-              totalRepeatedRows: toFiniteNumberOrNull(row.total_repeated_rows),
-            });
-          }
-        });
-        const names = Array.from(keyedNames.values())
-          .sort((left, right) => {
-            const rankDelta = left.rank - right.rank;
-            if (rankDelta !== 0) {
-              return rankDelta;
-            }
-            return left.displayName.localeCompare(right.displayName);
-          })
-          .slice(0, 10);
-        if (!names.length) {
-          return null;
-        }
-        const labelByKey = new Map(
-          names.map((entry) => [
-            entry.key,
-            Number.isFinite(entry.rank)
-              ? String(entry.rank) + ". " + entry.displayName
-              : entry.displayName,
-          ])
-        );
-        const yCategories = names.map((entry) => labelByKey.get(entry.key) || entry.displayName);
-
-        const data = subset
-          .map((row) => {
-            const key = String(row.name_key || "").trim();
-            if (!labelByKey.has(key)) {
-              return null;
-            }
-            const timestamp = toEpochMillis(row.bucket_start);
-            const duplicateRows = toFiniteNumberOrNull(row.duplicate_rows);
-            if (timestamp === null || duplicateRows === null) {
-              return null;
-            }
-            return {
-              value: [timestamp, labelByKey.get(key), duplicateRows],
-              name_key: key,
-              display_name: String(row.display_name || key),
-              rank: toFiniteNumberOrNull(row.rank),
-              total_repeated_rows: toFiniteNumberOrNull(row.total_repeated_rows),
-              bucket_minutes: toFiniteNumberOrNull(row.bucket_minutes),
-              duplicate_rows: duplicateRows,
-              n_pro: toFiniteNumberOrNull(row.n_pro),
-              n_con: toFiniteNumberOrNull(row.n_con),
-              match_label: String(row.match_label || facet.label),
-              match_definition: String(
-                row.match_definition || facet.fallbackDefinition || ""
-              ),
-            };
-          })
-          .filter((value) => value !== null);
-        if (!data.length) {
-          return null;
-        }
-
-        return {
-          mode: facet.mode,
-          label: facet.label,
-          definition: String(
-            (subset[0] && subset[0].match_definition) || facet.fallbackDefinition || ""
-          ),
-          data: data,
-          yCategories: yCategories,
-        };
-      })
-      .filter((facet) => facet !== null);
-
-    if (!facets.length) {
+    if (!filtered.length) {
       return false;
     }
 
-    const allValues = facets.flatMap((facet) =>
-      facet.data.map((entry) => toNumber(entry.value[2]))
-    );
-    const minValue = allValues.length ? Math.min(...allValues) : 0;
-    const maxRaw = allValues.length ? Math.max(...allValues) : 1;
-    const maxValue = maxRaw > minValue ? maxRaw : minValue + 1;
-
-    const facetCount = facets.length;
-    const topStart = 9;
-    const gap = 4;
-    const bottomLimit = 92;
-    const usable = bottomLimit - topStart - gap * (facetCount - 1);
-    const facetHeight = Math.max(14, usable / facetCount);
-
-    const grids = [];
-    const xAxes = [];
-    const yAxes = [];
-    const series = [];
-    const titles = [];
-    facets.forEach((facet, index) => {
-      const facetTop = topStart + index * (facetHeight + gap);
-      grids.push({
-        left: 198,
-        right: 36,
-        top: String(facetTop) + "%",
-        height: String(facetHeight) + "%",
-      });
-      titles.push({
-        text: facet.label,
-        left: 198,
-        top: String(Math.max(0, facetTop - 4)) + "%",
-        textStyle: {
-          fontSize: 12,
-          fontWeight: 700,
-          color: theme.axisName,
-        },
-      });
-      xAxes.push({
-        type: "time",
-        gridIndex: index,
-        axisLabel: {
-          show: index === facetCount - 1,
-          color: theme.axisText,
-          formatter: (value) => formatEpochMillis(value),
-        },
-        axisLine: { lineStyle: { color: theme.axisLine } },
-        splitLine: { show: false },
-        name: index === facetCount - 1 ? "Time (" + reportTimezoneLabel + ")" : "",
-        nameLocation: "middle",
-        nameGap: 52,
-        nameTextStyle: { color: theme.axisName, fontWeight: 600 },
-      });
-      yAxes.push({
-        type: "category",
-        gridIndex: index,
-        data: facet.yCategories,
-        inverse: true,
-        axisLabel: {
-          color: theme.axisText,
-          formatter: (value) => {
-            const text = String(value || "");
-            return text.length > 34 ? text.slice(0, 31) + "..." : text;
-          },
-        },
-        axisLine: { lineStyle: { color: theme.axisLine } },
-        axisTick: { show: false },
-      });
-      series.push({
-        name: facet.label,
-        type: "heatmap",
-        xAxisIndex: index,
-        yAxisIndex: index,
-        data: facet.data,
-        progressive: 0,
-        itemStyle: {
-          borderColor: theme.gridLine,
-          borderWidth: 0.6,
-        },
-        emphasis: {
-          itemStyle: {
-            borderColor: theme.axisName,
-            borderWidth: 1.0,
-          },
-        },
-      });
+    const resolvedMode = targetMode || normalizeMode(filtered[0].match_mode);
+    const modeInfo = Object.prototype.hasOwnProperty.call(modeMeta, resolvedMode)
+      ? modeMeta[resolvedMode]
+      : {
+          label: String(filtered[0].match_label || "Top timing"),
+          fallbackDefinition: "",
+        };
+    const keyedNames = new Map();
+    filtered.forEach((row) => {
+      const key = String(row.name_key || "").trim();
+      if (!key) {
+        return;
+      }
+      const rank = toFiniteNumberOrNull(row.rank);
+      const numericRank = rank === null ? Number.POSITIVE_INFINITY : Math.round(rank);
+      const displayName = String(row.display_name || row.name_key || "").trim();
+      const totalRepeatedRows = toFiniteNumberOrNull(row.total_repeated_rows);
+      const existing = keyedNames.get(key);
+      if (
+        !existing ||
+        numericRank < existing.rank ||
+        (numericRank === existing.rank && toNumber(totalRepeatedRows) > toNumber(existing.totalRepeatedRows))
+      ) {
+        keyedNames.set(key, {
+          key: key,
+          rank: numericRank,
+          displayName: displayName,
+          totalRepeatedRows: totalRepeatedRows,
+        });
+      }
     });
+    const topNames = Array.from(keyedNames.values())
+      .sort((left, right) => {
+        const rankDelta = left.rank - right.rank;
+        if (rankDelta !== 0) {
+          return rankDelta;
+        }
+        const countDelta = toNumber(right.totalRepeatedRows) - toNumber(left.totalRepeatedRows);
+        if (countDelta !== 0) {
+          return countDelta;
+        }
+        return String(left.displayName).localeCompare(String(right.displayName));
+      })
+      .slice(0, 12);
+    if (!topNames.length) {
+      return false;
+    }
+
+    const yLabelByKey = new Map(
+      topNames.map((entry) => [
+        entry.key,
+        Number.isFinite(entry.rank)
+          ? String(entry.rank) + ". " + entry.displayName
+          : entry.displayName,
+      ])
+    );
+    const yCategories = topNames.map((entry) => yLabelByKey.get(entry.key) || entry.displayName);
+    const points = filtered
+      .map((row) => {
+        const key = String(row.name_key || "").trim();
+        if (!yLabelByKey.has(key)) {
+          return null;
+        }
+        const timestamp = toEpochMillis(row.bucket_start);
+        const duplicateRows = toFiniteNumberOrNull(row.duplicate_rows);
+        if (timestamp === null || duplicateRows === null) {
+          return null;
+        }
+        return {
+          value: [timestamp, yLabelByKey.get(key), duplicateRows],
+          name_key: key,
+          display_name: String(row.display_name || key),
+          rank: toFiniteNumberOrNull(row.rank),
+          total_repeated_rows: toFiniteNumberOrNull(row.total_repeated_rows),
+          bucket_minutes: toFiniteNumberOrNull(row.bucket_minutes),
+          duplicate_rows: duplicateRows,
+          n_pro: toFiniteNumberOrNull(row.n_pro),
+          n_con: toFiniteNumberOrNull(row.n_con),
+          match_label: String(row.match_label || modeInfo.label || ""),
+          match_definition: String(
+            row.match_definition || modeInfo.fallbackDefinition || ""
+          ),
+        };
+      })
+      .filter((value) => value !== null);
+    if (!points.length) {
+      return false;
+    }
+
+    const duplicateValues = points
+      .map((point) => toFiniteNumberOrNull(point.duplicate_rows))
+      .filter((value) => value !== null);
+    const minDup = duplicateValues.length ? Math.min(...duplicateValues) : 1;
+    const maxDupRaw = duplicateValues.length ? Math.max(...duplicateValues) : 1;
+    const maxDup = maxDupRaw > minDup ? maxDupRaw : minDup + 1;
+    const symbolSizeFor = (dupRaw) => {
+      const duplicateRows = Math.max(1, toNumber(dupRaw));
+      if (!(maxDup > minDup)) {
+        return 12;
+      }
+      const ratio = Math.max(0, Math.min(1, (duplicateRows - minDup) / (maxDup - minDup)));
+      return 8 + ratio * 20;
+    };
+    const definition = String(points[0].match_definition || modeInfo.fallbackDefinition || "").trim();
+    const bucketLabel = bucketLabelFromValue(mount.activeBucket);
 
     const option = {
       animation: false,
-      title: titles,
-      grid: grids,
-      xAxis: xAxes,
-      yAxis: yAxes,
-      visualMap: {
-        min: minValue,
-        max: maxValue,
-        calculable: true,
-        orient: "horizontal",
-        left: "center",
-        bottom: 10,
-        text: ["Duplicate rows", ""],
-        textStyle: { color: theme.axisText },
-        inRange: { color: theme.heatmapVolume },
-      },
+      grid: { left: 196, right: 30, top: 28, bottom: 78 },
       tooltip: {
         trigger: "item",
         appendToBody: true,
@@ -5565,23 +5542,26 @@
           const bucketMinutes = toFiniteNumberOrNull(raw.bucket_minutes);
           const nPro = toFiniteNumberOrNull(raw.n_pro);
           const nCon = toFiniteNumberOrNull(raw.n_con);
-          const definition = String(raw.match_definition || "").trim();
+          const tierDefinition = String(raw.match_definition || "").trim();
           const bucketEnd =
             timestamp !== null && bucketMinutes !== null
               ? formatEpochMillis(timestamp + Math.max(1, Math.round(bucketMinutes)) * 60 * 1000 - 1)
               : "";
           const lines = [
-            "<strong>" + escapeHtml(String(raw.match_label || params.seriesName || "")) + "</strong>",
+            "<strong>" + escapeHtml(String(raw.match_label || modeInfo.label || "")) + "</strong>",
             "<strong>Name:</strong> " + escapeHtml(String(raw.display_name || raw.name_key || "")),
           ];
           if (rank !== null) {
             lines.push("<strong>Rank:</strong> " + Number(rank).toLocaleString());
           }
           if (timestamp !== null) {
-            lines.push("<strong>Bucket:</strong> " + formatEpochMillis(timestamp));
+            lines.push("<strong>Bucket start:</strong> " + formatEpochMillis(timestamp));
             if (bucketEnd) {
               lines.push("<strong>Bucket end:</strong> " + bucketEnd);
             }
+          }
+          if (bucketLabel && bucketMinutes === null) {
+            lines.push("<strong>Bucket:</strong> " + bucketLabel);
           }
           if (duplicateRows !== null) {
             lines.push(
@@ -5601,16 +5581,328 @@
                 Number(nCon || 0).toLocaleString()
             );
           }
-          if (definition) {
-            lines.push("<strong>Tier definition:</strong> " + escapeHtml(definition));
+          if (tierDefinition) {
+            lines.push("<strong>Tier definition:</strong> " + escapeHtml(tierDefinition));
           }
           return lines.join("<br/>");
         },
       },
-      series: series,
+      xAxis: {
+        type: "time",
+        name: "Time (" + reportTimezoneLabel + ")",
+        axisLabel: {
+          color: theme.axisText,
+          formatter: (value) => formatEpochMillis(value),
+        },
+        axisLine: { lineStyle: { color: theme.axisLine } },
+        splitLine: { show: false },
+      },
+      yAxis: {
+        type: "category",
+        name: "Top names",
+        data: yCategories,
+        inverse: true,
+        axisLabel: {
+          color: theme.axisText,
+          formatter: (value) => {
+            const text = String(value || "");
+            return text.length > 38 ? text.slice(0, 35) + "..." : text;
+          },
+        },
+        axisTick: { show: false },
+        axisLine: { lineStyle: { color: theme.axisLine } },
+      },
+      series: [
+        {
+          name: modeInfo.label,
+          type: "scatter",
+          data: points,
+          symbolSize: (value, params) => {
+            if (params && params.data && params.data.duplicate_rows !== undefined) {
+              return symbolSizeFor(params.data.duplicate_rows);
+            }
+            return symbolSizeFor(Array.isArray(value) ? value[2] : null);
+          },
+          itemStyle: { color: theme.primaryLine, opacity: 0.78 },
+          emphasis: {
+            itemStyle: {
+              color: theme.alertLower,
+              borderColor: theme.axisLine,
+              borderWidth: 1.1,
+              opacity: 0.95,
+            },
+          },
+        },
+      ],
     };
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.customChartNote =
+      "Point size scales duplicate rows in each active bucket occurrence." +
+      (definition ? " Tier: " + definition : "");
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
 
+  function renderNearSimilarityDistribution(mount, rows) {
+    const theme = currentChartTheme();
+    const subset = rows
+      .map((row) => {
+        const start = toFiniteNumberOrNull(row.similarity_bin_start);
+        const end = toFiniteNumberOrNull(row.similarity_bin_end);
+        const nPairs = toFiniteNumberOrNull(row.n_pairs);
+        const share = toFiniteNumberOrNull(row.share_pairs);
+        if (start === null || end === null || nPairs === null) {
+          return null;
+        }
+        const labelRaw = String(row.similarity_bin || "").trim();
+        const label = labelRaw || String(Math.round(start)) + "-" + String(Math.max(Math.round(start), Math.round(end) - 1));
+        return {
+          start: start,
+          end: end,
+          nPairs: nPairs,
+          share: share,
+          label: label,
+        };
+      })
+      .filter((row) => row !== null)
+      .sort((left, right) => left.start - right.start);
+    if (!subset.length) {
+      return false;
+    }
+
+    let runningPairs = 0;
+    const totalPairs = subset.reduce((acc, row) => acc + toNumber(row.nPairs), 0);
+    const cumulativeShare = subset.map((row) => {
+      runningPairs += toNumber(row.nPairs);
+      return totalPairs > 0 ? runningPairs / totalPairs : null;
+    });
+    const labels = subset.map((row) => row.label);
+    const rotateLabels = labels.length > 10;
+
+    const option = {
+      animation: false,
+      legend: { top: 0, data: ["Pair count", "Share", "Cumulative share"] },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          if (!entries.length) {
+            return "";
+          }
+          const index = Number(toNumber(entries[0].dataIndex || 0));
+          const row = subset[Math.max(0, Math.min(subset.length - 1, index))];
+          const lines = [
+            "<strong>Similarity bin:</strong> " + escapeHtml(row.label),
+            "<strong>Range:</strong> " + Number(row.start).toFixed(0) + " to " + Number(row.end - 1).toFixed(0),
+            "<strong>Pair count:</strong> " + Number(row.nPairs).toLocaleString(),
+          ];
+          if (row.share !== null) {
+            lines.push("<strong>Share:</strong> " + formatPercent(row.share));
+          }
+          const cumulative = cumulativeShare[index];
+          if (cumulative !== null) {
+            lines.push("<strong>Cumulative share:</strong> " + formatPercent(cumulative));
+          }
+          return lines.join("<br/>");
+        },
+      },
+      grid: { left: 64, right: 66, top: 54, bottom: 94 },
+      xAxis: {
+        type: "category",
+        name: "Similarity bin",
+        data: labels,
+        axisLabel: { interval: 0, rotate: rotateLabels ? 35 : 0, color: theme.axisText },
+      },
+      yAxis: [
+        {
+          type: "value",
+          name: "Pair count",
+          min: 0,
+          axisLabel: { color: theme.axisText },
+        },
+        {
+          type: "value",
+          name: "Share",
+          min: 0,
+          max: 1,
+          axisLabel: { color: theme.axisText, formatter: (value) => formatPercent(value) },
+          splitLine: { show: false },
+        },
+      ],
+      series: [
+        {
+          name: "Pair count",
+          type: "bar",
+          yAxisIndex: 0,
+          data: subset.map((row) => row.nPairs),
+          itemStyle: { color: theme.barAccent, opacity: 0.82 },
+        },
+        {
+          name: "Share",
+          type: "line",
+          yAxisIndex: 1,
+          data: subset.map((row) => row.share),
+          showSymbol: true,
+          symbolSize: 6,
+          lineStyle: { color: theme.contextLine, width: 1.7, opacity: 0.9 },
+          itemStyle: { color: theme.contextLine },
+        },
+        {
+          name: "Cumulative share",
+          type: "line",
+          yAxisIndex: 1,
+          data: cumulativeShare,
+          showSymbol: false,
+          lineStyle: { color: theme.referenceLine, width: 1.1, type: "dashed", opacity: 0.8 },
+        },
+      ],
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
+  function renderNearTimeConcentration(mount, rows) {
+    const theme = currentChartTheme();
+    const subset = rows
+      .map((row) => {
+        const activeBuckets = toFiniteNumberOrNull(row.n_active_buckets);
+        const peakFraction = toFiniteNumberOrNull(row.peak_bucket_fraction);
+        const peakRecords = toFiniteNumberOrNull(row.peak_bucket_records);
+        const concentrationHhi = toFiniteNumberOrNull(row.concentration_hhi);
+        if (activeBuckets === null || peakFraction === null) {
+          return null;
+        }
+        return {
+          clusterId: String(row.cluster_id || ""),
+          activeBuckets: Math.max(1, activeBuckets),
+          peakFraction: Math.max(0, Math.min(1, peakFraction)),
+          peakRecords: peakRecords,
+          concentrationHhi: concentrationHhi,
+          peakBucketStart: toEpochMillis(row.peak_bucket_start),
+        };
+      })
+      .filter((row) => row !== null)
+      .sort((left, right) => {
+        const peakDelta = toNumber(right.peakFraction) - toNumber(left.peakFraction);
+        if (peakDelta !== 0) {
+          return peakDelta;
+        }
+        return toNumber(right.peakRecords) - toNumber(left.peakRecords);
+      })
+      .slice(0, 800);
+    if (!subset.length) {
+      return false;
+    }
+
+    const hhiValues = subset
+      .map((row) => row.concentrationHhi)
+      .filter((value) => value !== null);
+    const hhiMin = hhiValues.length ? Math.min(...hhiValues) : 0;
+    const hhiMaxRaw = hhiValues.length ? Math.max(...hhiValues) : 1;
+    const hhiMax = hhiMaxRaw > hhiMin ? hhiMaxRaw : hhiMin + 1;
+    const pointData = subset.map((row) => ({
+      value: [row.activeBuckets, row.peakFraction, row.concentrationHhi, row.peakRecords],
+      meta: row,
+    }));
+    const bucketLabel = bucketLabelFromValue(mount.activeBucket);
+
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "item",
+        formatter: (params) => {
+          const raw = params && params.data && params.data.meta ? params.data.meta : null;
+          if (!raw) {
+            return "";
+          }
+          const lines = [];
+          if (raw.clusterId) {
+            lines.push("<strong>Cluster:</strong> " + escapeHtml(raw.clusterId));
+          }
+          lines.push(
+            "<strong>Active buckets:</strong> " + Math.round(toNumber(raw.activeBuckets)).toLocaleString()
+          );
+          lines.push("<strong>Peak bucket share:</strong> " + formatPercent(raw.peakFraction));
+          if (raw.peakRecords !== null) {
+            lines.push("<strong>Peak bucket records:</strong> " + Math.round(toNumber(raw.peakRecords)).toLocaleString());
+          }
+          if (raw.concentrationHhi !== null) {
+            lines.push("<strong>Concentration HHI:</strong> " + toNumber(raw.concentrationHhi).toFixed(3));
+          }
+          if (raw.peakBucketStart !== null) {
+            lines.push(
+              "<strong>Peak bucket time (" +
+                reportTimezoneLabel +
+                "):</strong> " +
+                formatEpochMillis(raw.peakBucketStart)
+            );
+          }
+          if (bucketLabel) {
+            lines.push("<strong>Bucket:</strong> " + bucketLabel);
+          }
+          return lines.join("<br/>");
+        },
+      },
+      grid: { left: 72, right: 30, top: 24, bottom: 84 },
+      xAxis: {
+        type: "value",
+        name: "Active buckets per cluster",
+        min: 0,
+        axisLabel: { color: theme.axisText },
+      },
+      yAxis: {
+        type: "value",
+        name: "Peak bucket share",
+        min: 0,
+        max: 1,
+        axisLabel: { color: theme.axisText, formatter: (value) => formatPercent(value) },
+      },
+      visualMap: {
+        min: hhiMin,
+        max: hhiMax,
+        dimension: 2,
+        orient: "horizontal",
+        left: "center",
+        bottom: 8,
+        calculable: true,
+        text: ["Higher HHI", "Lower HHI"],
+        textStyle: { color: theme.axisText },
+        inRange: { color: [theme.volumeBar, theme.contextLine, theme.alertLower] },
+      },
+      series: [
+        {
+          name: "Clusters",
+          type: "scatter",
+          data: pointData,
+          symbolSize: (value) => {
+            const peakRecords = toFiniteNumberOrNull(Array.isArray(value) ? value[3] : null);
+            if (peakRecords === null) {
+              return 8;
+            }
+            return Math.max(7, Math.min(22, Math.sqrt(Math.max(1, peakRecords)) * 2.2));
+          },
+          itemStyle: { opacity: 0.76 },
+          markLine: {
+            symbol: ["none", "none"],
+            data: [
+              {
+                name: "50% peak share",
+                yAxis: 0.5,
+                lineStyle: { color: theme.referenceLine, type: "dashed", width: 1.1, opacity: 0.8 },
+                label: { formatter: "50%", color: theme.axisText, fontSize: 10 },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.customChartNote =
+      "Higher-left clusters are tightly concentrated in fewer time buckets; rightward points are more dispersed.";
     mount.isTimeSeries = false;
     mount.isAbsoluteTime = false;
     return true;
@@ -5723,12 +6015,12 @@
         lineLow: "pro_rate_wilson_low",
         lineHigh: "pro_rate_wilson_high",
         lowPowerField: "is_low_power",
-        flaggedField: "is_primary_alert_window",
+        flaggedField: "is_primary_two_sided_alert_window",
         inferentialWindowField: "is_alert_off_hours_window",
         sparseWhenLowSupport: true,
         sparseMinTestedPoints: 8,
         sparseMinTestedShare: 0.35,
-        runOverlayField: "is_primary_alert_window",
+        runOverlayField: "is_primary_two_sided_alert_window",
         extraLines: [
           "expected_pro_rate_primary",
           "control_low_95_primary",
@@ -5744,12 +6036,12 @@
         barField: "n_known",
         lineField: "z_score_primary",
         lowPowerField: "is_low_power",
-        flaggedField: "is_primary_alert_window",
+        flaggedField: "is_primary_two_sided_alert_window",
         inferentialWindowField: "is_alert_off_hours_window",
         sparseWhenLowSupport: true,
         sparseMinTestedPoints: 8,
         sparseMinTestedShare: 0.35,
-        runOverlayField: "is_primary_alert_window",
+        runOverlayField: "is_primary_two_sided_alert_window",
         extraLines: ["z_score_day", "z_ref_zero", "z_ref_pos3", "z_ref_neg3"],
         barAxisName: "Known pro+con",
         lineAxisName: "Primary z-score",
@@ -5782,7 +6074,15 @@
         lineField: "matched_rate",
         lineLow: "match_rate_wilson_low",
         lineHigh: "match_rate_wilson_high",
-        extraLines: ["unmatched_rate"],
+        extraLines: [
+          "unmatched_rate",
+          "matched_rate_pro",
+          "matched_rate_con",
+          "expected_match_rate_global",
+          "control_low_95_match_global",
+          "control_high_95_match_global",
+        ],
+        flaggedField: "is_match_rate_alert_any",
         lowPowerField: "is_low_power",
         lineAxisName: "Matched rate",
         lineMin: 0,
@@ -5820,10 +6120,10 @@
       },
       duplicates_near_cluster_timeline: {
         timeField: "bucket_start",
-        barField: "n_clusters",
-        lineField: "n_records",
-        lineAxisName: "Near-duplicate records",
-        barAxisName: "Active clusters",
+        barField: "n_records",
+        lineField: "records_per_cluster",
+        lineAxisName: "Records per active cluster",
+        barAxisName: "Near-duplicate records",
       },
       sortedness_bucket_ratio: {
         timeField: "bucket_start",
@@ -5900,7 +6200,7 @@
       return renderScatter(mount, rows, "n_total", "anomaly_score", "anomaly_score_percentile", "n_total");
     }
     if (mount.chartId === "duplicates_near_similarity") {
-      return renderSimpleBar(mount, rows, "similarity_bin", "n_pairs", "pair count");
+      return renderNearSimilarityDistribution(mount, rows);
     }
     if (mount.chartId === "composite_evidence_flags") {
       return renderSimpleBar(mount, rows, "flag", "count", "count");
@@ -5956,8 +6256,14 @@
     if (mount.chartId === "duplicates_exact_per_name_anomalies") {
       return renderSimpleBar(mount, rows, "display_name", "n", "repeat count");
     }
-    if (mount.chartId === "duplicates_exact_top_name_timing") {
-      return renderDuplicateTopNameTiming(mount, rows);
+    if (mount.chartId === "duplicates_exact_top_name_timing_exact") {
+      return renderDuplicateTopNameTiming(mount, rows, "exact");
+    }
+    if (mount.chartId === "duplicates_exact_top_name_timing_medium") {
+      return renderDuplicateTopNameTiming(mount, rows, "medium");
+    }
+    if (mount.chartId === "duplicates_exact_top_name_timing_loose") {
+      return renderDuplicateTopNameTiming(mount, rows, "loose");
     }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
       return renderSimpleBar(mount, rows, "metric", "observed", "observed");
@@ -5981,13 +6287,7 @@
       return renderSimpleBar(mount, rows, "cluster_size", "n_clusters", "clusters");
     }
     if (mount.chartId === "duplicates_near_time_concentration") {
-      return renderSimpleBar(
-        mount,
-        rows,
-        "cluster_id",
-        "peak_bucket_fraction",
-        "peak bucket fraction"
-      );
+      return renderNearTimeConcentration(mount, rows);
     }
     if (mount.chartId === "sortedness_bucket_summary") {
       return renderSimpleBar(mount, rows, "bucket_minutes", "alphabetical_ratio", "alphabetical ratio");
@@ -7625,7 +7925,11 @@
       );
       return scoped.length ? scoped : subset;
     }
-    if (chartId === "duplicates_exact_top_name_timing") {
+    if (
+      chartId === "duplicates_exact_top_name_timing_exact" ||
+      chartId === "duplicates_exact_top_name_timing_medium" ||
+      chartId === "duplicates_exact_top_name_timing_loose"
+    ) {
       const scoped = subset.filter(
         (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
       );
@@ -7638,7 +7942,9 @@
     const targets = new Set([
       "duplicates_exact_bucket_concentration",
       "duplicates_exact_metric_diagnostics",
-      "duplicates_exact_top_name_timing",
+      "duplicates_exact_top_name_timing_exact",
+      "duplicates_exact_top_name_timing_medium",
+      "duplicates_exact_top_name_timing_loose",
     ]);
     const renders = [];
     chartMounts.forEach((mount, chartId) => {

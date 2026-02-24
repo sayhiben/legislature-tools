@@ -33,9 +33,14 @@
 
       {% if analysis.detail_chart_ids %}
         <div class="analysis-detail-grid">
+          {% set chart_title_overrides = {
+            "duplicates_exact_top_name_timing_exact": "Duplicates Exact Top Name Timing (Exact)",
+            "duplicates_exact_top_name_timing_medium": "Duplicates Exact Top Name Timing (Medium)",
+            "duplicates_exact_top_name_timing_loose": "Duplicates Exact Top Name Timing (Loose)"
+          } %}
           {% for chart_id in analysis.detail_chart_ids %}
             <article class="detail-card">
-              <h3 class="detail-title">{{ chart_id.replace("_", " ")|title }}</h3>
+              <h3 class="detail-title">{{ chart_title_overrides.get(chart_id, chart_id.replace("_", " ")|title) }}</h3>
               <p class="tiny-note"><code>{{ chart_id }}</code></p>
               {{ chart_host.render_chart_host(chart_id, "detail", "chart-host-detail") }}
               {% set detail_help = interactive_charts.chart_help_docs.get(chart_id) if interactive_charts.chart_help_docs else None %}

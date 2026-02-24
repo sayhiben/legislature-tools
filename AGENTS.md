@@ -89,6 +89,7 @@ Repository-specific guidance for AI/code agents.
 ## Canonical Directories
 - `/Users/sayhiben/dev/legislature-tools/testifier_audit/`: app source, detectors, reports, tests.
 - `/Users/sayhiben/dev/legislature-tools/data/raw/`: local raw inputs (git-ignored).
+- `/Users/sayhiben/dev/legislature-tools/data/metadata/`: local hearing metadata sidecars.
 - `/Users/sayhiben/dev/legislature-tools/reports/`: cached rendered reports (tracked and published).
 - `/Users/sayhiben/dev/legislature-tools/output/`: temporary local artifacts (do not commit).
 
@@ -126,13 +127,13 @@ Run from `/Users/sayhiben/dev/legislature-tools/testifier_audit` unless noted.
 ./scripts/report/run_unified_report.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
-  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+  /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
 
 # Preferred visual-regression capture: generate report + capture known-good stitched screenshot
 ./scripts/report/run_unified_report_and_capture.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
-  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+  /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
 
 # Local CI parity
 ./scripts/ci/lint.sh

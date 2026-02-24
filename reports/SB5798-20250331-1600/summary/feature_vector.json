@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "report_id": "SB5798-20250331-1600",
-  "generated_at_utc": "2026-02-23T21:30:09.455544+00:00",
+  "generated_at_utc": "2026-02-24T00:13:37.208365+00:00",
   "lens": "side_by_side",
   "date_range_start": "2025-03-26T16:23:00-07:00",
   "date_range_end": "2025-03-31T14:59:00-07:00",
   "metrics": {
-    "total_submissions": 45174,
-    "overall_pro_rate": 0.0475937486164608,
-    "overall_con_rate": 0.9488865276486474,
+    "total_submissions": 45482,
+    "overall_pro_rate": 0.04766720900576052,
+    "overall_con_rate": 0.9487929290708412,
     "window_queue_size": 0,
     "record_queue_size": 250,
     "cluster_queue_size": 250,
@@ -20,18 +20,18 @@
     "window_top_abs_z": null,
     "window_top_dup_fraction": null,
     "window_min_q_value": null,
-    "top_name_max_records": 39,
+    "top_name_max_records": 40,
     "top_cluster_max_records": 14,
-    "off_hours_ratio": 0.045933501571700536,
-    "dedup_drop_fraction": 0.005268517288705893
+    "off_hours_ratio": 0.04601820500417748,
+    "dedup_drop_fraction": 0.005254826085044633
   },
   "top_repeated_names": [
     {
       "canonical_name": "BACKOUS|KATHLEEN||",
       "display_name": "BACKOUS, KATHLEEN",
-      "n_records": 39,
+      "n_records": 40,
       "n_pro": 0,
-      "n_con": 39
+      "n_con": 40
     },
     {
       "canonical_name": "ROUBAL|SANDRA||",
@@ -55,8 +55,8 @@
       "n_con": 15
     },
     {
-      "canonical_name": "DURHAM|RHONDA||",
-      "display_name": "DURHAM, RHONDA",
+      "canonical_name": "BOLINGER|JON||",
+      "display_name": "BOLINGER, JON",
       "n_records": 13,
       "n_pro": 0,
       "n_con": 13
@@ -90,9 +90,9 @@
     }
   ],
   "material_quality_metric_count": 0,
-  "total_submissions": 45174,
-  "overall_pro_rate": 0.0475937486164608,
-  "overall_con_rate": 0.9488865276486474,
+  "total_submissions": 45482,
+  "overall_pro_rate": 0.04766720900576052,
+  "overall_con_rate": 0.9487929290708412,
   "window_queue_size": 0,
   "record_queue_size": 250,
   "cluster_queue_size": 250,

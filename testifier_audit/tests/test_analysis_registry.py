@@ -21,7 +21,9 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     assert all("group" in entry for entry in definitions)
     assert all("priority" in entry for entry in definitions)
     duplicates_exact = next(entry for entry in definitions if entry["id"] == "duplicates_exact")
-    assert "duplicates_exact_top_name_timing" in duplicates_exact["detail_chart_ids"]
+    assert "duplicates_exact_top_name_timing_exact" in duplicates_exact["detail_chart_ids"]
+    assert "duplicates_exact_top_name_timing_medium" in duplicates_exact["detail_chart_ids"]
+    assert "duplicates_exact_top_name_timing_loose" in duplicates_exact["detail_chart_ids"]
 
 
 def test_analysis_status_reports_ready_when_any_chart_has_rows() -> None:

@@ -573,12 +573,20 @@ def render_index(entries: list[ReportEntry], generated_at_local: str) -> str:
           return `${{numeric.toFixed(1)}}%`;
         }};
 
-        const compareEpoch = (rowA, rowB, fieldName) => {{
-          const aRaw = Number(rowA.getData()[fieldName]);
-          const bRaw = Number(rowB.getData()[fieldName]);
+        const sortEpoch = (a, b) => {{
+          const aRaw = Number(a);
+          const bRaw = Number(b);
           const aEpoch = Number.isFinite(aRaw) ? aRaw : Number.NEGATIVE_INFINITY;
           const bEpoch = Number.isFinite(bRaw) ? bRaw : Number.NEGATIVE_INFINITY;
           return aEpoch - bEpoch;
+        }};
+
+        const matchesDisplayText = (headerValue, rowData, displayField) => {{
+          const needle = String(headerValue || "").trim().toLowerCase();
+          if (!needle) {{
+            return true;
+          }}
+          return String(rowData?.[displayField] || "").toLowerCase().includes(needle);
         }};
 
         const toPlainText = (value) => {{
@@ -639,7 +647,7 @@ def render_index(entries: list[ReportEntry], generated_at_local: str) -> str:
           pagination: "local",
           paginationSize: isMobile ? 10 : 25,
           paginationSizeSelector: [10, 25, 50, 100],
-          initialSort: [{{ column: "meeting_local", dir: "desc" }}],
+          initialSort: [{{ column: "meeting_epoch", dir: "desc" }}],
           columns: [
             {{
               title: "Report",
@@ -690,17 +698,23 @@ def render_index(entries: list[ReportEntry], generated_at_local: str) -> str:
             }},
             {{
               title: "Meeting Datetime (PT)",
-              field: "meeting_local",
+              field: "meeting_epoch",
               minWidth: 210,
               headerFilter: "input",
-              sorter: (_a, _b, aRow, bRow) => compareEpoch(aRow, bRow, "meeting_epoch"),
+              headerFilterFunc: (headerValue, _rowValue, rowData) =>
+                matchesDisplayText(headerValue, rowData, "meeting_local"),
+              sorter: sortEpoch,
+              formatter: (cell) => String(cell.getRow().getData().meeting_local || "—"),
             }},
             {{
               title: "Last Updated (PT)",
-              field: "generated_local",
+              field: "generated_epoch",
               minWidth: 210,
               headerFilter: "input",
-              sorter: (_a, _b, aRow, bRow) => compareEpoch(aRow, bRow, "generated_epoch"),
+              headerFilterFunc: (headerValue, _rowValue, rowData) =>
+                matchesDisplayText(headerValue, rowData, "generated_local"),
+              sorter: sortEpoch,
+              formatter: (cell) => String(cell.getRow().getData().generated_local || "—"),
             }},
             ...(isMobile ? [{{
               title: "Details",

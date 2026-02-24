@@ -1,0 +1,102 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2289-20260223-1600",
+  "generated_at_utc": "2026-02-24T00:11:30.262065+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-18T16:08:00-08:00",
+  "date_range_end": "2026-02-23T14:59:00-08:00",
+  "metrics": {
+    "total_submissions": 3391,
+    "overall_pro_rate": 0.020347979946918313,
+    "overall_con_rate": 0.9224417575936302,
+    "window_queue_size": 0,
+    "record_queue_size": 250,
+    "cluster_queue_size": 7,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": 0.0,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": null,
+    "window_min_q_value": null,
+    "top_name_max_records": 11,
+    "top_cluster_max_records": 3,
+    "off_hours_ratio": 0.02683574166912415,
+    "dedup_drop_fraction": 0.011795930404010616
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BORDEN|BRETT||",
+      "display_name": "BORDEN, BRETT",
+      "n_records": 11,
+      "n_pro": 0,
+      "n_con": 11
+    },
+    {
+      "canonical_name": "STAHL|TAMI||",
+      "display_name": "STAHL, TAMI",
+      "n_records": 6,
+      "n_pro": 0,
+      "n_con": 6
+    },
+    {
+      "canonical_name": "MARTIN|ANNELLE||",
+      "display_name": "MARTIN, ANNELLE",
+      "n_records": 5,
+      "n_pro": 0,
+      "n_con": 5
+    },
+    {
+      "canonical_name": "LEBRUN|PATRICK||",
+      "display_name": "LEBRUN, PATRICK",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "MASON|MARY||",
+      "display_name": "MASON, MARY",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    }
+  ],
+  "top_near_dup_clusters": [
+    {
+      "cluster_id": "cluster_0003",
+      "cluster_size": 2,
+      "n_records": 3
+    },
+    {
+      "cluster_id": "cluster_0005",
+      "cluster_size": 2,
+      "n_records": 3
+    },
+    {
+      "cluster_id": "cluster_0001",
+      "cluster_size": 2,
+      "n_records": 2
+    },
+    {
+      "cluster_id": "cluster_0002",
+      "cluster_size": 2,
+      "n_records": 2
+    },
+    {
+      "cluster_id": "cluster_0004",
+      "cluster_size": 2,
+      "n_records": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 3391,
+  "overall_pro_rate": 0.020347979946918313,
+  "overall_con_rate": 0.9224417575936302,
+  "window_queue_size": 0,
+  "record_queue_size": 250,
+  "cluster_queue_size": 7,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

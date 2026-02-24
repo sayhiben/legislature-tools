@@ -27,7 +27,7 @@ from testifier_audit.io.submissions_postgres import (
 
 def _columns() -> ColumnsConfig:
     return ColumnsConfig(
-        id="Count",
+        id="Group",
         name="Name",
         organization="Organization",
         position="Position",
@@ -213,7 +213,7 @@ def test_normalize_submission_chunk_empty_returns_expected_columns() -> None:
 def test_normalize_submission_chunk_derives_expected_fields() -> None:
     chunk = pd.DataFrame(
         {
-            "Count": ["1", "2"],
+            "Group": ["Testifying", "Not Testifying"],
             "Name": ["Doe, Jane", "Smith, John"],
             "Organization": ["", "Org A"],
             "Position": ["Pro", "Con"],
@@ -232,6 +232,8 @@ def test_normalize_submission_chunk_derives_expected_fields() -> None:
     assert len(out) == 2
     assert out.loc[0, "submission_key"] == "SB6346-20260206-1330.csv:11"
     assert out.loc[1, "submission_key"] == "SB6346-20260206-1330.csv:12"
+    assert out.loc[0, "source_id"] == "Testifying"
+    assert out.loc[1, "source_id"] == "Not Testifying"
     assert out.loc[0, "name_last"] == "DOE"
     assert out.loc[0, "name_first"] == "JANE"
     assert bool(out.loc[0, "organization_is_blank"]) is True
@@ -240,6 +242,27 @@ def test_normalize_submission_chunk_derives_expected_fields() -> None:
     assert out.loc[1, "position_normalized"] == "Con"
     assert pd.notna(out.loc[0, "signed_at"])
     assert pd.notna(out.loc[0, "minute_bucket"])
+
+
+def test_normalize_submission_chunk_raises_when_group_id_column_missing() -> None:
+    chunk = pd.DataFrame(
+        {
+            "Count": ["1", "2"],
+            "Name": ["Doe, Jane", "Smith, John"],
+            "Organization": ["", "Org A"],
+            "Position": ["Pro", "Con"],
+            "Time Signed In": ["2/3/2026 5:07 PM", "2/3/2026 5:08 PM"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="id"):
+        normalize_submission_chunk(
+            chunk=chunk,
+            source_file="SB6346-20260206-1330.csv",
+            columns=_columns(),
+            timezone="America/Los_Angeles",
+            row_number_offset=0,
+        )
 
 
 def test_ensure_submission_schema_executes_create_statement(

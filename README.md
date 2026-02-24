@@ -5,6 +5,7 @@ Utilities for ingesting and analyzing public Washington State Legislature partic
 ## Repository layout
 - `testifier_audit/`: Python application for anomaly analysis and report generation.
 - `data/raw/`: local raw source files (ignored by git).
+- `data/metadata/`: local hearing metadata sidecars used for hearing-relative context.
 - `reports/`: cached rendered reports published to GitHub Pages.
 - `output/`: local working artifacts/screenshots (not committed).
 - `anomaly-detection-guidance.md`: detector and statistical guidance.
@@ -123,7 +124,7 @@ From `testifier_audit/`, the recommended end-to-end run is:
 ./scripts/report/run_unified_report.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
-  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+  /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
 
 # Rebuild cross-hearing comparative baselines (run from repo root)
 python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/build_global_baselines.py
@@ -131,6 +132,34 @@ python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/buil
 
 This imports submissions + voter registry data into Postgres, runs all detectors, and writes a
 single report directory under `reports/<csv-stem>/`.
+
+## Local non-Docker setup
+Run this from `testifier_audit/` to provision a local Postgres 17 instance (port `55432`),
+install app dependencies via Homebrew, apply schema, and attempt monthly VRDB download:
+
+```bash
+cd /Users/sayhiben/dev/legislature-tools/testifier_audit
+cp .env.example .env
+# Edit .env as needed
+
+make setup-env
+```
+
+Then start local services:
+
+```bash
+make start
+# Web UI root (reports/): http://127.0.0.1:8774
+```
+
+Useful local lifecycle commands:
+
+```bash
+make stop
+make restart
+make status
+make reset-db
+```
 
 ## GitHub Pages hosting
 - Workflow: `.github/workflows/pages.yml`

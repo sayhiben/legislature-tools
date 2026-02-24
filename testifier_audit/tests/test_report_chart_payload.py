@@ -233,6 +233,9 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert "matched_rate" in voter_rates[0]
     assert "unmatched_rate" in voter_rates[0]
     assert "n_matched_unique" in voter_rates[0]
+    assert "matched_rate_pro" in voter_rates[0]
+    assert "matched_rate_con" in voter_rates[0]
+    assert "is_match_rate_alert_any" in voter_rates[0]
     assert payload["charts"]["voter_registry_sensitivity_modes"]
 
     controls = payload["controls"]
@@ -430,6 +433,9 @@ def test_payload_color_semantics_cover_key_chart_families() -> None:
 
     timeline_row = charts["off_hours_control_timeline"][0]
     assert timeline_row["is_primary_alert_window"] is True
+    assert timeline_row["is_primary_lower_alert_window"] is True
+    assert "is_primary_upper_alert_window" in timeline_row
+    assert "is_primary_two_sided_alert_window" in timeline_row
     assert timeline_row["is_material_primary_lower_shift"] is True
     assert "is_material_primary_upper_shift" in timeline_row
     assert "is_primary_spc_998_two_sided" in timeline_row
@@ -679,9 +685,15 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert row["baseline_source"] == "hearing_empirical"
     assert row["baseline_degraded"] is True
 
-    timing_rows = payload["charts"]["duplicates_exact_top_name_timing"]
-    assert timing_rows
-    assert {entry["match_mode"] for entry in timing_rows} == {"exact", "medium", "loose"}
+    timing_exact_rows = payload["charts"]["duplicates_exact_top_name_timing_exact"]
+    timing_medium_rows = payload["charts"]["duplicates_exact_top_name_timing_medium"]
+    timing_loose_rows = payload["charts"]["duplicates_exact_top_name_timing_loose"]
+    assert timing_exact_rows
+    assert timing_medium_rows
+    assert timing_loose_rows
+    assert {entry["match_mode"] for entry in timing_exact_rows} == {"exact"}
+    assert {entry["match_mode"] for entry in timing_medium_rows} == {"medium"}
+    assert {entry["match_mode"] for entry in timing_loose_rows} == {"loose"}
     timing_required = {
         "scope",
         "match_mode",
@@ -699,7 +711,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
         "first_seen",
         "last_seen",
     }
-    assert timing_required.issubset(set(timing_rows[0].keys()))
+    assert timing_required.issubset(set(timing_exact_rows[0].keys()))
 
     controls = payload["controls"]
     assert controls["duplicate_collision_scope_default"] == "matched_only"
@@ -959,8 +971,8 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
 
     per_name_chart = payload["charts"]["duplicates_exact_per_name_anomalies"]
     temporal_chart = payload["charts"]["duplicates_exact_temporal_burst"]
-    assert len(per_name_chart) == 10
-    assert len(temporal_chart) == 10
+    assert len(per_name_chart) == 15
+    assert len(temporal_chart) == 15
     assert [row["within_5m_pairs"] for row in temporal_chart] == sorted(
         [row["within_5m_pairs"] for row in temporal_chart],
         reverse=True,
@@ -970,8 +982,12 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
     duplicates_exact_entry = by_id.get("duplicates_exact")
     if duplicates_exact_entry is not None:
         assert "duplicates_exact_null_distribution" not in duplicates_exact_entry["detail_chart_ids"]
-        assert "duplicates_exact_top_name_timing" in duplicates_exact_entry["detail_chart_ids"]
-    assert isinstance(payload["charts"]["duplicates_exact_top_name_timing"], list)
+        assert "duplicates_exact_top_name_timing_exact" in duplicates_exact_entry["detail_chart_ids"]
+        assert "duplicates_exact_top_name_timing_medium" in duplicates_exact_entry["detail_chart_ids"]
+        assert "duplicates_exact_top_name_timing_loose" in duplicates_exact_entry["detail_chart_ids"]
+    assert isinstance(payload["charts"]["duplicates_exact_top_name_timing_exact"], list)
+    assert isinstance(payload["charts"]["duplicates_exact_top_name_timing_medium"], list)
+    assert isinstance(payload["charts"]["duplicates_exact_top_name_timing_loose"], list)
     assert payload["charts"]["duplicates_exact_null_distribution"]
 
 
@@ -1055,13 +1071,17 @@ def test_duplicates_near_charts_are_bucket_aware_and_similarity_histogrammed() -
     )
 
     near_timeline = payload["charts"]["duplicates_near_cluster_timeline"]
+    near_cluster_size = payload["charts"]["duplicates_near_cluster_size"]
     near_concentration = payload["charts"]["duplicates_near_time_concentration"]
     near_similarity = payload["charts"]["duplicates_near_similarity"]
 
     assert near_timeline
+    assert near_cluster_size
     assert near_concentration
     assert near_similarity
     assert {int(row["bucket_minutes"]) for row in near_timeline} >= {1, 5, 30}
+    assert "records_per_cluster" in near_timeline[0]
+    assert {int(row["bucket_minutes"]) for row in near_cluster_size} >= {1, 5, 30}
     assert {int(row["bucket_minutes"]) for row in near_concentration} >= {1, 5, 30}
     assert all("similarity_bin" in row for row in near_similarity)
     assert all("n_pairs" in row for row in near_similarity)

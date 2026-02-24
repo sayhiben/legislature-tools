@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "report_id": "SB6346-20260206-1330",
-  "generated_at_utc": "2026-02-23T21:33:23.395474+00:00",
+  "generated_at_utc": "2026-02-24T00:16:52.460590+00:00",
   "lens": "side_by_side",
   "date_range_start": "2026-02-03T17:07:00-08:00",
-  "date_range_end": "2026-02-06T12:30:00-08:00",
+  "date_range_end": "2026-02-06T13:56:00-08:00",
   "metrics": {
-    "total_submissions": 80644,
-    "overall_pro_rate": 0.23670700858092356,
-    "overall_con_rate": 0.7593869351718665,
+    "total_submissions": 80847,
+    "overall_pro_rate": 0.23705270449119942,
+    "overall_con_rate": 0.7589520946973913,
     "window_queue_size": 0,
     "record_queue_size": 250,
     "cluster_queue_size": 250,
@@ -22,8 +22,8 @@
     "window_min_q_value": null,
     "top_name_max_records": 34,
     "top_cluster_max_records": 17,
-    "off_hours_ratio": 0.06516293834631219,
-    "dedup_drop_fraction": 0.004464064282525668
+    "off_hours_ratio": 0.06508590300196668,
+    "dedup_drop_fraction": 0.004477593479040657
   },
   "top_repeated_names": [
     {
@@ -81,7 +81,7 @@
     {
       "cluster_id": "cluster_0002",
       "cluster_size": 9,
-      "n_records": 14
+      "n_records": 15
     },
     {
       "cluster_id": "cluster_0004",
@@ -90,9 +90,9 @@
     }
   ],
   "material_quality_metric_count": 0,
-  "total_submissions": 80644,
-  "overall_pro_rate": 0.23670700858092356,
-  "overall_con_rate": 0.7593869351718665,
+  "total_submissions": 80847,
+  "overall_pro_rate": 0.23705270449119942,
+  "overall_con_rate": 0.7589520946973913,
   "window_queue_size": 0,
   "record_queue_size": 250,
   "cluster_queue_size": 250,

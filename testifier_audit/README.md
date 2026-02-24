@@ -127,7 +127,7 @@ cd /Users/sayhiben/dev/legislature-tools/testifier_audit
 ./scripts/report/run_unified_report.sh \
   /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
   /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt \
-  /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml
+  /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml
 
 # Rebuild cross-hearing comparative baselines (run from repo root)
 python /Users/sayhiben/dev/legislature-tools/testifier_audit/scripts/report/build_global_baselines.py
@@ -140,16 +140,63 @@ Result:
 ## Local setup
 ```bash
 cd /Users/sayhiben/dev/legislature-tools/testifier_audit
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
+cp .env.example .env
+# Edit .env as needed for your machine/dataset paths.
 
-docker compose up -d postgres
+make setup-env
+
 export TESTIFIER_AUDIT_DB_URL="postgresql://legislature:legislature@localhost:55432/legislature"
+export DATABASE_URL="$TESTIFIER_AUDIT_DB_URL"
+export TESTIFIER_AUDIT_SKIP_DOCKER_POSTGRES=1
+```
+
+What setup does:
+- Installs dependencies via Homebrew (`python@3.12`, `postgresql@17`, `curl`, `unzip`).
+- Creates/updates `.venv` and installs `-e .[dev]`.
+- Initializes a local PostgreSQL 17 cluster on `localhost:55432`.
+- Applies committed schema from `sql/schema.sql`.
+- Attempts monthly VRDB download from `https://sos.wa.gov/_assets/elections/02.2026.WA.zip` only
+  when a `YYYYMMDD_VRDB_Extract.txt` for the current month is missing under `../data/raw/`.
+- Reads configuration from `.env` and `.env.local` in addition to shell env vars.
+
+Local lifecycle targets:
+```bash
+# Start postgres + local web server (http://127.0.0.1:8774 by default)
+make start
+
+# Stop both services
+make stop
+
+# Restart both services
+make restart
+
+# Status for both services
+make status
+
+# Rebuild local postgres cluster and re-apply schema
+make reset-db
+```
+
+Schema maintenance helpers:
+```bash
+# Apply committed schema
+./scripts/db/apply_schema.sh "$TESTIFIER_AUDIT_DB_URL"
+
+# Re-extract schema from a live DB (for commits after schema changes)
+./scripts/db/extract_schema.sh "$TESTIFIER_AUDIT_DB_URL" ./sql/schema.sql
 ```
 
 ## CLI commands
 ```bash
+# Download testifier CSV + hearing metadata sidecar directly from WA CSI endpoints
+python -m testifier_audit.cli download-csi-testifiers \
+  "SB 6005" \
+  --csv-out-dir /Users/sayhiben/dev/legislature-tools/data/raw \
+  --metadata-out-dir /Users/sayhiben/dev/legislature-tools/data/metadata
+
+# Convenience wrapper with same defaults as this repository
+./scripts/data/download_csi_testifiers.sh "SB 6005"
+
 # Import submissions CSV into normalized PostgreSQL tables
 python -m testifier_audit.cli import-submissions \
   --csv /Users/sayhiben/dev/legislature-tools/data/raw/SB6346-20260206-1330.csv \
@@ -163,7 +210,7 @@ python -m testifier_audit.cli import-vrdb \
 # Full pipeline (profile + detect + report)
 python -m testifier_audit.cli run-all \
   --config /Users/sayhiben/dev/legislature-tools/testifier_audit/configs/voter_registry_enabled.yaml \
-  --hearing-metadata /Users/sayhiben/dev/legislature-tools/output/hearing_metadata/SB6346-20260206-1330.hearing.yaml \
+  --hearing-metadata /Users/sayhiben/dev/legislature-tools/data/metadata/SB6346-20260206-1330.hearing.yaml \
   --out /Users/sayhiben/dev/legislature-tools/reports/SB6346-20260206-1330
 ```
 

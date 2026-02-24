@@ -158,7 +158,8 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         ),
         what_to_look_for=(
             "Excess duplicate burden with low p/q values, "
-            "and position concentration differences that persist across neighboring windows."
+            "one-sided repeated-name series (Pro-only or Con-only), and position concentration "
+            "differences that persist across neighboring windows."
         ),
         common_benign_causes=(
             "Common names and legitimate coordinated outreach can elevate duplicate pressure."

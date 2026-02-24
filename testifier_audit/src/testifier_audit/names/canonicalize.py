@@ -140,14 +140,14 @@ def canonicalize_name(
     middle_initial = first_tokens[1][:1] if len(first_tokens) > 1 else ""
     first_nickname_root = nickname_root(first_primary, nickname_map)
     first_canonical = first_nickname_root
-    first_initial = first_canonical[:1]
+    first_initial = first_primary[:1]
 
     canonical_key_strict = (
-        f"{last}|{first_canonical}|{middle_initial}|{suffix_normalized}"
-        if last or first_canonical or middle_initial or suffix_normalized
+        f"{last}|{first_primary}|{middle_initial}|{suffix_normalized}"
+        if last or first_primary or middle_initial or suffix_normalized
         else "|||"
     )
-    canonical_key_medium = f"{last}|{first_canonical}" if last or first_canonical else "|"
+    canonical_key_medium = f"{last}|{first_primary}" if last or first_primary else "|"
     canonical_key_loose = f"{last}|{first_initial}" if last or first_initial else "|"
     canonical_key_nickname = (
         f"{last}|{first_nickname_root}" if last or first_nickname_root else "|"

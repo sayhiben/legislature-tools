@@ -39,6 +39,7 @@
       {% if analysis.detail_chart_ids %}
         <div class="analysis-detail-grid">
           {% set chart_title_overrides = {
+            "duplicates_exact_per_name_anomalies": "Duplicate Names by Position",
             "duplicates_exact_top_name_timing_exact": "Duplicate Names Top Timing"
           } %}
           {% set chart_card_class_overrides = {

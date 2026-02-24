@@ -49,7 +49,7 @@ _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
         "match_mode": "strict",
         "key_column": "collision_key_medium",
         "match_label": "Strict (last + first)",
-        "match_definition": "Exact match on last-name and first-name tokens (nickname-sensitive).",
+        "match_definition": "Exact match on last-name and first-name tokens.",
     },
     {
         "match_mode": "loose",

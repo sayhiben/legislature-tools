@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -143,6 +145,10 @@ def test_voter_registry_match_detector_emits_conservative_outputs(monkeypatch) -
     assert unmatched.loc["BROWN|AVA", "n_rows"] == 1
     assert unmatched.loc["SMITH|JOHN", "display_name"] == "SMITH, JOHN"
     assert unmatched.loc["BROWN|AVA", "display_name"] == "BROWN, AVA"
+    assert unmatched.loc["SMITH|JOHN", "first_seen"] == pd.Timestamp("2026-02-01 00:10:00")
+    assert unmatched.loc["SMITH|JOHN", "last_seen"] == pd.Timestamp("2026-02-01 00:10:00")
+    assert unmatched.loc["BROWN|AVA", "first_seen"] == pd.Timestamp("2026-02-01 00:35:00")
+    assert unmatched.loc["BROWN|AVA", "last_seen"] == pd.Timestamp("2026-02-01 00:35:00")
 
 
 def test_voter_registry_match_detector_supports_multiple_bucket_windows(monkeypatch) -> None:
@@ -211,6 +217,70 @@ def test_voter_registry_match_detector_supports_multiple_bucket_windows(monkeypa
     by_bucket_position = result.tables["match_by_bucket_position"]
     assert not by_bucket_position.empty
     assert set(by_bucket_position["bucket_minutes"].astype(int).unique()) == {1, 5, 15}
+
+
+def test_voter_registry_match_nickname_equivalence_is_loose_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "canonical_name": ["HERSHAW|NORM", "HERSHAW|NORMAN"],
+            "position_normalized": ["Pro", "Con"],
+            "minute_bucket": pd.to_datetime(["2026-02-01 00:05:00", "2026-02-01 00:06:00"]),
+            "name_display": ["HERSHAW, NORM", "HERSHAW, NORMAN"],
+        }
+    )
+
+    nickname_path = tmp_path / "nicknames.csv"
+    nickname_path.write_text("alias,canonical\nNORM,NORMAN\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_matching_voter_names",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_name": ["HERSHAW|NORMAN"],
+                "n_registry_rows": [1],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_last": ["HERSHAW"],
+                "canonical_first": ["NORMAN"],
+                "canonical_name": ["HERSHAW|NORMAN"],
+                "n_registry_rows": [1],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.count_registry_rows",
+        lambda **_kwargs: 1,
+    )
+
+    detector = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        bucket_minutes=30,
+        active_only=True,
+        nickname_map_path=str(nickname_path),
+    )
+    result = detector.run(df=df, features={})
+
+    sensitivity = result.tables["sensitivity_modes"].set_index("mode")
+    assert sensitivity.loc["strict", "n_matched_unique_rows"] == 1
+    assert sensitivity.loc["strict", "n_unmatched_rows"] == 1
+    assert sensitivity.loc["loose", "n_matched_unique_rows"] == 2
+    assert sensitivity.loc["loose", "n_unmatched_rows"] == 0
+
+    assignments = result.tables["match_assignments"].set_index("canonical_name")
+    assert assignments.loc["HERSHAW|NORMAN", "strict_outcome_selected"] == "matched_unique"
+    assert assignments.loc["HERSHAW|NORM", "match_tier"] == "nickname_exact"
+    assert assignments.loc["HERSHAW|NORM", "strict_outcome_selected"] == "unmatched"
+    assert assignments.loc["HERSHAW|NORM", "loose_outcome_selected"] == "matched_unique"
 
 
 def test_voter_registry_match_detector_reports_sensitivity_modes(monkeypatch) -> None:

@@ -58,6 +58,37 @@ REPORT_DATA_FILENAME = f"{REPORT_DATA_DIRECTORY}/index.json"
 REPORT_ASSETS_DIRECTORY = "assets/report"
 REPORT_CSS_ASSET_FILENAME = f"{REPORT_ASSETS_DIRECTORY}/report.css"
 REPORT_JS_ASSET_FILENAME = f"{REPORT_ASSETS_DIRECTORY}/main.js"
+_VOTER_LINKAGE_POSITION_PREVIEW_COLUMNS = [
+    "match_mode",
+    "unit",
+    "position_normalized",
+    "n_total",
+    "n_matched_unique",
+    "n_matched_ambiguous",
+    "n_unmatched",
+    "matched_rate",
+    "unmatched_rate",
+    "matched_rate_wilson_low",
+    "matched_rate_wilson_high",
+    "unmatched_rate_wilson_low",
+    "unmatched_rate_wilson_high",
+    "is_low_power",
+]
+_VOTER_LINKAGE_POSITION_CHART_COLUMNS = [
+    "match_mode",
+    "position_normalized",
+    "n_total",
+    "n_matched_unique",
+    "n_matched_ambiguous",
+    "n_unmatched",
+    "matched_rate",
+    "unmatched_rate",
+    "match_rate_wilson_low",
+    "match_rate_wilson_high",
+    "unmatched_rate_wilson_low",
+    "unmatched_rate_wilson_high",
+    "is_low_power",
+]
 
 _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "artifact": "Artifact/table identifier written by the pipeline.",
@@ -1078,6 +1109,11 @@ def _preview_columns_for_detector_table(
     detector_name: str,
     table_name: str,
 ) -> list[str] | None:
+    if detector_name == "voter_registry_match" and table_name in {
+        "linkage_by_position_rows",
+        "linkage_by_position_unique",
+    }:
+        return list(_VOTER_LINKAGE_POSITION_PREVIEW_COLUMNS)
     if detector_name == "voter_registry_match" and table_name == "unmatched_names":
         return [
             "display_name",
@@ -1435,10 +1471,39 @@ def _prepare_table_for_preview(
             return prepared
         return prepared
 
-    if detector_name != "voter_registry_match" or table_name != "unmatched_names":
+    if detector_name != "voter_registry_match":
         return table
 
     prepared = table.copy()
+    if table_name in {"linkage_by_position_rows", "linkage_by_position_unique"}:
+        if "matched_rate" not in prepared.columns and "match_rate" in prepared.columns:
+            prepared["matched_rate"] = prepared["match_rate"]
+        if (
+            "matched_rate_wilson_low" not in prepared.columns
+            and "match_rate_wilson_low" in prepared.columns
+        ):
+            prepared["matched_rate_wilson_low"] = prepared["match_rate_wilson_low"]
+        if (
+            "matched_rate_wilson_high" not in prepared.columns
+            and "match_rate_wilson_high" in prepared.columns
+        ):
+            prepared["matched_rate_wilson_high"] = prepared["match_rate_wilson_high"]
+        prepared = _with_expected_columns(prepared, list(_VOTER_LINKAGE_POSITION_PREVIEW_COLUMNS))
+        prepared["match_mode"] = prepared["match_mode"].fillna("").astype(str).replace("", "loose")
+        default_unit = "rows" if table_name == "linkage_by_position_rows" else "unique_names"
+        prepared["unit"] = prepared["unit"].fillna("").astype(str).replace("", default_unit)
+        prepared["position_normalized"] = prepared["position_normalized"].fillna("").astype(str).replace(
+            "",
+            "Unknown",
+        )
+        sort_columns = [column for column in ("match_mode", "position_normalized") if column in prepared.columns]
+        if sort_columns:
+            prepared = prepared.sort_values(sort_columns)
+        return prepared
+
+    if table_name != "unmatched_names":
+        return table
+
     if "canonical_name" in prepared.columns:
         canonical_display_names = (
             prepared["canonical_name"].fillna("").astype(str).map(_canonical_name_to_display_name)
@@ -2983,17 +3048,33 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_exact_per_name_anomalies": {
-            "summary": "Per-name anomaly ranking with p/q values.",
+            "summary": "Per-name duplicate counts split into Pro/Con-only series.",
             "items": [
                 {
-                    "label": "Bar height",
-                    "description": "Repeat count for each canonical/display name in this hearing.",
+                    "label": "Series",
+                    "description": (
+                        "Bars are split by position (Pro vs Con) and include only names that are "
+                        "duplicate-active on a single position side."
+                    ),
                 },
                 {
-                    "label": "Significance",
-                    "description": "Lower q-values indicate stronger excess-versus-baseline evidence.",
+                    "label": "Mixed names excluded",
+                    "description": (
+                        "Names with both Pro and Con duplicate counts are excluded from this chart "
+                        "to preserve side-specific comparability."
+                    ),
                 },
-                {"label": "X-axis", "description": "Canonical/display names sorted by q then count."},
+                {
+                    "label": "Significance context",
+                    "description": (
+                        "Rows retain p/q columns in tooltips/tables; lower q-values indicate "
+                        "stronger excess-versus-baseline evidence."
+                    ),
+                },
+                {
+                    "label": "X-axis",
+                    "description": "Canonical/display names sorted by significance then side count.",
+                },
             ],
         },
         "duplicates_exact_top_name_timing_exact": {
@@ -4481,6 +4562,8 @@ def _build_interactive_chart_payload_v2(
             "n",
             "n_pro",
             "n_con",
+            "first_seen",
+            "last_seen",
             "time_span_minutes",
             "expected_count",
             "p_value",
@@ -4927,6 +5010,8 @@ def _build_interactive_chart_payload_v2(
             "n_rows",
             "n_pro",
             "n_con",
+            "first_seen",
+            "last_seen",
             "top_caveat",
             "best_similarity_score",
             "candidate_pool_size",
@@ -5153,6 +5238,8 @@ def _build_interactive_chart_payload_v2(
         (dup_exact_bucket, "bucket_start"),
         (sorted_bucket, "bucket_start"),
         (sorted_minute, "minute_bucket"),
+        (dup_exact_per_name, "first_seen"),
+        (dup_exact_per_name, "last_seen"),
         (rare_unique_ratio, "minute_bucket"),
         (rare_singletons, "first_seen"),
         (rare_rarity, "minute_bucket"),
@@ -5161,6 +5248,8 @@ def _build_interactive_chart_payload_v2(
         (org_bursts, "minute_bucket"),
         (voter_bucket, "bucket_start"),
         (voter_bucket_position, "bucket_start"),
+        (voter_unmatched, "first_seen"),
+        (voter_unmatched, "last_seen"),
         (multivariate_scores, "bucket_start"),
         (multivariate_top, "bucket_start"),
         (composite_ranked, "minute_bucket"),
@@ -6128,10 +6217,37 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=50,
     )
-    dup_exact_per_name_chart = dup_exact_per_name.sort_values(
-        ["scope", "match_mode", "q_value", "p_value", "n"],
-        ascending=[True, True, True, True, False],
-    )
+    dup_exact_per_name_chart = dup_exact_per_name.copy()
+    dup_exact_per_name_chart["n"] = pd.to_numeric(
+        dup_exact_per_name_chart.get("n", pd.Series(0, index=dup_exact_per_name_chart.index)),
+        errors="coerce",
+    ).fillna(0)
+    dup_exact_per_name_chart["n_pro"] = pd.to_numeric(
+        dup_exact_per_name_chart.get("n_pro", pd.Series(0, index=dup_exact_per_name_chart.index)),
+        errors="coerce",
+    ).fillna(0)
+    dup_exact_per_name_chart["n_con"] = pd.to_numeric(
+        dup_exact_per_name_chart.get("n_con", pd.Series(0, index=dup_exact_per_name_chart.index)),
+        errors="coerce",
+    ).fillna(0)
+
+    # Keep single-position duplicate-name rows for position-series rendering.
+    pro_only_mask = (dup_exact_per_name_chart["n_pro"] > 0) & (dup_exact_per_name_chart["n_con"] <= 0)
+    con_only_mask = (dup_exact_per_name_chart["n_con"] > 0) & (dup_exact_per_name_chart["n_pro"] <= 0)
+    dup_exact_per_name_chart = dup_exact_per_name_chart[pro_only_mask | con_only_mask].copy()
+    if not dup_exact_per_name_chart.empty:
+        dup_exact_per_name_chart["position_series"] = np.where(
+            dup_exact_per_name_chart["n_pro"] > 0, "Pro", "Con"
+        )
+        dup_exact_per_name_chart["position_count"] = np.where(
+            dup_exact_per_name_chart["n_pro"] > 0,
+            dup_exact_per_name_chart["n_pro"],
+            dup_exact_per_name_chart["n_con"],
+        )
+        dup_exact_per_name_chart = dup_exact_per_name_chart.sort_values(
+            ["scope", "match_mode", "q_value", "p_value", "position_count", "n"],
+            ascending=[True, True, True, True, False, False],
+        )
     if not dup_exact_per_name_chart.empty:
         group_fields = [
             field for field in ("scope", "match_mode") if field in dup_exact_per_name_chart.columns
@@ -6152,6 +6268,8 @@ def _build_interactive_chart_payload_v2(
             "n",
             "n_pro",
             "n_con",
+            "first_seen",
+            "last_seen",
             "time_span_minutes",
             "expected_count",
             "p_value",
@@ -6161,6 +6279,8 @@ def _build_interactive_chart_payload_v2(
             "within_15m_pairs",
             "temporal_p_value_within_5m",
             "temporal_p_value_min_gap",
+            "position_series",
+            "position_count",
         ],
         max_rows=100_000,
     )
@@ -6449,40 +6569,12 @@ def _build_interactive_chart_payload_v2(
     )
     charts["voter_registry_linkage_by_position_rows"] = _records_from_frame(
         voter_position_rows.sort_values(["match_mode", "position_normalized"]),
-        columns=[
-            "match_mode",
-            "position_normalized",
-            "n_total",
-            "n_matched_unique",
-            "n_matched_ambiguous",
-            "n_unmatched",
-            "matched_rate",
-            "unmatched_rate",
-            "match_rate_wilson_low",
-            "match_rate_wilson_high",
-            "unmatched_rate_wilson_low",
-            "unmatched_rate_wilson_high",
-            "is_low_power",
-        ],
+        columns=list(_VOTER_LINKAGE_POSITION_CHART_COLUMNS),
         max_rows=100,
     )
     charts["voter_registry_linkage_by_position_unique"] = _records_from_frame(
         voter_position_unique.sort_values(["match_mode", "position_normalized"]),
-        columns=[
-            "match_mode",
-            "position_normalized",
-            "n_total",
-            "n_matched_unique",
-            "n_matched_ambiguous",
-            "n_unmatched",
-            "matched_rate",
-            "unmatched_rate",
-            "match_rate_wilson_low",
-            "match_rate_wilson_high",
-            "unmatched_rate_wilson_low",
-            "unmatched_rate_wilson_high",
-            "is_low_power",
-        ],
+        columns=list(_VOTER_LINKAGE_POSITION_CHART_COLUMNS),
         max_rows=100,
     )
     voter_unmatched_top = voter_unmatched.sort_values(
@@ -6502,6 +6594,8 @@ def _build_interactive_chart_payload_v2(
             "n_records",
             "n_pro",
             "n_con",
+            "first_seen",
+            "last_seen",
             "top_caveat",
             "best_similarity_score",
             "candidate_pool_size",

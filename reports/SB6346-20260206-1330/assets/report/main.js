@@ -5912,6 +5912,141 @@
     return true;
   }
 
+  function renderDuplicateNamesByPosition(mount, rows) {
+    const theme = currentChartTheme();
+    const subset = rows
+      .map((row) => {
+        const displayName = String(row.display_name || row.canonical_name || "").trim();
+        const nPro = Math.max(0, Math.round(toNumber(row.n_pro)));
+        const nCon = Math.max(0, Math.round(toNumber(row.n_con)));
+        const total = Math.max(0, Math.round(toNumber(row.n)));
+        if (!displayName) {
+          return null;
+        }
+        if ((nPro > 0 && nCon > 0) || (nPro <= 0 && nCon <= 0)) {
+          return null;
+        }
+        return {
+          raw: row,
+          displayName: displayName,
+          nPro: nPro,
+          nCon: nCon,
+          total: total,
+          positionSeries: nPro > 0 ? "Pro" : "Con",
+          positionCount: nPro > 0 ? nPro : nCon,
+        };
+      })
+      .filter((row) => !!row);
+    if (!subset.length) {
+      return false;
+    }
+
+    subset.sort((left, right) => {
+      const positionDelta = toNumber(right.positionCount) - toNumber(left.positionCount);
+      if (positionDelta !== 0) {
+        return positionDelta;
+      }
+      const totalDelta = toNumber(right.total) - toNumber(left.total);
+      if (totalDelta !== 0) {
+        return totalDelta;
+      }
+      return String(left.displayName || "").localeCompare(String(right.displayName || ""));
+    });
+    const limited = subset.slice(0, 200);
+    const bucketLabel = bucketLabelFromValue(mount.activeBucket);
+    const xValues = limited.map((row) => row.displayName);
+
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          if (!entries.length) {
+            return "";
+          }
+          const rowIndex = Number.isFinite(entries[0].dataIndex) ? entries[0].dataIndex : 0;
+          const row = limited[rowIndex] || null;
+          const lines = [
+            "<strong>Name:</strong> " +
+              escapeHtml(String((row && row.displayName) || entries[0].axisValue || "")),
+          ];
+          if (bucketLabel) {
+            lines.push("<strong>Bucket:</strong> " + bucketLabel);
+          }
+          if (row) {
+            lines.push("<strong>Series side:</strong> " + escapeHtml(String(row.positionSeries)));
+            lines.push("<strong>Pro duplicates:</strong> " + Number(toNumber(row.nPro)).toLocaleString());
+            lines.push("<strong>Con duplicates:</strong> " + Number(toNumber(row.nCon)).toLocaleString());
+            if (row.total > 0) {
+              lines.push(
+                "<strong>Total duplicate sign-ins:</strong> " +
+                  Number(toNumber(row.total)).toLocaleString()
+              );
+            }
+          }
+          entries.forEach((entry) => {
+            lines.push(
+              (entry.marker || "") +
+                "<strong>" +
+                escapeHtml(String(entry.seriesName || "value")) +
+                ":</strong> " +
+                formatTooltipValue(entry.value)
+            );
+          });
+          return lines.join("<br/>");
+        },
+      },
+      legend: {
+        top: 4,
+        textStyle: { color: theme.axisText },
+      },
+      grid: { left: 64, right: 20, top: 58, bottom: 94 },
+      xAxis: {
+        type: "category",
+        name: "Name",
+        data: xValues,
+        axisLabel: { interval: 0, rotate: 34, color: theme.axisText },
+      },
+      yAxis: {
+        type: "value",
+        name: "Duplicate sign-ins",
+        axisLabel: { color: theme.axisText },
+      },
+      series: [
+        {
+          name: "Pro",
+          type: "bar",
+          barMaxWidth: 22,
+          data: limited.map((row) => ({
+            value: row.nPro,
+            itemStyle: {
+              color: theme.contextLine,
+              opacity: row.nPro > 0 ? 0.9 : 0.0,
+            },
+          })),
+        },
+        {
+          name: "Con",
+          type: "bar",
+          barMaxWidth: 22,
+          data: limited.map((row) => ({
+            value: row.nCon,
+            itemStyle: {
+              color: theme.alertLower,
+              opacity: row.nCon > 0 ? 0.9 : 0.0,
+            },
+          })),
+        },
+      ],
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
   function renderDuplicatePositionConcentration(mount, rows) {
     const theme = currentChartTheme();
     const subset = rows
@@ -6170,7 +6305,7 @@
     const modeMeta = {
       strict: {
         label: "Strict (last + first)",
-        fallbackDefinition: "Exact match on last-name and first-name tokens (nickname-sensitive).",
+        fallbackDefinition: "Exact match on last-name and first-name tokens.",
       },
       loose: {
         label: "Loose (last + nickname-root first)",
@@ -6899,11 +7034,12 @@
     if (mount.chartId === "changepoints_hour_hist") {
       return renderSimpleBar(mount, rows, "change_hour", "n_changes", "changes");
     }
-    if (mount.chartId === "duplicates_exact_top_names") {
-      return renderSimpleBar(mount, rows, "display_name", "n", "count");
-    }
-    if (mount.chartId === "duplicates_exact_per_name_anomalies") {
-      return renderSimpleBar(mount, rows, "display_name", "n", "repeat count");
+    if (
+      mount.chartId === "duplicates_exact_top_names" ||
+      mount.chartId === "duplicates_exact_per_name_anomalies" ||
+      mount.chartId === "duplicates_exact_position_switch"
+    ) {
+      return renderDuplicateNamesByPosition(mount, rows);
     }
     if (mount.chartId === "duplicates_exact_top_name_timing_exact") {
       return renderDuplicateTopNameTiming(
@@ -6914,9 +7050,6 @@
     }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
       return renderSimpleBar(mount, rows, "metric", "observed", "observed");
-    }
-    if (mount.chartId === "duplicates_exact_position_switch") {
-      return renderSimpleBar(mount, rows, "display_name", "n", "count");
     }
     if (mount.chartId === "duplicates_exact_position_concentration") {
       return renderDuplicatePositionConcentration(mount, rows);
@@ -7104,6 +7237,22 @@
       .join(" ");
   }
 
+  function humanizeTableSectionHeader(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return "";
+    }
+
+    const bucketSuffixMatch = raw.match(/^(.*?)(\s*\([^()]*\))$/);
+    if (bucketSuffixMatch && String(bucketSuffixMatch[1] || "").trim()) {
+      const base = humanizeTableColumnHeader(String(bucketSuffixMatch[1] || "").trim());
+      const suffix = String(bucketSuffixMatch[2] || "").trim();
+      return suffix ? base + " " + suffix : base;
+    }
+
+    return humanizeTableColumnHeader(raw);
+  }
+
   function fallbackColumnDescription(field) {
     const normalized = String(field || "").trim();
     const label = humanizeFieldName(normalized);
@@ -7216,7 +7365,11 @@
       context.push("time keys");
     }
     const contextText = context.length ? context.join(", ") : "detector-specific fields";
-    const tableLabel = humanizeFieldName((tableKey || "table").replace(/\./g, " "));
+    const tableLabel = humanizeTableSectionHeader(tableKey || "table");
+    const highlightedColumns = columns
+      .slice(0, 6)
+      .map((name) => humanizeTableColumnHeader(name))
+      .join(", ");
 
     return {
       what_is_this:
@@ -7237,7 +7390,7 @@
         "Sustained high/low runs across many rows suggest process-level behavior and deserve higher confidence. Extended highs can indicate durable mobilization or process skew; extended lows can indicate reduced activity or missing data segments.",
       column_highlight:
         "Primary columns in preview: " +
-        (columns.slice(0, 6).join(", ") || "none") +
+        (highlightedColumns || "none") +
         ". Use the glossary below for per-column definitions before drawing conclusions.",
     };
   }
@@ -8323,7 +8476,7 @@
     details.open = true;
 
     const summary = document.createElement("summary");
-    summary.textContent = "per_name_duplicates";
+    summary.textContent = humanizeTableSectionHeader("per_name_duplicates");
     decorateTableSummaryAnchor(summary, analysisId || "duplicates_exact", "per_name_duplicates");
     details.appendChild(summary);
 
@@ -8863,7 +9016,7 @@
       evidenceDetails.className = "table-group";
       evidenceDetails.open = true;
       const evidenceSummary = document.createElement("summary");
-      evidenceSummary.textContent = "evidence_bundle_preview";
+      evidenceSummary.textContent = humanizeTableSectionHeader("evidence_bundle_preview");
       decorateTableSummaryAnchor(evidenceSummary, analysis.id, "evidence_bundle_preview");
       evidenceDetails.appendChild(evidenceSummary);
       const evidenceWrap = document.createElement("div");
@@ -8906,7 +9059,7 @@
         details.className = "table-group";
         details.open = index === 0;
         const summary = document.createElement("summary");
-        summary.textContent = entry[0];
+        summary.textContent = humanizeTableSectionHeader(entry[0]);
         decorateTableSummaryAnchor(summary, analysis.id, entry[0]);
         details.appendChild(summary);
         const wrap = document.createElement("div");
@@ -8932,7 +9085,7 @@
         details.className = "table-group";
         details.open = true;
         const summary = document.createElement("summary");
-        summary.textContent = "clockface_top_preview";
+        summary.textContent = humanizeTableSectionHeader("clockface_top_preview");
         decorateTableSummaryAnchor(summary, analysis.id, "clockface_top_preview");
         details.appendChild(summary);
         const wrap = document.createElement("div");
@@ -8955,13 +9108,14 @@
       const sourceRows = detectorTables[tableName] || [];
       let rows = sourceRows;
       let tableBucketNote = "";
-      let tableTitle = tableName;
+      let tableTitle = humanizeTableSectionHeader(tableName);
       if (analysis.id === "duplicates_exact") {
         const bucketFiltered = filterRowsByDuplicateTableBucket(tableName, sourceRows);
         rows = bucketFiltered.rows;
         tableBucketNote = bucketFiltered.note;
         if (bucketFiltered.applied && Number.isFinite(state.activeBucket)) {
-          tableTitle = tableName + " (" + Math.round(state.activeBucket) + "m)";
+          tableTitle =
+            humanizeTableSectionHeader(tableName) + " (" + Math.round(state.activeBucket) + "m)";
         }
         const modeScopedRows = rows.filter((row) => {
           if (!Object.prototype.hasOwnProperty.call(row || {}, "match_mode")) {

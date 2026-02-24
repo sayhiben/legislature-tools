@@ -234,6 +234,11 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert "Pro match rate" in voter_legend_labels
     assert "Con match rate" in voter_legend_labels
     assert payload["charts"]["voter_registry_sensitivity_modes"]
+    linkage_rows_chart = payload["charts"]["voter_registry_linkage_by_position_rows"]
+    linkage_unique_chart = payload["charts"]["voter_registry_linkage_by_position_unique"]
+    assert linkage_rows_chart
+    assert linkage_unique_chart
+    assert list(linkage_rows_chart[0].keys()) == list(linkage_unique_chart[0].keys())
 
     controls = payload["controls"]
     assert "global_bucket_options" in controls
@@ -897,16 +902,21 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
             "display_name": f"NAME {index:02d}",
             "canonical_name": f"NAME|{index:02d}",
             "observed_count": 40 - index,
-            "n_pro": 20 - min(index, 19),
-            "n_con": 20,
+            "n_pro": (20 - min(index, 19)) if index % 2 == 0 and index % 6 != 0 else 0,
+            "n_con": 20 if index % 2 == 1 and index % 6 != 0 else 0,
+            "first_seen": pd.Timestamp("2026-02-01T00:00:00Z") + pd.Timedelta(minutes=index),
+            "last_seen": pd.Timestamp("2026-02-01T00:09:00Z") + pd.Timedelta(minutes=index),
             "time_span_minutes": 60.0 + index,
             "expected_count": 1.0 + index * 0.1,
             "p_value": 0.001 + index * 0.001,
             "q_value": 0.002 + index * 0.002,
             "is_significant": True,
         }
-        for index in range(15)
+        for index in range(18)
     ]
+    for mixed_index in (0, 6, 12):
+        per_name_rows[mixed_index]["n_pro"] = 10
+        per_name_rows[mixed_index]["n_con"] = 10
     payload = _build_interactive_chart_payload_v2(
         table_map={
             "artifacts.counts_per_minute": pd.DataFrame(
@@ -997,6 +1007,9 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
 
     per_name_chart = payload["charts"]["duplicates_exact_per_name_anomalies"]
     assert len(per_name_chart) == 15
+    assert all((row["n_pro"] > 0) ^ (row["n_con"] > 0) for row in per_name_chart)
+    assert all(str(row.get("first_seen", "")).strip() for row in per_name_chart)
+    assert all(str(row.get("last_seen", "")).strip() for row in per_name_chart)
 
     by_id = {entry["id"]: entry for entry in payload["analysis_catalog"]}
     duplicates_exact_entry = by_id.get("duplicates_exact")
@@ -1017,9 +1030,12 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_10() -> None:
         [
             {
                 "canonical_name": f"NAME|{index:02d}",
+                "match_mode": "loose",
                 "n_rows": 30 - index,
                 "n_pro": 10,
                 "n_con": 20,
+                "first_seen": pd.Timestamp("2026-02-01T00:00:00Z") + pd.Timedelta(minutes=index),
+                "last_seen": pd.Timestamp("2026-02-01T00:05:00Z") + pd.Timedelta(minutes=index),
                 "top_caveat": "no_match",
                 "best_similarity_score": 0.5,
                 "candidate_pool_size": 3,
@@ -1074,6 +1090,8 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_10() -> None:
         reverse=True,
     )
     assert all(str(row.get("display_name", "")).strip() for row in chart_rows)
+    assert all(str(row.get("first_seen", "")).strip() for row in chart_rows)
+    assert all(str(row.get("last_seen", "")).strip() for row in chart_rows)
     assert chart_rows[0]["display_name"] == "NAME, 00"
 
 
@@ -1362,8 +1380,10 @@ def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> N
                         "canonical_name": "HARSHAW|NORMAN",
                         "name_key": "HARSHAW|NORMAN",
                         "observed_count": 12,
-                        "n_pro": 5,
-                        "n_con": 7,
+                        "n_pro": 12,
+                        "n_con": 0,
+                        "first_seen": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "last_seen": pd.Timestamp("2026-02-01T00:30:00Z"),
                         "time_span_minutes": 30.0,
                     },
                     {
@@ -1373,8 +1393,10 @@ def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> N
                         "canonical_name": "HARSHAW|NORM",
                         "name_key": "HARSHAW|NORM",
                         "observed_count": 18,
-                        "n_pro": 8,
-                        "n_con": 10,
+                        "n_pro": 0,
+                        "n_con": 18,
+                        "first_seen": pd.Timestamp("2026-02-01T00:40:00Z"),
+                        "last_seen": pd.Timestamp("2026-02-01T01:20:00Z"),
                         "time_span_minutes": 40.0,
                     },
                 ]
@@ -1387,8 +1409,10 @@ def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> N
                         "display_name": "HARSHAW, NORMAN",
                         "canonical_name": "HARSHAW|NORMAN",
                         "n": 12,
-                        "n_pro": 5,
-                        "n_con": 7,
+                        "n_pro": 12,
+                        "n_con": 0,
+                        "first_seen": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "last_seen": pd.Timestamp("2026-02-01T00:30:00Z"),
                         "time_span_minutes": 30.0,
                         "expected_count": 2.0,
                         "p_value": 0.001,
@@ -1406,6 +1430,12 @@ def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> N
     by_mode = {row["match_mode"]: row for row in chart_rows}
     assert by_mode["strict"]["n"] == 12
     assert by_mode["loose"]["n"] == 18
+    assert by_mode["strict"]["position_series"] == "Pro"
+    assert by_mode["loose"]["position_series"] == "Con"
+    assert str(by_mode["strict"]["first_seen"]).strip()
+    assert str(by_mode["strict"]["last_seen"]).strip()
+    assert str(by_mode["loose"]["first_seen"]).strip()
+    assert str(by_mode["loose"]["last_seen"]).strip()
 
 
 def test_payload_values_are_json_safe_scalars() -> None:

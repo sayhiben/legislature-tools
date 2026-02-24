@@ -246,6 +246,80 @@ def test_table_previews_from_results_filter_duplicate_name_tests_and_keep_full_r
     assert len(previews["duplicates_exact"]["repeated_same_bucket"]) == 4
 
 
+def test_table_previews_align_voter_linkage_position_columns_and_order() -> None:
+    results = {
+        "voter_registry_match": DetectorResult(
+            detector="voter_registry_match",
+            summary={},
+            tables={
+                "linkage_by_position_rows": pd.DataFrame(
+                    [
+                        {
+                            "position_normalized": "Pro",
+                            "n_total": 20,
+                            "n_matched_unique": 15,
+                            "n_matched_ambiguous": 2,
+                            "n_unmatched": 3,
+                            "matched_rate": 0.85,
+                            "unmatched_rate": 0.15,
+                            "matched_rate_wilson_low": 0.65,
+                            "matched_rate_wilson_high": 0.95,
+                            "unmatched_rate_wilson_low": 0.05,
+                            "unmatched_rate_wilson_high": 0.35,
+                            "is_low_power": False,
+                        }
+                    ]
+                ),
+                "linkage_by_position_unique": pd.DataFrame(
+                    [
+                        {
+                            "position_normalized": "Con",
+                            "n_total": 18,
+                            "n_matched_unique": 12,
+                            "n_matched_ambiguous": 1,
+                            "n_unmatched": 5,
+                            "match_rate": 13 / 18,
+                            "unmatched_rate": 5 / 18,
+                            "match_rate_wilson_low": 0.49,
+                            "match_rate_wilson_high": 0.88,
+                            "unmatched_rate_wilson_low": 0.12,
+                            "unmatched_rate_wilson_high": 0.51,
+                            "is_low_power": False,
+                        }
+                    ]
+                ),
+            },
+        )
+    }
+
+    previews = _table_previews_from_results(results, max_rows=5)
+    rows_preview = previews["voter_registry_match"]["linkage_by_position_rows"]
+    unique_preview = previews["voter_registry_match"]["linkage_by_position_unique"]
+
+    expected_columns = [
+        "match_mode",
+        "unit",
+        "position_normalized",
+        "n_total",
+        "n_matched_unique",
+        "n_matched_ambiguous",
+        "n_unmatched",
+        "matched_rate",
+        "unmatched_rate",
+        "matched_rate_wilson_low",
+        "matched_rate_wilson_high",
+        "unmatched_rate_wilson_low",
+        "unmatched_rate_wilson_high",
+        "is_low_power",
+    ]
+    assert list(rows_preview[0].keys()) == expected_columns
+    assert list(unique_preview[0].keys()) == expected_columns
+    assert rows_preview[0]["unit"] == "rows"
+    assert unique_preview[0]["unit"] == "unique_names"
+    assert rows_preview[0]["match_mode"] == "loose"
+    assert unique_preview[0]["match_mode"] == "loose"
+
+
 def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     (out_dir / "summary").mkdir(parents=True)
@@ -597,7 +671,12 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "renderKpiMiniPie(" in js_text
     assert "renderKpiMiniBars(" in js_text
     assert "function humanizeTableColumnHeader(field)" in js_text
+    assert "function humanizeTableSectionHeader(value)" in js_text
     assert "title: humanizeTableColumnHeader(field)," in js_text
+    assert "summary.textContent = humanizeTableSectionHeader(entry[0]);" in js_text
+    assert 'summary.textContent = "per_name_duplicates";' not in js_text
+    assert 'summary.textContent = "clockface_top_preview";' not in js_text
+    assert 'evidenceSummary.textContent = "evidence_bundle_preview";' not in js_text
     assert "function renderOffHoursPrimaryFlagChannels(mount, rows)" in js_text
     assert "shortOffHoursPrimaryFlagChannelLabel(row)" in js_text
     assert 'tablePreviewRows("duplicates_exact", "per_name_display")' in js_text

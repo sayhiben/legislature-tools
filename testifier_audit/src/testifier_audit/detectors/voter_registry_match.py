@@ -713,6 +713,8 @@ class VoterRegistryMatchDetector(Detector):
                         "n_rows",
                         "n_pro",
                         "n_con",
+                        "first_seen",
+                        "last_seen",
                         "top_caveat",
                         "best_similarity_score",
                         "candidate_pool_size",
@@ -742,6 +744,8 @@ class VoterRegistryMatchDetector(Detector):
                     n_rows=("canonical_name", "count"),
                     n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
                     n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                    first_seen=("minute_bucket", "min"),
+                    last_seen=("minute_bucket", "max"),
                     top_caveat=(
                         "match_caveat",
                         lambda series: str(series.mode().iloc[0]) if not series.mode().empty else "",

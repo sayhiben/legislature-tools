@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T12:19:55.568360-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-24T14:08:08.366589-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -420,7 +420,7 @@
       <p><strong>What is this?</strong> Duplicate Names focuses on exact repeated-name concentration. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
       <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
       <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
-      <p><strong>What do I look for?</strong> Excess duplicate burden with low p/q values, and position concentration differences that persist across neighboring windows. Short bursts of repeated names in tiny windows may occur during legitimate group actions; concern rises when concentration repeats across multiple larger buckets. Names that appear repeatedly while switching pro/con positions are higher-priority review targets because they indicate inconsistent stance representation under one canonical identity. Persistent duplicate concentration during otherwise stable baseline periods can imply scripted submissions or queue replay effects rather than organic participation. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What do I look for?</strong> Excess duplicate burden with low p/q values, one-sided repeated-name series (Pro-only or Con-only), and position concentration differences that persist across neighboring windows. Short bursts of repeated names in tiny windows may occur during legitimate group actions; concern rises when concentration repeats across multiple larger buckets. Names that appear repeatedly while switching pro/con positions are higher-priority review targets because they indicate inconsistent stance representation under one canonical identity. Persistent duplicate concentration during otherwise stable baseline periods can imply scripted submissions or queue replay effects rather than organic participation. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
       <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate household/shared-name collisions or small coordinated batches. Momentary lows can indicate normal diversity of distinct names in organic intake. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
       <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate repeat-name patterns likely to influence authenticity and weighting assumptions. Extended lows can indicate healthy name diversity with limited exact repetition pressure. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
       <ul>
@@ -460,7 +460,7 @@
 
             </article>
             <article class="detail-card">
-              <h3 class="detail-title">Duplicates Exact Per Name Anomalies</h3>
+              <h3 class="detail-title">Duplicate Names by Position</h3>
               <p class="tiny-note"><code>duplicates_exact_per_name_anomalies</code></p>
               <div class="chart-host chart-host-detail" data-chart-id="duplicates_exact_per_name_anomalies" data-chart-role="detail"></div>
 <p class="empty-message hidden" data-chart-empty-for="duplicates_exact_per_name_anomalies">No chartable records for this run.</p>
@@ -468,17 +468,18 @@
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Per-name anomaly ranking with p/q values. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>What is this?</strong> Per-name duplicate counts split into Pro/Con-only series. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
       <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
       <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, Significance, X-axis.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Series, Mixed names excluded, Significance context, X-axis.</p>
       <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
       <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Per-name anomaly ranking with p/q values.</p>
+      <p><strong>Legend guide:</strong> Per-name duplicate counts split into Pro/Con-only series.</p>
         <ul>
-            <li><strong>Bar height:</strong> Repeat count for each canonical/display name in this hearing.</li>
-            <li><strong>Significance:</strong> Lower q-values indicate stronger excess-versus-baseline evidence.</li>
-            <li><strong>X-axis:</strong> Canonical/display names sorted by q then count.</li>
+            <li><strong>Series:</strong> Bars are split by position (Pro vs Con) and include only names that are duplicate-active on a single position side.</li>
+            <li><strong>Mixed names excluded:</strong> Names with both Pro and Con duplicate counts are excluded from this chart to preserve side-specific comparability.</li>
+            <li><strong>Significance context:</strong> Rows retain p/q columns in tooltips/tables; lower q-values indicate stronger excess-versus-baseline evidence.</li>
+            <li><strong>X-axis:</strong> Canonical/display names sorted by significance then side count.</li>
         </ul>
   </div>
 </details>
@@ -965,6 +966,6 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/theme/roma.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
-    <script type="module" src="assets/report/main.js?v=42b737959f67"></script>
+    <script type="module" src="assets/report/main.js?v=722268633d8b"></script>
   </body>
 </html>

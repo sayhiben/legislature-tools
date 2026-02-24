@@ -260,6 +260,7 @@
   const DUPLICATE_TOP_NAME_TIMING_MAX_PAGES = 10;
   const DUPLICATE_TOP_NAME_TIMING_MAX_NAMES =
     DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE * DUPLICATE_TOP_NAME_TIMING_MAX_PAGES;
+  const DUPLICATE_PER_NAME_TABLE_MAX_NAMES = 100;
   const DUPLICATE_INLINE_TIMING_CHART_HEIGHT_PX = 136;
   const zonedDateTimeEpochCache = new Map();
   const semanticTokenCache = new Map();
@@ -7779,7 +7780,7 @@
         normalizeReportMatchMode(row.matchMode, state.defaultDuplicateMatchMode || "strict") ===
         normalizeReportMatchMode(state.activeDuplicateMatchMode, state.defaultDuplicateMatchMode || "strict")
     );
-    const activeRows = modeRows;
+    const activeRows = modeRows.slice();
     activeRows.sort((left, right) => {
       const signInDelta = toNumber(right.signIns) - toNumber(left.signIns);
       if (signInDelta !== 0) {
@@ -7787,8 +7788,9 @@
       }
       return String(left.displayName || "").localeCompare(String(right.displayName || ""));
     });
+    const limitedRows = activeRows.slice(0, DUPLICATE_PER_NAME_TABLE_MAX_NAMES);
 
-    return activeRows.map((row) => ({
+    return limitedRows.map((row) => ({
       __row_id: row.mapKey,
       __lookup_key: row.lookupKey,
       __display_lookup_key: row.displayLookupKey,
@@ -7814,58 +7816,153 @@
       lookup.set(key, list);
     };
 
-    const topTimingRaw = Array.isArray(detectorTables.top_name_timing_by_mode)
-      ? detectorTables.top_name_timing_by_mode
+    const activeScope = String(state.activeDuplicateScope || "");
+    const activeMode = normalizeReportMatchMode(
+      state.activeDuplicateMatchMode,
+      state.defaultDuplicateMatchMode || "strict"
+    );
+    const activeBucketMinutes = Number.isFinite(state.activeBucket)
+      ? Math.max(1, Math.round(toNumber(state.activeBucket)))
+      : null;
+    const minuteTimingRowsRaw = Array.isArray(detectorTables.per_name_submission_timing_by_mode)
+      ? detectorTables.per_name_submission_timing_by_mode
       : [];
-    const topTimingSelection = filterRowsByDuplicateTableBucket("top_name_timing_by_mode", topTimingRaw);
-    const topTimingRows = topTimingSelection.rows.filter((row) => {
-      const scope = String((row || {}).scope || "").trim();
-      if (scope && scope !== String(state.activeDuplicateScope || "")) {
-        return false;
-      }
-      const matchMode = normalizeReportMatchMode(
-        (row || {}).match_mode,
-        state.defaultDuplicateMatchMode || "strict"
-      );
-      const activeMode = normalizeReportMatchMode(
-        state.activeDuplicateMatchMode,
-        state.defaultDuplicateMatchMode || "strict"
-      );
-      const rowKind = String((row || {}).row_kind || "").trim().toLowerCase();
-      if (rowKind === "name_rank") {
-        return false;
-      }
-      return !matchMode || matchMode === activeMode;
-    });
-    topTimingRows.forEach((row) => {
-      const lookupKey = normalizeDuplicateNameLookupKey((row || {}).name_key || (row || {}).canonical_name);
-      if (!lookupKey) {
-        return;
-      }
-      const timestamp = toEpochMillis((row || {}).bucket_start);
-      const nTotal = toFiniteNumberOrNull((row || {}).duplicate_rows);
-      if (timestamp === null || nTotal === null || nTotal <= 0) {
-        return;
-      }
-      const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
-      const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
-      const reportedOther = toFiniteNumberOrNull((row || {}).n_other);
-      const nOther =
-        reportedOther === null
-          ? Math.max(0, Math.round(nTotal) - nPro - nCon)
-          : Math.max(0, Math.round(reportedOther));
-      addEntry(lookupKey, {
-        timestamp: timestamp,
-        nTotal: Math.max(1, Math.round(nTotal)),
-        nPro: nPro,
-        nCon: nCon,
-        nOther: nOther,
-        bucketMinutes: toFiniteNumberOrNull((row || {}).bucket_minutes),
+    if (minuteTimingRowsRaw.length && activeBucketMinutes !== null) {
+      const bucketMillis = activeBucketMinutes * 60 * 1000;
+      const groupedByLookupKey = new Map();
+      minuteTimingRowsRaw.forEach((row) => {
+        const rowScope = String((row || {}).scope || "").trim();
+        if (rowScope && rowScope !== activeScope) {
+          return;
+        }
+        const rowMatchMode = normalizeReportMatchMode(
+          (row || {}).match_mode,
+          state.defaultDuplicateMatchMode || "strict"
+        );
+        if (rowMatchMode !== activeMode) {
+          return;
+        }
+        const lookupKey = normalizeDuplicateNameLookupKey(
+          (row || {}).name_key || (row || {}).canonical_name
+        );
+        if (!lookupKey) {
+          return;
+        }
+        const timestamp = toEpochMillis(
+          (row || {}).bucket_start || (row || {}).minute_bucket || (row || {}).timestamp
+        );
+        if (timestamp === null) {
+          return;
+        }
+        const bucketStart = Math.floor(timestamp / bucketMillis) * bucketMillis;
+        const bucketKey = String(bucketStart);
+        const byBucket = groupedByLookupKey.get(lookupKey) || new Map();
+        const existing = byBucket.get(bucketKey) || {
+          timestamp: bucketStart,
+          nTotal: 0,
+          nPro: 0,
+          nCon: 0,
+          nOther: 0,
+          bucketMinutes: activeBucketMinutes,
+        };
+        const rawTotal = toFiniteNumberOrNull((row || {}).n_total);
+        const rowTotal = Math.max(1, Math.round(toNumber(rawTotal !== null ? rawTotal : 1)));
+        let rowPro = toFiniteNumberOrNull((row || {}).n_pro);
+        let rowCon = toFiniteNumberOrNull((row || {}).n_con);
+        let rowOther = toFiniteNumberOrNull((row || {}).n_other);
+        if (rowPro === null && rowCon === null && rowOther === null) {
+          const position = String((row || {}).position_normalized || (row || {}).position || "").trim();
+          if (position === "Pro") {
+            rowPro = rowTotal;
+            rowCon = 0;
+            rowOther = 0;
+          } else if (position === "Con") {
+            rowPro = 0;
+            rowCon = rowTotal;
+            rowOther = 0;
+          } else {
+            rowPro = 0;
+            rowCon = 0;
+            rowOther = rowTotal;
+          }
+        }
+        existing.nTotal += rowTotal;
+        existing.nPro += Math.max(0, Math.round(toNumber(rowPro)));
+        existing.nCon += Math.max(0, Math.round(toNumber(rowCon)));
+        existing.nOther += Math.max(0, Math.round(toNumber(rowOther)));
+        byBucket.set(bucketKey, existing);
+        groupedByLookupKey.set(lookupKey, byBucket);
       });
-    });
 
+      groupedByLookupKey.forEach((byBucket, lookupKey) => {
+        byBucket.forEach((entry) => {
+          const nPro = Math.max(0, Math.round(toNumber(entry.nPro)));
+          const nCon = Math.max(0, Math.round(toNumber(entry.nCon)));
+          const minOther = Math.max(0, Math.round(toNumber(entry.nTotal)) - nPro - nCon);
+          const nOther = Math.max(minOther, Math.round(toNumber(entry.nOther)));
+          addEntry(lookupKey, {
+            timestamp: toNumber(entry.timestamp),
+            nTotal: Math.max(1, Math.round(toNumber(entry.nTotal))),
+            nPro: nPro,
+            nCon: nCon,
+            nOther: nOther,
+            bucketMinutes: activeBucketMinutes,
+          });
+        });
+      });
+    }
+
+    let topTimingBucketNote = "";
     let repeatedBucketNote = "";
-    if (!topTimingRows.length) {
+    if (!lookup.size) {
+      const topTimingRaw = Array.isArray(detectorTables.top_name_timing_by_mode)
+        ? detectorTables.top_name_timing_by_mode
+        : [];
+      const topTimingSelection = filterRowsByDuplicateTableBucket("top_name_timing_by_mode", topTimingRaw);
+      topTimingBucketNote = topTimingSelection.note || "";
+      const topTimingRows = topTimingSelection.rows.filter((row) => {
+        const scope = String((row || {}).scope || "").trim();
+        if (scope && scope !== activeScope) {
+          return false;
+        }
+        const matchMode = normalizeReportMatchMode(
+          (row || {}).match_mode,
+          state.defaultDuplicateMatchMode || "strict"
+        );
+        const rowKind = String((row || {}).row_kind || "").trim().toLowerCase();
+        if (rowKind === "name_rank") {
+          return false;
+        }
+        return !matchMode || matchMode === activeMode;
+      });
+      topTimingRows.forEach((row) => {
+        const lookupKey = normalizeDuplicateNameLookupKey((row || {}).name_key || (row || {}).canonical_name);
+        if (!lookupKey) {
+          return;
+        }
+        const timestamp = toEpochMillis((row || {}).bucket_start);
+        const nTotal = toFiniteNumberOrNull((row || {}).duplicate_rows);
+        if (timestamp === null || nTotal === null || nTotal <= 0) {
+          return;
+        }
+        const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
+        const nCon = Math.max(0, Math.round(toNumber((row || {}).n_con)));
+        const reportedOther = toFiniteNumberOrNull((row || {}).n_other);
+        const nOther =
+          reportedOther === null
+            ? Math.max(0, Math.round(nTotal) - nPro - nCon)
+            : Math.max(0, Math.round(reportedOther));
+        addEntry(lookupKey, {
+          timestamp: timestamp,
+          nTotal: Math.max(1, Math.round(nTotal)),
+          nPro: nPro,
+          nCon: nCon,
+          nOther: nOther,
+          bucketMinutes: toFiniteNumberOrNull((row || {}).bucket_minutes),
+        });
+      });
+
+      const keysWithTopTiming = new Set(lookup.keys());
       const repeatedRowsRaw = Array.isArray(detectorTables.repeated_same_bucket)
         ? detectorTables.repeated_same_bucket
         : [];
@@ -7876,9 +7973,25 @@
       repeatedBucketNote = repeatedRowsSelection.note || "";
       repeatedRowsSelection.rows.forEach((row) => {
         const lookupKey = normalizeDuplicateNameLookupKey((row || {}).canonical_name);
+        if (!lookupKey || keysWithTopTiming.has(lookupKey)) {
+          return;
+        }
+        const rowScope = String((row || {}).scope || "").trim();
+        if (rowScope && rowScope !== activeScope) {
+          return;
+        }
+        if (Object.prototype.hasOwnProperty.call(row || {}, "match_mode")) {
+          const rowMatchMode = normalizeReportMatchMode(
+            (row || {}).match_mode,
+            state.defaultDuplicateMatchMode || "strict"
+          );
+          if (rowMatchMode !== activeMode) {
+            return;
+          }
+        }
         const timestamp = toEpochMillis((row || {}).bucket_start);
         const nTotal = toFiniteNumberOrNull((row || {}).n);
-        if (!lookupKey || timestamp === null || nTotal === null || nTotal <= 0) {
+        if (timestamp === null || nTotal === null || nTotal <= 0) {
           return;
         }
         const nPro = Math.max(0, Math.round(toNumber((row || {}).n_pro)));
@@ -7922,7 +8035,7 @@
 
     return {
       rowsByLookupKey: lookup,
-      bucketNote: topTimingSelection.note || repeatedBucketNote || "",
+      bucketNote: topTimingBucketNote || repeatedBucketNote || "",
     };
   }
 
@@ -8309,8 +8422,15 @@
         scaffold.chartHost.classList.add("hidden");
         disposeDuplicateInlineTimingChart(scaffold.chartHost);
       } else {
+        const timelineTotalSignIns = timelineRows.reduce(
+          (sum, entry) => sum + Math.max(0, Math.round(toNumber((entry || {}).nTotal))),
+          0
+        );
+        const coversAllSignIns = nSignIns > 0 && timelineTotalSignIns >= nSignIns;
         scaffold.note.textContent =
-          "Timing row shows bucket-level sign-ins for this duplicate name (including single-submission buckets)" +
+          (coversAllSignIns
+            ? "Timing row shows bucket-level sign-ins for this duplicate name (including single-submission buckets)"
+            : "Timing row shows clustered/repeated bucket sign-ins for this duplicate name") +
           (bucketLabel ? " at " + bucketLabel : "") +
           " (" +
           reportTimezoneLabel +
@@ -8719,6 +8839,7 @@
         "per_name_display",
         "per_name_tests",
         "per_name_duplicates_by_mode",
+        "per_name_submission_timing_by_mode",
       ]);
       tableNames = tableNames.filter((name) => !mergedDuplicateNameSourceTables.has(name));
     }

@@ -60,7 +60,7 @@ _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
         ),
     },
 )
-_TOP_NAME_TIMING_TOP_N = 50
+_TOP_NAME_TIMING_TOP_N = 100
 
 
 def _safe_str_series(series: pd.Series) -> pd.Series:
@@ -864,6 +864,7 @@ class DuplicatesExactDetector(Detector):
         per_name_tests_frames: list[pd.DataFrame] = []
         per_name_display_frames: list[pd.DataFrame] = []
         per_name_duplicates_by_mode_frames: list[pd.DataFrame] = []
+        per_name_submission_timing_by_mode_frames: list[pd.DataFrame] = []
         temporal_frames: list[pd.DataFrame] = []
         top_name_timing_frames: list[pd.DataFrame] = []
         stratified_sensitivity_frames: list[pd.DataFrame] = []
@@ -995,6 +996,41 @@ class DuplicatesExactDetector(Detector):
                         ]
                     ].copy()
                 )
+                duplicate_name_keys = set(mode_totals_all["name_key"].astype(str).tolist())
+                if duplicate_name_keys:
+                    mode_duplicate_rows = mode_frame[mode_frame["name_key"].isin(duplicate_name_keys)].copy()
+                    if not mode_duplicate_rows.empty:
+                        mode_duplicate_rows["scope"] = scope
+                        mode_duplicate_rows["match_mode"] = str(mode_spec.get("match_mode", ""))
+                        mode_duplicate_rows["match_label"] = str(mode_spec.get("match_label", ""))
+                        mode_duplicate_rows["match_definition"] = str(mode_spec.get("match_definition", ""))
+                        mode_duplicate_rows["canonical_name"] = mode_duplicate_rows["name_key"].astype(str)
+                        mode_duplicate_rows = mode_duplicate_rows.rename(
+                            columns={
+                                "display_name_mode": "display_name",
+                                "minute_bucket": "bucket_start",
+                            }
+                        )
+                        mode_duplicate_rows["bucket_start"] = pd.to_datetime(
+                            mode_duplicate_rows["bucket_start"], errors="coerce"
+                        )
+                        mode_duplicate_rows = mode_duplicate_rows.dropna(subset=["bucket_start"])
+                        if not mode_duplicate_rows.empty:
+                            per_name_submission_timing_by_mode_frames.append(
+                                mode_duplicate_rows[
+                                    [
+                                        "scope",
+                                        "match_mode",
+                                        "match_label",
+                                        "match_definition",
+                                        "canonical_name",
+                                        "name_key",
+                                        "display_name",
+                                        "bucket_start",
+                                        "position_normalized",
+                                    ]
+                                ].copy()
+                            )
 
                 mode_totals = mode_totals_all.sort_values(
                     ["total_repeated_rows", "display_name", "name_key"],
@@ -1805,6 +1841,13 @@ class DuplicatesExactDetector(Detector):
             if per_name_duplicates_by_mode_frames
             else pd.DataFrame()
         )
+        per_name_submission_timing_by_mode = (
+            pd.concat(per_name_submission_timing_by_mode_frames, ignore_index=True).sort_values(
+                ["scope", "match_mode", "name_key", "bucket_start"]
+            )
+            if per_name_submission_timing_by_mode_frames
+            else pd.DataFrame()
+        )
         collision_stratification_sensitivity = (
             pd.concat(stratified_sensitivity_frames, ignore_index=True)
             if stratified_sensitivity_frames
@@ -1866,6 +1909,7 @@ class DuplicatesExactDetector(Detector):
                 "per_name_tests": per_name_tests,
                 "per_name_display": per_name_display,
                 "per_name_duplicates_by_mode": per_name_duplicates_by_mode,
+                "per_name_submission_timing_by_mode": per_name_submission_timing_by_mode,
                 "temporal_burst_signals": temporal_burst,
                 "top_name_timing_by_mode": top_name_timing_by_mode,
                 # Legacy compatibility tables retained while render contracts migrate.

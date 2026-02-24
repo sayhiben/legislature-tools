@@ -521,7 +521,7 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
         .drop_duplicates()
         .sort_values(["rank", "name_key"])
     )
-    assert len(mode_ranked) <= 50
+    assert len(mode_ranked) <= 100
     expected_ranks = list(range(1, len(mode_ranked) + 1))
     assert mode_ranked["rank"].astype(int).tolist() == expected_ranks
     totals = mode_ranked["total_repeated_rows"].astype(int).tolist()
@@ -531,3 +531,19 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     assert not per_name_by_mode.empty
     assert set(per_name_by_mode["match_mode"]) == {"strict", "loose"}
     assert (per_name_by_mode["observed_count"].astype(int) >= 2).all()
+
+    full_timing = result.tables["per_name_submission_timing_by_mode"]
+    required_timing_columns = {
+        "scope",
+        "match_mode",
+        "match_label",
+        "match_definition",
+        "canonical_name",
+        "name_key",
+        "display_name",
+        "bucket_start",
+        "position_normalized",
+    }
+    assert required_timing_columns.issubset(full_timing.columns)
+    assert not full_timing.empty
+    assert set(full_timing["match_mode"]) == {"strict", "loose"}

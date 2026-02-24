@@ -3,15 +3,15 @@ hearing_id: ESSB6346-34045-28388
 timezone: America/Los_Angeles
 meeting_start: '2026-02-24T08:00:00-08:00'
 stats:
-  total_rows: 127498
-  total_testifying: 263
-  total_not_testifying: 127235
-  total_pro: 12217
-  total_con: 114895
-  total_other: 386
-  total_pro_pct: 9.582111091938698
-  total_con_pct: 90.11513906100488
-  total_other_pct: 0.30274984705642444
+  total_rows: 129971
+  total_testifying: 284
+  total_not_testifying: 129687
+  total_pro: 12704
+  total_con: 116874
+  total_other: 393
+  total_pro_pct: 9.774488155049973
+  total_con_pct: 89.92313669972532
+  total_other_pct: 0.30237514522470393
 source:
   provider: wa_leg_csi
   search_query: ESSB 6346
@@ -27,4 +27,4 @@ source:
     business and occupation taxes by establishing a tax on millionaires
   committee_name: Finance
   chamber: House
-  downloaded_at: '2026-02-24T05:39:25.824625+00:00'
+  downloaded_at: '2026-02-24T19:54:52.339719+00:00'

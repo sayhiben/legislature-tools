@@ -1127,6 +1127,15 @@ def _preview_columns_for_detector_table(
                 "n_unknown",
                 "bucket_end",
             ],
+            "per_name_submission_timing_by_mode": [
+                "scope",
+                "match_mode",
+                "canonical_name",
+                "name_key",
+                "display_name",
+                "bucket_start",
+                "position_normalized",
+            ],
         }
         return preview_columns.get(table_name)
     if detector_name != "off_hours":
@@ -1324,6 +1333,7 @@ _DUPLICATES_EXACT_FULL_PREVIEW_TABLES = frozenset(
         "per_name_display",
         "per_name_anomalies",
         "per_name_duplicates_by_mode",
+        "per_name_submission_timing_by_mode",
         "repeated_same_bucket",
         "position_switching_names",
         "top_repeated_names",
@@ -1409,6 +1419,15 @@ def _prepare_table_for_preview(
             sort_columns = [
                 column
                 for column in ("bucket_minutes", "bucket_start", "canonical_name")
+                if column in prepared.columns
+            ]
+            if sort_columns:
+                prepared = prepared.sort_values(sort_columns)
+            return prepared
+        if table_name == "per_name_submission_timing_by_mode":
+            sort_columns = [
+                column
+                for column in ("scope", "match_mode", "name_key", "bucket_start")
                 if column in prepared.columns
             ]
             if sort_columns:
@@ -2996,7 +3015,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": (
                         "Names are ranked by total sign-ins among duplicate-eligible names "
                         "(rank 1 = highest) and "
-                        "paginated 10 at a time up to the top 50 names."
+                        "paginated 10 at a time up to the top 100 names."
                     ),
                 },
                 {

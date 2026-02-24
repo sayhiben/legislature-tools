@@ -60,11 +60,12 @@ python -m testifier_audit.cli report \
   ./data/raw/20260202_VRDB_Extract.txt \
   ./data/metadata/SB6346-20260206-1330.hearing.yaml
 
-# Preferred visual-regression flow
-./testifier_audit/scripts/report/run_unified_report_and_capture.sh \
-  ./data/raw/SB6346-20260206-1330.csv \
-  ./data/raw/20260202_VRDB_Extract.txt \
-  ./data/metadata/SB6346-20260206-1330.hearing.yaml
+# Preferred frontend manual-check flow (Playwright MCP first; screenshots optional)
+python -m http.server 8777 --directory ./reports/SB6346-20260206-1330
+# Then drive Playwright MCP to: http://127.0.0.1:8777/report.html
+# If Playwright fails with "Opening in existing browser session":
+playwright-cli close-all
+playwright-cli kill-all
 
 # Local CI parity
 ./testifier_audit/scripts/ci/lint.sh
@@ -155,15 +156,39 @@ python ./testifier_audit/scripts/report/build_global_baselines.py
 
 For major report/template changes, run a UX pass:
 1. Generate a fresh report.
-2. Validate desktop (`~1728x1117`) and mobile (`~390x844`) layouts.
+2. Serve the generated report locally and validate in Playwright MCP at desktop (`~1728x1117`)
+   and mobile (`~390x844`) viewports.
 3. Verify sidebar navigation, bucket sync, cursor sync, click-marker sync, and zoom sync across
    both timeseries and non-timeseries absolute-time charts.
-4. Confirm no visual overlap/clipping and no console JSON/JS errors.
-5. Capture full-page plus top/middle/bottom screenshots into
-   `reports/<csv-stem>/screenshots/`.
+4. Confirm no visual overlap/clipping, no console JSON/JS errors, and no failing data requests in
+   Playwright network logs.
+5. Capture screenshots only when needed for review artifacts or when explicitly requested.
 
-## Screenshot Capture Guidance
-- Prefer:
+## Playwright MCP Manual QA Guidance
+- Prefer live Playwright MCP interaction over screenshot-only analysis for frontend validation.
+- Standard manual-check loop:
+  1. Build/rerender report artifacts.
+  2. Start a local static server:
+     - `python -m http.server 8777 --directory ./reports/<csv-stem>`
+  3. In Playwright MCP, navigate to:
+     - `http://127.0.0.1:8777/report.html`
+  4. Run both viewport checks:
+     - desktop: `1728x1117`
+     - mobile: `390x844`
+  5. Verify controls and interactions:
+     - sidebar toggle, bucket/theme controls, zoom/reset, linked marker/cursor behavior
+  6. Check diagnostics:
+     - console errors/warnings and failed network requests
+- If Playwright cannot launch because an existing session/profile lock is detected:
+  - `playwright-cli close-all`
+  - `playwright-cli kill-all`
+  - retry MCP navigation
+- If browser binaries are missing:
+  - `playwright-cli install-browser`
+
+## Screenshot Capture Guidance (Secondary)
+- Use screenshot capture as supporting evidence, not as the primary frontend QA method.
+- Preferred helper:
   - `./testifier_audit/scripts/report/run_unified_report_and_capture.sh`
 - Do not rely on Chromium full-page capture for very tall pages; it can duplicate segments around
   ~16,384px.

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1906-31547-22903
+timezone: America/Los_Angeles
+meeting_start: '2024-01-10T16:00:00-08:00'
+sign_in_cutoff: '2024-01-10T15:00:00-08:00'
+stats:
+  total_rows: 29
+  total_testifying: 6
+  total_not_testifying: 23
+  total_pro: 29
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 1906
+  meeting_family_id: '31547'
+  agenda_item_family_id: '156004'
+  agenda_item_id: '22903'
+  agenda_item_description: HB 1906 Vessel length/nonresident
+  short_bill_id: HB 1906
+  bill_number: '1906'
+  bill_title: Changing the vessel length requirement in obtaining nonresident vessel
+    permits. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:34:32.051261+00:00'

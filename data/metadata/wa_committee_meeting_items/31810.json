@@ -1,0 +1,68 @@
+{
+  "agenda_id": "31810",
+  "retrieved_at_utc": "2026-02-25T09:28:47.510449+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1228",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Building a multilingual, multiliterate Washington through dual and tribal language education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1565",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting and strengthening the professional education workforce."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2037",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning Holocaust and genocide education in public schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2239",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting student well-being through instruction in social-emotional skills."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1935",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting resource conservation practices that include student education and leadership opportunities in public schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2038",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Collecting data on student transfers and withdrawals from public schools and school districts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2130",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending special education services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2331",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying requirements for public school instructional and supplemental instructional materials."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2381",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing eligibility for economy and efficiency flexible school calendar waivers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2398",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring parent representation on instructional materials committees."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5949-31550-22778
+timezone: America/Los_Angeles
+meeting_start: '2024-01-11T16:00:00-08:00'
+sign_in_cutoff: '2024-01-11T15:00:00-08:00'
+stats:
+  total_rows: 12
+  total_testifying: 9
+  total_not_testifying: 3
+  total_pro: 9
+  total_con: 0
+  total_other: 3
+  total_pro_pct: 75.0
+  total_con_pct: 0.0
+  total_other_pct: 25.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5949
+  meeting_family_id: '31550'
+  agenda_item_family_id: '156228'
+  agenda_item_id: '22778'
+  agenda_item_description: 'SB 5949: K-12 public schools. (Remote Testimony Available).'
+  short_bill_id: SB 5949
+  bill_number: '5949'
+  bill_title: Concerning the capital budget.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:33:30.356997+00:00'

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SHB1045-31524-22798
+timezone: America/Los_Angeles
+meeting_start: '2024-01-11T16:00:00-08:00'
+sign_in_cutoff: '2024-01-11T15:00:00-08:00'
+stats:
+  total_rows: 2911
+  total_testifying: 16
+  total_not_testifying: 2895
+  total_pro: 1358
+  total_con: 1549
+  total_other: 4
+  total_pro_pct: 46.65063552043971
+  total_con_pct: 53.21195465475782
+  total_other_pct: 0.13740982480247338
+source:
+  provider: wa_leg_csi
+  search_query: SHB 1045
+  meeting_family_id: '31524'
+  agenda_item_family_id: '155940'
+  agenda_item_id: '22798'
+  agenda_item_description: SHB 1045 Basic income pilot program
+  short_bill_id: SHB 1045
+  bill_number: '1045'
+  bill_title: Creating the evergreen basic income pilot program. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:33:52.342477+00:00'

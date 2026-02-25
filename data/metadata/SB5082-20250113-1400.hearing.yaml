@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5082-32435-24576
+timezone: America/Los_Angeles
+meeting_start: '2025-01-13T14:00:00-08:00'
+sign_in_cutoff: '2025-01-13T13:00:00-08:00'
+stats:
+  total_rows: 472
+  total_testifying: 9
+  total_not_testifying: 463
+  total_pro: 249
+  total_con: 223
+  total_other: 0
+  total_pro_pct: 52.7542372881356
+  total_con_pct: 47.24576271186441
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5082
+  meeting_family_id: '32435'
+  agenda_item_family_id: '161317'
+  agenda_item_id: '24576'
+  agenda_item_description: SB 5082 Extended foster care/housing
+  short_bill_id: SB 5082
+  bill_number: '5082'
+  bill_title: Creating a housing assistance program for youth enrolled in extended
+    foster care. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:34:41.568883+00:00'

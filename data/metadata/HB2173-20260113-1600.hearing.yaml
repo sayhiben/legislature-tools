@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2173-33596-27192
+timezone: America/Los_Angeles
+meeting_start: '2026-01-13T16:00:00-08:00'
+sign_in_cutoff: '2026-01-13T15:00:00-08:00'
+stats:
+  total_rows: 3123
+  total_testifying: 14
+  total_not_testifying: 3109
+  total_pro: 2824
+  total_con: 291
+  total_other: 8
+  total_pro_pct: 90.4258725584374
+  total_con_pct: 9.317963496637848
+  total_other_pct: 0.2561639449247518
+source:
+  provider: wa_leg_csi
+  search_query: HB 2173
+  meeting_family_id: '33596'
+  agenda_item_family_id: '167931'
+  agenda_item_id: '27192'
+  agenda_item_description: HB 2173 Law enf. face coverings
+  short_bill_id: HB 2173
+  bill_number: '2173'
+  bill_title: Concerning the use of face coverings by law enforcement officers. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:30:41.435378+00:00'

@@ -1,0 +1,50 @@
+{
+  "agenda_id": "31730",
+  "retrieved_at_utc": "2026-02-25T09:28:55.532599+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1893",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning unemployment insurance benefits for striking or lockout workers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1940",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting the rights of workers to refrain from attending meetings or listening to their employer's speech on political or religious matters."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1959",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending parts of the paid family and medical leave program to employers with fewer than 50 employees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1986",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding purposes for the use of existing firefighter safety funding."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2036",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workplace safety and operational standards for adult entertainment establishments."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2097",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Assisting workers in recovering wages owed."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2127",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workers' compensation incentives to return to work."
+    }
+  ],
+  "schema_version": 1
+}

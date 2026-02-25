@@ -1,0 +1,56 @@
+{
+  "agenda_id": "34061",
+  "retrieved_at_utc": "2026-02-25T09:28:34.445236+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5067",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning impaired driving."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2ESSB 5105",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning sexually explicit depictions of minors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5436",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Interfering with access to a place of religious worship."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5880",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning toxicology testing by certified or accredited laboratories."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5890",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing reckless driving in cases involving excessive speed."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5936",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning prevention of and remedies for human trafficking."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5974",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing and strengthening laws concerning sheriffs, police chiefs, town marshals, law enforcement agency volunteers, youth cadets, specially commissioned officers, and police matrons."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 6070",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting the recovery of missing persons."
+    }
+  ],
+  "schema_version": 1
+}

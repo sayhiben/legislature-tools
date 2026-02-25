@@ -807,6 +807,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert 'evidenceSummary.textContent = "evidence_bundle_preview";' not in js_text
     assert "function renderOffHoursPrimaryFlagChannels(mount, rows)" in js_text
     assert "shortOffHoursPrimaryFlagChannelLabel(row)" in js_text
+    assert "function renderDuplicatePositionBucketDeviance(mount, rows)" in js_text
+    assert "return renderDuplicatePositionBucketDeviance(mount, rows);" in js_text
     assert 'tablePreviewRows("duplicates_exact", "per_name_display")' in js_text
     assert "filterRowsByDuplicateTableBucket(" in js_text
     assert "rerenderBucketAwareTables();" in js_text

@@ -1,0 +1,104 @@
+{
+  "agenda_id": "32001",
+  "retrieved_at_utc": "2026-02-25T09:29:18.594015+00:00",
+  "row_count": 16,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2151",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reassigning the accreditation of private cannabis testing laboratories from the department of ecology to the department of agriculture. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1942",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying employment standards for long-term care individual providers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1889",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Allowing persons to receive professional licenses and certifications regardless of immigration or citizenship status. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2467",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing access to the long-term services and supports trust. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2031",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Recognizing posttraumatic stress disorder as an occupational disease for county coroners, examiners, and investigative personnel. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1453",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing a tax exemption for medical cannabis patients. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1898",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning unemployment insurance benefit charging."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1893",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning unemployment insurance benefits for striking or lockout workers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1901",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Removing the sunset on changes to the unemployment insurance voluntary contribution program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2127",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workers' compensation incentives to return to work."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2097",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Assisting workers in recovering wages owed."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2061",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Defining an employee of a health care facility for purposes of mandatory overtime provisions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 2266",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning sanitary conditions for construction workers who menstruate or express milk."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2320",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning high THC cannabis products."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2382",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning death benefits applicable to drivers of transportation network companies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1453",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a tax exemption for medical cannabis patients."
+    }
+  ],
+  "schema_version": 1
+}

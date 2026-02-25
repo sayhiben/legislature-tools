@@ -1,0 +1,80 @@
+{
+  "agenda_id": "32866",
+  "retrieved_at_utc": "2026-02-25T09:30:01.791176+00:00",
+  "row_count": 12,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5117",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting agriculture."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5305",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the new environmental accelerator for salmon recovery and ecological resiliency projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5319",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing surface mine reclamation permit fees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5322",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing the impacts of burrowing shrimp on bottom culture shellfish farming through integrated pest management research."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5385",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Amending the definition of timberland for purposes of determining the real property excise tax for a governmental entity."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5454",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the dairy inspection program until June 30, 2031."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5474",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding opportunities for organic, regenerative, climate-smart, and sustainable producers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5479",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing tax relief for certain incidental uses on open space land."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5491",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a prescribed fire claims fund pilot program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5583",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning recreational fishing and hunting licenses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5605",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the operation, authorization, and permitting of microenterprise home kitchens."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5669",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning irrigation district elections."
+    }
+  ],
+  "schema_version": 1
+}

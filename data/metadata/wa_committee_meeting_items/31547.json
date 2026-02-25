@@ -1,0 +1,26 @@
+{
+  "agenda_id": "31547",
+  "retrieved_at_utc": "2026-02-25T09:29:54.762781+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2134",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Making supplemental transportation appropriations for the 2023-2025 fiscal biennium. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1906",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Changing the vessel length requirement in obtaining nonresident vessel permits. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1963",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Prohibiting license plate covers. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

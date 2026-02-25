@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SHB2045-31927-24039
+timezone: America/Los_Angeles
+meeting_start: '2024-02-15T13:30:00-08:00'
+sign_in_cutoff: '2024-02-15T12:30:00-08:00'
+stats:
+  total_rows: 5
+  total_testifying: 2
+  total_not_testifying: 3
+  total_pro: 5
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SHB 2045
+  meeting_family_id: '31927'
+  agenda_item_family_id: '159077'
+  agenda_item_id: '24039'
+  agenda_item_description: SHB 2045 Adopt a fish barrier program
+  short_bill_id: SHB 2045
+  bill_number: '2045'
+  bill_title: Creating an adopt a fish barrier program. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:30:44.493557+00:00'

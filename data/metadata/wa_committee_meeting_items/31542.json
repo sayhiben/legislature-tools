@@ -1,0 +1,32 @@
+{
+  "agenda_id": "31542",
+  "retrieved_at_utc": "2026-02-25T09:29:25.637186+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5925",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning fire protection district commissioner per diem compensation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5869",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning rural fire district stations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5834",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning urban growth areas. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5901",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning co-living housing. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2179-31878-23737
+timezone: America/Los_Angeles
+meeting_start: '2024-01-30T13:30:00-08:00'
+sign_in_cutoff: '2024-01-30T12:30:00-08:00'
+stats:
+  total_rows: 93
+  total_testifying: 3
+  total_not_testifying: 90
+  total_pro: 83
+  total_con: 9
+  total_other: 1
+  total_pro_pct: 89.24731182795699
+  total_con_pct: 9.67741935483871
+  total_other_pct: 1.0752688172043012
+source:
+  provider: wa_leg_csi
+  search_query: HB 2179
+  meeting_family_id: '31878'
+  agenda_item_family_id: '158215'
+  agenda_item_id: '23737'
+  agenda_item_description: HB 2179 Child care local licensing
+  short_bill_id: HB 2179
+  bill_number: '2179'
+  bill_title: Providing local licensing and regulation of child care providers. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:32:17.766450+00:00'

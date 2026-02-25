@@ -1,0 +1,152 @@
+{
+  "agenda_id": "31872",
+  "retrieved_at_utc": "2026-02-25T09:29:33.669307+00:00",
+  "row_count": 24,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5810",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying the collective bargaining unit for interpreters providing language access services to certain state agencies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5895",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning collective bargaining for certain employees who are enrolled in academic programs at public institutions of higher education. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6194",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning state legislative employee collective bargaining. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5853",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the crisis relief center model to provide behavioral health crisis services for minors. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6228",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning treatment of substance use disorders. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5943",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Conducting a feasibility study regarding a resource data tool to connect Washington residents to services and resources. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "3SSB 5438",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Facilitating supportive relationships with family and significant individuals within the behavioral health system. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6058",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Facilitating linkage of Washington's carbon market with the California-Quebec carbon market. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5946",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a fallen firefighter memorial. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6163",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning biosolids. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6068",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reporting on dependency outcomes. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6135",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning programs for eligible recipients of temporary assistance for needy families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5889",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing the customer voice council. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5809",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning enrichment funding for charter public schools. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5953",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning financial aid grants for incarcerated students. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5776",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Accessing an emergency supply of insulin. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5667",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning eligibility, enrollment, and compensation of small forestland owners volunteering for participation in the forestry riparian easement program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6069",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving retirement security for Washingtonians by establishing Washington saves, an automatic enrollment individual retirement savings account program, and updating the Washington retirement marketplace statute."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6106",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Including in the public safety employees' retirement system specified competency restoration workers at department of social and health services institutional and residential sites that serve civilly committed residents or serve patients under not guilty by reason of insanity findings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6197",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the law enforcement officers' and firefighters' retirement system plan 2."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5591",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing dependent youth with financial education and support."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5660",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a mental health advance directive effective implementation work group."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6198",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning employees of the law enforcement officers' and firefighters' plan 2 retirement board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6263",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning death benefits provided by the 1955 act for firefighters' relief and pensions."
+    }
+  ],
+  "schema_version": 1
+}

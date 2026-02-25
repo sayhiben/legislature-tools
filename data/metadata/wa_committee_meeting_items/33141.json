@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33141",
+  "retrieved_at_utc": "2026-02-25T09:29:56.754057+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1006",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Regulating service contracts and protection product guarantees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1080",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning fee disclosure for lodging accommodations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1081",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing consumer protections for owners of solicited real estate."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1327",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning horse racing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1516",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Conducting a study of insurance coverage options for permanently affordable homeownership units."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1269",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning pawnbroker fees and interest rates."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33746",
+  "retrieved_at_utc": "2026-02-25T09:28:56.584621+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2347",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing the impact of the luxury aircraft tax. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2410",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a commercial truck safety and education council. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

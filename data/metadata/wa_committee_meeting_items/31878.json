@@ -1,0 +1,62 @@
+{
+  "agenda_id": "31878",
+  "retrieved_at_utc": "2026-02-25T09:29:00.564986+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2046",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing alternative requirements for child care providers in underresourced areas. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2179",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing local licensing and regulation of child care providers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2415",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding economic assistance for individuals who are eligible for temporary assistance for needy families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2217",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning authority over individuals found guilty of or accused of criminal offenses that occurred when the individual was under age 18."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2224",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Incorporating a risks, strengths, and needs assessment tool in the risk assessment process when investigating alleged child abuse and neglect referrals."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2230",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting economic inclusion by creating the economic security for all grant program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2368",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Assisting refugees and immigrants."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2407",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing protections for child welfare workers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2447",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting children and families."
+    }
+  ],
+  "schema_version": 1
+}

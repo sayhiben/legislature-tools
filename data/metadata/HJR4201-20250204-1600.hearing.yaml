@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HJR4201-32655-25406
+timezone: America/Los_Angeles
+meeting_start: '2025-02-04T16:00:00-08:00'
+sign_in_cutoff: '2025-02-04T15:00:00-08:00'
+stats:
+  total_rows: 2904
+  total_testifying: 23
+  total_not_testifying: 2881
+  total_pro: 2048
+  total_con: 852
+  total_other: 4
+  total_pro_pct: 70.52341597796143
+  total_con_pct: 29.338842975206614
+  total_other_pct: 0.13774104683195593
+source:
+  provider: wa_leg_csi
+  search_query: HJR 4201
+  meeting_family_id: '32655'
+  agenda_item_family_id: '162511'
+  agenda_item_id: '25406'
+  agenda_item_description: HJR 4201 School district bonds
+  short_bill_id: HJR 4201
+  bill_number: '4201'
+  bill_title: Amending the Constitution to allow a majority of voters voting to authorize
+    school district bonds. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:31:29.937633+00:00'

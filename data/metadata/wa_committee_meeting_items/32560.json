@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32560",
+  "retrieved_at_utc": "2026-02-25T09:29:15.569028+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1420",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing producer responsibility for textiles. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1462",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing greenhouse gas emissions associated with hydrofluorocarbons. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1522",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning approval of electric utility wildfire mitigation plans. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1461",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning contracts for materials or work required by joint operating agencies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1302",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning utility connection charge waivers."
+    }
+  ],
+  "schema_version": 1
+}

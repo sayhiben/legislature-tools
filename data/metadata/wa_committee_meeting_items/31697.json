@@ -1,0 +1,62 @@
+{
+  "agenda_id": "31697",
+  "retrieved_at_utc": "2026-02-25T09:29:34.667811+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6068",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reporting on dependency outcomes. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6079",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Making juvenile detention records available to managed health care systems. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6135",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning programs for eligible recipients of temporary assistance to needy families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6186",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning disclosure of certain recipient locations to the Washington state patrol. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6189",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning transparency, public safety, and independent oversight of the city, county, and regional jail system in Washington state. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5943",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Developing a resource data tool to connect Washington residents to services and resources."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6042",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning services and procedures for juveniles releasing from juvenile detention facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6109",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting children and families."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6126",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing access to respite care for those with intellectual or developmental disabilities and their caregivers."
+    }
+  ],
+  "schema_version": 1
+}

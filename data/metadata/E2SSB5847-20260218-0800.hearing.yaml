@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: E2SSB5847-33981-28284
+timezone: America/Los_Angeles
+meeting_start: '2026-02-18T08:00:00-08:00'
+sign_in_cutoff: '2026-02-18T07:00:00-08:00'
+stats:
+  total_rows: 273
+  total_testifying: 6
+  total_not_testifying: 267
+  total_pro: 108
+  total_con: 160
+  total_other: 5
+  total_pro_pct: 39.56043956043956
+  total_con_pct: 58.60805860805861
+  total_other_pct: 1.8315018315018317
+source:
+  provider: wa_leg_csi
+  search_query: E2SSB 5847
+  meeting_family_id: '33981'
+  agenda_item_family_id: '170607'
+  agenda_item_id: '28284'
+  agenda_item_description: E2SSB 5847 Workers' comp. medical care
+  short_bill_id: E2SSB 5847
+  bill_number: '5847'
+  bill_title: Access to medical care in workers' compensation
+  committee_name: Labor & Workplace Standards
+  chamber: House
+  downloaded_at: '2026-02-25T09:01:44.165589+00:00'

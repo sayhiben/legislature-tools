@@ -1,0 +1,62 @@
+{
+  "agenda_id": "32897",
+  "retrieved_at_utc": "2026-02-25T09:25:52.871270+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9223",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Julie Meredith, Director, Department of Transportation - Agency Head."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5649",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a Washington state supply chain competitiveness infrastructure program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5667",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing intercity passenger rail improvement priorities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5734",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the interstate bridge replacement toll bond authority. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5773",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning alternative procurement and delivery models for transportation projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5061",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring certain wages in public works contracts to be at least the prevailing wage in effect when the work is performed."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5067",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning impaired driving."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5705",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving traffic safety by modifying penalty amounts for certain traffic infractions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5484",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning payments to tow truck operators for the release of vehicles to indigent citizens."
+    }
+  ],
+  "schema_version": 1
+}

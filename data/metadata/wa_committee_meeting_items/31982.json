@@ -1,0 +1,74 @@
+{
+  "agenda_id": "31982",
+  "retrieved_at_utc": "2026-02-25T09:29:26.625419+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5722",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning photographs, microphotographs, and electronic images from traffic safety cameras and toll systems. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5891",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Designating trespassing on a school bus as a felony offense. (REVISED FOR ENGROSSED: Protecting the safety and security of students and maintaining order within school buses by designating trespassing on a school bus as a criminal offense.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5893",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing gate money to incarcerated individuals at the department of corrections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5937",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting crime victims and witnesses by promoting victim-centered, trauma-informed responses. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5938",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the community parenting alternative for eligible participants in the residential parenting program at the department of corrections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6146",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning tribal warrants. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6186",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning disclosure of certain recipient information to the Washington state patrol. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 6187",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the body scanner pilot program at the department of corrections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5424",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning flexible work for general and limited authority Washington peace officers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5635",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning victims' rights."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6301",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning basic law enforcement academy."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31807",
+  "retrieved_at_utc": "2026-02-25T09:29:52.859100+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1987",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the use of moneys from the rural public facilities sales and use tax for affordable workforce housing infrastructure and facilities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2348",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning county hospital funding. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2440",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the administration of the board of tax appeals. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2003",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning an exemption to the leasehold excise tax for leases on public lands."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2199",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating business and occupation and public utility tax exemptions for certain amounts received as the result of receipt, generation, purchase, sale, transfer, or retirement of allowances, offset credits, or price ceiling units under the climate commitment act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2120",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning tax preferences for clean energy manufacturers."
+    }
+  ],
+  "schema_version": 1
+}

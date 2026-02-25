@@ -1,0 +1,56 @@
+{
+  "agenda_id": "33779",
+  "retrieved_at_utc": "2026-02-25T09:30:00.756246+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2451",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning local tax increment financing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2298",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing county auditors to create a voluntary property title protection program to prevent land record fraud."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2566",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning local government procurement."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2267",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning urban forest management ordinances."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2530",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Changing the deadline for forming a public facilities district for regional aquatics and sports facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2388",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the siting of distributed energy generation resources on agricultural lands."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2588",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning county ferry district authority. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2094",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring coroners to be appointed rather than elected. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

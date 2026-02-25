@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1308-32519-24941
+timezone: America/Los_Angeles
+meeting_start: '2025-01-22T08:00:00-08:00'
+sign_in_cutoff: '2025-01-22T07:00:00-08:00'
+stats:
+  total_rows: 398
+  total_testifying: 10
+  total_not_testifying: 388
+  total_pro: 266
+  total_con: 129
+  total_other: 3
+  total_pro_pct: 66.83417085427136
+  total_con_pct: 32.41206030150754
+  total_other_pct: 0.7537688442211055
+source:
+  provider: wa_leg_csi
+  search_query: HB 1308
+  meeting_family_id: '32519'
+  agenda_item_family_id: '161859'
+  agenda_item_id: '24941'
+  agenda_item_description: HB 1308 Access to personnel records
+  short_bill_id: HB 1308
+  bill_number: '1308'
+  bill_title: Concerning access to personnel records. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:26:17.347963+00:00'

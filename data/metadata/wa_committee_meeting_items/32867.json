@@ -1,0 +1,86 @@
+{
+  "agenda_id": "32867",
+  "retrieved_at_utc": "2026-02-25T09:29:51.757253+00:00",
+  "row_count": 13,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9058",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Juan E Mata, Member, Professional Educator Standards Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9059",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Nicole A Talbert, Member, Professional Educator Standards Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9096",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Michaela L Jackson, Member, Professional Educator Standards Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9097",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Kevin C Roxas, Member, Professional Educator Standards Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9098",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Denise A Marestein Renteria, Member, Professional Educator Standards Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5574",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing instruction on Asian American and Native Hawaiian/Pacific Islander history in public schools. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5596",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Repealing the interstate teacher mobility compact."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5637",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting student access to information about media literacy and civic education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5567",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding secondary training for careers in natural resources and conservation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5641",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Encouraging public school instruction in awareness of blood donation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5545",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Exempting family home providers overseen and certified by a federal military service from child care licensing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5655",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning child care centers operated in existing buildings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting students who are chronically absent and at risk for not graduating high school."
+    }
+  ],
+  "schema_version": 1
+}

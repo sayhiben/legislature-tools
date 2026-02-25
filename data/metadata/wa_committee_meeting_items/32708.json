@@ -1,0 +1,14 @@
+{
+  "agenda_id": "32708",
+  "retrieved_at_utc": "2026-02-25T09:29:03.766958+00:00",
+  "row_count": 1,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1653",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning payments to tow truck operators for the release of vehicles to indigent citizens."
+    }
+  ],
+  "schema_version": 1
+}

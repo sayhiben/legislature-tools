@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1170-33628-27113
+timezone: America/Los_Angeles
+meeting_start: '2026-01-14T08:00:00-08:00'
+sign_in_cutoff: '2026-01-14T07:00:00-08:00'
+stats:
+  total_rows: 235
+  total_testifying: 7
+  total_not_testifying: 228
+  total_pro: 169
+  total_con: 59
+  total_other: 7
+  total_pro_pct: 71.91489361702128
+  total_con_pct: 25.106382978723403
+  total_other_pct: 2.9787234042553195
+source:
+  provider: wa_leg_csi
+  search_query: HB 1170
+  meeting_family_id: '33628'
+  agenda_item_family_id: '168035'
+  agenda_item_id: '27113'
+  agenda_item_description: HB 1170 AI content notices
+  short_bill_id: HB 1170
+  bill_number: '1170'
+  bill_title: Informing users when content is developed or modified by artificial
+    intelligence. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:34:24.049803+00:00'

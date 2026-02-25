@@ -1,0 +1,26 @@
+{
+  "agenda_id": "31563",
+  "retrieved_at_utc": "2026-02-25T09:29:29.626068+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1911",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning activities in which the office of public defense may engage without violating the prohibition on providing direct representation of clients. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1958",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning nonconsensual removal of or tampering with a sexually protective device. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2072",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning penalties relating to antitrust actions. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

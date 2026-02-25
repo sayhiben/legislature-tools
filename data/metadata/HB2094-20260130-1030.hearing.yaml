@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2094-33779-27828
+timezone: America/Los_Angeles
+meeting_start: '2026-01-30T10:30:00-08:00'
+sign_in_cutoff: '2026-01-30T09:30:00-08:00'
+stats:
+  total_rows: 319
+  total_testifying: 7
+  total_not_testifying: 312
+  total_pro: 146
+  total_con: 172
+  total_other: 1
+  total_pro_pct: 45.76802507836991
+  total_con_pct: 53.91849529780565
+  total_other_pct: 0.3134796238244514
+source:
+  provider: wa_leg_csi
+  search_query: HB 2094
+  meeting_family_id: '33779'
+  agenda_item_family_id: '169196'
+  agenda_item_id: '27828'
+  agenda_item_description: HB 2094 Coroner appointment
+  short_bill_id: HB 2094
+  bill_number: '2094'
+  bill_title: Requiring coroners to be appointed rather than elected. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:34:47.011596+00:00'

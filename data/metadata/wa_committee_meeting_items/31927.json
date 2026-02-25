@@ -1,0 +1,62 @@
+{
+  "agenda_id": "31927",
+  "retrieved_at_utc": "2026-02-25T09:25:58.886260+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9294",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Christene G Endresen Scott, Member, Salmon Recovery Funding Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1752",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the application of the annual consumptive quantity calculation to change applications related to certain water rights held by the United States bureau of reclamation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1818",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the exclusion of compensating tax when land is sold to a governmental entity intending to manage the land similarly to designated forestland or timberland. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2045",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating an adopt a fish barrier program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2074",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Limiting the application of certain civil penalties to protect landowners from incurring penalties based on the actions of the landowner's lessee. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2293",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Studying the effects of avian predation of salmon. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2165",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the authority of the department of natural resources to determine recreational use fees for activities on agency-managed public lands."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9294",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Christene G Endresen Scott, Member, Salmon Recovery Funding Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2147",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning agriculture pest and disease response."
+    }
+  ],
+  "schema_version": 1
+}

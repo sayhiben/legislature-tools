@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1812-33735-27732
+timezone: America/Los_Angeles
+meeting_start: '2026-01-27T13:30:00-08:00'
+sign_in_cutoff: '2026-01-27T12:30:00-08:00'
+stats:
+  total_rows: 119
+  total_testifying: 3
+  total_not_testifying: 116
+  total_pro: 119
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 1812
+  meeting_family_id: '33735'
+  agenda_item_family_id: '168752'
+  agenda_item_id: '27732'
+  agenda_item_description: HB 1812 Anesthesia services
+  short_bill_id: HB 1812
+  bill_number: '1812'
+  bill_title: Concerning patient-centered equitable access to anesthesia services
+    and reimbursement. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:34:11.042647+00:00'

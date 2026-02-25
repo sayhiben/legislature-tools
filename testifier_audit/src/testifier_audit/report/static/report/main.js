@@ -6183,6 +6183,312 @@
     return true;
   }
 
+  function renderDuplicatePositionBucketDeviance(mount, rows) {
+    const theme = currentChartTheme();
+    const normalizePositionLabel = (value) => {
+      const raw = String(value || "").trim();
+      if (!raw) {
+        return "Unknown";
+      }
+      const normalized = raw.toLowerCase();
+      if (normalized === "pro") {
+        return "Pro";
+      }
+      if (normalized === "con") {
+        return "Con";
+      }
+      if (normalized === "other") {
+        return "Other";
+      }
+      if (normalized === "unknown") {
+        return "Unknown";
+      }
+      return raw;
+    };
+    const normalizeMetricLabel = (value) => {
+      const raw = String(value || "").trim();
+      return raw ? raw.replace(/_/g, " ") : "";
+    };
+    const colorForPosition = (positionLabel) => {
+      const normalized = String(positionLabel || "").trim().toLowerCase();
+      if (normalized === "pro") {
+        return theme.contextLine;
+      }
+      if (normalized === "con") {
+        return theme.alertLower;
+      }
+      if (normalized === "other") {
+        return theme.primaryLine;
+      }
+      if (normalized === "unknown") {
+        return theme.referenceLine;
+      }
+      return theme.primaryLine;
+    };
+    const positionOrder = new Map([
+      ["Pro", 0],
+      ["Con", 1],
+      ["Other", 2],
+      ["Unknown", 3],
+    ]);
+
+    const normalizedRows = rows
+      .map((row) => {
+        const timestamp = toEpochMillis((row || {}).bucket_start);
+        if (timestamp === null) {
+          return null;
+        }
+        const observed = toFiniteNumberOrNull((row || {}).observed);
+        const expected = toFiniteNumberOrNull((row || {}).expected);
+        const excess = toFiniteNumberOrNull((row || {}).excess);
+        const nBucketPosition = toFiniteNumberOrNull((row || {}).n_bucket_position);
+        if (
+          observed === null &&
+          expected === null &&
+          excess === null &&
+          nBucketPosition === null
+        ) {
+          return null;
+        }
+        return {
+          raw: row,
+          __time: timestamp,
+          positionLabel: normalizePositionLabel((row || {}).position_normalized),
+          metricLabel: normalizeMetricLabel((row || {}).metric),
+          nBucketPosition: nBucketPosition,
+          observed: observed,
+          expected: expected,
+          excess: excess,
+          isLowPower: toBool((row || {}).is_low_power),
+          bucketMinutes: toFiniteNumberOrNull((row || {}).bucket_minutes),
+        };
+      })
+      .filter((row) => row !== null)
+      .sort((left, right) => left.__time - right.__time);
+
+    if (!normalizedRows.length) {
+      return false;
+    }
+
+    const groupedByPosition = new Map();
+    normalizedRows.forEach((row) => {
+      const key = String(row.positionLabel || "") + "|" + String(row.metricLabel || "");
+      if (!groupedByPosition.has(key)) {
+        groupedByPosition.set(key, {
+          positionLabel: row.positionLabel,
+          metricLabel: row.metricLabel,
+          rows: [],
+        });
+      }
+      groupedByPosition.get(key).rows.push(row);
+    });
+    const groups = Array.from(groupedByPosition.values())
+      .map((group) => ({
+        positionLabel: group.positionLabel,
+        metricLabel: group.metricLabel,
+        rows: group.rows.slice().sort((left, right) => left.__time - right.__time),
+      }))
+      .sort((left, right) => {
+        const leftOrder = positionOrder.has(left.positionLabel)
+          ? positionOrder.get(left.positionLabel)
+          : Number.POSITIVE_INFINITY;
+        const rightOrder = positionOrder.has(right.positionLabel)
+          ? positionOrder.get(right.positionLabel)
+          : Number.POSITIVE_INFINITY;
+        if (leftOrder !== rightOrder) {
+          return leftOrder - rightOrder;
+        }
+        const metricDelta = String(left.metricLabel || "").localeCompare(
+          String(right.metricLabel || "")
+        );
+        if (metricDelta !== 0) {
+          return metricDelta;
+        }
+        return String(left.positionLabel || "").localeCompare(String(right.positionLabel || ""));
+      });
+    if (!groups.length) {
+      return false;
+    }
+
+    const metricLabelSet = new Set();
+    normalizedRows.forEach((row) => {
+      const metricLabel = String(row.metricLabel || "").trim();
+      if (metricLabel) {
+        metricLabelSet.add(metricLabel);
+      }
+    });
+    const includeMetricInSeriesLabel = metricLabelSet.size > 1;
+
+    const bucketByTime = new Map();
+    normalizedRows.forEach((row) => {
+      if (bucketByTime.has(row.__time)) {
+        return;
+      }
+      if (row.bucketMinutes !== null) {
+        bucketByTime.set(row.__time, row.bucketMinutes);
+      }
+    });
+
+    const totalRowsByTime = new Map();
+    normalizedRows.forEach((row) => {
+      const current = totalRowsByTime.has(row.__time) ? toNumber(totalRowsByTime.get(row.__time)) : 0;
+      const addend = row.nBucketPosition === null ? 0 : toNumber(row.nBucketPosition);
+      totalRowsByTime.set(row.__time, current + addend);
+    });
+    const volumeData = Array.from(totalRowsByTime.entries())
+      .sort((left, right) => left[0] - right[0])
+      .map((entry) => [entry[0], entry[1]]);
+
+    const option = {
+      animation: false,
+      color: theme.seriesPalette,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "cross" },
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          if (!entries.length) {
+            return "";
+          }
+          const first = entries[0] || {};
+          const rawValue = first.value;
+          const axisRaw = Array.isArray(rawValue) ? rawValue[0] : first.axisValue;
+          const timestamp = toEpochMillis(axisRaw);
+          const lines = [];
+          if (timestamp !== null) {
+            lines.push(
+              "<strong>Time (" +
+                reportTimezoneLabel +
+                "):</strong> " +
+                formatEpochMillis(timestamp)
+            );
+            const bucketFromTime = bucketByTime.has(timestamp)
+              ? bucketByTime.get(timestamp)
+              : Number.isFinite(mount.activeBucket)
+                ? mount.activeBucket
+                : null;
+            const bucketLabel = bucketLabelFromValue(bucketFromTime);
+            if (bucketLabel) {
+              lines.push("<strong>Bucket:</strong> " + bucketLabel);
+            }
+          }
+          entries.forEach((entry) => {
+            const entryValue = Array.isArray(entry.value) ? entry.value[1] : entry.value;
+            lines.push(
+              (entry.marker || "") +
+                "<strong>" +
+                escapeHtml(String(entry.seriesName || "value")) +
+                ":</strong> " +
+                formatTooltipValue(entryValue)
+            );
+          });
+          return lines.join("<br/>");
+        },
+      },
+      legend: {
+        type: "scroll",
+        bottom: 0,
+      },
+      grid: { left: 56, right: 56, top: 18, bottom: 96 },
+      xAxis: { type: "time", name: "Time (" + reportTimezoneLabel + ")" },
+      yAxis: [
+        { type: "value", name: "Rows in position bucket" },
+        { type: "value", name: "Observed vs expected duplicates" },
+      ],
+      dataZoom: [
+        {
+          type: "inside",
+          xAxisIndex: [0],
+          startValue: Number.isFinite(state.zoom.minTime) ? state.zoom.minTime : undefined,
+          endValue: Number.isFinite(state.zoom.maxTime) ? state.zoom.maxTime : undefined,
+        },
+        {
+          type: "slider",
+          xAxisIndex: [0],
+          bottom: 14,
+          startValue: Number.isFinite(state.zoom.minTime) ? state.zoom.minTime : undefined,
+          endValue: Number.isFinite(state.zoom.maxTime) ? state.zoom.maxTime : undefined,
+        },
+      ],
+      series: [],
+    };
+
+    mount.timeExtent = extentFromRows(normalizedRows, "__time");
+    mount.customChartNote = null;
+    const mainSeriesId = "main-" + mount.chartId;
+
+    option.series.push({
+      id: mainSeriesId,
+      name: "Rows in position bucket",
+      type: "bar",
+      yAxisIndex: 0,
+      data: volumeData,
+      barMaxWidth: 11,
+      itemStyle: { color: theme.volumeBar, opacity: theme.volumeBarOpacity },
+      markLine: appendCursorMarkLine(mount.baseMarkLines || []),
+    });
+
+    const lineSpecs = [
+      { field: "observed", suffix: "observed", width: 1.8, type: "solid", opacity: 0.94 },
+      { field: "expected", suffix: "expected", width: 1.35, type: "dashed", opacity: 0.9 },
+      { field: "excess", suffix: "excess", width: 1.2, type: "dotted", opacity: 0.84 },
+    ];
+    groups.forEach((group) => {
+      const groupLabelPrefix =
+        includeMetricInSeriesLabel && group.metricLabel
+          ? group.positionLabel + " (" + group.metricLabel + ")"
+          : group.positionLabel;
+      const seriesColor = colorForPosition(group.positionLabel);
+      lineSpecs.forEach((spec) => {
+        const seriesData = group.rows
+          .map((row) => [row.__time, toFiniteNumberOrNull(row[spec.field])])
+          .filter((entry) => entry[1] !== null);
+        if (!seriesData.length) {
+          return;
+        }
+        option.series.push({
+          name: groupLabelPrefix + " " + spec.suffix,
+          type: "line",
+          yAxisIndex: 1,
+          data: seriesData,
+          showSymbol: false,
+          lineStyle: {
+            color: seriesColor,
+            width: spec.width,
+            type: spec.type,
+            opacity: spec.opacity,
+          },
+        });
+      });
+      const lowPowerData = group.rows
+        .filter((row) => row.isLowPower && row.observed !== null)
+        .map((row) => [row.__time, row.observed]);
+      if (lowPowerData.length) {
+        option.series.push({
+          name: groupLabelPrefix + " low-power",
+          type: "scatter",
+          yAxisIndex: 1,
+          data: lowPowerData,
+          symbol: "triangle",
+          symbolRotate: 180,
+          symbolSize: 8,
+          itemStyle: {
+            color: theme.lowPower,
+            borderColor: theme.axisLine,
+            borderWidth: 1,
+            opacity: 0.95,
+          },
+        });
+      }
+    });
+
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.seriesId = mainSeriesId;
+    mount.isTimeSeries = true;
+    mount.isAbsoluteTime = state.absoluteTimeSet.has(mount.chartId);
+    return true;
+  }
+
   function renderScatter(mount, rows, xField, yField, colorField, sizeField) {
     const theme = currentChartTheme();
     const subset = rows
@@ -6910,15 +7216,6 @@
         lineAxisName: "Duplicated count",
         barAxisName: "Total rows",
       },
-      duplicates_exact_position_bucket_deviance: {
-        timeField: "bucket_start",
-        barField: "n_bucket_position",
-        lineField: "observed",
-        extraLines: ["expected", "excess"],
-        lowPowerField: "is_low_power",
-        lineAxisName: "Observed vs expected duplicates",
-        barAxisName: "Rows in position bucket",
-      },
       sortedness_bucket_ratio: {
         timeField: "bucket_start",
         barField: "n_records",
@@ -6982,6 +7279,10 @@
         lineMin: 0,
       },
     };
+
+    if (mount.chartId === "duplicates_exact_position_bucket_deviance") {
+      return renderDuplicatePositionBucketDeviance(mount, rows);
+    }
 
     if (Object.prototype.hasOwnProperty.call(timeOverrides, mount.chartId)) {
       return renderTimeBarLine(mount, rows, timeOverrides[mount.chartId]);

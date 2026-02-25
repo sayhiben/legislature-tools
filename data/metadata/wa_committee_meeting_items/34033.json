@@ -1,0 +1,50 @@
+{
+  "agenda_id": "34033",
+  "retrieved_at_utc": "2026-02-25T09:29:11.584389+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6183",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning coverage for HIV antiviral drugs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6226",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting the clinical autonomy of audiologists. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5185",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a pilot program that creates a pathway to physician licensure for international medical graduates."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5845",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing and clarifying timely payment requirements for health carriers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5915",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the health technology assessment program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6025",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Updating the definition of fetal death."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8002",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning Medicare."
+    }
+  ],
+  "schema_version": 1
+}

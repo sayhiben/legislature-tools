@@ -1,0 +1,38 @@
+{
+  "agenda_id": "31746",
+  "retrieved_at_utc": "2026-02-25T09:29:04.528982+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2283",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Allowing state employees living in an emergency or disaster area to receive shared leave. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2346",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating the governor's interagency coordinating council on health disparities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2362",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying provisions on joint legislative audit and review committee studies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2371",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying the rules surrounding the removal of political advertising. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2459",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring public investment impact disclosures for certain alternative measures proposed by the legislature to initiatives to the legislature. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

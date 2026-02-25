@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33623",
+  "retrieved_at_utc": "2026-02-25T09:25:51.899138+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2099",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding access to the early childhood education and assistance program for military families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2317",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning early learning program licensing requirements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2318",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adjusting the early achievers quality improvement awards. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2350",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing transparency regarding residential habilitation center compliance with certain federal requirements. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

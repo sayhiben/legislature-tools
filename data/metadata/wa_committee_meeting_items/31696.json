@@ -1,0 +1,62 @@
+{
+  "agenda_id": "31696",
+  "retrieved_at_utc": "2026-02-25T09:28:58.533059+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6277",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a new statutory framework for the use of public-private partnerships for transportation projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6195",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing the current backlog of vehicle inspections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5910",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating the state department of natural resources' Smokey Bear special license plates. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6229",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying match requirements for the green transportation capital grant program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6237",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring connectivity for Washington wildlife through safe passages."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5812",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the response to electric vehicle fires."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5847",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Enhancing prorate and fuel tax collections by improving taxpayer compliance, providing additional enforcement mechanisms, and protecting confidential taxpayer information."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6084",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing collector vehicles the ability to tow trailers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6017",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding the use of the border area fuel tax."
+    }
+  ],
+  "schema_version": 1
+}

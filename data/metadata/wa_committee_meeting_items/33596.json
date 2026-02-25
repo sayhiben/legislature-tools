@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33596",
+  "retrieved_at_utc": "2026-02-25T09:25:50.830629+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2165",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning false identification as a peace officer. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2173",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the use of face coverings by law enforcement officers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2203",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating the offense of reckless interference with emergency operations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2293",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Prohibiting law enforcement training with certain foreign entities. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

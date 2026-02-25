@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2293-33596-27194
+timezone: America/Los_Angeles
+meeting_start: '2026-01-13T16:00:00-08:00'
+sign_in_cutoff: '2026-01-13T15:00:00-08:00'
+stats:
+  total_rows: 21
+  total_testifying: 1
+  total_not_testifying: 20
+  total_pro: 13
+  total_con: 8
+  total_other: 0
+  total_pro_pct: 61.904761904761905
+  total_con_pct: 38.095238095238095
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 2293
+  meeting_family_id: '33596'
+  agenda_item_family_id: '168093'
+  agenda_item_id: '27194'
+  agenda_item_description: HB 2293 Law enf. training/foreign
+  short_bill_id: HB 2293
+  bill_number: '2293'
+  bill_title: Prohibiting law enforcement training with certain foreign entities.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:26:03.339280+00:00'

@@ -1,0 +1,31 @@
+schema_version: 1
+hearing_id: HB1896-32819-25943
+timezone: America/Los_Angeles
+meeting_start: '2025-02-21T13:30:00-08:00'
+sign_in_cutoff: '2025-02-21T12:30:00-08:00'
+stats:
+  total_rows: 848
+  total_testifying: 4
+  total_not_testifying: 844
+  total_pro: 246
+  total_con: 601
+  total_other: 1
+  total_pro_pct: 29.009433962264154
+  total_con_pct: 70.87264150943396
+  total_other_pct: 0.1179245283018868
+source:
+  provider: wa_leg_csi
+  search_query: HB 1896
+  meeting_family_id: '32819'
+  agenda_item_family_id: '163952'
+  agenda_item_id: '25943'
+  agenda_item_description: HB 1896 Local law enf. officers
+  short_bill_id: HB 1896
+  bill_number: '1896'
+  bill_title: Increasing local law enforcement officers by authorizing a local sales
+    and use tax credited against the state portion to hire additional officers and
+    increasing the number of basic law enforcement courses offered by the criminal
+    justice training commission. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:34:21.245363+00:00'

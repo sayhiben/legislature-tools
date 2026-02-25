@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5637-32867-25974
+timezone: America/Los_Angeles
+meeting_start: '2025-02-18T08:00:00-08:00'
+sign_in_cutoff: '2025-02-18T07:00:00-08:00'
+stats:
+  total_rows: 1872
+  total_testifying: 39
+  total_not_testifying: 1833
+  total_pro: 997
+  total_con: 862
+  total_other: 13
+  total_pro_pct: 53.258547008547005
+  total_con_pct: 46.047008547008545
+  total_other_pct: 0.6944444444444444
+source:
+  provider: wa_leg_csi
+  search_query: SB 5637
+  meeting_family_id: '32867'
+  agenda_item_family_id: '164514'
+  agenda_item_id: '25974'
+  agenda_item_description: SB 5574 History instruction
+  short_bill_id: SB 5637
+  bill_number: '5637'
+  bill_title: Promoting student access to information about media literacy and civic
+    education.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:34:26.786611+00:00'

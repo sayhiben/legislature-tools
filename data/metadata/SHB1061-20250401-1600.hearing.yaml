@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SHB1061-33236-26767
+timezone: America/Los_Angeles
+meeting_start: '2025-04-01T16:00:00-07:00'
+sign_in_cutoff: '2025-04-01T15:00:00-07:00'
+stats:
+  total_rows: 120
+  total_testifying: 2
+  total_not_testifying: 118
+  total_pro: 113
+  total_con: 7
+  total_other: 0
+  total_pro_pct: 94.16666666666667
+  total_con_pct: 5.833333333333333
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SHB 1061
+  meeting_family_id: '33236'
+  agenda_item_family_id: '166669'
+  agenda_item_id: '26767'
+  agenda_item_description: SHB 1061 Residential parking
+  short_bill_id: SHB 1061
+  bill_number: '1061'
+  bill_title: Providing additional parking flexibility in residential neighborhoods.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:34:13.694437+00:00'

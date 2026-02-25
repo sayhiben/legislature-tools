@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33652",
+  "retrieved_at_utc": "2026-02-25T09:25:57.899520+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6045",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Placing agricultural employees under the jurisdiction of the public employment relations commission for the purpose of collective bargaining. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6188",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the department of labor and industries' authority to enact rules related to regulating asbestos training. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6053",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing labor protections for domestic workers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5852",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning immigrant worker protections. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

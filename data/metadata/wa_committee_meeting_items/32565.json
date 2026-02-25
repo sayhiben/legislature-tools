@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32565",
+  "retrieved_at_utc": "2026-02-25T09:29:20.604124+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1177",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the child welfare housing assistance program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1263",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Updating eligible uses for the essential needs and housing support program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1351",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adjusting age requirements for accessing the early childhood education and assistance program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1388",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning mobile market programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1459",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing the child fatality statute."
+    }
+  ],
+  "schema_version": 1
+}

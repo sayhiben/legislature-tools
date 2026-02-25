@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: ESSB5837-33979-28289
+timezone: America/Los_Angeles
+meeting_start: '2026-02-18T08:00:00-08:00'
+sign_in_cutoff: '2026-02-18T07:00:00-08:00'
+stats:
+  total_rows: 206
+  total_testifying: 1
+  total_not_testifying: 205
+  total_pro: 4
+  total_con: 202
+  total_other: 0
+  total_pro_pct: 1.9417475728155338
+  total_con_pct: 98.05825242718447
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: ESSB 5837
+  meeting_family_id: '33979'
+  agenda_item_family_id: '170611'
+  agenda_item_id: '28289'
+  agenda_item_description: ESSB 5837 Guardianship, etc.
+  short_bill_id: ESSB 5837
+  bill_number: '5837'
+  bill_title: Guardianship, conservatorship, and other protective arrangements for
+    adults
+  committee_name: Civil Rights & Judiciary
+  chamber: House
+  downloaded_at: '2026-02-25T08:37:17.937180+00:00'

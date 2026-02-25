@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33648",
+  "retrieved_at_utc": "2026-02-25T09:25:59.903264+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6073",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning membership of wildland or aviation firefighters in the law enforcement officers' and firefighters' retirement system. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6113",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning taxes administered by the department of revenue. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6116",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Restoring funding for cancer research and public health services. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6129",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the taxation of cigarettes and other nicotine products. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6162",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning property tax reform. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6114",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Defining the terms \"fixture\" and \"affixed\" for excise tax purposes. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5857",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning architectural and engineering fee funding assistance limits for school district construction and modernization projects. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

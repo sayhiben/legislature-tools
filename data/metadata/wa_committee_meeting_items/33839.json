@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33839",
+  "retrieved_at_utc": "2026-02-25T09:28:40.439160+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2668",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Directing the relocation of the Bob Oke game farm. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1735",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Prohibiting the force-feeding of birds."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2131",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing for voluntary donations to the sea lion predation control account at the time of vessel registration for the purpose of salmon level preservation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2199",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing impacts from derelict vessels."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2463",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting Washington farmers feeding families."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2598",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving statewide coordination in support of anadromous fish recovery."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2619",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing regulatory stress in agriculture."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,68 @@
+{
+  "agenda_id": "32819",
+  "retrieved_at_utc": "2026-02-25T09:29:49.687788+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1095",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Incentivizing cities and counties to attract and retain commissioned law enforcement officers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1896",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing local law enforcement officers by authorizing a local sales and use tax credited against the state portion to hire additional officers and increasing the number of basic law enforcement courses offered by the criminal justice training commission. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1728",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding a nonfamilial heir to the estate tax deduction. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1805",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a local sales and use tax to fund services for children and families that enhance well-being, promote mental health, and provide early interventions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1702",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing counties to impose a public utility tax. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1717",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a sales and use tax remittance program for affordable housing. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1806",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Ensuring that commercial fishing revenue benefits communities most dependent on the industry. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1703",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing an equine industry tax credit, allowing the horse racing commission to impose a fee, and using equine industry sales tax revenues for federal regulatory compliance. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1525",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing a sales and use tax exemption for a motor vehicle sold to a tribe or tribal member. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1389",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the expiration date for reporting requirements on timber purchases. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

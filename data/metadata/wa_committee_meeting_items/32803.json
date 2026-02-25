@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32803",
+  "retrieved_at_utc": "2026-02-25T09:28:53.484697+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1946",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying tribal membership on local boards of health. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1966",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning public works contracting. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1576",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the designation of historic landmarks by cities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1935",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the definition of project permit and project permit application."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5058-32610-24976
+timezone: America/Los_Angeles
+meeting_start: '2025-01-29T08:00:00-08:00'
+sign_in_cutoff: '2025-01-29T07:00:00-08:00'
+stats:
+  total_rows: 620
+  total_testifying: 26
+  total_not_testifying: 594
+  total_pro: 45
+  total_con: 567
+  total_other: 8
+  total_pro_pct: 7.258064516129033
+  total_con_pct: 91.45161290322581
+  total_other_pct: 1.2903225806451613
+source:
+  provider: wa_leg_csi
+  search_query: SB 5058
+  meeting_family_id: '32610'
+  agenda_item_family_id: '162222'
+  agenda_item_id: '24976'
+  agenda_item_description: SB 5058 Recycling rates
+  short_bill_id: SB 5058
+  bill_number: '5058'
+  bill_title: Implementing strategies to achieve higher recycling rates within Washington's
+    existing solid waste management system. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:32:15.336974+00:00'

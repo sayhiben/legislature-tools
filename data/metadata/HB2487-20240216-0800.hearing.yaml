@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2487-31903-23978
+timezone: America/Los_Angeles
+meeting_start: '2024-02-16T08:00:00-08:00'
+sign_in_cutoff: '2024-02-16T07:00:00-08:00'
+stats:
+  total_rows: 388
+  total_testifying: 1
+  total_not_testifying: 387
+  total_pro: 17
+  total_con: 371
+  total_other: 0
+  total_pro_pct: 4.381443298969072
+  total_con_pct: 95.61855670103093
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 2487
+  meeting_family_id: '31903'
+  agenda_item_family_id: '158832'
+  agenda_item_id: '23978'
+  agenda_item_description: HB 2487 Displaced farmworkers
+  short_bill_id: HB 2487
+  bill_number: '2487'
+  bill_title: Providing education and assistance for displaced farmworkers. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:34:56.743472+00:00'

@@ -1,0 +1,32 @@
+{
+  "agenda_id": "31508",
+  "retrieved_at_utc": "2026-02-25T09:28:57.527732+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1932",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Shifting general elections for local governments to even-numbered years to increase voter participation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1885",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Strengthening campaign finance disclosure by prohibiting campaign contributions and expenditures by foreign-influenced corporations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HCR 4405",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Naming the new Irving R. Newhouse Building. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1962",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving voter registration list accuracy by improving voter address change processes for county election offices and voters. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32069",
+  "retrieved_at_utc": "2026-02-25T09:28:37.477939+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SI 2113",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning vehicular pursuits by peace officers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HI 2113",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning vehicular pursuits by peace officers."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32688",
+  "retrieved_at_utc": "2026-02-25T09:29:57.706178+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1527",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning settlement demands or offers made prior to mandatory mediation of health care claims. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1507",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Limiting health care nondisclosure agreements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1440",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning seizure and forfeiture procedures and reporting. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1592",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning public defense services. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1215",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Removing references to pregnancy from the model directive form under the natural death act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning requisites of notice in small claims actions."
+    }
+  ],
+  "schema_version": 1
+}

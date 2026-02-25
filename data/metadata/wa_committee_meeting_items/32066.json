@@ -1,0 +1,428 @@
+{
+  "agenda_id": "32066",
+  "retrieved_at_utc": "2026-02-25T09:28:46.667035+00:00",
+  "row_count": 70,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "3SHB 1579",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a mechanism for independent prosecutions within the office of the attorney general of criminal conduct arising from police use of force."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1618",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the statute of limitations for childhood sexual abuse."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2114",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving housing stability for tenants subject to the residential landlord-tenant act and the manufactured/mobile home landlord-tenant act by limiting rent and fee increases, requiring notice of rent and fee increases, limiting fees and deposits, establishing a landlord resource center and associated services, authorizing tenant lease termination, creating parity between lease types, and providing for attorney general enforcement."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2210",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a wild horse holding and training program at a state corrections center."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1493",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning impaired driving."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2065",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Recalculating sentencing ranges for currently incarcerated individuals whose offender score was increased by juvenile convictions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2084",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing an oversight committee to improve construction-related training and pathways to state registered apprenticeships in state correctional facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2099",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning state identification cards for persons in state custody or care."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2311",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting first responder wellness and peer support."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1932",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Shifting general elections for local governments to even-numbered years to increase voter participation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2246",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning vacation leave accrual for state employees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2ESHB 1282",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring environmental and labor reporting for public building construction and renovation material."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1044",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing capital financial assistance to small school districts with demonstrated funding challenges."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1870",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting economic development by increasing opportunities for local communities to secure federal funding."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2131",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting the establishment of thermal energy networks."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1982",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the authority of the community economic revitalization board with respect to loans and grants to political subdivisions and federally recognized Indian tribes for broadband."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1892",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the workforce housing accelerator program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2195",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Strengthening the early learning facilities grant and loan program by revising criteria and providing resources to the Ruth LeCocq Kagi early learning facilities development account."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E4SHB 1239",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a simple and uniform system for complaints related to, and instituting a code of educator ethics for, conduct within or involving public elementary and secondary schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1012",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing the response to extreme weather events."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2020",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a state administered public infrastructure assistance program within the emergency management division."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2EHB 1757",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a sales and use tax remittance to qualified farmers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1453",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a tax exemption for medical cannabis patients."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1052",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a property tax exemption for qualified real and personal property owned or used by a nonprofit entity in providing qualified housing funded in whole or part through a local real estate excise tax."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1976",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Changing the incentive structure for tier 1 and tier 2 buildings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 2199",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating business and occupation and public utility tax exemptions for certain amounts received as the result of receipt, generation, purchase, sale, transfer, or retirement of allowances, offset credits, or price ceiling units under the climate commitment act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2012",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning eligibility for a property tax exemption for nonprofits providing affordable rental housing built with city and county funds."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2354",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating an option for impacted taxing districts to provide a portion of their new revenue to support any tax increment area proposed within their jurisdiction and clarifying that a tax increment area must be dissolved when all bond obligations are paid."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2375",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Including an accessory dwelling unit under property that qualifies for the senior citizens property tax exemption."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1510",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing permanent funding for community preservation and development authorities approved through RCW 43.167.060."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2003",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning an exemption to the leasehold excise tax for leases on public lands."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2482",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reinstating semiconductor tax incentives."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1768",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Exempting certain sales of electricity to qualifying green businesses from the public utilities tax."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1818",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the exclusion of compensating tax when land is sold to a governmental entity intending to manage the land similarly to designated forestland or timberland."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6316",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the state route number 520 corridor."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2207",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing tools designed to reduce the impacts of unlawful solid waste dumping."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1899",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Facilitating reconstruction of communities damaged or destroyed by wildfires."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1391",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning energy in buildings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1551",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing lead in cookware."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2301",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving the outcomes associated with waste material management systems, including products affecting organic material management systems."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2401",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing for the responsible management of refrigerant gases with a higher global warming potential than carbon dioxide that are used in appliances or other infrastructure."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1970",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving communication between the department of children, youth, and families and caregivers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1916",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning funding for the early support for infants and toddlers program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1652",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning child support pass through."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding time limit exemptions applicable to cash assistance programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2124",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting and expanding access to child care and early learning programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1942",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Clarifying employment standards for long-term care individual providers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2014",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the definition of veteran and restoring honor to veterans."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1956",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing fentanyl and other substance use prevention education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2247",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing behavioral health provider shortages."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1929",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting young adults following inpatient behavioral health treatment."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1877",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving the Washington state behavioral health system for better coordination and recognition with the Indian behavioral health system."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1941",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing for health home services for medicaid-eligible children with medically complex conditions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1717",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting innovation at associate development organizations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2160",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting community and transit-oriented housing development."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2270",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a Washington state department of housing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2236",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding and strengthening career and technical education core plus programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1692",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating student advisory groups."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2ESHB 1377",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Posting of approved courses and providers of continuing education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "3SHB 1228",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Building a multilingual, multiliterate Washington through dual and tribal language education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1248",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning pupil transportation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1368",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring and funding the purchase of zero emission school buses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2180",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the special education enrollment funding cap."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2494",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing state funding for operating costs in schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1946",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the Washington health corps behavioral health scholarship program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1943",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the Washington national guard postsecondary education grant program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2019",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a Native American apprentice assistance program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2112",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning opioid and fentanyl prevention education and awareness at institutions of higher education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2214",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Permitting beneficiaries of public assistance programs to automatically qualify as income-eligible for the purpose of receiving the Washington college grant."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2441",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a pilot program eliminating college in the high school fees for private not-for-profit four-year institutions."
+    }
+  ],
+  "schema_version": 1
+}

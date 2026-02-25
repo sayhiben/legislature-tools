@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SSB5025-32934-26253
+timezone: America/Los_Angeles
+meeting_start: '2025-03-05T08:00:00-08:00'
+sign_in_cutoff: '2025-03-05T07:00:00-08:00'
+stats:
+  total_rows: 17
+  total_testifying: 2
+  total_not_testifying: 15
+  total_pro: 14
+  total_con: 2
+  total_other: 1
+  total_pro_pct: 82.35294117647058
+  total_con_pct: 11.76470588235294
+  total_other_pct: 5.88235294117647
+source:
+  provider: wa_leg_csi
+  search_query: SSB 5025
+  meeting_family_id: '32934'
+  agenda_item_family_id: '165097'
+  agenda_item_id: '26253'
+  agenda_item_description: SSB 5025 Educational interpreters
+  short_bill_id: SSB 5025
+  bill_number: '5025'
+  bill_title: Concerning educational interpreters. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:35:04.621913+00:00'

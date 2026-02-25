@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32519",
+  "retrieved_at_utc": "2026-02-25T09:25:55.878798+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1308",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning access to personnel records. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1105",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Exempting exclusive bargaining representatives for department of corrections employees from certain provisions related to coalition bargaining."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1141",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning collective bargaining for agricultural cannabis workers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1162",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workplace violence in health care settings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1173",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning wages for journeypersons in high-hazard facilities."
+    }
+  ],
+  "schema_version": 1
+}

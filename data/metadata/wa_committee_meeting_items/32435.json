@@ -1,0 +1,14 @@
+{
+  "agenda_id": "32435",
+  "retrieved_at_utc": "2026-02-25T09:29:58.777118+00:00",
+  "row_count": 1,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5082",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a housing assistance program for youth enrolled in extended foster care. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

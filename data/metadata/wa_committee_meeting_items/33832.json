@@ -1,0 +1,74 @@
+{
+  "agenda_id": "33832",
+  "retrieved_at_utc": "2026-02-25T09:29:08.525324+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6053",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing labor protections for domestic workers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6134",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning notice to striking workers applying for unemployment insurance benefits of potential overpayment assessment upon receipt of retroactive wages."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6147",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning notice requirements for grocery establishment closures."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6106",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the securing timely notification and benefits for laid-off employees act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6045",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Placing agricultural employees under the jurisdiction of the public employment relations commission for the purpose of collective bargaining."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6135",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning interest arbitration regarding uniformed personnel. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6128",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Facilitating the use of a department of labor and industries-approved, application-based, third-party recording platform to record independent medical exams. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6282",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring state registered apprenticeships in the building and construction trades to provide behavioral health and wellness training. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6068",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning workers' wages and benefits in the construction industry. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6303",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning sustainability and safety in cannabis product packaging and vapor devices. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6290",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reorganizing the liquor and cannabis board. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

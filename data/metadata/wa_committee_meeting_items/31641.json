@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31641",
+  "retrieved_at_utc": "2026-02-25T09:28:36.420256+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5995",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a professional license for spoken language interpreters and translators. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6105",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating safer working conditions in adult entertainment establishments. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5979",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning accrued leave for construction workers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5793",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning paid sick leave. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5886",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding purposes for the use of existing firefighter safety funding. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5894",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Including protected classes in the Washington equal pay and opportunities act. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

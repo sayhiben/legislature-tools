@@ -1,0 +1,68 @@
+{
+  "agenda_id": "34029",
+  "retrieved_at_utc": "2026-02-25T09:25:53.863142+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5825",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing the Washington state leadership board to solicit gifts, grants, and endowments from public or private sources."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5840",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Making adjustments to the schedule for reporting campaign finance expenditure activity."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6049",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting student and employee information from public disclosure."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6160",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving government efficiency related to reports by state agencies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5000",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adopting the evergreen state as the state nickname."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5325",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating the state cactus."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSJM 8014",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requesting an investigation into the killing of Aysenur Ezgi Eygi. (REVISED FOR ENGROSSED: Requesting an investigation into the violent death of Aysenur Ezgi Eygi.)"
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6044",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Recognizing Diwali and Bandi Chhor Divas."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6313",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the capitol centennial stewardship account and authorizing members of the legislature and statewide elected officials to solicit gifts, grants, and donations to the account."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5827",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the definition of a \"qualifying discharge\" for the Washington state veterans' preference program for civil service."
+    }
+  ],
+  "schema_version": 1
+}

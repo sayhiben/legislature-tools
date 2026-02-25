@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2206-33586-27120
+timezone: America/Los_Angeles
+meeting_start: '2026-01-13T13:30:00-08:00'
+sign_in_cutoff: '2026-01-13T12:30:00-08:00'
+stats:
+  total_rows: 694
+  total_testifying: 4
+  total_not_testifying: 690
+  total_pro: 22
+  total_con: 671
+  total_other: 1
+  total_pro_pct: 3.170028818443804
+  total_con_pct: 96.68587896253602
+  total_other_pct: 0.1440922190201729
+source:
+  provider: wa_leg_csi
+  search_query: HB 2206
+  meeting_family_id: '33586'
+  agenda_item_family_id: '167892'
+  agenda_item_id: '27120'
+  agenda_item_description: HB 2206 Uniformed & overseas voting
+  short_bill_id: HB 2206
+  bill_number: '2206'
+  bill_title: Adopting national standards for uniformed and overseas civilian voting,
+    including conforming amendments to existing statute
+  committee_name: State Government & Tribal Relations
+  chamber: House
+  downloaded_at: '2026-02-25T09:31:45.640705+00:00'

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB6046-33965-28204
+timezone: America/Los_Angeles
+meeting_start: '2026-02-20T10:30:00-08:00'
+sign_in_cutoff: '2026-02-20T09:30:00-08:00'
+stats:
+  total_rows: 119
+  total_testifying: 4
+  total_not_testifying: 115
+  total_pro: 119
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 6046
+  meeting_family_id: '33965'
+  agenda_item_family_id: '170487'
+  agenda_item_id: '28204'
+  agenda_item_description: SB 6046 Civil air patrol
+  short_bill_id: SB 6046
+  bill_number: '6046'
+  bill_title: Establishing the Washington division of civil air patrol as part of
+    the Washington military department. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:33:55.372376+00:00'

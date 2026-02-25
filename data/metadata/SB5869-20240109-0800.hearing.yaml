@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5869-31542-22713
+timezone: America/Los_Angeles
+meeting_start: '2024-01-09T08:00:00-08:00'
+sign_in_cutoff: '2024-01-09T07:00:00-08:00'
+stats:
+  total_rows: 3
+  total_testifying: 1
+  total_not_testifying: 2
+  total_pro: 2
+  total_con: 0
+  total_other: 1
+  total_pro_pct: 66.66666666666666
+  total_con_pct: 0.0
+  total_other_pct: 33.33333333333333
+source:
+  provider: wa_leg_csi
+  search_query: SB 5869
+  meeting_family_id: '31542'
+  agenda_item_family_id: '155993'
+  agenda_item_id: '22713'
+  agenda_item_description: SB 5869 Rural fire district stations
+  short_bill_id: SB 5869
+  bill_number: '5869'
+  bill_title: Concerning rural fire district stations. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:33:22.904289+00:00'

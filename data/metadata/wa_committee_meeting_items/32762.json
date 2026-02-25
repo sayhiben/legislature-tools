@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32762",
+  "retrieved_at_utc": "2026-02-25T09:28:38.457057+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9216",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Timothy Lang, Secretary, Department of Corrections - Agency Head."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9222",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Tana Senn, Secretary, Department of Children, Youth, and Families - Agency Head."
+    }
+  ],
+  "schema_version": 1
+}

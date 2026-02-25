@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1420-32560-25145
+timezone: America/Los_Angeles
+meeting_start: '2025-01-30T08:00:00-08:00'
+sign_in_cutoff: '2025-01-30T07:00:00-08:00'
+stats:
+  total_rows: 730
+  total_testifying: 14
+  total_not_testifying: 716
+  total_pro: 333
+  total_con: 394
+  total_other: 3
+  total_pro_pct: 45.61643835616439
+  total_con_pct: 53.97260273972603
+  total_other_pct: 0.410958904109589
+source:
+  provider: wa_leg_csi
+  search_query: HB 1420
+  meeting_family_id: '32560'
+  agenda_item_family_id: '162227'
+  agenda_item_id: '25145'
+  agenda_item_description: HB 1420 Textile producers
+  short_bill_id: HB 1420
+  bill_number: '1420'
+  bill_title: Establishing producer responsibility for textiles. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:32:51.674938+00:00'

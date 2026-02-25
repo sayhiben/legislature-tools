@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32903",
+  "retrieved_at_utc": "2026-02-25T09:29:17.587301+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1633",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning prime contractor bidding submission requirements on public works contracts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1898",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning truck and trailer length limitations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1902",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Convening a work group regarding the streamlining of permitting for transportation projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1970",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning state highway construction project alternative contracting procedures."
+    }
+  ],
+  "schema_version": 1
+}

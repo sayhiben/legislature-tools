@@ -1,0 +1,20 @@
+{
+  "agenda_id": "31524",
+  "retrieved_at_utc": "2026-02-25T09:29:36.715463+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1045",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating the evergreen basic income pilot program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1368",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring and funding the purchase of zero emission school buses. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

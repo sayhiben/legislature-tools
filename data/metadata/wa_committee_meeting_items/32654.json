@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32654",
+  "retrieved_at_utc": "2026-02-25T09:29:14.546860+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1051",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Permitting the recording of individualized education program team meetings. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1257",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending special education services to students with disabilities until the end of the school year in which the student turns 22. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1273",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving student access to dual credit programs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1651",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning teacher residency and apprenticeship programs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1676",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reassigning and authorizing surrendered, revoked, or nonrenewed charter school contracts. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

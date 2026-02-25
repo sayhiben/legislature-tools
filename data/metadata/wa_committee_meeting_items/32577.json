@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32577",
+  "retrieved_at_utc": "2026-02-25T09:28:41.420677+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9192",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Samuel W Hunt, Member, Washington State University Board of Regents."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5402",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying financial aid eligibility. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9192",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Samuel W Hunt, Member, Washington State University Board of Regents."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5027",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a loan repayment program for public defense attorneys and prosecutors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5164",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing student navigational supports to increase postsecondary enrollment."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5304",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding eligibility for the students experiencing homelessness and foster youth program to an accredited tribal college."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5321",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning access at public postsecondary educational institutions to medication abortion."
+    }
+  ],
+  "schema_version": 1
+}

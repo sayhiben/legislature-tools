@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: HB1911-31563-22804
+timezone: America/Los_Angeles
+meeting_start: '2024-01-10T08:00:00-08:00'
+sign_in_cutoff: '2024-01-10T07:00:00-08:00'
+stats:
+  total_rows: 12
+  total_testifying: 3
+  total_not_testifying: 9
+  total_pro: 7
+  total_con: 4
+  total_other: 1
+  total_pro_pct: 58.333333333333336
+  total_con_pct: 33.33333333333333
+  total_other_pct: 8.333333333333332
+source:
+  provider: wa_leg_csi
+  search_query: HB 1911
+  meeting_family_id: '31563'
+  agenda_item_family_id: '156040'
+  agenda_item_id: '22804'
+  agenda_item_description: HB 1911 Office of public defense
+  short_bill_id: HB 1911
+  bill_number: '1911'
+  bill_title: Concerning activities in which the office of public defense may engage
+    without violating the prohibition on providing direct representation of clients.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:33:32.674504+00:00'

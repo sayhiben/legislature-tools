@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2540-33970-28364
+timezone: America/Los_Angeles
+meeting_start: '2026-02-20T08:00:00-08:00'
+sign_in_cutoff: '2026-02-20T07:00:00-08:00'
+stats:
+  total_rows: 13
+  total_testifying: 1
+  total_not_testifying: 12
+  total_pro: 13
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 2540
+  meeting_family_id: '33970'
+  agenda_item_family_id: '171035'
+  agenda_item_id: '28364'
+  agenda_item_description: HB 2540 EMT recertification
+  short_bill_id: HB 2540
+  bill_number: '2540'
+  bill_title: Emergency medical technician recertification
+  committee_name: Health & Long-Term Care
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:01:39.042107+00:00'

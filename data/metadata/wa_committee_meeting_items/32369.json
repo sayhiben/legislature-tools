@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32369",
+  "retrieved_at_utc": "2026-02-25T09:30:06.763503+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5110",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing tuition waivers for tribal elders at Washington\u2019s community and technical colleges. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5164",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing student navigational supports to increase postsecondary enrollment. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5115",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating the Washington dream act service incentive program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5158",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning student athlete insurance. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

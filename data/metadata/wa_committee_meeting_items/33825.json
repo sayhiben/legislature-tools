@@ -1,0 +1,116 @@
+{
+  "agenda_id": "33825",
+  "retrieved_at_utc": "2026-02-25T09:30:05.775802+00:00",
+  "row_count": 18,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6037",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning fire protection districts. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6194",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Allowing payments to be made based on allowable costs for services provided by any rural hospital that is located on a federally recognized Indian reservation. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5963",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying funding for the passport to careers program and eligibility for the Washington college grant. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5909",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reviewing and discontinuing low-enrollment undergraduate programs at public baccalaureate institutions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5826",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning access at public postsecondary educational institutions to medication abortion. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5988",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing fee authority for accreditation services provided to opioid treatment programs by the department of health."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5872",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing the preK promise account."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5879",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying joint legislative audit and review committee work plans to ensure efficient use of staff resources."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5834",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning payment of expenses from the earnings of retirement system trust funds."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5835",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the threshold for payment of a lump sum retirement allowance in lieu of a monthly benefit."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5905",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning membership in the public employees' retirement system for port workers who participate in a federal railroad retirement plan, a union-sponsored defined benefit retirement plan, or another employer-funded private pension plan."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5832",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Updating the arbitration fee collected for the new motor vehicle arbitration account."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6177",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the legislative evaluation and accountability program website."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5496",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Preserving homeownership options by limiting excessive home buying by certain entities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5970",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Making the property tax exemption for multipurpose senior citizen centers permanent."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5994",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Preserving timber tax distributions for school districts with recent school district levy failures."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6047",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning statutory guidelines for the administration of state capital projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5647",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a real estate excise tax exemption for the sale of qualified affordable housing."
+    }
+  ],
+  "schema_version": 1
+}

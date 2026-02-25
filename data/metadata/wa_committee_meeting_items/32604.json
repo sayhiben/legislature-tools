@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32604",
+  "retrieved_at_utc": "2026-02-25T09:29:59.751962+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5322",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing the impacts of burrowing shrimp on bottom culture shellfish farming through integrated pest management research. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5334",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding the department of natural resources' civil enforcement decisions under RCW 76.04.205 to appeals that may be heard by the pollution control hearings board. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5319",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing surface mine reclamation permit fees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5343",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the northeast Washington wolf-livestock management account. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -375,6 +375,60 @@ def test_voter_registry_match_nickname_equivalence_uses_resolved_config_path(
     assert assignments.loc["HARSHAW|NORM", "loose_outcome_selected"] == "matched_unique"
 
 
+def test_voter_registry_match_uses_project_nickname_override_for_becky(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "canonical_name": ["MERRITT|BECKY", "MERRITT|REBECCA"],
+            "position_normalized": ["Pro", "Con"],
+            "minute_bucket": pd.to_datetime(["2026-02-01 00:05:00", "2026-02-01 00:06:00"]),
+            "name_display": ["MERRITT, BECKY", "MERRITT, REBECCA"],
+        }
+    )
+    nickname_path = Path(__file__).resolve().parents[1] / "configs" / "nicknames.csv"
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_matching_voter_names",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_name": ["MERRITT|REBECCA"],
+                "n_registry_rows": [1],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_last": ["MERRITT"],
+                "canonical_first": ["REBECCA"],
+                "canonical_name": ["MERRITT|REBECCA"],
+                "n_registry_rows": [1],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.count_registry_rows",
+        lambda **_kwargs: 1,
+    )
+
+    detector = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        bucket_minutes=30,
+        active_only=True,
+        nickname_map_path=str(nickname_path),
+    )
+    result = detector.run(df=df, features={})
+
+    assignments = result.tables["match_assignments"].set_index("canonical_name")
+    assert assignments.loc["MERRITT|BECKY", "match_tier"] == "nickname_exact"
+    assert assignments.loc["MERRITT|BECKY", "strict_outcome_selected"] == "unmatched"
+    assert assignments.loc["MERRITT|BECKY", "loose_outcome_selected"] == "matched_unique"
+
+
 def test_voter_registry_match_detector_reports_sensitivity_modes(monkeypatch) -> None:
     df = pd.DataFrame(
         {

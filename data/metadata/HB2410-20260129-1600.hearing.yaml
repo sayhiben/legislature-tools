@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2410-33746-27799
+timezone: America/Los_Angeles
+meeting_start: '2026-01-29T16:00:00-08:00'
+sign_in_cutoff: '2026-01-29T15:00:00-08:00'
+stats:
+  total_rows: 196
+  total_testifying: 7
+  total_not_testifying: 189
+  total_pro: 190
+  total_con: 5
+  total_other: 1
+  total_pro_pct: 96.93877551020408
+  total_con_pct: 2.5510204081632653
+  total_other_pct: 0.5102040816326531
+source:
+  provider: wa_leg_csi
+  search_query: HB 2410
+  meeting_family_id: '33746'
+  agenda_item_family_id: '168819'
+  agenda_item_id: '27799'
+  agenda_item_description: HB 2410 Commercial truck council
+  short_bill_id: HB 2410
+  bill_number: '2410'
+  bill_title: Establishing a commercial truck safety and education council. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:32:07.609237+00:00'

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB6277-31696-23595
+timezone: America/Los_Angeles
+meeting_start: '2024-01-25T16:00:00-08:00'
+sign_in_cutoff: '2024-01-25T15:00:00-08:00'
+stats:
+  total_rows: 11
+  total_testifying: 3
+  total_not_testifying: 8
+  total_pro: 6
+  total_con: 2
+  total_other: 3
+  total_pro_pct: 54.54545454545454
+  total_con_pct: 18.181818181818183
+  total_other_pct: 27.27272727272727
+source:
+  provider: wa_leg_csi
+  search_query: SB 6277
+  meeting_family_id: '31696'
+  agenda_item_family_id: '157628'
+  agenda_item_id: '23595'
+  agenda_item_description: SB 6277 Transportation partnerships
+  short_bill_id: SB 6277
+  bill_number: '6277'
+  bill_title: Creating a new statutory framework for the use of public-private partnerships
+    for transportation projects. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:32:12.467823+00:00'

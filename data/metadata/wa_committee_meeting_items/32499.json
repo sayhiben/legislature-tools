@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32499",
+  "retrieved_at_utc": "2026-02-25T09:29:16.623656+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1303",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing environmental justice by improving government decisions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1329",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning wholesale power purchases by electric utilities under the Washington clean energy transformation act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1024",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the leasing authority of the state parks and recreation commission at St. Edward State Park."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1018",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding fusion energy to facilities that may obtain site certification for the purposes of chapter 80.50 RCW."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1154",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring environmental and public health protection from solid waste handling facility operations."
+    }
+  ],
+  "schema_version": 1
+}

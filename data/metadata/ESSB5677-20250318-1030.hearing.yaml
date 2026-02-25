@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: ESSB5677-33016-26540
+timezone: America/Los_Angeles
+meeting_start: '2025-03-18T10:30:00-07:00'
+sign_in_cutoff: '2025-03-18T09:30:00-07:00'
+stats:
+  total_rows: 59
+  total_testifying: 5
+  total_not_testifying: 54
+  total_pro: 11
+  total_con: 10
+  total_other: 38
+  total_pro_pct: 18.64406779661017
+  total_con_pct: 16.94915254237288
+  total_other_pct: 64.40677966101694
+source:
+  provider: wa_leg_csi
+  search_query: ESSB 5677
+  meeting_family_id: '33016'
+  agenda_item_family_id: '165500'
+  agenda_item_id: '26540'
+  agenda_item_description: ESSB 5677 Associate development orgs
+  short_bill_id: ESSB 5677
+  bill_number: '5677'
+  bill_title: Concerning associate development organizations. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:33:35.172793+00:00'

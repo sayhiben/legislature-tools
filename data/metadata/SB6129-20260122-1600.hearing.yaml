@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB6129-33648-27522
+timezone: America/Los_Angeles
+meeting_start: '2026-01-22T16:00:00-08:00'
+sign_in_cutoff: '2026-01-22T15:00:00-08:00'
+stats:
+  total_rows: 280
+  total_testifying: 38
+  total_not_testifying: 242
+  total_pro: 118
+  total_con: 158
+  total_other: 4
+  total_pro_pct: 42.142857142857146
+  total_con_pct: 56.42857142857143
+  total_other_pct: 1.4285714285714286
+source:
+  provider: wa_leg_csi
+  search_query: SB 6129
+  meeting_family_id: '33648'
+  agenda_item_family_id: '168663'
+  agenda_item_id: '27522'
+  agenda_item_description: SB 6129 Cigarettes, nicotine/tax
+  short_bill_id: SB 6129
+  bill_number: '6129'
+  bill_title: Concerning the taxation of cigarettes and other nicotine products. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:26:27.995712+00:00'

@@ -1,0 +1,56 @@
+{
+  "agenda_id": "32015",
+  "retrieved_at_utc": "2026-02-25T09:28:52.514314+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2089",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the capital budget."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5789",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the sales and use tax for school construction assistance program capital projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6040",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning prompt payment in public works. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6192",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing additional work and change orders on public and private construction projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5344",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a public school revolving fund. (REVISED FOR ENGROSSED: Establishing a school modernization loan program.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5667",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning eligibility, enrollment, and compensation of small forestland owners volunteering for participation in the forestry riparian easement program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6039",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Promoting the development of geothermal energy resources. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5955",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Mitigating harm and improving equity in large port districts. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

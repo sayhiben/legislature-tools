@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33730",
+  "retrieved_at_utc": "2026-02-25T09:29:41.678796+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5987",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing the emergency replacement of failed infrastructure on state route number 165. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6170",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adjusting monetary limits regarding contracting rules for state highway construction work and procurement. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

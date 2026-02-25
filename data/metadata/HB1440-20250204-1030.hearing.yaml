@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1440-32688-25362
+timezone: America/Los_Angeles
+meeting_start: '2025-02-04T10:30:00-08:00'
+sign_in_cutoff: '2025-02-04T09:30:00-08:00'
+stats:
+  total_rows: 7
+  total_testifying: 5
+  total_not_testifying: 2
+  total_pro: 3
+  total_con: 0
+  total_other: 4
+  total_pro_pct: 42.857142857142854
+  total_con_pct: 0.0
+  total_other_pct: 57.14285714285714
+source:
+  provider: wa_leg_csi
+  search_query: HB 1440
+  meeting_family_id: '32688'
+  agenda_item_family_id: '162740'
+  agenda_item_id: '25362'
+  agenda_item_description: HB 1440 Civil forfeiture proceedings
+  short_bill_id: HB 1440
+  bill_number: '1440'
+  bill_title: Concerning seizure and forfeiture procedures and reporting. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:34:39.069155+00:00'

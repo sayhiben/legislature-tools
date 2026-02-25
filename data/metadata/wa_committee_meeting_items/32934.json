@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32934",
+  "retrieved_at_utc": "2026-02-25T09:30:07.920102+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5004",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating emergency response systems in public schools including panic or alert buttons. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5025",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning educational interpreters. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

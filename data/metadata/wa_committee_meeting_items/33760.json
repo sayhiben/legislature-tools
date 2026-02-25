@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33760",
+  "retrieved_at_utc": "2026-02-25T09:29:22.663612+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2230",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Streamlining monitoring and oversight activities related to community residential service business providers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2364",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the legislative-executive poverty reduction task force."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2389",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying provisions related to individuals found to have committed criminal offenses when under the age of 18."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2429",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting children and youth behavioral health."
+    }
+  ],
+  "schema_version": 1
+}

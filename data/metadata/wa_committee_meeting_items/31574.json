@@ -1,0 +1,50 @@
+{
+  "agenda_id": "31574",
+  "retrieved_at_utc": "2026-02-25T09:28:32.442536+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1946",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the Washington health corps behavioral health scholarship program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1950",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the public service loan forgiveness program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1943",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the Washington national guard postsecondary education grant program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2171",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing financial aid grants for incarcerated students."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1939",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adopting the social work licensure compact."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1917",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adopting the physician assistant compact."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2004",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing early registration at institutions of higher education for military students."
+    }
+  ],
+  "schema_version": 1
+}

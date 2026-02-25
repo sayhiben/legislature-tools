@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5305-32471-24913
+timezone: America/Los_Angeles
+meeting_start: '2025-01-23T13:30:00-08:00'
+sign_in_cutoff: '2025-01-23T12:30:00-08:00'
+stats:
+  total_rows: 21
+  total_testifying: 4
+  total_not_testifying: 17
+  total_pro: 13
+  total_con: 7
+  total_other: 1
+  total_pro_pct: 61.904761904761905
+  total_con_pct: 33.33333333333333
+  total_other_pct: 4.761904761904762
+source:
+  provider: wa_leg_csi
+  search_query: SB 5305
+  meeting_family_id: '32471'
+  agenda_item_family_id: '161824'
+  agenda_item_id: '24913'
+  agenda_item_description: SB 5305 Salmon recovery accelerator
+  short_bill_id: SB 5305
+  bill_number: '5305'
+  bill_title: New environmental accelerator for salmon recovery and ecological resiliency
+    projects
+  committee_name: Agriculture & Natural Resources
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:34:51.562026+00:00'

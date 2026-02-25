@@ -6,6 +6,7 @@ import pandas as pd
 import yaml
 
 from testifier_audit.config import NamesConfig, load_config
+from testifier_audit.names.nickname_map import load_nickname_map, nickname_root
 from testifier_audit.preprocess.names import add_name_features
 
 
@@ -67,3 +68,11 @@ def test_add_name_features_uses_configs_prefixed_nickname_map_from_loaded_config
 
     assert out.loc[0, "canonical_key_nickname"] == "HARSHAW|NORMAN"
     assert out.loc[1, "canonical_key_nickname"] == "HARSHAW|NORMAN"
+
+
+def test_project_nickname_map_includes_becky_to_rebecca_override() -> None:
+    nickname_path = Path(__file__).resolve().parents[1] / "configs" / "nicknames.csv"
+    mapping = load_nickname_map(str(nickname_path))
+
+    assert mapping.get("BECKY") == "REBECCA"
+    assert nickname_root("BECKY", mapping) == "REBECCA"

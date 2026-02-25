@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33641",
+  "retrieved_at_utc": "2026-02-25T09:29:38.673267+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2307",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the time component of various definitions for purposes of commute trip reduction. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2374",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning electric-assisted bicycle and electric motorcycle regulation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2379",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing for the suspension of tolling on certain facilities in the event of an emergency. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1823",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying transportation improvement board provisions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2111",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing the Interstate 5 bridge replacement project toll facility bond retirement account to receive its proportionate share of earnings."
+    }
+  ],
+  "schema_version": 1
+}

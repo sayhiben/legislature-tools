@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32750",
+  "retrieved_at_utc": "2026-02-25T09:29:06.549061+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5206",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning cannabis retailer advertising. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5700",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the medical cannabis authorization database. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5368",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Studying taxes and fees related to alcohol. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5371",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Eliminating the per transaction limit for wine and spirit sales. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5399",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning liquor licenses. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5511",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regarding low-proof alcoholic beverages. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1932-31508-22893
+timezone: America/Los_Angeles
+meeting_start: '2024-01-09T13:30:00-08:00'
+sign_in_cutoff: '2024-01-09T12:30:00-08:00'
+stats:
+  total_rows: 395
+  total_testifying: 20
+  total_not_testifying: 375
+  total_pro: 160
+  total_con: 231
+  total_other: 4
+  total_pro_pct: 40.50632911392405
+  total_con_pct: 58.48101265822785
+  total_other_pct: 1.0126582278481013
+source:
+  provider: wa_leg_csi
+  search_query: HB 1932
+  meeting_family_id: '31508'
+  agenda_item_family_id: '156093'
+  agenda_item_id: '22893'
+  agenda_item_description: HB 1932 Even-numbered year elections
+  short_bill_id: HB 1932
+  bill_number: '1932'
+  bill_title: Shifting general elections for local governments to even-numbered years
+    to increase voter participation. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:32:09.966093+00:00'

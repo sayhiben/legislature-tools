@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32500",
+  "retrieved_at_utc": "2026-02-25T09:29:07.578610+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5059",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning Washington state ferries captains. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5127",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating additional requirements for collector vehicle and horseless carriage license plates to improve compliance and public safety. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5234",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning snowmobile registration fees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8000",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the naming of Martin Luther King, Jr. Way. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5215",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning debris escaping from vehicles on public highways. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5072",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning abandoned vehicles sold at auctions conducted by registered tow truck operators."
+    }
+  ],
+  "schema_version": 1
+}

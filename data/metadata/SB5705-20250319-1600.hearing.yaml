@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5705-33028-26546
+timezone: America/Los_Angeles
+meeting_start: '2025-03-19T16:00:00-07:00'
+sign_in_cutoff: '2025-03-19T15:00:00-07:00'
+stats:
+  total_rows: 34
+  total_testifying: 5
+  total_not_testifying: 29
+  total_pro: 22
+  total_con: 11
+  total_other: 1
+  total_pro_pct: 64.70588235294117
+  total_con_pct: 32.35294117647059
+  total_other_pct: 2.941176470588235
+source:
+  provider: wa_leg_csi
+  search_query: SB 5705
+  meeting_family_id: '33028'
+  agenda_item_family_id: '165709'
+  agenda_item_id: '26546'
+  agenda_item_description: SB 5705 Traffic infraction penalties
+  short_bill_id: SB 5705
+  bill_number: '5705'
+  bill_title: Unlawful use of a personal electronic device while driving in certain
+    speed zones
+  committee_name: Transportation
+  chamber: House
+  downloaded_at: '2026-02-25T09:30:21.028293+00:00'

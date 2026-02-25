@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32606",
+  "retrieved_at_utc": "2026-02-25T09:29:10.620736+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1345",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing limitations on detached accessory dwelling units outside of urban growth areas. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1443",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning mobile dwellings. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1096",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing housing options through lot splitting."
+    }
+  ],
+  "schema_version": 1
+}

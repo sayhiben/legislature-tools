@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32398",
+  "retrieved_at_utc": "2026-02-25T09:29:35.652160+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1003",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing service of notice by mail in cases involving forcible entry and forcible and unlawful detainer. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1096",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing housing options through lot splitting. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1217",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving housing stability for tenants subject to the residential landlord-tenant act and the manufactured/mobile home landlord-tenant act by limiting rent and fee increases, requiring notice of rent and fee increases, limiting fees and deposits, establishing a landlord resource center and associated services, authorizing tenant lease termination, creating parity between lease types, and providing for attorney general enforcement. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

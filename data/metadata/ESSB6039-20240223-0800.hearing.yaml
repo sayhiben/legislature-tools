@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: ESSB6039-32015-24434
+timezone: America/Los_Angeles
+meeting_start: '2024-02-23T08:00:00-08:00'
+sign_in_cutoff: '2024-02-23T07:00:00-08:00'
+stats:
+  total_rows: 10
+  total_testifying: 1
+  total_not_testifying: 9
+  total_pro: 10
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: ESSB 6039
+  meeting_family_id: '32015'
+  agenda_item_family_id: '160230'
+  agenda_item_id: '24434'
+  agenda_item_description: ESSB 6039 Geothermal energy resources
+  short_bill_id: ESSB 6039
+  bill_number: '6039'
+  bill_title: Promoting the development of geothermal energy resources. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:31:55.812334+00:00'

@@ -1,0 +1,80 @@
+{
+  "agenda_id": "34017",
+  "retrieved_at_utc": "2026-02-25T09:29:48.742141+00:00",
+  "row_count": 12,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2508",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying the scope of authority of the office of independent investigations to align with current operations and practices and to include public disclosure requirements and protect privacy. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2203",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating the offense of reckless interference with emergency operations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1909",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing the court unification task force. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2248",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning corporate filings and other documents processed by the secretary of state's corporations and charities division. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2095",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting vulnerable users of public ways. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2158",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning electronic notarial acts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2239",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing Washingtonians and their loved ones with location choices for interment of remains."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2178",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning court rules and procedures."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2543",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning county clerk fees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2165",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning false identification as a peace officer."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2532",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sale and distribution of nitrous oxide."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2320",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the regulation of firearm manufacturing."
+    }
+  ],
+  "schema_version": 1
+}

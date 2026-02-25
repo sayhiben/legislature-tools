@@ -1,0 +1,56 @@
+{
+  "agenda_id": "33870",
+  "retrieved_at_utc": "2026-02-25T09:28:48.484581+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2514",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a global war on terror memorial on the capitol campus."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2352",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Holding state officers and state employees to the same conflict of interest standard that is required of municipal officers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2475",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning language accessible public programs, activities, and services conducted, operated, or administered by state agencies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2206",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adopting national standards for uniformed and overseas civilian voting, including conforming amendments to existing statute."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HJR 4210",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Amending the state Constitution to allow the legislature to determine the duration of regular sessions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2447",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating the state shark."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2661",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing the legislative task force on public records act modernization consisting of eight voting members and four nonvoting legislators."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2572",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing access to voting services for military, overseas, Native American, and disabled voters."
+    }
+  ],
+  "schema_version": 1
+}

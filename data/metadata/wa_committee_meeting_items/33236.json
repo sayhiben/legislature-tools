@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33236",
+  "retrieved_at_utc": "2026-02-25T09:29:46.751091+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1837",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing intercity passenger rail improvement priorities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1902",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Convening a work group regarding the streamlining of permitting for transportation projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1061",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing additional parking flexibility in residential neighborhoods. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1970",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning state highway construction project alternative contracting procedures. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1774",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying allowable terms for the lease of unused highway land. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

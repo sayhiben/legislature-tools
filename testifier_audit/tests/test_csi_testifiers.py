@@ -1,21 +1,28 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime
+from urllib.parse import unquote
 from zoneinfo import ZoneInfo
 
+import pytest
 import yaml
 
 from testifier_audit.io.csi_testifiers import (
     CSIAgendaItem,
+    CSIDownloadError,
     CSIMeeting,
     CSITestifierRow,
     _build_output_stem,
     _build_sidecar_payload,
     _build_sidecar_stats,
+    _derive_lookup_query,
     _request_text_with_retries,
     _select_agenda_item,
+    download_csi_testifier_csv,
     download_csi_testifier_csv_by_agenda_item,
+    download_csi_testifier_csv_by_meeting_family,
     parse_agenda_items,
     parse_testifier_rows,
 )
@@ -241,6 +248,68 @@ def test_download_by_agenda_item_uses_single_testifier_request(monkeypatch, tmp_
     assert sidecar["source"]["agenda_item_id"] == "28434"
 
 
+def test_download_by_meeting_family_resolves_agenda_then_fetches_testifiers(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    calls: list[str] = []
+
+    def _fake_request(**kwargs: object) -> str:
+        url = str(kwargs["url"])
+        calls.append(url)
+        if "GetAgendaItems" in url:
+            return """
+            <ul>
+              <li>
+                <button class="agendaItem" id="agendaItem-170647"
+                  onclick="WSLApp.Testimony.getTestimonyTypes($(this),
+                  'senate',34001, 170647, 28435)">
+                  SB 6225 Transportation funding bonds
+                </button>
+              </li>
+              <li>
+                <button class="agendaItem" id="agendaItem-170646"
+                  onclick="WSLApp.Testimony.getTestimonyTypes($(this),
+                  'senate',34001, 170646, 28434)">
+                  SB 6005 Transportation budget, supp.
+                </button>
+              </li>
+            </ul>
+            """
+        payload = (
+            "[{&quot;Name&quot;:&quot;Doe, Jane&quot;,&quot;Organization&quot;:&quot;Org A&quot;,"
+            "&quot;Position&quot;:&quot;Pro&quot;,"
+            "&quot;TimeSignedIn&quot;:&quot;2/23/2026 9:00 AM&quot;}]"
+        )
+        return f'<div id="testifyingDataTable" data-json="{payload}"></div>'
+
+    monkeypatch.setattr(
+        "testifier_audit.io.csi_testifiers._request_text_with_retries",
+        _fake_request,
+    )
+
+    result = download_csi_testifier_csv_by_meeting_family(
+        bill_query="SB 6005",
+        meeting_family_id="34001",
+        chamber="Senate",
+        meeting_start=datetime(2026, 2, 24, 16, 0),
+        short_bill_id="SB 6005",
+        bill_number="6005",
+        bill_title="Transportation funding and appropriations",
+        committee_name="Transportation",
+        csv_out_dir=tmp_path / "raw",
+        metadata_out_dir=tmp_path / "metadata",
+    )
+
+    assert len(calls) == 2
+    assert "GetAgendaItems" in calls[0]
+    assert "meetingFamilyId=34001" in calls[0]
+    assert "chamber=senate" in calls[0]
+    assert "GetOtherTestifiers" in calls[1]
+    assert result.meeting_family_id == "34001"
+    assert result.agenda_item_id == "28434"
+
+
 def test_request_text_with_retries_uses_global_rate_limit(monkeypatch) -> None:
     class _FakeResponse:
         status = 200
@@ -281,3 +350,152 @@ def test_request_text_with_retries_uses_global_rate_limit(monkeypatch) -> None:
 
     assert payload == "ok"
     assert call_count["value"] == 1
+
+
+def test_derive_lookup_query_uses_numeric_token_for_short_bill_ids() -> None:
+    assert _derive_lookup_query("SB 6005") == "6005"
+    assert _derive_lookup_query("2SHB 2479") == "2479"
+    assert _derive_lookup_query("transportation funding and appropriations") == (
+        "transportation funding and appropriations"
+    )
+
+
+def test_download_csi_testifier_csv_uses_numeric_lookup_token(monkeypatch, tmp_path) -> None:
+    calls: list[str] = []
+
+    def _fake_request(**kwargs: object) -> str:
+        url = str(kwargs["url"])
+        calls.append(url)
+        if "SearchMeetings" in url:
+            return json.dumps(
+                {
+                    "Items": [
+                        {
+                            "LegId": "135565",
+                            "CommitteeId": "438",
+                            "CommitteeName": "Transportation",
+                            "Chamber": "Senate",
+                            "MeetingFamilyId": "34001",
+                            "BillTitle": "Transportation funding and appropriations",
+                            "BillNumber": "6005",
+                            "ShortBillId": "SB 6005",
+                            "ChamberAbbr": "S",
+                            "MeetingDateTimeFormatted": "02/24/26 04:00 PM",
+                            "MeetingDateTime": "2026-02-24T16:00:00-08:00",
+                        }
+                    ]
+                }
+            )
+        if "GetAgendaItems" in url:
+            return """
+            <ul>
+              <li>
+                <button class="agendaItem" id="agendaItem-170646"
+                  onclick="WSLApp.Testimony.getTestimonyTypes($(this),
+                  'senate',34001, 170646, 28434)">
+                  SB 6005 Transportation budget, supp.
+                </button>
+              </li>
+            </ul>
+            """
+        payload = (
+            "[{&quot;Name&quot;:&quot;Doe, Jane&quot;,&quot;Organization&quot;:&quot;Org A&quot;,"
+            "&quot;Position&quot;:&quot;Pro&quot;,"
+            "&quot;TimeSignedIn&quot;:&quot;2/23/2026 9:00 AM&quot;}]"
+        )
+        return f'<div id="testifyingDataTable" data-json="{payload}"></div>'
+
+    monkeypatch.setattr(
+        "testifier_audit.io.csi_testifiers._request_text_with_retries",
+        _fake_request,
+    )
+
+    result = download_csi_testifier_csv(
+        bill_query="SB 6005",
+        csv_out_dir=tmp_path / "raw",
+        metadata_out_dir=tmp_path / "metadata",
+    )
+
+    decoded_search_url = unquote(calls[0]).lower()
+    assert "searchmeetings" in decoded_search_url
+    assert "substringof('6005'" in decoded_search_url
+    assert "substringof('sb 6005'" not in decoded_search_url
+    assert result.meeting_family_id == "34001"
+
+
+def test_download_csi_testifier_csv_meeting_year_filter(monkeypatch, tmp_path) -> None:
+    def _fake_request(**kwargs: object) -> str:
+        url = str(kwargs["url"])
+        if "SearchMeetings" in url:
+            return json.dumps(
+                {
+                    "Items": [
+                        {
+                            "LegId": "2025001",
+                            "CommitteeId": "438",
+                            "CommitteeName": "Transportation",
+                            "Chamber": "Senate",
+                            "MeetingFamilyId": "34001",
+                            "BillTitle": "Transportation funding and appropriations",
+                            "BillNumber": "6005",
+                            "ShortBillId": "SB 6005",
+                            "ChamberAbbr": "S",
+                            "MeetingDateTimeFormatted": "02/24/25 04:00 PM",
+                            "MeetingDateTime": "2025-02-24T16:00:00-08:00",
+                        },
+                        {
+                            "LegId": "2026001",
+                            "CommitteeId": "438",
+                            "CommitteeName": "Transportation",
+                            "Chamber": "Senate",
+                            "MeetingFamilyId": "34002",
+                            "BillTitle": "Transportation funding and appropriations",
+                            "BillNumber": "6005",
+                            "ShortBillId": "SB 6005",
+                            "ChamberAbbr": "S",
+                            "MeetingDateTimeFormatted": "02/24/26 04:00 PM",
+                            "MeetingDateTime": "2026-02-24T16:00:00-08:00",
+                        },
+                    ]
+                }
+            )
+        if "GetAgendaItems" in url and "meetingFamilyId=34002" in url:
+            return """
+            <ul>
+              <li>
+                <button class="agendaItem" id="agendaItem-170646"
+                  onclick="WSLApp.Testimony.getTestimonyTypes($(this),
+                  'senate',34002, 170646, 28434)">
+                  SB 6005 Transportation budget, supp.
+                </button>
+              </li>
+            </ul>
+            """
+        payload = (
+            "[{&quot;Name&quot;:&quot;Doe, Jane&quot;,&quot;Organization&quot;:&quot;Org A&quot;,"
+            "&quot;Position&quot;:&quot;Pro&quot;,"
+            "&quot;TimeSignedIn&quot;:&quot;2/23/2026 9:00 AM&quot;}]"
+        )
+        return f'<div id="testifyingDataTable" data-json="{payload}"></div>'
+
+    monkeypatch.setattr(
+        "testifier_audit.io.csi_testifiers._request_text_with_retries",
+        _fake_request,
+    )
+
+    result = download_csi_testifier_csv(
+        bill_query="SB 6005",
+        csv_out_dir=tmp_path / "raw",
+        metadata_out_dir=tmp_path / "metadata",
+        meeting_year=2026,
+    )
+    assert result.meeting_family_id == "34002"
+    assert result.meeting_start.year == 2026
+
+    with pytest.raises(CSIDownloadError, match="in year 2024"):
+        download_csi_testifier_csv(
+            bill_query="SB 6005",
+            csv_out_dir=tmp_path / "raw",
+            metadata_out_dir=tmp_path / "metadata",
+            meeting_year=2024,
+        )

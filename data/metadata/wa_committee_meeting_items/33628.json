@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33628",
+  "retrieved_at_utc": "2026-02-25T09:29:50.695197+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1170",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Informing users when content is developed or modified by artificial intelligence. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2157",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regulating high-risk artificial intelligence system development, deployment, and use. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2225",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning regulation of artificial intelligence companion chatbots. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

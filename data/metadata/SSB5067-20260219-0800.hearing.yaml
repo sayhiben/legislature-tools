@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SSB5067-33950-28169
+timezone: America/Los_Angeles
+meeting_start: '2026-02-19T08:00:00-08:00'
+sign_in_cutoff: '2026-02-19T07:00:00-08:00'
+stats:
+  total_rows: 1018
+  total_testifying: 29
+  total_not_testifying: 989
+  total_pro: 112
+  total_con: 900
+  total_other: 6
+  total_pro_pct: 11.00196463654224
+  total_con_pct: 88.40864440078585
+  total_other_pct: 0.5893909626719057
+source:
+  provider: wa_leg_csi
+  search_query: SSB 5067
+  meeting_family_id: '33950'
+  agenda_item_family_id: '170371'
+  agenda_item_id: '28169'
+  agenda_item_description: SSB 5067 Impaired driving
+  short_bill_id: SSB 5067
+  bill_number: '5067'
+  bill_title: Impaired driving
+  committee_name: Community Safety
+  chamber: House
+  downloaded_at: '2026-02-25T09:31:07.265052+00:00'

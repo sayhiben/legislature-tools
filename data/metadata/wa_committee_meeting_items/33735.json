@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33735",
+  "retrieved_at_utc": "2026-02-25T09:29:44.661684+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1812",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning patient-centered equitable access to anesthesia services and reimbursement. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2232",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving system outcomes for time-sensitive emergencies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2250",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning residency requirements for charity care. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2340",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Applying substance use disorder monitoring program provisions to nursing assistants. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2577",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning hospital inspections. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

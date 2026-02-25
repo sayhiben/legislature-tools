@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB6316-31968-24342
+timezone: America/Los_Angeles
+meeting_start: '2024-02-21T15:00:00-08:00'
+sign_in_cutoff: '2024-02-21T14:00:00-08:00'
+stats:
+  total_rows: 563
+  total_testifying: 4
+  total_not_testifying: 559
+  total_pro: 8
+  total_con: 554
+  total_other: 1
+  total_pro_pct: 1.4209591474245116
+  total_con_pct: 98.40142095914743
+  total_other_pct: 0.17761989342806395
+source:
+  provider: wa_leg_csi
+  search_query: SB 6316
+  meeting_family_id: '31968'
+  agenda_item_family_id: '159843'
+  agenda_item_id: '24342'
+  agenda_item_description: SB 6316 SR 520 corridor
+  short_bill_id: SB 6316
+  bill_number: '6316'
+  bill_title: Concerning the state route number 520 corridor. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:32:46.527711+00:00'

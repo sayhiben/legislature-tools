@@ -1,0 +1,56 @@
+{
+  "agenda_id": "31534",
+  "retrieved_at_utc": "2026-02-25T09:29:39.670866+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5972",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the use of neonicotinoid pesticides. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5784",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning deer and elk damage to commercial crops. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5921",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning tribal representation on the state conservation commission. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6036",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning agriculture pest and disease response. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5785",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning department of fish and wildlife authority with regard to certain nonprofit and volunteer organizations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5667",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning eligibility, enrollment, and compensation of small forestland owners volunteering for participation in the forestry riparian easement program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5508",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting local agriculture through greenhouses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5517",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Enacting recommendations from the joint legislative task force on water resource mitigation."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32471",
+  "retrieved_at_utc": "2026-02-25T09:29:47.779388+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5303",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the water supply milestone for the Yakima river basin integrated plan to 2035. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5305",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the new environmental accelerator for salmon recovery and ecological resiliency projects. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

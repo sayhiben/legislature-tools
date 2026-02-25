@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5891-31692-23345
+timezone: America/Los_Angeles
+meeting_start: '2024-01-23T10:30:00-08:00'
+sign_in_cutoff: '2024-01-23T09:30:00-08:00'
+stats:
+  total_rows: 67
+  total_testifying: 7
+  total_not_testifying: 60
+  total_pro: 52
+  total_con: 15
+  total_other: 0
+  total_pro_pct: 77.61194029850746
+  total_con_pct: 22.388059701492537
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5891
+  meeting_family_id: '31692'
+  agenda_item_family_id: '156906'
+  agenda_item_id: '23345'
+  agenda_item_description: SB 5891 School bus trespass
+  short_bill_id: SB 5891
+  bill_number: '5891'
+  bill_title: Designating trespassing on a public school bus as a felony offense.
+    (Hearing is on the Proposed Substitute.) (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:34:03.328053+00:00'

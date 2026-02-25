@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31692",
+  "retrieved_at_utc": "2026-02-25T09:29:40.689378+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6032",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Fostering community engagement with law enforcement at nonprofit religious schools. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5891",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Designating trespassing on a public school bus as a felony offense. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5792",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the definition of multiunit residential buildings. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6081",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing plain language requirements for consumer contracts. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6227",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Allowing entry of a civil protection order to protect victims when a person is found not guilty by reason of insanity. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6246",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning transmission of information relating to firearm prohibitions for persons committed for mental health treatment. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

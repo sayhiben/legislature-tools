@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2099-33623-27187
+timezone: America/Los_Angeles
+meeting_start: '2026-01-16T08:30:00-08:00'
+sign_in_cutoff: '2026-01-16T07:30:00-08:00'
+stats:
+  total_rows: 194
+  total_testifying: 8
+  total_not_testifying: 186
+  total_pro: 190
+  total_con: 2
+  total_other: 2
+  total_pro_pct: 97.9381443298969
+  total_con_pct: 1.0309278350515463
+  total_other_pct: 1.0309278350515463
+source:
+  provider: wa_leg_csi
+  search_query: HB 2099
+  meeting_family_id: '33623'
+  agenda_item_family_id: '168099'
+  agenda_item_id: '27187'
+  agenda_item_description: HB 2099 ECEAP access/military
+  short_bill_id: HB 2099
+  bill_number: '2099'
+  bill_title: Expanding access to the early childhood education and assistance program
+    for military families. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:26:06.022763+00:00'

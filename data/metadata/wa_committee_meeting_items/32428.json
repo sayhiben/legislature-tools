@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32428",
+  "retrieved_at_utc": "2026-02-25T09:28:44.468201+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5000",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adopting the evergreen state as the state nickname."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5102",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a public records exemption for the proprietary information of public risk pools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5017",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adopting national standards for uniformed and overseas civilian voting, including conforming amendments to existing statute."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5069",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring the secretary of state to print and distribute a voters' pamphlet for the primary in each even-numbered year and for the general election every year."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5176",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Implementing prompt pay recommendations from the capital projects advisory review board. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5011",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Labeling ballot drop boxes. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

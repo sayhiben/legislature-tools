@@ -1,0 +1,20 @@
+{
+  "agenda_id": "31968",
+  "retrieved_at_utc": "2026-02-25T09:29:12.610157+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5947",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Making supplemental transportation appropriations for the 2023-2025 fiscal biennium. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6316",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the state route number 520 corridor. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

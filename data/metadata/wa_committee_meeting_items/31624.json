@@ -1,0 +1,56 @@
+{
+  "agenda_id": "31624",
+  "retrieved_at_utc": "2026-02-25T09:29:32.654410+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5847",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Enhancing prorate and fuel tax collections by improving taxpayer compliance, providing additional enforcement mechanisms, and protecting confidential taxpayer information. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5831",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing permanent registration for vintage snowmobiles. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6084",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing collector vehicles the ability to tow trailers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5812",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the response to electric vehicle fires. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6017",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding the use of the border area fuel tax. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5791",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the evaluation of the effectiveness of oral fluid roadside information in the enforcement of driving under the influence laws."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5800",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving access to department of licensing issued documents by clarifying the application requirements for a minor, modifying the requirements for at-cost identicards, and studying the feasibility of reduced-fee identicards."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8008",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating mileposts 45 to 51 of state route number 6 as the Washington state patrol trooper Justin R. Schaffer memorial highway."
+    }
+  ],
+  "schema_version": 1
+}

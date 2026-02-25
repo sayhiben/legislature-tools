@@ -23,6 +23,9 @@ from testifier_audit.io.http_rate_limit import wait_for_global_http_slot
 
 CSI_BASE_URL = "https://app.leg.wa.gov/csi/Home"
 RETRIABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+SHORT_BILL_LOOKUP_RE = re.compile(
+    r"^(?P<prefix>[A-Z0-9]*[A-Z][A-Z0-9]{0,7})\s*[- ]?\s*(?P<number>\d{3,6})$"
+)
 
 DEFAULT_TIMEOUT_SECONDS = 30.0
 DEFAULT_MAX_RETRIES = 3
@@ -99,6 +102,41 @@ def _normalize_match_token(value: str) -> str:
 def _sanitize_bill_token(value: str) -> str:
     token = re.sub(r"[^A-Z0-9]+", "", value.upper())
     return token or "BILL"
+
+
+def _numeric_bill_lookup_token(query: str) -> str | None:
+    normalized = _normalize_whitespace(query).upper()
+    if not normalized:
+        return None
+    match = SHORT_BILL_LOOKUP_RE.fullmatch(normalized)
+    if not match:
+        return None
+    return match.group("number")
+
+
+def _derive_lookup_query(query: str) -> str:
+    numeric_token = _numeric_bill_lookup_token(query)
+    if numeric_token:
+        return numeric_token
+    return query
+
+
+def _extract_bill_number_token(value: str) -> str:
+    matches = re.findall(r"\d{3,6}", value)
+    if not matches:
+        return ""
+    return matches[-1]
+
+
+def _normalize_csi_chamber(chamber: str) -> str:
+    normalized = _normalize_whitespace(chamber).lower()
+    if not normalized:
+        raise CSIDownloadError("chamber must be a non-empty string")
+    if normalized.startswith("sen"):
+        return "senate"
+    if normalized.startswith("hou"):
+        return "house"
+    return normalized
 
 
 def _coerce_text(value: Any) -> str:
@@ -769,6 +807,119 @@ def download_csi_testifier_csv_by_agenda_item(
     )
 
 
+def download_csi_testifier_csv_by_meeting_family(
+    *,
+    bill_query: str,
+    meeting_family_id: str,
+    chamber: str,
+    meeting_start: datetime,
+    short_bill_id: str,
+    csv_out_dir: Path,
+    metadata_out_dir: Path,
+    bill_number: str = "",
+    bill_title: str = "",
+    committee_name: str = "",
+    agenda_index: int = 0,
+    agenda_item_id: str | None = None,
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    retry_backoff_seconds: float = DEFAULT_RETRY_BACKOFF_SECONDS,
+    overwrite: bool = True,
+    user_agent: str = DEFAULT_USER_AGENT,
+    logger: logging.Logger | None = None,
+) -> CSIDownloadResult:
+    query = _normalize_whitespace(bill_query)
+    if not query:
+        raise CSIDownloadError("bill_query must be a non-empty string")
+    resolved_meeting_family_id = _normalize_whitespace(meeting_family_id)
+    if not resolved_meeting_family_id:
+        raise CSIDownloadError("meeting_family_id must be a non-empty string")
+    resolved_short_bill_id = _normalize_whitespace(short_bill_id)
+    if not resolved_short_bill_id:
+        raise CSIDownloadError("short_bill_id must be a non-empty string")
+
+    meeting_start_pacific = _coerce_pacific_datetime(meeting_start)
+    resolved_chamber = _normalize_csi_chamber(chamber)
+    resolved_bill_number = _normalize_whitespace(bill_number)
+    if not resolved_bill_number:
+        resolved_bill_number = _extract_bill_number_token(resolved_short_bill_id)
+    resolved_bill_title = _normalize_whitespace(bill_title) or query
+    resolved_committee_name = _normalize_whitespace(committee_name)
+
+    active_logger = logger or logging.getLogger(__name__)
+    opener = build_opener()
+
+    agenda_query = urlencode(
+        {
+            "chamber": resolved_chamber,
+            "meetingFamilyId": resolved_meeting_family_id,
+        }
+    )
+    agenda_url = f"{CSI_BASE_URL}/GetAgendaItems/?{agenda_query}"
+    active_logger.info(
+        "Loading agenda items directly for chamber=%s meeting_family_id=%s",
+        resolved_chamber,
+        resolved_meeting_family_id,
+    )
+    agenda_html = _request_text_with_retries(
+        opener=opener,
+        url=agenda_url,
+        logger=active_logger,
+        timeout_seconds=timeout_seconds,
+        max_retries=max_retries,
+        retry_backoff_seconds=retry_backoff_seconds,
+        user_agent=user_agent,
+        accept="text/html",
+    )
+    agenda_items = parse_agenda_items(agenda_html)
+    synthetic_meeting = CSIMeeting(
+        leg_id="",
+        committee_id="",
+        committee_name=resolved_committee_name,
+        chamber=resolved_chamber.title(),
+        meeting_family_id=resolved_meeting_family_id,
+        bill_title=resolved_bill_title,
+        bill_number=resolved_bill_number,
+        short_bill_id=resolved_short_bill_id,
+        chamber_abbr=resolved_chamber[:1].upper(),
+        meeting_date_time_formatted=meeting_start_pacific.strftime("%m/%d/%y %I:%M %p"),
+        meeting_start=meeting_start_pacific,
+    )
+    selected_agenda_item = _select_agenda_item(
+        agenda_items=agenda_items,
+        meeting=synthetic_meeting,
+        agenda_index=agenda_index,
+        agenda_item_id=agenda_item_id,
+    )
+    active_logger.info(
+        "Resolved agenda item directly: agenda_item_id=%s agenda_item_family_id=%s",
+        selected_agenda_item.agenda_item_id,
+        selected_agenda_item.agenda_item_family_id,
+    )
+
+    return download_csi_testifier_csv_by_agenda_item(
+        bill_query=query,
+        meeting_family_id=resolved_meeting_family_id,
+        agenda_item_id=selected_agenda_item.agenda_item_id,
+        meeting_start=meeting_start_pacific,
+        short_bill_id=resolved_short_bill_id,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        bill_number=resolved_bill_number,
+        bill_title=resolved_bill_title,
+        committee_name=resolved_committee_name,
+        chamber=resolved_chamber.title(),
+        agenda_item_family_id=selected_agenda_item.agenda_item_family_id,
+        agenda_item_description=selected_agenda_item.description,
+        timeout_seconds=timeout_seconds,
+        max_retries=max_retries,
+        retry_backoff_seconds=retry_backoff_seconds,
+        overwrite=overwrite,
+        user_agent=user_agent,
+        logger=active_logger,
+    )
+
+
 def download_csi_testifier_csv(
     *,
     bill_query: str,
@@ -778,6 +929,7 @@ def download_csi_testifier_csv(
     agenda_index: int = 0,
     meeting_family_id: str | None = None,
     agenda_item_id: str | None = None,
+    meeting_year: int | None = None,
     top: int = 100,
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
     max_retries: int = DEFAULT_MAX_RETRIES,
@@ -791,12 +943,26 @@ def download_csi_testifier_csv(
         raise CSIDownloadError("bill_query must be a non-empty string")
     if top < 1:
         raise CSIDownloadError("top must be >= 1")
+    resolved_meeting_year: int | None = None
+    if meeting_year is not None:
+        try:
+            resolved_meeting_year = int(meeting_year)
+        except (TypeError, ValueError) as exc:
+            raise CSIDownloadError("meeting_year must be an integer when provided") from exc
 
     active_logger = logger or logging.getLogger(__name__)
     opener = build_opener()
 
-    search_url = _build_search_url(query=query, top=top)
-    active_logger.info("Searching CSI meetings for query=%r", query)
+    lookup_query = _derive_lookup_query(query)
+    search_url = _build_search_url(query=lookup_query, top=top)
+    if lookup_query != query:
+        active_logger.info(
+            "Searching CSI meetings for query=%r using numeric lookup token=%r",
+            query,
+            lookup_query,
+        )
+    else:
+        active_logger.info("Searching CSI meetings for query=%r", query)
     search_text = _request_text_with_retries(
         opener=opener,
         url=search_url,
@@ -808,6 +974,14 @@ def download_csi_testifier_csv(
         accept="application/json",
     )
     meetings = _parse_search_meetings(search_text)
+    if resolved_meeting_year is not None:
+        meetings = [
+            meeting for meeting in meetings if meeting.meeting_start.year == resolved_meeting_year
+        ]
+        if not meetings:
+            raise CSIDownloadError(
+                f"No meetings matched search query {query!r} in year {resolved_meeting_year}"
+            )
     meeting = _select_meeting(
         meetings=meetings,
         bill_query=query,

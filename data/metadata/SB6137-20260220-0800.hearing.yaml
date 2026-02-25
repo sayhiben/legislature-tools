@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB6137-33957-28331
+timezone: America/Los_Angeles
+meeting_start: '2026-02-20T08:00:00-08:00'
+sign_in_cutoff: '2026-02-20T07:00:00-08:00'
+stats:
+  total_rows: 63
+  total_testifying: 3
+  total_not_testifying: 60
+  total_pro: 59
+  total_con: 2
+  total_other: 2
+  total_pro_pct: 93.65079365079364
+  total_con_pct: 3.1746031746031744
+  total_other_pct: 3.1746031746031744
+source:
+  provider: wa_leg_csi
+  search_query: SB 6137
+  meeting_family_id: '33957'
+  agenda_item_family_id: '170714'
+  agenda_item_id: '28331'
+  agenda_item_description: SB 6137 Regulated sports wagering
+  short_bill_id: SB 6137
+  bill_number: '6137'
+  bill_title: Bolstering the regulated sports wagering industry
+  committee_name: State Government & Tribal Relations
+  chamber: House
+  downloaded_at: '2026-02-25T08:36:50.244405+00:00'

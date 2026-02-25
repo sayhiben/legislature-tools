@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32655",
+  "retrieved_at_utc": "2026-02-25T09:28:43.438057+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1032",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning school district elections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HJR 4201",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Amending the Constitution to allow a majority of voters voting to authorize school district bonds. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

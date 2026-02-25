@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33580",
+  "retrieved_at_utc": "2026-02-25T09:29:21.629579+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5865",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning garnishment forms. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5880",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning toxicology testing by certified or accredited laboratories. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5912",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reinstating the indigent defense task force. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5837",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning guardianship, conservatorship, and other protective arrangements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5855",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the use of face coverings by law enforcement officers. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

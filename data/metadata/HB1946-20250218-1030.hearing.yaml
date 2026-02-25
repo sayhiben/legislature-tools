@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1946-32803-25956
+timezone: America/Los_Angeles
+meeting_start: '2025-02-18T10:30:00-08:00'
+sign_in_cutoff: '2025-02-18T09:30:00-08:00'
+stats:
+  total_rows: 17
+  total_testifying: 3
+  total_not_testifying: 14
+  total_pro: 15
+  total_con: 1
+  total_other: 1
+  total_pro_pct: 88.23529411764706
+  total_con_pct: 5.88235294117647
+  total_other_pct: 5.88235294117647
+source:
+  provider: wa_leg_csi
+  search_query: HB 1946
+  meeting_family_id: '32803'
+  agenda_item_family_id: '164477'
+  agenda_item_id: '25956'
+  agenda_item_description: HB 1946 Local board of health/tribes
+  short_bill_id: HB 1946
+  bill_number: '1946'
+  bill_title: Clarifying tribal membership on local boards of health. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:31:59.098013+00:00'

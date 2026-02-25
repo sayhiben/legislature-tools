@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1096-32398-24655
+timezone: America/Los_Angeles
+meeting_start: '2025-01-13T13:30:00-08:00'
+sign_in_cutoff: '2025-01-13T12:30:00-08:00'
+stats:
+  total_rows: 249
+  total_testifying: 15
+  total_not_testifying: 234
+  total_pro: 239
+  total_con: 3
+  total_other: 7
+  total_pro_pct: 95.98393574297188
+  total_con_pct: 1.2048192771084338
+  total_other_pct: 2.8112449799196786
+source:
+  provider: wa_leg_csi
+  search_query: HB 1096
+  meeting_family_id: '32398'
+  agenda_item_family_id: '161191'
+  agenda_item_id: '24655'
+  agenda_item_description: HB 1096 Lot splitting
+  short_bill_id: HB 1096
+  bill_number: '1096'
+  bill_title: Increasing housing options through lot splitting. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-02-25T09:33:49.609332+00:00'

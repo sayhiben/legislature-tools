@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32044",
+  "retrieved_at_utc": "2026-02-25T09:28:35.448969+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2410",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding tax preferences for jet fuel."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5334",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a local government option for the funding of essential affordable housing programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6038",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing the costs associated with providing child care."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6173",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Encouraging investments in affordable homeownership unit development."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 6175",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a sales and use tax incentive for existing structures. (REVISED FOR ENGROSSED: Concerning housing affordability tax incentives for existing structures.)"
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6271",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the cannabis excise tax to consider THC concentration."
+    }
+  ],
+  "schema_version": 1
+}

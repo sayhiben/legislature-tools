@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: ESHB2548-34070-28358
+timezone: America/Los_Angeles
+meeting_start: '2026-02-20T14:00:00-08:00'
+sign_in_cutoff: '2026-02-20T13:00:00-08:00'
+stats:
+  total_rows: 238
+  total_testifying: 7
+  total_not_testifying: 231
+  total_pro: 130
+  total_con: 105
+  total_other: 3
+  total_pro_pct: 54.621848739495796
+  total_con_pct: 44.11764705882353
+  total_other_pct: 1.2605042016806722
+source:
+  provider: wa_leg_csi
+  search_query: ESHB 2548
+  meeting_family_id: '34070'
+  agenda_item_family_id: '171038'
+  agenda_item_id: '28358'
+  agenda_item_description: ESHB 2548 Health care market standards
+  short_bill_id: ESHB 2548
+  bill_number: '2548'
+  bill_title: Strengthening health care market standards
+  committee_name: Law & Justice
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:01:33.747902+00:00'

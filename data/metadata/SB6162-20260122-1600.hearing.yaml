@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB6162-33648-27523
+timezone: America/Los_Angeles
+meeting_start: '2026-01-22T16:00:00-08:00'
+sign_in_cutoff: '2026-01-22T15:00:00-08:00'
+stats:
+  total_rows: 438
+  total_testifying: 6
+  total_not_testifying: 432
+  total_pro: 310
+  total_con: 128
+  total_other: 0
+  total_pro_pct: 70.77625570776256
+  total_con_pct: 29.22374429223744
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 6162
+  meeting_family_id: '33648'
+  agenda_item_family_id: '168664'
+  agenda_item_id: '27523'
+  agenda_item_description: SB 6162 Property tax
+  short_bill_id: SB 6162
+  bill_number: '6162'
+  bill_title: Concerning property tax reform. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-02-25T09:30:11.162898+00:00'

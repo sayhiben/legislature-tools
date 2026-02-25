@@ -1,0 +1,26 @@
+{
+  "agenda_id": "34035",
+  "retrieved_at_utc": "2026-02-25T09:28:49.485346+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9305",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Corey M McNally, Member, Indeterminate Sentence Review Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2253",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning updates to the licensing division of the department of children, youth, and families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2464",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning reporting requirements and law enforcement responses for incidents at private detention facilities. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

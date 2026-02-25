@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33965",
+  "retrieved_at_utc": "2026-02-25T09:29:37.702079+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5984",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regulating artificial intelligence companion chatbots. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6046",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing the Washington division of civil air patrol as part of the Washington military department. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

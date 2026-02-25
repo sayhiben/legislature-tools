@@ -1,0 +1,32 @@
+{
+  "agenda_id": "31732",
+  "retrieved_at_utc": "2026-02-25T09:29:19.640773+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1891",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Maintaining the safety of children when a parent has a substance use disorder. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2224",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Incorporating a risks, strengths, and needs assessment tool in the risk assessment process when investigating alleged child abuse and neglect referrals. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2407",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing protections for child welfare workers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2447",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting children and families. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

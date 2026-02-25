@@ -224,9 +224,11 @@ def run_detectors(
     artifacts: dict[str, pd.DataFrame],
     out_dir: Path,
     config: AppConfig,
+    *,
+    base_df: pd.DataFrame | None = None,
 ) -> dict[str, DetectorResult]:
     paths = build_output_paths(out_dir)
-    df = prepare_base_dataframe(csv_path=csv_path, config=config)
+    df = base_df.copy() if base_df is not None else prepare_base_dataframe(csv_path=csv_path, config=config)
 
     extension = "parquet" if config.outputs.tables_format == "parquet" else "csv"
     feature_context: dict[str, pd.DataFrame] = dict(artifacts)

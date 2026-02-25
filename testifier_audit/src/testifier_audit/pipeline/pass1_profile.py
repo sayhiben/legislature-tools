@@ -93,10 +93,14 @@ def _render_profile_figures(
 
 
 def build_profile_artifacts(
-    csv_path: Path | None, out_dir: Path, config: AppConfig
+    csv_path: Path | None,
+    out_dir: Path,
+    config: AppConfig,
+    *,
+    base_df: pd.DataFrame | None = None,
 ) -> dict[str, pd.DataFrame]:
     paths = build_output_paths(out_dir)
-    df = prepare_base_dataframe(csv_path=csv_path, config=config)
+    df = base_df.copy() if base_df is not None else prepare_base_dataframe(csv_path=csv_path, config=config)
 
     artifacts: dict[str, pd.DataFrame] = {
         "counts_per_minute": build_counts_per_minute(df),

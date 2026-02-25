@@ -42,7 +42,11 @@ from testifier_audit.io.submissions_postgres import import_submission_csv_to_pos
 from testifier_audit.io.vrdb_postgres import import_vrdb_extract_to_postgres
 from testifier_audit.logging import configure_logging
 from testifier_audit.paths import build_output_paths
-from testifier_audit.pipeline.pass1_profile import build_profile_artifacts, load_profile_artifacts
+from testifier_audit.pipeline.pass1_profile import (
+    build_profile_artifacts,
+    load_profile_artifacts,
+    prepare_base_dataframe,
+)
 from testifier_audit.pipeline.pass2_deep_dive import run_detectors
 from testifier_audit.pipeline.run_all import run_all
 from testifier_audit.report.render import render_report
@@ -130,10 +134,23 @@ def detect(
     paths = build_output_paths(out)
 
     artifacts = load_profile_artifacts(out_dir=paths.root, config=cfg)
+    base_df = None
     if rebuild_profile or not artifacts:
-        artifacts = build_profile_artifacts(csv_path=csv, out_dir=paths.root, config=cfg)
+        base_df = prepare_base_dataframe(csv_path=csv, config=cfg)
+        artifacts = build_profile_artifacts(
+            csv_path=csv,
+            out_dir=paths.root,
+            config=cfg,
+            base_df=base_df,
+        )
 
-    results = run_detectors(csv_path=csv, artifacts=artifacts, out_dir=paths.root, config=cfg)
+    results = run_detectors(
+        csv_path=csv,
+        artifacts=artifacts,
+        out_dir=paths.root,
+        config=cfg,
+        base_df=base_df,
+    )
     typer.echo(f"Detection complete. Detectors: {len(results)}")
 
 

@@ -8,6 +8,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+from scipy.stats import binom, hypergeom
 
 from testifier_audit.detectors.base import Detector, DetectorResult
 from testifier_audit.io.vrdb_postgres import (
@@ -66,6 +67,20 @@ _TOP_NAME_TIMING_TOP_N = 100
 
 def _safe_str_series(series: pd.Series) -> pd.Series:
     return series.fillna("").astype(str)
+
+
+def _uses_default_binomial_tail() -> bool:
+    return (
+        getattr(binomial_tail_p_value, "__module__", "") == "testifier_audit.names.stat_tests"
+        and getattr(binomial_tail_p_value, "__name__", "") == "binomial_tail_p_value"
+    )
+
+
+def _uses_default_hypergeometric_tail() -> bool:
+    return (
+        getattr(hypergeometric_tail_p_value, "__module__", "") == "testifier_audit.names.stat_tests"
+        and getattr(hypergeometric_tail_p_value, "__name__", "") == "hypergeometric_tail_p_value"
+    )
 
 
 class DuplicatesExactDetector(Detector):
@@ -350,6 +365,86 @@ class DuplicatesExactDetector(Detector):
         if int(position_metrics["interval_draws_effective"].fillna(0).max()) <= 0:
             return False, self.POSITION_CLAIM_REASON_INTERVAL_UNAVAILABLE
         return True, self.POSITION_CLAIM_REASON_ELIGIBLE
+
+    @staticmethod
+    def _vectorized_binomial_tail_p_values(
+        *,
+        observed_successes: pd.Series,
+        total_trials: int,
+        success_probabilities: pd.Series,
+    ) -> pd.Series:
+        index = observed_successes.index
+        n_trials = int(max(int(total_trials), 0))
+        if n_trials <= 0:
+            return pd.Series(1.0, index=index, dtype=float)
+
+        observed = (
+            pd.to_numeric(observed_successes, errors="coerce")
+            .fillna(0.0)
+            .round()
+            .clip(lower=0.0)
+            .to_numpy(dtype=np.int64)
+        )
+        probabilities = (
+            pd.to_numeric(success_probabilities, errors="coerce")
+            .fillna(0.0)
+            .clip(lower=0.0, upper=1.0)
+            .to_numpy(dtype=float)
+        )
+
+        p_values = np.ones(observed.size, dtype=float)
+        over_trials = observed > n_trials
+        if np.any(over_trials):
+            p_values[over_trials] = 0.0
+        valid = (~over_trials) & (observed > 0)
+        if np.any(valid):
+            values = binom.sf(observed[valid] - 1, n_trials, probabilities[valid])
+            values = np.where(np.isfinite(values), values, 1.0)
+            p_values[valid] = np.clip(values, 0.0, 1.0)
+        return pd.Series(p_values, index=index, dtype=float)
+
+    @staticmethod
+    def _vectorized_hypergeometric_tail_p_values(
+        *,
+        observed_successes: pd.Series,
+        population_size: int,
+        population_successes: pd.Series,
+        sample_size: int,
+    ) -> pd.Series:
+        index = observed_successes.index
+        n_population = int(max(int(population_size), 0))
+        n_sample = int(max(int(sample_size), 0))
+        if n_population <= 0 or n_sample <= 0:
+            return pd.Series(1.0, index=index, dtype=float)
+        if n_sample > n_population:
+            return pd.Series(0.0, index=index, dtype=float)
+
+        observed = (
+            pd.to_numeric(observed_successes, errors="coerce")
+            .fillna(0.0)
+            .round()
+            .clip(lower=0.0)
+            .to_numpy(dtype=np.int64)
+        )
+        successes = (
+            pd.to_numeric(population_successes, errors="coerce")
+            .fillna(0.0)
+            .round()
+            .clip(lower=0.0, upper=float(n_population))
+            .to_numpy(dtype=np.int64)
+        )
+
+        p_values = np.ones(observed.size, dtype=float)
+        max_observable = np.minimum(n_sample, successes)
+        over_max = observed > max_observable
+        if np.any(over_max):
+            p_values[over_max] = 0.0
+        valid = (~over_max) & (observed > 0)
+        if np.any(valid):
+            values = hypergeom.sf(observed[valid] - 1, n_population, successes[valid], n_sample)
+            values = np.where(np.isfinite(values), values, 1.0)
+            p_values[valid] = np.clip(values, 0.0, 1.0)
+        return pd.Series(p_values, index=index, dtype=float)
 
     def _resolved_collision_key_column(self, frame: pd.DataFrame) -> str:
         configured = _KEY_TO_COLUMN.get(self.collision_key_mode, "canonical_key_strict")
@@ -728,6 +823,13 @@ class DuplicatesExactDetector(Detector):
 
         key_ids, _ = pd.factorize(_safe_str_series(working[key_column]), sort=False)
         key_ids = key_ids.astype(np.int64, copy=False)
+        valid_rows = key_ids >= 0
+        if not bool(np.any(valid_rows)):
+            return pd.DataFrame()
+        if not bool(np.all(valid_rows)):
+            key_ids = key_ids[valid_rows]
+            positions = positions[valid_rows]
+
         if key_ids.size == 0:
             return pd.DataFrame()
         n_keys = int(max(int(key_ids.max()), -1) + 1)
@@ -736,36 +838,35 @@ class DuplicatesExactDetector(Detector):
 
         pro_mask_observed = positions == "Pro"
         con_mask_observed = positions == "Con"
-        pro_dup_rows, pro_total = self._duplicate_rows_for_factorized_subset(
-            key_ids=key_ids,
-            subset_mask=pro_mask_observed,
-            n_keys=n_keys,
-        )
-        con_dup_rows, con_total = self._duplicate_rows_for_factorized_subset(
-            key_ids=key_ids,
-            subset_mask=con_mask_observed,
-            n_keys=n_keys,
-        )
+        pro_total = int(np.count_nonzero(pro_mask_observed))
+        con_total = int(np.count_nonzero(con_mask_observed))
+        if pro_total <= 0 or con_total <= 0:
+            return pd.DataFrame()
+        pro_counts_observed = np.bincount(key_ids[pro_mask_observed], minlength=n_keys)
+        con_counts_observed = np.bincount(key_ids[con_mask_observed], minlength=n_keys)
+        pro_dup_rows = int(pro_counts_observed[pro_counts_observed >= 2].sum())
+        con_dup_rows = int(con_counts_observed[con_counts_observed >= 2].sum())
         pro_rate = (pro_dup_rows / pro_total) if pro_total else 0.0
         con_rate = (con_dup_rows / con_total) if con_total else 0.0
         observed_diff = pro_rate - con_rate
         observed_rr = (pro_rate / con_rate) if con_rate > 0 else np.inf
 
+        n_rows = int(key_ids.size)
+        pro_n = int(pro_total)
+        con_n = int(con_total)
         perm_values = np.empty(self.position_permutation_draws, dtype=float)
         for draw_idx in range(self.position_permutation_draws):
-            permuted_positions = rng.permutation(positions)
-            pro_perm_dup_rows, pro_perm_total = self._duplicate_rows_for_factorized_subset(
-                key_ids=key_ids,
-                subset_mask=permuted_positions == "Pro",
-                n_keys=n_keys,
-            )
-            con_perm_dup_rows, con_perm_total = self._duplicate_rows_for_factorized_subset(
-                key_ids=key_ids,
-                subset_mask=permuted_positions == "Con",
-                n_keys=n_keys,
-            )
-            pro_perm_rate = (pro_perm_dup_rows / pro_perm_total) if pro_perm_total else 0.0
-            con_perm_rate = (con_perm_dup_rows / con_perm_total) if con_perm_total else 0.0
+            # Equivalent to permuting categorical labels while preserving label totals.
+            # Assign first pro_n indices to Pro, next con_n to Con, remainder to non-Pro/Con.
+            permuted_indices = rng.permutation(n_rows)
+            pro_indices = permuted_indices[:pro_n]
+            con_indices = permuted_indices[pro_n : pro_n + con_n]
+            pro_counts = np.bincount(key_ids[pro_indices], minlength=n_keys)
+            con_counts = np.bincount(key_ids[con_indices], minlength=n_keys)
+            pro_perm_dup_rows = int(pro_counts[pro_counts >= 2].sum())
+            con_perm_dup_rows = int(con_counts[con_counts >= 2].sum())
+            pro_perm_rate = pro_perm_dup_rows / pro_total
+            con_perm_rate = con_perm_dup_rows / con_total
             perm_values[draw_idx] = pro_perm_rate - con_perm_rate
 
         perm_series = perm_values
@@ -1182,6 +1283,20 @@ class DuplicatesExactDetector(Detector):
             scope_frame = scope_frames.get(scope, pd.DataFrame(columns=infer.columns)).copy()
             scope_frame[key_column] = _safe_str_series(scope_frame.get(key_column, pd.Series(dtype=str)))
             scope_frame = scope_frame[scope_frame[key_column] != ""].copy()
+            if not scope_frame.empty:
+                position_series = _safe_str_series(
+                    scope_frame.get(
+                        "position_normalized",
+                        pd.Series("Unknown", index=scope_frame.index, dtype=str),
+                    )
+                ).replace("", "Unknown")
+                scope_frame["position_normalized"] = position_series
+                scope_frame["_n_pro"] = (position_series == "Pro").astype(np.int64)
+                scope_frame["_n_con"] = (position_series == "Con").astype(np.int64)
+                scope_frame["_n_unknown"] = (position_series == "Unknown").astype(np.int64)
+                scope_frame["_n_other_position"] = (~position_series.isin({"Pro", "Con"})).astype(
+                    np.int64
+                )
 
             scope_top_name_timing: list[pd.DataFrame] = []
             for mode_spec in _TOP_NAME_TIMING_MATCH_MODES:
@@ -1203,8 +1318,8 @@ class DuplicatesExactDetector(Detector):
                         total_repeated_rows=("id", "count"),
                         observed_count=("id", "count"),
                         display_name=("display_name_mode", "first"),
-                        n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
-                        n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                        n_pro=("_n_pro", "sum"),
+                        n_con=("_n_con", "sum"),
                         first_seen=("timestamp", "min"),
                         last_seen=("timestamp", "max"),
                     )
@@ -1309,12 +1424,9 @@ class DuplicatesExactDetector(Detector):
                         mode_bucketed.groupby(["name_key", "bucket_start"], dropna=False)
                         .agg(
                             duplicate_rows=("id", "count"),
-                            n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
-                            n_con=("position_normalized", lambda series: int((series == "Con").sum())),
-                            n_other=(
-                                "position_normalized",
-                                lambda series: int((~series.isin({"Pro", "Con"})).sum()),
-                            ),
+                            n_pro=("_n_pro", "sum"),
+                            n_con=("_n_con", "sum"),
+                            n_other=("_n_other_position", "sum"),
                             first_seen=("timestamp", "min"),
                             last_seen=("timestamp", "max"),
                         )
@@ -1364,8 +1476,8 @@ class DuplicatesExactDetector(Detector):
                 scope_frame.groupby(key_column, dropna=False)
                 .agg(
                     observed_count=("id", "count"),
-                    n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
-                    n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                    n_pro=("_n_pro", "sum"),
+                    n_con=("_n_con", "sum"),
                     first_seen=("timestamp", "min"),
                     last_seen=("timestamp", "max"),
                     display_name=("name_display", "first"),
@@ -1564,24 +1676,39 @@ class DuplicatesExactDetector(Detector):
             if grouped.empty:
                 grouped["p_value"] = pd.Series(dtype=float)
             elif self.per_name_significance_model == "hypergeometric_tail":
-                grouped["p_value"] = grouped.apply(
-                    lambda row: hypergeometric_tail_p_value(
-                        observed_successes=int(row["observed_count"]),
+                if _uses_default_hypergeometric_tail():
+                    grouped["p_value"] = self._vectorized_hypergeometric_tail_p_values(
+                        observed_successes=grouped["observed_count"],
                         population_size=int(max(n_population, 0)),
-                        population_successes=int(max(row["population_count"], 0)),
+                        population_successes=grouped["population_count"],
                         sample_size=int(n_scope),
-                    ),
-                    axis=1,
-                )
+                    )
+                else:
+                    grouped["p_value"] = grouped.apply(
+                        lambda row: hypergeometric_tail_p_value(
+                            observed_successes=int(row["observed_count"]),
+                            population_size=int(max(n_population, 0)),
+                            population_successes=int(max(row["population_count"], 0)),
+                            sample_size=int(n_scope),
+                        ),
+                        axis=1,
+                    )
             else:
-                grouped["p_value"] = grouped.apply(
-                    lambda row: binomial_tail_p_value(
-                        observed_successes=int(row["observed_count"]),
+                if _uses_default_binomial_tail():
+                    grouped["p_value"] = self._vectorized_binomial_tail_p_values(
+                        observed_successes=grouped["observed_count"],
                         total_trials=int(n_scope),
-                        success_probability=float(max(min(row["population_probability"], 1.0), 0.0)),
-                    ),
-                    axis=1,
-                )
+                        success_probabilities=grouped["population_probability"],
+                    )
+                else:
+                    grouped["p_value"] = grouped.apply(
+                        lambda row: binomial_tail_p_value(
+                            observed_successes=int(row["observed_count"]),
+                            total_trials=int(n_scope),
+                            success_probability=float(max(min(row["population_probability"], 1.0), 0.0)),
+                        ),
+                        axis=1,
+                    )
             grouped["q_value"] = benjamini_hochberg(grouped["p_value"]).fillna(1.0)
             grouped["is_significant"] = grouped["q_value"] <= self.bh_fdr_q
             grouped["tested"] = True
@@ -1665,6 +1792,26 @@ class DuplicatesExactDetector(Detector):
             )
 
             metric_summary_by_n: dict[int, dict[str, dict[str, float]]] = {}
+            scope_all_name_counts = scope_frame.groupby(key_column, dropna=False).size().astype(float)
+            scope_all_histogram = histogram_from_name_counts(scope_all_name_counts)
+            scope_position_histograms: dict[str, pd.DataFrame] = {}
+            if not scope_frame.empty:
+                scope_positions = _safe_str_series(scope_frame["position_normalized"]).replace("", "Unknown")
+                scope_for_position = scope_frame.assign(_position_key=scope_positions)
+                for position_label, position_frame in scope_for_position.groupby(
+                    "_position_key",
+                    dropna=False,
+                ):
+                    n_position_rows = int(len(position_frame))
+                    if n_position_rows <= 0:
+                        continue
+                    position_counts = position_frame.groupby(key_column, dropna=False).size().astype(float)
+                    if position_counts.empty:
+                        continue
+                    normalized_position = str(position_label).strip() or "Unknown"
+                    scope_position_histograms[normalized_position] = histogram_from_name_counts(position_counts)
+            expected_all_primary_by_n: dict[int, float] = {}
+            expected_position_primary_by_n: dict[str, dict[int, float]] = {}
             minute_series = pd.to_datetime(scope_frame.get("minute_bucket"), errors="coerce")
             for bucket_minutes in self.bucket_minutes:
                 bucket_start = minute_series.dt.floor(f"{int(bucket_minutes)}min")
@@ -1823,12 +1970,8 @@ class DuplicatesExactDetector(Detector):
                                 "inference_status": "descriptive_only" if low_power else "tested",
                             }
                         )
-                    if self.position_hearing_baseline_enabled:
-                        all_name_counts = (
-                            group_frame.groupby(key_column, dropna=False).size().astype(float)
-                        )
-                        if not all_name_counts.empty and n_bucket > 0:
-                            probs_all = (all_name_counts / float(n_bucket)).astype(float)
+                    if self.position_hearing_baseline_enabled and not scope_all_histogram.empty:
+                        if n_bucket > 0:
                             for position_label in sorted(
                                 {
                                     str(value).strip() or "Unknown"
@@ -1845,10 +1988,11 @@ class DuplicatesExactDetector(Detector):
                                 side_counts = subset.groupby(key_column, dropna=False).size().astype(float)
                                 if side_counts.empty:
                                     continue
-                                probs_side = (side_counts / float(n_side)).astype(float)
-                                aligned_index = probs_side.index.union(probs_all.index)
-                                side_aligned = probs_side.reindex(aligned_index, fill_value=0.0)
-                                all_aligned = probs_all.reindex(aligned_index, fill_value=0.0)
+                                position_histogram = scope_position_histograms.get(position_label)
+                                if position_histogram is None or position_histogram.empty:
+                                    position_histogram = scope_all_histogram
+                                if position_histogram.empty:
+                                    continue
                                 shrink_k, prior_level = self._resolve_contextual_shrink_k(
                                     contextual_baseline=contextual_baseline,
                                     bucket_start=pd.to_datetime(start),
@@ -1859,21 +2003,27 @@ class DuplicatesExactDetector(Detector):
                                     if (float(n_side + shrink_k) > 0.0)
                                     else 1.0
                                 )
-                                smoothed = (
-                                    lambda_side * side_aligned.astype(float)
-                                    + (1.0 - lambda_side) * all_aligned.astype(float)
-                                )
-                                smoothed_sum = float(smoothed.sum())
-                                if smoothed_sum <= 0.0 or not np.isfinite(smoothed_sum):
-                                    smoothed = side_aligned.astype(float)
-                                    smoothed_sum = float(smoothed.sum())
-                                if smoothed_sum <= 0.0 or not np.isfinite(smoothed_sum):
-                                    continue
-                                smoothed = smoothed / smoothed_sum
-                                expected_position_metrics = expected_collision_metrics_from_probabilities(
-                                    n_rows=n_side,
-                                    probabilities=smoothed.to_numpy(dtype=float),
-                                )
+                                if n_side not in expected_all_primary_by_n:
+                                    expected_all_metrics = expected_collision_metrics(
+                                        n_rows=n_side,
+                                        histogram=scope_all_histogram,
+                                        baseline_model=self.collision_baseline_model,
+                                        n_population=None,
+                                    )
+                                    expected_all_primary_by_n[n_side] = float(
+                                        expected_all_metrics.get(self.collision_primary_metric, 0.0)
+                                    )
+                                position_cache = expected_position_primary_by_n.setdefault(position_label, {})
+                                if n_side not in position_cache:
+                                    expected_position_metrics = expected_collision_metrics(
+                                        n_rows=n_side,
+                                        histogram=position_histogram,
+                                        baseline_model=self.collision_baseline_model,
+                                        n_population=None,
+                                    )
+                                    position_cache[n_side] = float(
+                                        expected_position_metrics.get(self.collision_primary_metric, 0.0)
+                                    )
                                 observed_position_metrics = collision_metrics_from_counts(
                                     side_counts.to_numpy(dtype=float)
                                 )
@@ -1881,7 +2031,8 @@ class DuplicatesExactDetector(Detector):
                                     observed_position_metrics.get(self.collision_primary_metric, 0.0)
                                 )
                                 expected_primary = float(
-                                    expected_position_metrics.get(self.collision_primary_metric, 0.0)
+                                    lambda_side * position_cache[n_side]
+                                    + (1.0 - lambda_side) * expected_all_primary_by_n[n_side]
                                 )
                                 n_side_unique = int(side_counts.size)
                                 low_power_position = bool(
@@ -2121,9 +2272,9 @@ class DuplicatesExactDetector(Detector):
                         bucketed.groupby([key_column, "bucket_start"], dropna=False)
                         .agg(
                             n=("id", "count"),
-                            n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
-                            n_con=("position_normalized", lambda series: int((series == "Con").sum())),
-                            n_unknown=("position_normalized", lambda series: int((series == "Unknown").sum())),
+                            n_pro=("_n_pro", "sum"),
+                            n_con=("_n_con", "sum"),
+                            n_unknown=("_n_unknown", "sum"),
                         )
                         .reset_index()
                     )

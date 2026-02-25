@@ -1575,7 +1575,7 @@ def _table_preview(
             limited = limited[selected_columns]
     for column in limited.columns:
         limited[column] = limited[column].map(_serialize_value)
-    return _json_safe(limited.to_dict(orient="records"))
+    return limited.to_dict(orient="records")
 
 
 def _load_summaries_from_disk(out_dir: Path) -> dict[str, dict[str, Any]]:
@@ -1712,7 +1712,7 @@ def _records_from_frame(
         working = working.head(max_rows)
     for column in working.columns:
         working[column] = working[column].map(_serialize_value)
-    return _json_safe(working.to_dict(orient="records"))
+    return working.to_dict(orient="records")
 
 
 def _table_key(detector: str, table_name: str) -> str:

@@ -1,0 +1,171 @@
+{
+  "case_id": "duplicates_scope_partition_expected_rates",
+  "detector_config": {
+    "top_n": 50,
+    "bucket_minutes": [1, 5],
+    "collision_uncertainty_mode": "analytic_only",
+    "collision_scope_primary": "matched_only",
+    "collision_scope_overlays": ["full_hearing", "unmatched_only"],
+    "collision_baseline_source": "hearing_empirical",
+    "collision_baseline_model": "multinomial",
+    "random_seed": 42
+  },
+  "records": [
+    {
+      "id": 1,
+      "canonical_name": "DOE|ROBERT",
+      "name_display": "DOE, ROBERT",
+      "collision_key_medium": "DOE|ROBERT",
+      "canonical_key_nickname": "DOE|ROBERT",
+      "position_normalized": "Pro",
+      "timestamp": "2026-02-01T00:00:00Z",
+      "minute_bucket": "2026-02-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "canonical_name": "DOE|ROBERT",
+      "name_display": "DOE, ROBERT",
+      "collision_key_medium": "DOE|ROBERT",
+      "canonical_key_nickname": "DOE|ROBERT",
+      "position_normalized": "Con",
+      "timestamp": "2026-02-01T00:01:00Z",
+      "minute_bucket": "2026-02-01T00:01:00Z"
+    },
+    {
+      "id": 3,
+      "canonical_name": "DOE|BOB",
+      "name_display": "DOE, BOB",
+      "collision_key_medium": "DOE|BOB",
+      "canonical_key_nickname": "DOE|ROBERT",
+      "position_normalized": "Pro",
+      "timestamp": "2026-02-01T00:02:00Z",
+      "minute_bucket": "2026-02-01T00:02:00Z"
+    },
+    {
+      "id": 4,
+      "canonical_name": "DOE|BOB",
+      "name_display": "DOE, BOB",
+      "collision_key_medium": "DOE|BOB",
+      "canonical_key_nickname": "DOE|ROBERT",
+      "position_normalized": "Con",
+      "timestamp": "2026-02-01T00:03:00Z",
+      "minute_bucket": "2026-02-01T00:03:00Z"
+    },
+    {
+      "id": 5,
+      "canonical_name": "LEE|ALICE",
+      "name_display": "LEE, ALICE",
+      "collision_key_medium": "LEE|ALICE",
+      "canonical_key_nickname": "LEE|ALICE",
+      "position_normalized": "Pro",
+      "timestamp": "2026-02-01T00:04:00Z",
+      "minute_bucket": "2026-02-01T00:04:00Z"
+    },
+    {
+      "id": 6,
+      "canonical_name": "LEE|ALICE",
+      "name_display": "LEE, ALICE",
+      "collision_key_medium": "LEE|ALICE",
+      "canonical_key_nickname": "LEE|ALICE",
+      "position_normalized": "Con",
+      "timestamp": "2026-02-01T00:05:00Z",
+      "minute_bucket": "2026-02-01T00:05:00Z"
+    },
+    {
+      "id": 7,
+      "canonical_name": "BROWN|AVA",
+      "name_display": "BROWN, AVA",
+      "collision_key_medium": "BROWN|AVA",
+      "canonical_key_nickname": "BROWN|AVA",
+      "position_normalized": "Con",
+      "timestamp": "2026-02-01T00:06:00Z",
+      "minute_bucket": "2026-02-01T00:06:00Z"
+    }
+  ],
+  "match_assignments": [
+    {
+      "canonical_name": "DOE|ROBERT",
+      "primary_outcome_selected": "matched_unique"
+    },
+    {
+      "canonical_name": "DOE|BOB",
+      "primary_outcome_selected": "matched_unique"
+    },
+    {
+      "canonical_name": "LEE|ALICE",
+      "primary_outcome_selected": "unmatched"
+    },
+    {
+      "canonical_name": "BROWN|AVA",
+      "primary_outcome_selected": "unmatched"
+    }
+  ],
+  "expected_summary": {
+    "collision_scope_primary": "matched_only",
+    "n_records": 4,
+    "n_unique_names": 2,
+    "duplicate_rows": 4,
+    "duplicate_pairs": 2.0,
+    "baseline_source": "hearing_empirical"
+  },
+  "expected_collision_overview": [
+    {
+      "scope": "matched_only",
+      "metric": "pairs",
+      "observed": 2.0,
+      "expected": 3.0
+    },
+    {
+      "scope": "matched_only",
+      "metric": "excess_rows",
+      "observed": 2.0,
+      "expected": 2.125
+    },
+    {
+      "scope": "matched_only",
+      "metric": "repeated_group_rows",
+      "observed": 4.0,
+      "expected": 3.5
+    },
+    {
+      "scope": "full_hearing",
+      "metric": "pairs",
+      "observed": 3.0,
+      "expected": 5.571428571428572
+    },
+    {
+      "scope": "full_hearing",
+      "metric": "excess_rows",
+      "observed": 3.0,
+      "expected": 3.624510195581773
+    },
+    {
+      "scope": "full_hearing",
+      "metric": "repeated_group_rows",
+      "observed": 6.0,
+      "expected": 5.806568691616588
+    },
+    {
+      "scope": "unmatched_only",
+      "metric": "pairs",
+      "observed": 1.0,
+      "expected": 1.6666666666666667
+    },
+    {
+      "scope": "unmatched_only",
+      "metric": "excess_rows",
+      "observed": 1.0,
+      "expected": 1.3333333333333335
+    },
+    {
+      "scope": "unmatched_only",
+      "metric": "repeated_group_rows",
+      "observed": 2.0,
+      "expected": 2.333333333333333
+    }
+  ],
+  "expected_top_name_timing_modes": {
+    "strict": ["DOE|BOB", "DOE|ROBERT", "LEE|ALICE"],
+    "loose": ["DOE|ROBERT", "LEE|ALICE"]
+  }
+}

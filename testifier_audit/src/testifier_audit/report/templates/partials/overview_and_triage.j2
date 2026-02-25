@@ -17,7 +17,7 @@
             {% if not off_hours_focus_only %}
             <h3>Triage</h3>
             <p class="tiny-note">
-              Use this section for quality checks, hearing context, and top repeated-name/cluster summaries.
+              Use this section for hearing context and quick repeated-name summaries.
             </p>
             <section class="kpi-grid">
               <article class="kpi-card">
@@ -50,21 +50,6 @@
                 ></div>
               </article>
             </section>
-            <div id="data-quality-summary" class="warning-banner"></div>
-            <div class="analysis-detail-grid">
-              <article class="detail-card">
-                <h3 class="detail-title">Data Quality Warnings</h3>
-                <div class="table-wrap">
-                  <div id="data-quality-warning-host" class="table-host"></div>
-                </div>
-              </article>
-              <article class="detail-card">
-                <h3 class="detail-title">Raw vs Dedup Metrics</h3>
-                <div class="table-wrap">
-                  <div id="data-quality-dedup-metrics-host" class="table-host"></div>
-                </div>
-              </article>
-            </div>
             <div class="analysis-detail-grid analysis-detail-grid-compact">
               <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Hearing Context Metadata</h3>
@@ -81,8 +66,15 @@
               </article>
               <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Top Repeated Names</h3>
-                <div class="table-wrap">
-                  <div id="forensics-top-names-host" class="table-host table-host-compact"></div>
+                <div class="table-wrap triage-top-names-columns">
+                  <section class="triage-top-names-column">
+                    <div class="triage-top-names-heading">Pro</div>
+                    <div id="forensics-top-names-pro-host" class="structured-host structured-host-compact"></div>
+                  </section>
+                  <section class="triage-top-names-column">
+                    <div class="triage-top-names-heading">Con</div>
+                    <div id="forensics-top-names-con-host" class="structured-host structured-host-compact"></div>
+                  </section>
                 </div>
               </article>
             </div>

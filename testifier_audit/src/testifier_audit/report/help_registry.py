@@ -83,6 +83,20 @@ _METHODOLOGY_DEFINITIONS: tuple[dict[str, str], ...] = (
         ),
     },
     {
+        "term": "Hearing-relative position baseline",
+        "definition": (
+            "Position-specific expected duplicate burden is computed within-hearing and "
+            "shrunk toward hearing-wide name frequencies for stability."
+        ),
+    },
+    {
+        "term": "Cross-hearing prior (position-free)",
+        "definition": (
+            "Cross-hearing priors stabilize expected-rate estimation by committee/chamber/time "
+            "context but do not imply Pro/Con comparability across different bills."
+        ),
+    },
+    {
         "term": "Score tiering",
         "definition": (
             "Triage score thresholds and support requirements that separate high, medium, "
@@ -118,9 +132,12 @@ _TESTS_USED: tuple[dict[str, str], ...] = (
     },
     {
         "analysis_family": "Voter linkage (supporting context)",
-        "test_or_calibration": "Tiered probabilistic matching with confidence summaries",
+        "test_or_calibration": (
+            "Tiered probabilistic matching with strict/loose modes and optional "
+            "active-only vs all-status dual bounds"
+        ),
         "evidence_kind": "heuristic",
-        "notes": "Supporting context only; never standalone attribution.",
+        "notes": "Supporting context only; lower bound is conservative for historical hearings.",
     },
 )
 
@@ -133,7 +150,9 @@ _MULTIPLE_TESTING_POLICY: tuple[str, ...] = (
 _CAVEATS: tuple[str, ...] = (
     "Sparse windows can produce large but unstable rate swings.",
     "Name/organization data quality issues can inflate duplicate or rarity signals.",
+    "Position labels are hearing-relative and are not cross-bill ideological labels.",
     "Metadata-absent runs cannot support hearing-relative process interpretations.",
+    "Historical voter status can drift relative to hearing date; dual bounds should be reviewed.",
     "Cross-hearing percentiles are corpus-relative and can shift as reports are added.",
 )
 

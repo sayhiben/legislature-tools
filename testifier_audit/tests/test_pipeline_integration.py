@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import math
 import re
 from pathlib import Path
 
@@ -235,6 +237,66 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert (out_dir / "figures" / "organization_blank_rates.png").exists()
         assert (out_dir / "figures" / "bursts_null_distribution.png").exists()
         assert (out_dir / "figures" / "swing_null_distribution.png").exists()
+
+    report_data_payload = json.loads((out_dir / "report_data" / "index.json").read_text(encoding="utf-8"))
+    chart_manifest = (
+        report_data_payload.get("interactive_charts", {}).get("chart_data_manifest", {})
+        if isinstance(report_data_payload, dict)
+        else {}
+    )
+    duplicate_manifest = (
+        chart_manifest.get("analysis", {}).get("duplicates_exact", {})
+        if isinstance(chart_manifest, dict)
+        else {}
+    )
+    duplicate_bucket_urls = (
+        duplicate_manifest.get("bucket_urls", {})
+        if isinstance(duplicate_manifest, dict)
+        else {}
+    )
+    if duplicate_bucket_urls:
+        first_bucket_url = duplicate_bucket_urls[sorted(duplicate_bucket_urls.keys())[0]]
+        duplicate_bucket_payload = json.loads((out_dir / first_bucket_url).read_text(encoding="utf-8"))
+        duplicate_rows = duplicate_bucket_payload.get("charts", {}).get(
+            "duplicates_exact_bucket_concentration", []
+        )
+        if duplicate_rows:
+            required_columns = {
+                "scope",
+                "match_mode",
+                "metric",
+                "duplicate_rows",
+                "expected_duplicate_rows",
+                "excess_duplicate_rows",
+                "unit_observed_rows",
+                "unit_expected_rows",
+                "unit_deviation_rows",
+                "unit_observed_names",
+                "unit_expected_names",
+                "unit_deviation_names",
+            }
+            assert required_columns.issubset(set(duplicate_rows[0].keys()))
+            assert {str(row.get("metric")) for row in duplicate_rows}.issubset(
+                {"rows_anywhere", "names_anywhere"}
+            )
+            finite_columns = [
+                "duplicate_rows",
+                "expected_duplicate_rows",
+                "excess_duplicate_rows",
+                "unit_observed_rows",
+                "unit_expected_rows",
+                "unit_deviation_rows",
+                "unit_observed_names",
+                "unit_expected_names",
+                "unit_deviation_names",
+            ]
+            for row in duplicate_rows:
+                for column in finite_columns:
+                    value = row.get(column)
+                    if value is None:
+                        continue
+                    assert math.isfinite(float(value))
+
     report_text = (out_dir / "report.html").read_text(encoding="utf-8")
     if _is_off_hours_only_view():
         assert 'data-analysis-id="off_hours"' in report_text

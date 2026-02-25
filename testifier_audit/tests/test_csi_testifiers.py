@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+import yaml
 
 from testifier_audit.io.csi_testifiers import (
     CSIAgendaItem,
@@ -10,7 +13,9 @@ from testifier_audit.io.csi_testifiers import (
     _build_output_stem,
     _build_sidecar_payload,
     _build_sidecar_stats,
+    _request_text_with_retries,
     _select_agenda_item,
+    download_csi_testifier_csv_by_agenda_item,
     parse_agenda_items,
     parse_testifier_rows,
 )
@@ -187,3 +192,92 @@ def test_build_sidecar_payload_includes_high_level_stats() -> None:
         "total_con_pct": 25.0,
         "total_other_pct": 25.0,
     }
+    assert payload["meeting_start"] == "2026-02-24T16:00:00-08:00"
+    assert payload["sign_in_cutoff"] == "2026-02-24T15:00:00-08:00"
+
+
+def test_download_by_agenda_item_uses_single_testifier_request(monkeypatch, tmp_path) -> None:
+    calls: list[str] = []
+
+    def _fake_request(**kwargs: object) -> str:
+        url = str(kwargs["url"])
+        calls.append(url)
+        payload = (
+            "[{&quot;Name&quot;:&quot;Doe, Jane&quot;,&quot;Organization&quot;:&quot;Org A&quot;,"
+            "&quot;Position&quot;:&quot;Pro&quot;,"
+            "&quot;TimeSignedIn&quot;:&quot;2/23/2026 9:00 AM&quot;}]"
+        )
+        return f'<div id="testifyingDataTable" data-json="{payload}"></div>'
+
+    monkeypatch.setattr(
+        "testifier_audit.io.csi_testifiers._request_text_with_retries",
+        _fake_request,
+    )
+
+    result = download_csi_testifier_csv_by_agenda_item(
+        bill_query="SB 6005",
+        meeting_family_id="34001",
+        agenda_item_id="28434",
+        meeting_start=datetime(2026, 2, 24, 16, 0),
+        short_bill_id="SB 6005",
+        bill_number="6005",
+        bill_title="Transportation funding and appropriations",
+        committee_name="Transportation",
+        chamber="Senate",
+        agenda_item_description="SB 6005 Transportation budget, supp.",
+        csv_out_dir=tmp_path / "raw",
+        metadata_out_dir=tmp_path / "metadata",
+    )
+
+    assert len(calls) == 1
+    assert "GetOtherTestifiers" in calls[0]
+    assert "agendaItemId=28434" in calls[0]
+    assert result.meeting_family_id == "34001"
+    assert result.agenda_item_id == "28434"
+    assert result.total_rows == 1
+
+    sidecar = yaml.safe_load(result.metadata_path.read_text(encoding="utf-8"))
+    assert sidecar["source"]["meeting_family_id"] == "34001"
+    assert sidecar["source"]["agenda_item_id"] == "28434"
+
+
+def test_request_text_with_retries_uses_global_rate_limit(monkeypatch) -> None:
+    class _FakeResponse:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def read(self) -> bytes:
+            return b"ok"
+
+        def getcode(self) -> int:
+            return 200
+
+    class _FakeOpener:
+        def open(self, request, timeout):
+            return _FakeResponse()
+
+    call_count = {"value": 0}
+
+    def _fake_wait() -> None:
+        call_count["value"] = int(call_count["value"]) + 1
+
+    monkeypatch.setattr("testifier_audit.io.csi_testifiers.wait_for_global_http_slot", _fake_wait)
+
+    payload = _request_text_with_retries(
+        opener=_FakeOpener(),
+        url="https://example.com",
+        logger=logging.getLogger(__name__),
+        timeout_seconds=10.0,
+        max_retries=0,
+        retry_backoff_seconds=0.1,
+        user_agent="test-agent",
+        accept="application/json",
+    )
+
+    assert payload == "ok"
+    assert call_count["value"] == 1

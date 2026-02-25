@@ -32,6 +32,9 @@ def test_methodology_contract_includes_guardrail_language() -> None:
     ]
     assert any("statistical irregularity" in requirement for requirement in requirements)
     assert any("standalone attribution" in requirement for requirement in requirements)
+    caveats = [str(item).lower() for item in methodology["caveats"]]
+    assert any("hearing-relative" in item for item in caveats)
+    assert any("historical voter status" in item for item in caveats)
 
 
 def test_methodology_uses_copy_semantics_for_taxonomy() -> None:

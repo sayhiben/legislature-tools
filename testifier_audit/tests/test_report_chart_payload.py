@@ -616,6 +616,69 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
                     }
                 ]
             ),
+            "duplicates_exact.per_name_duplicates_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "match_label": "Exact (last + first)",
+                        "match_definition": "Exact match on last-name and first-name tokens.",
+                        "canonical_name": "DOE|JANE",
+                        "name_key": "DOE|JANE",
+                        "display_name": "DOE, JANE",
+                        "observed_count": 3,
+                        "total_repeated_rows": 3,
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "match_label": "Exact (last + first)",
+                        "match_definition": "Exact match on last-name and first-name tokens.",
+                        "canonical_name": "SMITH|JOHN",
+                        "name_key": "SMITH|JOHN",
+                        "display_name": "SMITH, JOHN",
+                        "observed_count": 2,
+                        "total_repeated_rows": 2,
+                    },
+                ]
+            ),
+            "duplicates_exact.per_name_submission_timing_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "match_label": "Exact (last + first)",
+                        "match_definition": "Exact match on last-name and first-name tokens.",
+                        "canonical_name": "DOE|JANE",
+                        "name_key": "DOE|JANE",
+                        "display_name": "DOE, JANE",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "position_normalized": "Pro",
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "match_label": "Exact (last + first)",
+                        "match_definition": "Exact match on last-name and first-name tokens.",
+                        "canonical_name": "DOE|JANE",
+                        "name_key": "DOE|JANE",
+                        "display_name": "DOE, JANE",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:10Z"),
+                        "position_normalized": "Con",
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "match_label": "Exact (last + first)",
+                        "match_definition": "Exact match on last-name and first-name tokens.",
+                        "canonical_name": "SMITH|JOHN",
+                        "name_key": "SMITH|JOHN",
+                        "display_name": "SMITH, JOHN",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:20Z"),
+                        "position_normalized": "Con",
+                    },
+                ]
+            ),
             "duplicates_exact.top_name_timing_by_mode": pd.DataFrame(
                 [
                     {
@@ -665,14 +728,29 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
 
     bucket_rows = payload["charts"]["duplicates_exact_bucket_concentration"]
     assert bucket_rows
-    row = bucket_rows[0]
-    assert row["metric"] == "repeated_group_rows"
-    assert row["scope"] == "matched_only"
-    assert row["n_used"] == 100
-    assert row["N_used"] == 1000
-    assert row["baseline_model"] == "multinomial"
-    assert row["baseline_source"] == "hearing_empirical"
-    assert row["baseline_degraded"] is True
+    rows_by_metric = {str(row["metric"]): row for row in bucket_rows}
+    assert set(rows_by_metric) == {"rows_anywhere", "names_anywhere"}
+    rows_row = rows_by_metric["rows_anywhere"]
+    names_row = rows_by_metric["names_anywhere"]
+    assert rows_row["scope"] == "matched_only"
+    assert rows_row["match_mode"] == "strict"
+    assert rows_row["n_used"] == 100
+    assert rows_row["N_used"] == 1000
+    assert rows_row["baseline_model"] == "multinomial"
+    assert rows_row["baseline_source"] == "hearing_empirical"
+    assert rows_row["baseline_degraded"] is True
+    assert abs(float(rows_row["duplicate_rows"]) - 3.0) < 1e-9
+    assert abs(float(rows_row["expected_duplicate_rows"]) - 0.25) < 1e-9
+    assert abs(float(rows_row["excess_duplicate_rows"]) - 2.75) < 1e-9
+    assert abs(float(names_row["duplicate_rows"]) - 2.0) < 1e-9
+    assert abs(float(names_row["expected_duplicate_rows"]) - 0.1) < 1e-9
+    assert abs(float(names_row["excess_duplicate_rows"]) - 1.9) < 1e-9
+    assert "unit_observed_rows" in rows_row
+    assert "unit_expected_rows" in rows_row
+    assert "unit_deviation_rows" in rows_row
+    assert "unit_observed_names" in rows_row
+    assert "unit_expected_names" in rows_row
+    assert "unit_deviation_names" in rows_row
 
     timing_exact_rows = payload["charts"]["duplicates_exact_top_name_timing_exact"]
     assert timing_exact_rows
@@ -699,9 +777,9 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
 
     controls = payload["controls"]
     assert controls["duplicate_collision_scope_default"] == "matched_only"
-    assert controls["duplicate_collision_metric_default"] == "repeated_group_rows"
+    assert controls["duplicate_collision_metric_default"] == "rows_anywhere"
     assert "matched_only" in controls["duplicate_collision_scope_options"]
-    assert "pairs" in controls["duplicate_collision_metric_options"]
+    assert controls["duplicate_collision_metric_options"] == ["rows_anywhere", "names_anywhere"]
     assert controls["duplicate_match_mode_default"] in {"strict", "loose"}
     assert set(controls["duplicate_match_mode_options"]).issubset({"strict", "loose"})
 
@@ -768,6 +846,49 @@ def test_duplicates_exact_top_name_timing_rows_include_rank_metadata_rows() -> N
     assert sorted(int(row["rank"]) for row in metadata_rows) == [1, 2]
     assert {str(row["name_key"]) for row in metadata_rows} == {"DOE|JANE", "SMITH|JOHN"}
     assert all(row.get("bucket_minutes") is None for row in metadata_rows)
+
+
+def test_duplicates_exact_bucket_concentration_keeps_signed_deviation() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "duplicates_exact.collision_by_bucket": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "bucket_minutes": 30,
+                        "n_bucket": 20,
+                        "n_used": 1000,
+                        "N_used": 10000,
+                        "n_unique_names": 18,
+                        "n_pro": 10,
+                        "n_con": 10,
+                        "observed": 0.0,
+                        "expected": 0.25,
+                        "expected_p05": 0.0,
+                        "expected_p95": 1.0,
+                        "z_score": -0.5,
+                        "p_value": 1.0,
+                        "excess": -0.25,
+                        "baseline_model": "multinomial",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_degraded": False,
+                        "is_low_power": False,
+                        "inference_status": "tested",
+                    }
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+
+    bucket_rows = payload["charts"]["duplicates_exact_bucket_concentration"]
+    assert bucket_rows
+    rows_row = next(row for row in bucket_rows if row["metric"] == "rows_anywhere")
+    assert rows_row["duplicate_rows"] == 0.0
+    assert rows_row["expected_duplicate_rows"] == 0.25
+    assert rows_row["excess_duplicate_rows"] == -0.25
 
 
 def test_payload_preserves_duplicate_bucket_options_when_one_minute_rows_dominate() -> None:
@@ -893,6 +1014,211 @@ def test_payload_preserves_duplicate_bucket_options_when_one_minute_rows_dominat
     bucket_minutes = {int(row["bucket_minutes"]) for row in bucket_rows}
     assert 1 in bucket_minutes
     assert 30 in bucket_minutes
+
+
+def test_duplicates_exact_bucket_concentration_emits_scope_mode_unit_rows() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "collision_key_mode": "strict",
+                        "metric_primary": "repeated_group_rows",
+                        "n_used": 10,
+                        "N_used": 1000,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "collision_key_mode": "strict",
+                        "metric_primary": "repeated_group_rows",
+                        "n_used": 20,
+                        "N_used": 1000,
+                    },
+                ]
+            ),
+            "duplicates_exact.collision_by_bucket": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "metric": "repeated_group_rows",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "bucket_minutes": 30,
+                        "n_bucket": 4,
+                        "n_used": 10,
+                        "N_used": 1000,
+                        "n_unique_names": 3,
+                        "n_pro": 2,
+                        "n_con": 2,
+                        "observed": 2.0,
+                        "expected": 1.0,
+                        "excess": 1.0,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "bucket_minutes": 30,
+                        "n_bucket": 6,
+                        "n_used": 20,
+                        "N_used": 1000,
+                        "n_unique_names": 4,
+                        "n_pro": 3,
+                        "n_con": 3,
+                        "observed": 3.0,
+                        "expected": 2.0,
+                        "excess": 1.0,
+                    },
+                ]
+            ),
+            "duplicates_exact.per_name_duplicates_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "total_repeated_rows": 2,
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "name_key": "B",
+                        "canonical_name": "B",
+                        "total_repeated_rows": 2,
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "loose",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "total_repeated_rows": 3,
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "loose",
+                        "name_key": "B",
+                        "canonical_name": "B",
+                        "total_repeated_rows": 2,
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "loose",
+                        "name_key": "C",
+                        "canonical_name": "C",
+                        "total_repeated_rows": 1,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "total_repeated_rows": 5,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "D",
+                        "canonical_name": "D",
+                        "total_repeated_rows": 3,
+                    },
+                ]
+            ),
+            "duplicates_exact.per_name_submission_timing_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "strict",
+                        "name_key": "B",
+                        "canonical_name": "B",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:01:00Z"),
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "loose",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "loose",
+                        "name_key": "C",
+                        "canonical_name": "C",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:01:00Z"),
+                    },
+                    {
+                        "scope": "matched_only",
+                        "match_mode": "loose",
+                        "name_key": "C",
+                        "canonical_name": "C",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:02:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:01:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:02:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "D",
+                        "canonical_name": "D",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:03:00Z"),
+                    },
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+
+    rows = payload["charts"]["duplicates_exact_bucket_concentration"]
+    assert rows
+    combos = {(row["scope"], row["match_mode"], row["metric"]) for row in rows}
+    assert ("matched_only", "strict", "rows_anywhere") in combos
+    assert ("matched_only", "strict", "names_anywhere") in combos
+    assert ("matched_only", "loose", "rows_anywhere") in combos
+    assert ("matched_only", "loose", "names_anywhere") in combos
+    assert ("full_hearing", "strict", "rows_anywhere") in combos
+    assert ("full_hearing", "strict", "names_anywhere") in combos
+
+    lookup = {(row["scope"], row["match_mode"], row["metric"]): row for row in rows}
+    strict_rows = lookup[("matched_only", "strict", "rows_anywhere")]
+    loose_rows = lookup[("matched_only", "loose", "rows_anywhere")]
+    strict_names = lookup[("matched_only", "strict", "names_anywhere")]
+
+    assert strict_rows["duplicate_rows"] == 2.0
+    assert abs(float(strict_rows["expected_duplicate_rows"]) - 1.6) < 1e-9
+    assert abs(float(strict_rows["excess_duplicate_rows"]) - 0.4) < 1e-9
+    assert loose_rows["duplicate_rows"] == 3.0
+    assert abs(float(loose_rows["expected_duplicate_rows"]) - 2.4) < 1e-9
+    assert abs(float(loose_rows["excess_duplicate_rows"]) - 0.6) < 1e-9
+    assert strict_names["duplicate_rows"] == 2.0
+    assert abs(float(strict_names["expected_duplicate_rows"]) - 0.8) < 1e-9
+    assert abs(float(strict_names["excess_duplicate_rows"]) - 1.2) < 1e-9
 
 
 def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract() -> None:
@@ -1504,3 +1830,69 @@ def test_payload_includes_hearing_context_and_process_markers_when_metadata_pres
     controls = payload["controls"]
     assert controls["timezone"] == "America/Los_Angeles"
     assert len(controls["process_markers"]) >= 3
+
+
+def test_payload_emits_position_baseline_and_dual_bounds_charts() -> None:
+    table_map = {
+        "artifacts.counts_per_minute": pd.DataFrame(
+            {
+                "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                "n_total": [3],
+                "n_pro": [2],
+                "n_con": [1],
+                "pro_rate": [2 / 3],
+                "pro_rate_wilson_low": [0.2],
+                "pro_rate_wilson_high": [0.95],
+                "is_low_power": [False],
+                "n_unique_names": [2],
+                "unique_ratio": [2 / 3],
+            }
+        ),
+        "duplicates_exact.collision_by_bucket_position": pd.DataFrame(
+            {
+                "scope": ["full_hearing", "full_hearing"],
+                "metric": ["repeated_group_rows", "repeated_group_rows"],
+                "bucket_start": pd.to_datetime(
+                    ["2026-02-01T00:00:00Z", "2026-02-01T00:00:00Z"]
+                ),
+                "bucket_minutes": [5, 5],
+                "position_normalized": ["Pro", "Con"],
+                "n_bucket_position": [2, 1],
+                "n_unique_names": [1, 1],
+                "observed": [2.0, 0.0],
+                "expected": [2.0, 0.0],
+                "excess": [0.0, 0.0],
+                "deviance": [0.0, 0.0],
+                "deviance_ratio": [0.0, 0.0],
+                "lambda_side": [1.0, 1.0],
+                "shrink_k": [0.0, 0.0],
+                "prior_level": ["default", "default"],
+                "is_low_power": [True, True],
+                "inference_status": ["descriptive_only", "descriptive_only"],
+            }
+        ),
+        "voter_registry_match.position_bounds": pd.DataFrame(
+            {
+                "match_mode": ["strict", "strict"],
+                "unit": ["rows", "rows"],
+                "position_normalized": ["Pro", "Con"],
+                "n_total_lower": [10, 10],
+                "n_total_upper": [10, 10],
+                "matched_rate_lower": [0.6, 0.4],
+                "matched_rate_upper": [0.8, 0.7],
+                "matched_rate_span": [0.2, 0.3],
+                "unmatched_rate_lower": [0.4, 0.6],
+                "unmatched_rate_upper": [0.2, 0.3],
+                "unmatched_rate_span": [0.2, 0.3],
+                "inference_status": ["tested", "tested"],
+            }
+        ),
+    }
+    payload = _build_interactive_chart_payload_v2(
+        table_map=table_map,
+        detector_summaries={},
+        hearing_metadata=None,
+    )
+
+    assert payload["charts"]["duplicates_exact_position_bucket_deviance"]
+    assert payload["charts"]["voter_registry_position_bounds"]

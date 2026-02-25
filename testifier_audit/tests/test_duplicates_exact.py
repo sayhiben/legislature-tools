@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -324,6 +326,7 @@ def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 1})
+    simulated_n_rows: list[int] = []
     monkeypatch.setattr(
         duplicates_exact_module,
         "fetch_voter_name_key_count_histogram",
@@ -350,8 +353,15 @@ def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
     monkeypatch.setattr(
         duplicates_exact_module,
         "simulate_collision_null_from_histogram",
-        lambda **kwargs: (_ for _ in ()).throw(
-            AssertionError("histogram null simulator should not run for stratified multinomial path")
+        lambda **kwargs: (
+            simulated_n_rows.append(int(kwargs.get("n_rows", 0)))
+            or pd.DataFrame(
+                {
+                    "pairs": [0.0],
+                    "excess_rows": [0.0],
+                    "repeated_group_rows": [0.0],
+                }
+            )
         ),
     )
 
@@ -370,6 +380,8 @@ def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
     primary_scope = detector.collision_scope_primary
     primary = overview[overview["scope"] == primary_scope].copy()
     assert not primary.empty
+    assert simulated_n_rows
+    assert len(frame) not in set(simulated_n_rows)
 
 
 def test_collision_monte_carlo_draw_budget_scales_with_bucket_size() -> None:
@@ -467,8 +479,10 @@ def test_low_power_bucket_skips_bucket_level_null_simulation(
     detector.run(df=frame, features={})
 
     assert simulated_n_rows
-    assert len(simulated_n_rows) == 1
-    assert set(simulated_n_rows) == {len(frame)}
+    assert simulated_n_rows.count(len(frame)) == 1
+    position_counts = set(frame["position_normalized"].value_counts().astype(int).tolist())
+    allowed_n_rows = {len(frame), *position_counts}
+    assert set(simulated_n_rows).issubset(allowed_n_rows)
 
 
 def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing() -> None:
@@ -547,3 +561,264 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     assert required_timing_columns.issubset(full_timing.columns)
     assert not full_timing.empty
     assert set(full_timing["match_mode"]) == {"strict", "loose"}
+
+
+def test_collision_by_bucket_position_emits_expected_hearing_position_baseline() -> None:
+    frame = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "canonical_name": ["DOE|JANE", "DOE|JANE", "SMITH|JOHN"],
+            "position_normalized": ["Pro", "Pro", "Con"],
+            "timestamp": pd.to_datetime(
+                ["2026-02-01 00:00:00", "2026-02-01 00:01:00", "2026-02-01 00:02:00"]
+            ),
+            "minute_bucket": pd.to_datetime(
+                ["2026-02-01 00:00:00", "2026-02-01 00:01:00", "2026-02-01 00:02:00"]
+            ),
+            "name_display": ["DOE, JANE", "DOE, JANE", "SMITH, JOHN"],
+        }
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+        position_hearing_baseline_enabled=True,
+        position_baseline_shrink_k=0.0,
+    )
+    result = detector.run(df=frame, features={})
+
+    by_bucket_position = result.tables["collision_by_bucket_position"]
+    assert not by_bucket_position.empty
+    required = {
+        "scope",
+        "metric",
+        "bucket_start",
+        "bucket_minutes",
+        "position_normalized",
+        "n_bucket_position",
+        "observed",
+        "expected",
+        "excess",
+        "deviance",
+        "deviance_ratio",
+        "lambda_side",
+        "shrink_k",
+        "prior_level",
+        "is_low_power",
+        "inference_status",
+    }
+    assert required.issubset(by_bucket_position.columns)
+    pro_row = by_bucket_position[by_bucket_position["position_normalized"] == "Pro"].iloc[0]
+    con_row = by_bucket_position[by_bucket_position["position_normalized"] == "Con"].iloc[0]
+    assert pro_row["n_bucket_position"] == 2
+    assert pro_row["observed"] == pytest.approx(2.0)
+    assert pro_row["expected"] == pytest.approx(2.0)
+    assert pro_row["deviance"] == pytest.approx(0.0)
+    assert pro_row["lambda_side"] == pytest.approx(1.0)
+    assert con_row["n_bucket_position"] == 1
+    assert con_row["observed"] == pytest.approx(0.0)
+    assert con_row["expected"] == pytest.approx(0.0)
+
+
+def test_collision_by_bucket_position_uses_contextual_shrink_k(tmp_path: Path) -> None:
+    contextual_path = tmp_path / "contextual_baseline.csv"
+    contextual_path.write_text(
+        "level,committee,chamber,hour_bin,weekday_bin,bucket_minutes,n_windows,n_rows_total,duplicate_row_rate_mean,duplicate_row_rate_median,median_n_rows,shrink_k\n"
+        "bucket,,,-1,-1,5,10,1000,0.10,0.10,50,12\n",
+        encoding="utf-8",
+    )
+    frame = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "canonical_name": ["DOE|JANE", "DOE|JANE", "SMITH|JOHN"],
+            "position_normalized": ["Pro", "Pro", "Con"],
+            "timestamp": pd.to_datetime(
+                ["2026-02-01 00:00:00", "2026-02-01 00:01:00", "2026-02-01 00:02:00"]
+            ),
+            "minute_bucket": pd.to_datetime(
+                ["2026-02-01 00:00:00", "2026-02-01 00:01:00", "2026-02-01 00:02:00"]
+            ),
+            "name_display": ["DOE, JANE", "DOE, JANE", "SMITH, JOHN"],
+        }
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+        position_hearing_baseline_enabled=True,
+        position_baseline_shrink_k=1.0,
+        contextual_baseline_path=str(contextual_path),
+    )
+    result = detector.run(df=frame, features={})
+    by_bucket_position = result.tables["collision_by_bucket_position"]
+    pro_row = by_bucket_position[by_bucket_position["position_normalized"] == "Pro"].iloc[0]
+    assert pro_row["shrink_k"] == pytest.approx(12.0)
+    assert pro_row["prior_level"] == "bucket"
+
+
+def _build_position_interval_frame(
+    *,
+    n_rows_per_position: int,
+    include_unknown: bool = False,
+) -> pd.DataFrame:
+    positions = ["Pro", "Con"] + (["Unknown"] if include_unknown else [])
+    rows: list[dict[str, object]] = []
+    base = pd.Timestamp("2026-02-01 00:00:00")
+    row_id = 1
+    minute_offset = 0
+    for position in positions:
+        for index in range(int(n_rows_per_position)):
+            name_id = int(index % 8)
+            canonical_name = f"NAME{name_id:02d}|TEST"
+            timestamp = base + pd.Timedelta(minutes=minute_offset)
+            rows.append(
+                {
+                    "id": row_id,
+                    "canonical_name": canonical_name,
+                    "name_display": canonical_name.replace("|", ", "),
+                    "position_normalized": position,
+                    "timestamp": timestamp,
+                    "minute_bucket": timestamp.floor("min"),
+                }
+            )
+            row_id += 1
+            minute_offset += 1
+    return pd.DataFrame(rows)
+
+
+def test_position_duplicate_metrics_emit_interval_contract_and_are_order_stable() -> None:
+    frame = _build_position_interval_frame(n_rows_per_position=40)
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+        collision_baseline_model="multinomial",
+        position_interval_draws=500,
+        position_claim_min_rows_per_position=20,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        random_seed=17,
+    )
+
+    result = detector.run(df=frame, features={})
+    shuffled = frame.sample(frac=1.0, random_state=9).reset_index(drop=True)
+    shuffled_result = detector.run(df=shuffled, features={})
+
+    metrics = result.tables["position_duplicate_metrics"].sort_values("position_normalized").reset_index(drop=True)
+    shuffled_metrics = (
+        shuffled_result.tables["position_duplicate_metrics"]
+        .sort_values("position_normalized")
+        .reset_index(drop=True)
+    )
+
+    required = {
+        "expected_duplicate_rows_p05",
+        "expected_duplicate_rows_p50",
+        "expected_duplicate_rows_p95",
+        "expected_duplicate_row_rate_p05",
+        "expected_duplicate_row_rate_p50",
+        "expected_duplicate_row_rate_p95",
+        "interval_method_id",
+        "interval_draws_effective",
+    }
+    assert required.issubset(metrics.columns)
+    assert (metrics["interval_method_id"] == detector.POSITION_INTERVAL_METHOD_ID).all()
+    assert (metrics["interval_draws_effective"].astype(int) > 0).all()
+    assert np.isfinite(metrics["expected_duplicate_rows_p05"]).all()
+    assert np.isfinite(metrics["expected_duplicate_rows_p50"]).all()
+    assert np.isfinite(metrics["expected_duplicate_rows_p95"]).all()
+    assert np.isfinite(metrics["expected_duplicate_row_rate_p05"]).all()
+    assert np.isfinite(metrics["expected_duplicate_row_rate_p50"]).all()
+    assert np.isfinite(metrics["expected_duplicate_row_rate_p95"]).all()
+
+    assert (metrics["expected_duplicate_rows_p05"] <= metrics["expected_duplicate_rows_p50"]).all()
+    assert (metrics["expected_duplicate_rows_p50"] <= metrics["expected_duplicate_rows_p95"]).all()
+    assert (metrics["expected_duplicate_row_rate_p05"] <= metrics["expected_duplicate_row_rate_p50"]).all()
+    assert (metrics["expected_duplicate_row_rate_p50"] <= metrics["expected_duplicate_row_rate_p95"]).all()
+
+    pd.testing.assert_frame_equal(
+        metrics[
+            [
+                "position_normalized",
+                "expected_duplicate_rows_p05",
+                "expected_duplicate_rows_p50",
+                "expected_duplicate_rows_p95",
+                "expected_duplicate_row_rate_p05",
+                "expected_duplicate_row_rate_p50",
+                "expected_duplicate_row_rate_p95",
+                "interval_draws_effective",
+            ]
+        ],
+        shuffled_metrics[
+            [
+                "position_normalized",
+                "expected_duplicate_rows_p05",
+                "expected_duplicate_rows_p50",
+                "expected_duplicate_rows_p95",
+                "expected_duplicate_row_rate_p05",
+                "expected_duplicate_row_rate_p50",
+                "expected_duplicate_row_rate_p95",
+                "interval_draws_effective",
+            ]
+        ],
+        check_exact=True,
+    )
+
+    assert bool(result.summary["position_claim_eligible"]) is True
+    assert str(result.summary["position_claim_reason"]) == detector.POSITION_CLAIM_REASON_ELIGIBLE
+    assert float(result.summary["position_interval_nominal"]) == pytest.approx(
+        detector.position_interval_nominal
+    )
+    assert (
+        str(result.summary["position_interval_method_id"]) == detector.POSITION_INTERVAL_METHOD_ID
+    )
+
+
+def test_position_claim_is_gated_when_position_support_is_insufficient() -> None:
+    frame = _build_position_interval_frame(n_rows_per_position=12, include_unknown=True)
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_model="multinomial",
+        collision_uncertainty_mode="analytic_only",
+        position_interval_draws=400,
+        position_claim_min_rows_per_position=25,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        random_seed=22,
+    )
+    result = detector.run(df=frame, features={})
+    metrics = result.tables["position_duplicate_metrics"]
+
+    assert bool(result.summary["position_claim_eligible"]) is False
+    assert (
+        str(result.summary["position_claim_reason"])
+        == detector.POSITION_CLAIM_REASON_INSUFFICIENT_SUPPORT
+    )
+    assert (metrics["is_low_power"].astype(bool)).all()
+    assert set(metrics["inference_status"].astype(str)) == {"descriptive_only"}
+
+
+def test_position_claim_is_gated_for_unsupported_baseline_model() -> None:
+    frame = _build_position_interval_frame(n_rows_per_position=40)
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_model="hypergeometric",
+        collision_uncertainty_mode="analytic_only",
+        position_interval_draws=400,
+        position_claim_min_rows_per_position=10,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        random_seed=23,
+    )
+    result = detector.run(df=frame, features={})
+    metrics = result.tables["position_duplicate_metrics"]
+
+    assert bool(result.summary["position_claim_eligible"]) is False
+    assert (
+        str(result.summary["position_claim_reason"])
+        == detector.POSITION_CLAIM_REASON_UNSUPPORTED_MODEL
+    )
+    assert (metrics["interval_draws_effective"].astype(int) == 0).all()
+    assert set(metrics["inference_status"].astype(str)) == {"descriptive_only"}

@@ -19,6 +19,7 @@ def test_cli_help() -> None:
 
     assert result.exit_code == 0
     assert "download-csi-testifiers" in result.stdout
+    assert "sample-baseline-corpus" in result.stdout
     assert "import-submissions" in result.stdout
     assert "import-vrdb" in result.stdout
     assert "run-all" in result.stdout
@@ -85,6 +86,91 @@ def test_download_csi_testifiers_command_runs(monkeypatch, tmp_path: Path) -> No
     assert captured["overwrite"] is False
     assert "CSI testifier download complete" in result.stdout
     assert "total_rows: 211" in result.stdout
+
+
+def test_sample_baseline_corpus_command_runs(monkeypatch, tmp_path: Path) -> None:
+    index_json = tmp_path / "index.json"
+    index_csv = tmp_path / "index.csv"
+    csv_out_dir = tmp_path / "raw"
+    metadata_out_dir = tmp_path / "metadata"
+    manifest_out = tmp_path / "manifest.json"
+    sampled_a = tmp_path / "sampled-a"
+    sampled_b = tmp_path / "sampled-b"
+    captured: dict[str, object] = {}
+
+    def _fake_sample(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "session_years": [2026, 2025, 2024],
+            "sample_size_requested": 2,
+            "sample_size_selected": 2,
+            "sample_size_downloaded": 2,
+            "sample_size_failed": 0,
+            "index_refreshed": True,
+        }
+
+    def _fake_write(path: Path, manifest: dict[str, object]) -> None:
+        captured["manifest_path"] = path
+        captured["manifest_payload"] = manifest
+
+    monkeypatch.setattr("testifier_audit.cli.sample_unsampled_baseline_corpus", _fake_sample)
+    monkeypatch.setattr("testifier_audit.cli.write_baseline_sample_manifest", _fake_write)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "sample-baseline-corpus",
+            "--sample-size",
+            "2",
+            "--session-count",
+            "3",
+            "--index-json",
+            str(index_json),
+            "--index-csv",
+            str(index_csv),
+            "--csv-out-dir",
+            str(csv_out_dir),
+            "--metadata-out-dir",
+            str(metadata_out_dir),
+            "--manifest-out",
+            str(manifest_out),
+            "--sampled-metadata-dir",
+            str(sampled_a),
+            "--sampled-metadata-dir",
+            str(sampled_b),
+            "--refresh-index",
+            "--seed",
+            "17",
+            "--rate-limit-seconds",
+            "0.2",
+            "--timeout-seconds",
+            "15",
+            "--max-retries",
+            "2",
+            "--retry-backoff-seconds",
+            "0.4",
+            "--overwrite",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert captured["sample_size"] == 2
+    assert captured["session_count"] == 3
+    assert captured["index_json_path"] == index_json
+    assert captured["index_csv_path"] == index_csv
+    assert captured["csv_out_dir"] == csv_out_dir
+    assert captured["metadata_out_dir"] == metadata_out_dir
+    assert captured["manifest_path"] == manifest_out
+    assert captured["sampled_metadata_dirs"] == [sampled_a, sampled_b]
+    assert captured["refresh_index"] is True
+    assert captured["seed"] == 17
+    assert captured["rate_limit_seconds"] == 0.2
+    assert captured["timeout_seconds"] == 15.0
+    assert captured["max_retries"] == 2
+    assert captured["retry_backoff_seconds"] == 0.4
+    assert captured["overwrite"] is True
+    assert "Baseline corpus sampling complete" in result.stdout
 
 
 def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Path) -> None:

@@ -89,6 +89,16 @@ python -m testifier_audit.cli download-csi-testifiers \
   --csv-out-dir ./data/raw \
   --metadata-out-dir ./data/metadata
 
+# Sample N unsampled hearings from the latest 3 sessions and materialize CSV + sidecars
+python -m testifier_audit.cli sample-baseline-corpus \
+  --sample-size 25 \
+  --csv-out-dir ./data/raw \
+  --metadata-out-dir ./data/metadata \
+  --manifest-out ./data/metadata/baseline_sample_manifest.json
+
+# Shell wrapper for sampling N hearings (same defaults as above)
+./testifier_audit/scripts/data/sample_baseline_corpus.sh 25
+
 # Import submissions CSV
 python -m testifier_audit.cli import-submissions \
   --csv ./data/raw/SB6346-20260206-1330.csv \

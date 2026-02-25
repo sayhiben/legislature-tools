@@ -108,6 +108,129 @@ def test_build_table_column_docs_includes_detector_and_special_preview_tables() 
     assert "composite_score.evidence_bundle_preview" not in docs
 
 
+def test_duplicate_bucket_payload_includes_unit_columns() -> None:
+    payload = render._build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                    "n_total": [4],
+                    "n_pro": [2],
+                    "n_con": [2],
+                    "pro_rate": [0.5],
+                    "pro_rate_wilson_low": [0.2],
+                    "pro_rate_wilson_high": [0.8],
+                    "is_low_power": [False],
+                    "n_unique_names": [3],
+                    "unique_ratio": [0.75],
+                }
+            ),
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "collision_key_mode": "strict",
+                        "metric_primary": "repeated_group_rows",
+                        "n_used": 4,
+                        "N_used": 400,
+                    }
+                ]
+            ),
+            "duplicates_exact.collision_by_bucket": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "bucket_minutes": 30,
+                        "n_bucket": 4,
+                        "n_used": 4,
+                        "N_used": 400,
+                        "n_unique_names": 3,
+                        "n_pro": 2,
+                        "n_con": 2,
+                        "observed": 2.0,
+                        "expected": 1.0,
+                        "excess": 1.0,
+                        "baseline_model": "multinomial",
+                        "baseline_source": "hearing_empirical",
+                        "baseline_degraded": False,
+                    }
+                ]
+            ),
+            "duplicates_exact.per_name_duplicates_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "DOE|JANE",
+                        "canonical_name": "DOE|JANE",
+                        "display_name": "DOE, JANE",
+                        "observed_count": 2,
+                        "total_repeated_rows": 2,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "SMITH|JOHN",
+                        "canonical_name": "SMITH|JOHN",
+                        "display_name": "SMITH, JOHN",
+                        "observed_count": 2,
+                        "total_repeated_rows": 2,
+                    },
+                ]
+            ),
+            "duplicates_exact.per_name_submission_timing_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "DOE|JANE",
+                        "canonical_name": "DOE|JANE",
+                        "display_name": "DOE, JANE",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "position_normalized": "Pro",
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "DOE|JANE",
+                        "canonical_name": "DOE|JANE",
+                        "display_name": "DOE, JANE",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:02:00Z"),
+                        "position_normalized": "Con",
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "SMITH|JOHN",
+                        "canonical_name": "SMITH|JOHN",
+                        "display_name": "SMITH, JOHN",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:03:00Z"),
+                        "position_normalized": "Pro",
+                    },
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+
+    bucket_rows = payload["charts"]["duplicates_exact_bucket_concentration"]
+    assert bucket_rows
+    sample = bucket_rows[0]
+    assert "match_mode" in sample
+    assert "unit_observed_rows" in sample
+    assert "unit_expected_rows" in sample
+    assert "unit_deviation_rows" in sample
+    assert "unit_observed_names" in sample
+    assert "unit_expected_names" in sample
+    assert "unit_deviation_names" in sample
+    assert payload["controls"]["duplicate_collision_metric_options"] == [
+        "rows_anywhere",
+        "names_anywhere",
+    ]
+
+
 def test_disk_summary_artifact_and_table_preview_loaders(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     summary_dir = out_dir / "summary"
@@ -503,6 +626,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert 'id="duplicate-match-mode-select"' in rendered
     assert 'id="duplicate-scope-select"' in rendered
     assert 'id="duplicate-metric-select"' in rendered
+    assert 'for="duplicate-metric-select">Unit</label>' in rendered
     assert 'id="voter-match-mode-panel"' in rendered
     assert 'id="voter-match-mode-select"' in rendered
     assert 'id="sidebar-bill-meta"' not in rendered
@@ -612,8 +736,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert "flagged_window_diagnostics" in js_text
     else:
         assert 'id="triage-dedup-mode"' not in rendered
-        assert 'id="data-quality-warning-host"' in rendered
-        assert 'id="data-quality-dedup-metrics-host"' in rendered
+        assert 'id="data-quality-warning-host"' not in rendered
+        assert 'id="data-quality-dedup-metrics-host"' not in rendered
         assert 'id="cross-hearing-comparator-host"' not in rendered
         assert 'id="cross-hearing-comparator-summary"' not in rendered
         assert 'id="hearing-context-metadata-host"' in rendered
@@ -633,7 +757,11 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert 'id="triage-voter-match-position-bars"' in rendered
         assert 'id="triage-overall-procon"' not in rendered
         assert 'id="triage-top-tier-count"' not in rendered
-        assert 'id="forensics-top-names-host" class="table-host table-host-compact"' in rendered
+        assert 'id="forensics-top-names-pro-host" class="structured-host structured-host-compact"' in rendered
+        assert 'id="forensics-top-names-con-host" class="structured-host structured-host-compact"' in rendered
+        assert '<div class="triage-top-names-heading">Pro</div>' in rendered
+        assert '<div class="triage-top-names-heading">Con</div>' in rendered
+        assert '<h4 class="triage-top-names-heading">' not in rendered
         assert 'id="hearing-context-metadata-host" class="structured-host structured-host-compact"' in rendered
         assert 'id="hearing-deadline-ramp-host" class="structured-host structured-host-compact"' in rendered
         assert 'id="methodology-definitions-host" class="structured-host structured-host-compact"' in rendered
@@ -682,16 +810,19 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert 'tablePreviewRows("duplicates_exact", "per_name_display")' in js_text
     assert "filterRowsByDuplicateTableBucket(" in js_text
     assert "rerenderBucketAwareTables();" in js_text
+    assert "function resolveDuplicateRowsForTriage(summary)" in js_text
+    assert "const duplicateNames = resolveDuplicateRowsForTriage(summary);" in js_text
+    assert "const topNames = duplicateNames.rows;" in js_text
+    assert "buildTopRepeatedNamesByPosition(" in js_text
+    assert "mountTextPairCards(forensicsNamesProHost, topNamesProRows" in js_text
+    assert "mountTextPairCards(forensicsNamesConHost, topNamesConRows" in js_text
+    assert 'const title = document.createElement("div");' in js_text
+    assert 'document.createElement("h4")' not in js_text
+    assert 'tableKey: "triage.top_repeated_names"' not in js_text
     assert 'scopeOptions.length === 1 && scopeOptions[0] === "full_hearing"' in js_text
     assert 'scopeSelect.classList.toggle("hidden", hideScopeControl);' in js_text
     assert "triage-overall-procon" not in js_text
     assert "triage-top-tier-count" not in js_text
-    assert '"Total Sign-ins"' in js_text
-    assert '"# Pro"' in js_text
-    assert '"# Con"' in js_text
-    assert 'field: "# Sign-ins"' in js_text
-    assert 'field: "# Pro"' in js_text
-    assert 'field: "# Con"' in js_text
     assert js_text.count('sorter: "number"') >= 3
 
 

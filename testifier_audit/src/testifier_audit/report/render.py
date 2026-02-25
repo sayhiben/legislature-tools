@@ -137,6 +137,10 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     ),
     "n_records": "Total raw records represented by this row.",
     "n_unique_names": "Count of distinct canonical names in the bucket/group.",
+    "match_mode": (
+        "Name-match mode used for duplicate grouping (`strict` exact-style keys, "
+        "`loose` nickname/variant-aware keys)."
+    ),
     "n_matches": "Count of records whose name matched the voter registry reference.",
     "n_unmatched": "Count of records with no voter-registry name match.",
     "n_exact_matches": "Count of exact canonical-name matches to voter registry names.",
@@ -183,6 +187,42 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "expected_n_events_uniform": "Expected event count under a uniform minute-of-hour baseline.",
     "observed_count": "Observed submission count in the tested burst window.",
     "expected_count": "Expected submission count from the fitted baseline/null model.",
+    "duplicate_rows": (
+        "Observed duplicated-anywhere count for the selected unit in this bucket "
+        "(rows when unit is rows_anywhere, distinct names when unit is names_anywhere)."
+    ),
+    "duplicate_row_rate": (
+        "Observed duplicated-anywhere count divided by total rows in this bucket "
+        "for the selected unit."
+    ),
+    "expected_duplicate_rows": (
+        "Volume-share expected duplicated-anywhere count for the selected unit "
+        "in this bucket."
+    ),
+    "excess_duplicate_rows": (
+        "Signed deviation from expected for the selected unit "
+        "(observed - expected; negative means below expectation)."
+    ),
+    "unit_observed_rows": (
+        "Observed row count in this bucket where the name is duplicated anywhere in the timeline."
+    ),
+    "unit_expected_rows": (
+        "Expected duplicated-anywhere row count from volume share "
+        "(bucket rows * global duplicated-row share)."
+    ),
+    "unit_deviation_rows": "Signed row deviation from expected (unit_observed_rows - unit_expected_rows).",
+    "unit_observed_names": (
+        "Observed distinct-name count in this bucket where each name is duplicated "
+        "anywhere in the timeline."
+    ),
+    "unit_expected_names": (
+        "Expected duplicated-anywhere distinct-name count from row-volume share "
+        "(bucket rows * global duplicated-name share)."
+    ),
+    "unit_deviation_names": (
+        "Signed distinct-name deviation from expected "
+        "(unit_observed_names - unit_expected_names)."
+    ),
     "off_hours": "Count of records in configured off-hours period.",
     "on_hours": "Count of records in configured on-hours period.",
     "off_hours_ratio": "Fraction of all records submitted during off-hours.",
@@ -2997,21 +3037,30 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_exact_bucket_concentration": timebar(
-            summary="Exact-duplicate observed versus expected burden over time.",
-            primary_label="Observed duplicate rows",
-            primary_desc="Line shows observed duplicate-row burden in each bucket.",
+            summary=(
+                "Observed versus expected duplicated-anywhere presence over time "
+                "(rows or distinct names)."
+            ),
+            primary_label="Observed duplicated-anywhere count",
+            primary_desc=(
+                "Line shows the selected unit count in each bucket for names that are "
+                "duplicated anywhere in the timeline."
+            ),
             include_low_power=False,
             include_wilson=False,
             volume_label="Rows",
             volume_desc="Total rows in each bucket.",
             extra=[
                 {
-                    "label": "Expected duplicate rows",
-                    "description": "Model baseline expectation from the configured name-frequency baseline.",
+                    "label": "Expected duplicated-anywhere count",
+                    "description": (
+                        "Volume-share expectation for the selected unit "
+                        "(bucket rows * global duplicated-anywhere share)."
+                    ),
                 },
                 {
-                    "label": "Excess duplicate rows",
-                    "description": "Observed minus expected duplicate burden (floored at zero).",
+                    "label": "Deviation from expected",
+                    "description": "Signed observed-minus-expected difference for the selected unit.",
                 },
             ],
         ),
@@ -3106,26 +3155,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                         "bucket submission rows, and total sign-ins for the name."
                     ),
                 },
-            ],
-        },
-        "duplicates_exact_position_concentration": {
-            "summary": "Position concentration test (Pro vs Con duplicate burden).",
-            "items": [
-                {
-                    "label": "Left/Right rate bars",
-                    "description": (
-                        "Two bars per pair show duplicate-row rate in each compared position "
-                        "(left label vs right label)."
-                    ),
-                },
-                {
-                    "label": "Pair tooltip diagnostics",
-                    "description": (
-                        "Tooltips include `rate_difference`, confidence bounds, `rate_ratio`, and "
-                        "`permutation_p_value_one_sided` for effect-size and uncertainty context."
-                    ),
-                },
-                {"label": "X-axis", "description": "Position comparison pair."},
             ],
         },
         "duplicates_exact_null_distribution": {
@@ -4400,6 +4429,7 @@ def _build_interactive_chart_payload_v2(
         if not dup_exact_methods.empty
         else "repeated_group_rows"
     )
+    primary_dup_unit = "rows_anywhere"
     duplicate_scope_options = sorted(
         {
             str(value).strip()
@@ -4426,15 +4456,7 @@ def _build_interactive_chart_payload_v2(
             "N_used",
         ],
     )
-    duplicate_metric_options = sorted(
-        {
-            str(value).strip()
-            for value in dup_exact_collision_overview.get("metric", pd.Series(dtype=str)).tolist()
-            if str(value).strip()
-        }
-    )
-    if not duplicate_metric_options:
-        duplicate_metric_options = [primary_dup_metric]
+    duplicate_metric_options = ["rows_anywhere", "names_anywhere"]
     primary_dup_match_mode = (
         _normalize_report_match_mode(
             dup_exact_methods.get("collision_key_mode", pd.Series(dtype=str)).iloc[0]
@@ -4475,58 +4497,6 @@ def _build_interactive_chart_payload_v2(
             "inference_status",
         ],
     )
-    dup_exact_bucket = pd.DataFrame()
-    if not dup_exact_collision_bucket.empty:
-        dup_exact_bucket = dup_exact_collision_bucket.rename(
-            columns={
-                "n_bucket": "n_rows",
-                "observed": "duplicate_rows",
-                "expected": "expected_duplicate_rows",
-                "excess": "excess_duplicate_rows",
-            }
-        ).copy()
-        dup_exact_bucket["duplicate_row_rate"] = (
-            dup_exact_bucket["duplicate_rows"] / dup_exact_bucket["n_rows"]
-        ).where(dup_exact_bucket["n_rows"] > 0, 0.0)
-    if dup_exact_bucket.empty:
-        dup_exact_bucket = _with_expected_columns(
-            table_map.get(_table_key("duplicates_exact", "duplicate_by_bucket"), pd.DataFrame()),
-            [
-                "bucket_start",
-                "bucket_minutes",
-                "n_rows",
-                "n_unique_names",
-                "n_pro",
-                "n_con",
-                "duplicate_rows",
-                "duplicate_row_rate",
-                "expected_duplicate_rows",
-                "excess_duplicate_rows",
-            ],
-        )
-        if dup_exact_bucket.empty:
-            legacy_dup_exact_bucket = _with_expected_columns(
-                table_map.get(_table_key("duplicates_exact", "repeated_same_bucket"), pd.DataFrame()),
-                ["bucket_start", "bucket_minutes", "n", "n_pro", "n_con"],
-            )
-            if not legacy_dup_exact_bucket.empty:
-                dup_exact_bucket = (
-                    legacy_dup_exact_bucket.groupby(["bucket_start", "bucket_minutes"], dropna=False)
-                    .agg(
-                        n_rows=("n", "sum"),
-                        n_pro=("n_pro", "sum"),
-                        n_con=("n_con", "sum"),
-                        duplicate_rows=("n", "sum"),
-                    )
-                    .reset_index()
-                )
-                dup_exact_bucket["n_unique_names"] = pd.NA
-                dup_exact_bucket["duplicate_row_rate"] = (
-                    dup_exact_bucket["duplicate_rows"] / dup_exact_bucket["n_rows"]
-                ).where(dup_exact_bucket["n_rows"] > 0, 0.0)
-                dup_exact_bucket["expected_duplicate_rows"] = pd.NA
-                dup_exact_bucket["excess_duplicate_rows"] = dup_exact_bucket["duplicate_rows"]
-
     dup_exact_per_name_by_mode = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_duplicates_by_mode"), pd.DataFrame()),
         [
@@ -4547,11 +4517,549 @@ def _build_interactive_chart_payload_v2(
         ],
     )
     if not dup_exact_per_name_by_mode.empty:
+        dup_exact_per_name_by_mode["scope"] = (
+            dup_exact_per_name_by_mode.get("scope", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_scope)
+        )
         dup_exact_per_name_by_mode["match_mode"] = (
             dup_exact_per_name_by_mode["match_mode"]
             .map(lambda value: _normalize_report_match_mode(value, default="strict"))
             .astype(str)
         )
+        dup_exact_per_name_by_mode["name_key"] = (
+            dup_exact_per_name_by_mode.get("name_key", pd.Series(dtype=str))
+            .fillna(dup_exact_per_name_by_mode.get("canonical_name", pd.Series(dtype=str)))
+            .fillna(dup_exact_per_name_by_mode.get("display_name", pd.Series(dtype=str)))
+            .astype(str)
+            .str.strip()
+        )
+    dup_exact_per_name_timing_by_mode = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "per_name_submission_timing_by_mode"), pd.DataFrame()),
+        [
+            "scope",
+            "match_mode",
+            "match_label",
+            "match_definition",
+            "canonical_name",
+            "name_key",
+            "display_name",
+            "bucket_start",
+            "position_normalized",
+        ],
+    )
+    if not dup_exact_per_name_timing_by_mode.empty:
+        dup_exact_per_name_timing_by_mode["scope"] = (
+            dup_exact_per_name_timing_by_mode.get("scope", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_scope)
+        )
+        dup_exact_per_name_timing_by_mode["match_mode"] = (
+            dup_exact_per_name_timing_by_mode["match_mode"]
+            .map(lambda value: _normalize_report_match_mode(value, default="strict"))
+            .astype(str)
+        )
+        dup_exact_per_name_timing_by_mode["name_key"] = (
+            dup_exact_per_name_timing_by_mode.get("name_key", pd.Series(dtype=str))
+            .fillna(dup_exact_per_name_timing_by_mode.get("canonical_name", pd.Series(dtype=str)))
+            .fillna(dup_exact_per_name_timing_by_mode.get("display_name", pd.Series(dtype=str)))
+            .astype(str)
+            .str.strip()
+        )
+        dup_exact_per_name_timing_by_mode["bucket_start"] = pd.to_datetime(
+            dup_exact_per_name_timing_by_mode["bucket_start"], errors="coerce"
+        )
+        dup_exact_per_name_timing_by_mode = dup_exact_per_name_timing_by_mode.dropna(
+            subset=["bucket_start"]
+        )
+
+    # Bucket skeleton comes from collision tables; semantic values are replaced below.
+    dup_exact_bucket_skeleton = pd.DataFrame()
+    if not dup_exact_collision_bucket.empty:
+        working_collision_bucket = dup_exact_collision_bucket.copy()
+        metric_column = working_collision_bucket.get("metric", pd.Series("", index=working_collision_bucket.index))
+        primary_mask = metric_column.astype(str) == str(primary_dup_metric)
+        if bool(primary_mask.any()):
+            working_collision_bucket = working_collision_bucket.loc[primary_mask].copy()
+        dup_exact_bucket_skeleton = working_collision_bucket.rename(
+            columns={
+                "n_bucket": "n_rows",
+                "observed": "legacy_observed_rows",
+                "expected": "legacy_expected_rows",
+                "excess": "legacy_deviation_rows",
+            }
+        )
+        dup_exact_bucket_skeleton["scope"] = (
+            dup_exact_bucket_skeleton.get("scope", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_scope)
+        )
+        dup_exact_bucket_skeleton["bucket_start"] = pd.to_datetime(
+            dup_exact_bucket_skeleton.get("bucket_start"), errors="coerce"
+        )
+        dup_exact_bucket_skeleton = (
+            dup_exact_bucket_skeleton.dropna(subset=["bucket_start"])
+            .sort_values(["scope", "bucket_minutes", "bucket_start"])
+            .drop_duplicates(subset=["scope", "bucket_minutes", "bucket_start"], keep="first")
+        )
+    if dup_exact_bucket_skeleton.empty:
+        dup_exact_bucket_skeleton = _with_expected_columns(
+            table_map.get(_table_key("duplicates_exact", "duplicate_by_bucket"), pd.DataFrame()),
+            [
+                "scope",
+                "bucket_start",
+                "bucket_minutes",
+                "n_rows",
+                "n_unique_names",
+                "n_pro",
+                "n_con",
+                "duplicate_rows",
+                "expected_duplicate_rows",
+                "excess_duplicate_rows",
+            ],
+        )
+        if not dup_exact_bucket_skeleton.empty:
+            dup_exact_bucket_skeleton = dup_exact_bucket_skeleton.rename(
+                columns={
+                    "duplicate_rows": "legacy_observed_rows",
+                    "expected_duplicate_rows": "legacy_expected_rows",
+                    "excess_duplicate_rows": "legacy_deviation_rows",
+                }
+            )
+            dup_exact_bucket_skeleton["scope"] = (
+                dup_exact_bucket_skeleton.get("scope", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .replace("", primary_dup_scope)
+            )
+            dup_exact_bucket_skeleton["bucket_start"] = pd.to_datetime(
+                dup_exact_bucket_skeleton.get("bucket_start"), errors="coerce"
+            )
+            dup_exact_bucket_skeleton = dup_exact_bucket_skeleton.dropna(subset=["bucket_start"])
+        else:
+            legacy_dup_exact_bucket = _with_expected_columns(
+                table_map.get(_table_key("duplicates_exact", "repeated_same_bucket"), pd.DataFrame()),
+                ["bucket_start", "bucket_minutes", "n", "n_pro", "n_con"],
+            )
+            if not legacy_dup_exact_bucket.empty:
+                dup_exact_bucket_skeleton = (
+                    legacy_dup_exact_bucket.groupby(["bucket_start", "bucket_minutes"], dropna=False)
+                    .agg(
+                        n_rows=("n", "sum"),
+                        n_pro=("n_pro", "sum"),
+                        n_con=("n_con", "sum"),
+                        legacy_observed_rows=("n", "sum"),
+                    )
+                    .reset_index()
+                )
+                dup_exact_bucket_skeleton["scope"] = primary_dup_scope
+                dup_exact_bucket_skeleton["n_unique_names"] = pd.NA
+                dup_exact_bucket_skeleton["legacy_expected_rows"] = pd.NA
+                dup_exact_bucket_skeleton["legacy_deviation_rows"] = dup_exact_bucket_skeleton[
+                    "legacy_observed_rows"
+                ]
+
+    dup_exact_bucket = pd.DataFrame()
+    if not dup_exact_bucket_skeleton.empty:
+        dup_exact_bucket_skeleton["n_rows"] = pd.to_numeric(
+            dup_exact_bucket_skeleton.get("n_rows", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+        for column in ("legacy_observed_rows", "legacy_expected_rows", "legacy_deviation_rows"):
+            dup_exact_bucket_skeleton[column] = pd.to_numeric(
+                dup_exact_bucket_skeleton.get(column, pd.Series(dtype=float)),
+                errors="coerce",
+            )
+        dup_exact_bucket_skeleton["bucket_minutes"] = pd.to_numeric(
+            dup_exact_bucket_skeleton.get("bucket_minutes", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0).astype(int)
+        for column in ("n_used", "N_used"):
+            dup_exact_bucket_skeleton[column] = pd.to_numeric(
+                dup_exact_bucket_skeleton.get(column, pd.Series(dtype=float)),
+                errors="coerce",
+            )
+
+        scope_mode_pairs = pd.DataFrame(columns=["scope", "match_mode"])
+        if not dup_exact_per_name_by_mode.empty:
+            scope_mode_pairs = pd.concat(
+                [
+                    scope_mode_pairs,
+                    dup_exact_per_name_by_mode[["scope", "match_mode"]].drop_duplicates(),
+                ],
+                ignore_index=True,
+            )
+        if not dup_exact_per_name_timing_by_mode.empty:
+            scope_mode_pairs = pd.concat(
+                [
+                    scope_mode_pairs,
+                    dup_exact_per_name_timing_by_mode[["scope", "match_mode"]].drop_duplicates(),
+                ],
+                ignore_index=True,
+            )
+        if scope_mode_pairs.empty:
+            scope_mode_pairs = (
+                dup_exact_bucket_skeleton[["scope"]]
+                .drop_duplicates()
+                .assign(match_mode=primary_dup_match_mode)
+            )
+        else:
+            scope_mode_pairs = (
+                scope_mode_pairs.drop_duplicates().sort_values(["scope", "match_mode"])
+            )
+            missing_scope_rows = (
+                dup_exact_bucket_skeleton[["scope"]]
+                .drop_duplicates()
+                .merge(scope_mode_pairs[["scope"]].drop_duplicates(), on="scope", how="left", indicator=True)
+            )
+            missing_scope_rows = missing_scope_rows[missing_scope_rows["_merge"] == "left_only"][
+                ["scope"]
+            ]
+            if not missing_scope_rows.empty:
+                missing_scope_rows = missing_scope_rows.assign(match_mode=primary_dup_match_mode)
+                scope_mode_pairs = pd.concat(
+                    [scope_mode_pairs, missing_scope_rows], ignore_index=True
+                ).drop_duplicates()
+
+        dup_exact_bucket = dup_exact_bucket_skeleton.merge(
+            scope_mode_pairs,
+            on="scope",
+            how="left",
+        )
+        dup_exact_bucket["match_mode"] = (
+            dup_exact_bucket.get("match_mode", pd.Series(dtype=str))
+            .fillna(primary_dup_match_mode)
+            .map(lambda value: _normalize_report_match_mode(value, default="strict"))
+            .astype(str)
+        )
+
+        dup_exact_timing_bucket = pd.DataFrame()
+        if not dup_exact_per_name_timing_by_mode.empty:
+            timing_group_source = dup_exact_per_name_timing_by_mode[
+                dup_exact_per_name_timing_by_mode["name_key"].astype(str).str.len() > 0
+            ][["scope", "match_mode", "name_key", "bucket_start"]].copy()
+            bucket_minute_values = sorted(
+                {
+                    int(value)
+                    for value in pd.to_numeric(
+                        dup_exact_bucket.get("bucket_minutes", pd.Series(dtype=float)),
+                        errors="coerce",
+                    ).dropna()
+                    if int(value) > 0
+                }
+            )
+            timing_bucket_frames: list[pd.DataFrame] = []
+            for bucket_minutes in bucket_minute_values:
+                timed = timing_group_source.assign(
+                    bucket_minutes=int(bucket_minutes),
+                    bucket_start=timing_group_source["bucket_start"].dt.floor(f"{int(bucket_minutes)}min"),
+                ).dropna(subset=["bucket_start"])
+                if timed.empty:
+                    continue
+                grouped = (
+                    timed.groupby(
+                        ["scope", "match_mode", "bucket_minutes", "bucket_start"],
+                        dropna=False,
+                    )
+                    .agg(
+                        unit_observed_rows=("name_key", "size"),
+                        unit_observed_names=("name_key", "nunique"),
+                    )
+                    .reset_index()
+                )
+                timing_bucket_frames.append(grouped)
+            if timing_bucket_frames:
+                dup_exact_timing_bucket = pd.concat(timing_bucket_frames, ignore_index=True)
+
+        if not dup_exact_timing_bucket.empty:
+            dup_exact_bucket = dup_exact_bucket.merge(
+                dup_exact_timing_bucket,
+                on=["scope", "match_mode", "bucket_minutes", "bucket_start"],
+                how="left",
+            )
+        else:
+            dup_exact_bucket["unit_observed_rows"] = pd.NA
+            dup_exact_bucket["unit_observed_names"] = pd.NA
+
+        dup_exact_global_totals = pd.DataFrame(
+            columns=[
+                "scope",
+                "match_mode",
+                "global_duplicated_rows",
+                "global_duplicated_names",
+            ]
+        )
+        if not dup_exact_per_name_by_mode.empty:
+            total_repeated_rows = pd.to_numeric(
+                dup_exact_per_name_by_mode.get(
+                    "total_repeated_rows",
+                    dup_exact_per_name_by_mode.get("observed_count", pd.Series(dtype=float)),
+                ),
+                errors="coerce",
+            ).fillna(0.0)
+            per_name_global = dup_exact_per_name_by_mode.assign(
+                _global_duplicated_rows=total_repeated_rows,
+                _name_key=dup_exact_per_name_by_mode["name_key"].astype(str).str.strip(),
+            )
+            per_name_global = per_name_global[per_name_global["_name_key"].str.len() > 0]
+            if not per_name_global.empty:
+                dup_exact_global_totals = (
+                    per_name_global.groupby(["scope", "match_mode"], dropna=False)
+                    .agg(
+                        global_duplicated_rows=("_global_duplicated_rows", "sum"),
+                        global_duplicated_names=("_name_key", "nunique"),
+                    )
+                    .reset_index()
+                )
+        if not dup_exact_per_name_timing_by_mode.empty:
+            timing_global = (
+                dup_exact_per_name_timing_by_mode[
+                    dup_exact_per_name_timing_by_mode["name_key"].astype(str).str.len() > 0
+                ]
+                .groupby(["scope", "match_mode"], dropna=False)
+                .agg(
+                    global_duplicated_rows_timing=("name_key", "size"),
+                    global_duplicated_names_timing=("name_key", "nunique"),
+                )
+                .reset_index()
+            )
+            if dup_exact_global_totals.empty:
+                dup_exact_global_totals = timing_global.rename(
+                    columns={
+                        "global_duplicated_rows_timing": "global_duplicated_rows",
+                        "global_duplicated_names_timing": "global_duplicated_names",
+                    }
+                )
+            else:
+                dup_exact_global_totals = dup_exact_global_totals.merge(
+                    timing_global,
+                    on=["scope", "match_mode"],
+                    how="outer",
+                )
+                dup_exact_global_totals["global_duplicated_rows"] = pd.to_numeric(
+                    dup_exact_global_totals.get("global_duplicated_rows", pd.Series(dtype=float)),
+                    errors="coerce",
+                ).fillna(
+                    pd.to_numeric(
+                        dup_exact_global_totals.get(
+                            "global_duplicated_rows_timing", pd.Series(dtype=float)
+                        ),
+                        errors="coerce",
+                    )
+                )
+                dup_exact_global_totals["global_duplicated_names"] = pd.to_numeric(
+                    dup_exact_global_totals.get("global_duplicated_names", pd.Series(dtype=float)),
+                    errors="coerce",
+                ).fillna(
+                    pd.to_numeric(
+                        dup_exact_global_totals.get(
+                            "global_duplicated_names_timing", pd.Series(dtype=float)
+                        ),
+                        errors="coerce",
+                    )
+                )
+                dup_exact_global_totals = dup_exact_global_totals[
+                    ["scope", "match_mode", "global_duplicated_rows", "global_duplicated_names"]
+                ]
+
+        if not dup_exact_global_totals.empty:
+            dup_exact_bucket = dup_exact_bucket.merge(
+                dup_exact_global_totals,
+                on=["scope", "match_mode"],
+                how="left",
+            )
+        else:
+            dup_exact_bucket["global_duplicated_rows"] = pd.NA
+            dup_exact_bucket["global_duplicated_names"] = pd.NA
+
+        scope_rows_from_overview = (
+            dup_exact_collision_overview[
+                dup_exact_collision_overview.get("metric", pd.Series(dtype=str)).astype(str)
+                == str(primary_dup_metric)
+            ][["scope", "observed"]]
+            .dropna(subset=["scope"])
+            .drop_duplicates(subset=["scope"], keep="first")
+            .set_index("scope")["observed"]
+            .to_dict()
+            if not dup_exact_collision_overview.empty
+            else {}
+        )
+        dup_exact_bucket["global_duplicated_rows"] = pd.to_numeric(
+            dup_exact_bucket.get("global_duplicated_rows", pd.Series(dtype=float)),
+            errors="coerce",
+        )
+        if scope_rows_from_overview:
+            dup_exact_bucket["global_duplicated_rows"] = dup_exact_bucket[
+                "global_duplicated_rows"
+            ].fillna(
+                dup_exact_bucket.get("scope", pd.Series(dtype=str)).map(scope_rows_from_overview)
+            )
+        global_rows_available = dup_exact_bucket["global_duplicated_rows"].notna()
+        dup_exact_bucket["global_duplicated_rows"] = dup_exact_bucket[
+            "global_duplicated_rows"
+        ].fillna(0.0)
+        dup_exact_bucket["global_duplicated_names"] = pd.to_numeric(
+            dup_exact_bucket.get("global_duplicated_names", pd.Series(dtype=float)),
+            errors="coerce",
+        )
+        global_names_available = dup_exact_bucket["global_duplicated_names"].notna()
+        dup_exact_bucket["global_duplicated_names"] = dup_exact_bucket[
+            "global_duplicated_names"
+        ].fillna(0.0)
+
+        scope_n_used_map: dict[str, float] = {}
+        if not dup_exact_methods.empty:
+            methods_scope = dup_exact_methods[["scope", "n_used"]].copy()
+            methods_scope["scope"] = (
+                methods_scope["scope"].fillna("").astype(str).replace("", primary_dup_scope)
+            )
+            methods_scope["n_used"] = pd.to_numeric(methods_scope["n_used"], errors="coerce")
+            methods_scope = methods_scope.dropna(subset=["n_used"])
+            methods_scope = methods_scope[methods_scope["n_used"] > 0]
+            if not methods_scope.empty:
+                scope_n_used_map.update(
+                    methods_scope.drop_duplicates(subset=["scope"], keep="first")
+                    .set_index("scope")["n_used"]
+                    .to_dict()
+                )
+        if "n_used" in dup_exact_bucket.columns:
+            bucket_scope = dup_exact_bucket[["scope", "n_used"]].copy()
+            bucket_scope["scope"] = (
+                bucket_scope["scope"].fillna("").astype(str).replace("", primary_dup_scope)
+            )
+            bucket_scope["n_used"] = pd.to_numeric(bucket_scope["n_used"], errors="coerce")
+            bucket_scope = bucket_scope.dropna(subset=["n_used"])
+            bucket_scope = bucket_scope[bucket_scope["n_used"] > 0]
+            if not bucket_scope.empty:
+                for scope_value, n_used_value in (
+                    bucket_scope.drop_duplicates(subset=["scope"], keep="first")
+                    .set_index("scope")["n_used"]
+                    .to_dict()
+                    .items()
+                ):
+                    scope_n_used_map.setdefault(str(scope_value), float(n_used_value))
+
+        total_rows_in_scope = pd.to_numeric(
+            dup_exact_bucket.get("n_used", pd.Series(dtype=float)),
+            errors="coerce",
+        )
+        if scope_n_used_map:
+            total_rows_in_scope = total_rows_in_scope.fillna(
+                dup_exact_bucket.get("scope", pd.Series(dtype=str)).map(scope_n_used_map)
+            )
+        scope_bucket_volume = (
+            dup_exact_bucket.groupby("scope", dropna=False)["n_rows"].sum(min_count=1).to_dict()
+        )
+        total_rows_in_scope = total_rows_in_scope.fillna(
+            dup_exact_bucket.get("scope", pd.Series(dtype=str)).map(scope_bucket_volume)
+        ).fillna(0.0)
+        total_rows_in_scope = pd.to_numeric(total_rows_in_scope, errors="coerce").fillna(0.0)
+
+        dup_exact_bucket["unit_observed_rows"] = pd.to_numeric(
+            dup_exact_bucket.get("unit_observed_rows", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(
+            pd.to_numeric(
+                dup_exact_bucket.get("legacy_observed_rows", pd.Series(dtype=float)),
+                errors="coerce",
+            )
+        )
+        dup_exact_bucket["unit_observed_rows"] = dup_exact_bucket["unit_observed_rows"].fillna(0.0)
+        dup_exact_bucket["unit_observed_names"] = pd.to_numeric(
+            dup_exact_bucket.get("unit_observed_names", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+
+        n_rows_numeric = pd.to_numeric(
+            dup_exact_bucket.get("n_rows", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+        global_rows_numeric = pd.to_numeric(
+            dup_exact_bucket.get("global_duplicated_rows", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+        global_names_numeric = pd.to_numeric(
+            dup_exact_bucket.get("global_duplicated_names", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+
+        expected_rows = pd.Series(np.nan, index=dup_exact_bucket.index, dtype=float)
+        expected_names = pd.Series(np.nan, index=dup_exact_bucket.index, dtype=float)
+        valid_total_mask = total_rows_in_scope > 0
+        valid_rows_mask = valid_total_mask & global_rows_available
+        valid_names_mask = valid_total_mask & global_names_available
+        if bool(valid_rows_mask.any()):
+            expected_rows.loc[valid_rows_mask] = (
+                n_rows_numeric.loc[valid_rows_mask]
+                * global_rows_numeric.loc[valid_rows_mask]
+                / total_rows_in_scope.loc[valid_rows_mask]
+            )
+        if bool(valid_names_mask.any()):
+            expected_names.loc[valid_names_mask] = (
+                n_rows_numeric.loc[valid_names_mask]
+                * global_names_numeric.loc[valid_names_mask]
+                / total_rows_in_scope.loc[valid_names_mask]
+            )
+
+        expected_rows = expected_rows.fillna(
+            pd.to_numeric(
+                dup_exact_bucket.get("legacy_expected_rows", pd.Series(dtype=float)),
+                errors="coerce",
+            )
+        ).fillna(0.0)
+        expected_names = expected_names.fillna(0.0)
+
+        dup_exact_bucket["unit_expected_rows"] = expected_rows
+        dup_exact_bucket["unit_expected_names"] = expected_names
+        dup_exact_bucket["unit_deviation_rows"] = (
+            dup_exact_bucket["unit_observed_rows"] - dup_exact_bucket["unit_expected_rows"]
+        )
+        dup_exact_bucket["unit_deviation_names"] = (
+            dup_exact_bucket["unit_observed_names"] - dup_exact_bucket["unit_expected_names"]
+        )
+
+        rows_unit = dup_exact_bucket.copy()
+        rows_unit["metric"] = "rows_anywhere"
+        rows_unit["duplicate_rows"] = rows_unit["unit_observed_rows"]
+        rows_unit["expected_duplicate_rows"] = rows_unit["unit_expected_rows"]
+        rows_unit["excess_duplicate_rows"] = rows_unit["unit_deviation_rows"]
+        rows_unit["duplicate_row_rate"] = (
+            rows_unit["duplicate_rows"] / rows_unit["n_rows"]
+        ).where(rows_unit["n_rows"] > 0, 0.0)
+
+        names_unit = dup_exact_bucket.copy()
+        names_unit["metric"] = "names_anywhere"
+        names_unit["duplicate_rows"] = names_unit["unit_observed_names"]
+        names_unit["expected_duplicate_rows"] = names_unit["unit_expected_names"]
+        names_unit["excess_duplicate_rows"] = names_unit["unit_deviation_names"]
+        names_unit["duplicate_row_rate"] = (
+            names_unit["duplicate_rows"] / names_unit["n_rows"]
+        ).where(names_unit["n_rows"] > 0, 0.0)
+
+        dup_exact_bucket = pd.concat([rows_unit, names_unit], ignore_index=True, sort=False)
+
+        numeric_columns = [
+            "n_rows",
+            "duplicate_rows",
+            "duplicate_row_rate",
+            "expected_duplicate_rows",
+            "excess_duplicate_rows",
+            "unit_observed_rows",
+            "unit_expected_rows",
+            "unit_deviation_rows",
+            "unit_observed_names",
+            "unit_expected_names",
+            "unit_deviation_names",
+        ]
+        for column in numeric_columns:
+            dup_exact_bucket[column] = pd.to_numeric(
+                dup_exact_bucket.get(column, pd.Series(dtype=float)),
+                errors="coerce",
+            ).fillna(0.0)
+
     dup_exact_per_name_anomalies = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_anomalies"), pd.DataFrame()),
         [
@@ -4726,6 +5234,8 @@ def _build_interactive_chart_payload_v2(
                 *dup_exact_top_name_timing.get("match_mode", pd.Series(dtype=str)).tolist(),
                 *dup_exact_per_name.get("match_mode", pd.Series(dtype=str)).tolist(),
                 *dup_exact_per_name_by_mode.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *dup_exact_per_name_timing_by_mode.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *dup_exact_bucket.get("match_mode", pd.Series(dtype=str)).tolist(),
             ]
             if str(value).strip()
         }
@@ -4740,20 +5250,29 @@ def _build_interactive_chart_payload_v2(
             "strict" if "strict" in duplicate_match_mode_options else duplicate_match_mode_options[0]
         )
 
-    dup_exact_position_tests = _with_expected_columns(
-        table_map.get(_table_key("duplicates_exact", "position_concentration_tests"), pd.DataFrame()),
+    dup_exact_bucket_position = _with_expected_columns(
+        table_map.get(
+            _table_key("duplicates_exact", "collision_by_bucket_position"),
+            pd.DataFrame(),
+        ),
         [
-            "position_left",
-            "position_right",
-            "left_duplicate_row_rate",
-            "right_duplicate_row_rate",
-            "rate_difference",
-            "rate_difference_ci_low",
-            "rate_difference_ci_high",
-            "rate_ratio",
-            "permutation_p_value_one_sided",
-            "left_is_low_power",
-            "right_is_low_power",
+            "scope",
+            "metric",
+            "bucket_start",
+            "bucket_minutes",
+            "position_normalized",
+            "n_bucket_position",
+            "n_unique_names",
+            "observed",
+            "expected",
+            "excess",
+            "deviance",
+            "deviance_ratio",
+            "lambda_side",
+            "shrink_k",
+            "prior_level",
+            "is_low_power",
+            "inference_status",
         ],
     )
     dup_exact_null_distribution = _with_expected_columns(
@@ -5038,6 +5557,23 @@ def _build_interactive_chart_payload_v2(
             "unmatched_rate_wilson_low",
             "unmatched_rate_wilson_high",
             "is_low_power",
+        ],
+    )
+    voter_position_bounds = _with_expected_columns(
+        table_map.get(_table_key("voter_registry_match", "position_bounds"), pd.DataFrame()),
+        [
+            "match_mode",
+            "unit",
+            "position_normalized",
+            "n_total_lower",
+            "n_total_upper",
+            "matched_rate_lower",
+            "matched_rate_upper",
+            "matched_rate_span",
+            "unmatched_rate_lower",
+            "unmatched_rate_upper",
+            "unmatched_rate_span",
+            "inference_status",
         ],
     )
 
@@ -6177,12 +6713,21 @@ def _build_interactive_chart_payload_v2(
         max_rows=10,
     )
 
+    dup_exact_bucket_sorted = dup_exact_bucket.copy()
+    duplicate_bucket_sort_columns = [
+        column
+        for column in ("scope", "match_mode", "metric", "bucket_minutes", "bucket_start")
+        if column in dup_exact_bucket_sorted.columns
+    ]
+    if duplicate_bucket_sort_columns:
+        dup_exact_bucket_sorted = dup_exact_bucket_sorted.sort_values(duplicate_bucket_sort_columns)
     charts["duplicates_exact_bucket_concentration"] = _records_from_frame(
-        dup_exact_bucket.sort_values(["bucket_minutes", "bucket_start"]),
+        dup_exact_bucket_sorted,
         columns=[
             "bucket_start",
             "bucket_minutes",
             "scope",
+            "match_mode",
             "metric",
             "n_rows",
             "n_unique_names",
@@ -6190,6 +6735,12 @@ def _build_interactive_chart_payload_v2(
             "duplicate_row_rate",
             "expected_duplicate_rows",
             "excess_duplicate_rows",
+            "unit_observed_rows",
+            "unit_expected_rows",
+            "unit_deviation_rows",
+            "unit_observed_names",
+            "unit_expected_names",
+            "unit_deviation_names",
             "n_used",
             "N_used",
             "baseline_model",
@@ -6329,29 +6880,30 @@ def _build_interactive_chart_payload_v2(
     charts["duplicates_exact_top_name_timing_exact"] = top_name_timing_rows + [
         {**row, "row_kind": "name_rank"} for row in top_name_timing_rank_rows
     ]
-    charts["duplicates_exact_position_concentration"] = _records_from_frame(
-        dup_exact_position_tests.assign(
-            pair_label=(
-                dup_exact_position_tests["position_left"].astype(str)
-                + " vs "
-                + dup_exact_position_tests["position_right"].astype(str)
-            )
-        ).sort_values("permutation_p_value_one_sided"),
+    charts["duplicates_exact_position_bucket_deviance"] = _records_from_frame(
+        dup_exact_bucket_position.sort_values(
+            ["scope", "bucket_minutes", "bucket_start", "position_normalized"]
+        ),
         columns=[
-            "pair_label",
-            "position_left",
-            "position_right",
-            "left_duplicate_row_rate",
-            "right_duplicate_row_rate",
-            "rate_difference",
-            "rate_difference_ci_low",
-            "rate_difference_ci_high",
-            "rate_ratio",
-            "permutation_p_value_one_sided",
-            "left_is_low_power",
-            "right_is_low_power",
+            "scope",
+            "metric",
+            "bucket_start",
+            "bucket_minutes",
+            "position_normalized",
+            "n_bucket_position",
+            "n_unique_names",
+            "observed",
+            "expected",
+            "excess",
+            "deviance",
+            "deviance_ratio",
+            "lambda_side",
+            "shrink_k",
+            "prior_level",
+            "is_low_power",
+            "inference_status",
         ],
-        max_rows=500,
+        max_rows=100_000,
     )
     charts["duplicates_exact_null_distribution"] = _records_from_frame(
         dup_exact_null_distribution.sort_values("iteration"),
@@ -6646,6 +7198,24 @@ def _build_interactive_chart_payload_v2(
             "unmatched_rate_unique",
         ],
         max_rows=20,
+    )
+    charts["voter_registry_position_bounds"] = _records_from_frame(
+        voter_position_bounds.sort_values(["match_mode", "unit", "position_normalized"]),
+        columns=[
+            "match_mode",
+            "unit",
+            "position_normalized",
+            "n_total_lower",
+            "n_total_upper",
+            "matched_rate_lower",
+            "matched_rate_upper",
+            "matched_rate_span",
+            "unmatched_rate_lower",
+            "unmatched_rate_upper",
+            "unmatched_rate_span",
+            "inference_status",
+        ],
+        max_rows=5_000,
     )
     charts["voter_registry_position_buckets"] = _records_from_frame(
         voter_bucket_position.sort_values(
@@ -6961,6 +7531,7 @@ def _build_interactive_chart_payload_v2(
         "off_hours_control_timeline",
         "off_hours_primary_residual_timeline",
         "duplicates_exact_bucket_concentration",
+        "duplicates_exact_position_bucket_deviance",
         "sortedness_bucket_ratio",
         "rare_names_unique_ratio",
         "org_anomalies_blank_rate",
@@ -7079,7 +7650,7 @@ def _build_interactive_chart_payload_v2(
             "dedup_modes": list(DEDUP_MODES),
             "default_dedup_mode": resolved_default_dedup_mode,
             "duplicate_collision_scope_default": primary_dup_scope,
-            "duplicate_collision_metric_default": primary_dup_metric,
+            "duplicate_collision_metric_default": primary_dup_unit,
             "duplicate_collision_scope_options": duplicate_scope_options,
             "duplicate_collision_metric_options": duplicate_metric_options,
             "duplicate_match_mode_default": primary_dup_match_mode,

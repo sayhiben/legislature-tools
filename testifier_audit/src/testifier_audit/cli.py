@@ -8,6 +8,27 @@ import typer
 import yaml
 
 from testifier_audit.config import DEFAULT_CONFIG_PATH, AppConfig, load_config
+from testifier_audit.io.baseline_corpus_sampler import (
+    DEFAULT_CSV_OUT_DIR as DEFAULT_BASELINE_SAMPLE_CSV_OUT_DIR,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
+    DEFAULT_INDEX_CSV as DEFAULT_BASELINE_SAMPLE_INDEX_CSV,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
+    DEFAULT_INDEX_JSON as DEFAULT_BASELINE_SAMPLE_INDEX_JSON,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
+    DEFAULT_MANIFEST_OUT as DEFAULT_BASELINE_SAMPLE_MANIFEST_OUT,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
+    DEFAULT_METADATA_OUT_DIR as DEFAULT_BASELINE_SAMPLE_METADATA_OUT_DIR,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
+    sample_unsampled_baseline_corpus,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
+    write_manifest as write_baseline_sample_manifest,
+)
 from testifier_audit.io.csi_testifiers import download_csi_testifier_csv
 from testifier_audit.io.hearing_metadata import load_hearing_metadata
 from testifier_audit.io.rarity_baselines import BaselineProfileName, build_frequency_baseline_file
@@ -398,6 +419,118 @@ def download_csi_testifiers_command(
     typer.echo(f"- total_rows: {result.total_rows}")
     typer.echo(f"- csv_path: {result.csv_path}")
     typer.echo(f"- hearing_metadata_path: {result.metadata_path}")
+
+
+@app.command("sample-baseline-corpus")
+def sample_baseline_corpus_command(
+    sample_size: int = typer.Option(
+        ...,
+        min=1,
+        help="Number of unsampled hearings to sample and download.",
+    ),
+    session_count: int = typer.Option(
+        3,
+        min=1,
+        help="How many most-recent session years to include.",
+    ),
+    index_json: Path = typer.Option(
+        DEFAULT_BASELINE_SAMPLE_INDEX_JSON,
+        resolve_path=True,
+        help="Meeting/bill index JSON path.",
+    ),
+    index_csv: Path = typer.Option(
+        DEFAULT_BASELINE_SAMPLE_INDEX_CSV,
+        resolve_path=True,
+        help="Meeting/bill index CSV path when index refresh is needed.",
+    ),
+    csv_out_dir: Path = typer.Option(
+        DEFAULT_BASELINE_SAMPLE_CSV_OUT_DIR,
+        resolve_path=True,
+        help="Directory where sampled CSV files will be written.",
+    ),
+    metadata_out_dir: Path = typer.Option(
+        DEFAULT_BASELINE_SAMPLE_METADATA_OUT_DIR,
+        resolve_path=True,
+        help="Directory where sampled hearing metadata sidecars will be written.",
+    ),
+    manifest_out: Path = typer.Option(
+        DEFAULT_BASELINE_SAMPLE_MANIFEST_OUT,
+        resolve_path=True,
+        help="Output manifest JSON path.",
+    ),
+    sampled_metadata_dir: list[Path] | None = typer.Option(
+        None,
+        resolve_path=True,
+        help=(
+            "Additional metadata directory with existing sidecars to treat as already sampled. "
+            "Repeat the option for multiple directories."
+        ),
+    ),
+    refresh_index: bool = typer.Option(
+        False,
+        "--refresh-index/--no-refresh-index",
+        help="Force rebuilding the meeting/bill index.",
+    ),
+    seed: int | None = typer.Option(
+        None,
+        help="Optional random seed for reproducible sampling.",
+    ),
+    rate_limit_seconds: float = typer.Option(
+        1.0,
+        min=0.0,
+        help="Sleep duration between sampled download requests.",
+    ),
+    timeout_seconds: float = typer.Option(
+        30.0,
+        min=1.0,
+        help="HTTP timeout for index and CSI requests.",
+    ),
+    max_retries: int = typer.Option(
+        3,
+        min=0,
+        max=10,
+        help="Retry count for transient CSI errors.",
+    ),
+    retry_backoff_seconds: float = typer.Option(
+        1.5,
+        min=0.1,
+        help="Base retry backoff seconds for CSI requests.",
+    ),
+    overwrite: bool = typer.Option(
+        False,
+        "--overwrite/--no-overwrite",
+        help="Replace existing sampled CSV/sidecar files if output paths already exist.",
+    ),
+) -> None:
+    """Sample N unsampled hearings and download CSV + sidecars with request-aware rate limiting."""
+    configure_logging()
+    extra_metadata_dirs = sampled_metadata_dir or []
+    manifest = sample_unsampled_baseline_corpus(
+        sample_size=sample_size,
+        session_count=session_count,
+        index_json_path=index_json,
+        index_csv_path=index_csv,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        manifest_path=manifest_out,
+        sampled_metadata_dirs=extra_metadata_dirs,
+        refresh_index=refresh_index,
+        seed=seed,
+        timeout_seconds=timeout_seconds,
+        max_retries=max_retries,
+        retry_backoff_seconds=retry_backoff_seconds,
+        rate_limit_seconds=rate_limit_seconds,
+        overwrite=overwrite,
+    )
+    write_baseline_sample_manifest(manifest_out, manifest)
+    typer.echo("Baseline corpus sampling complete")
+    typer.echo(f"- session_years: {', '.join(str(year) for year in manifest['session_years'])}")
+    typer.echo(f"- sample_size_requested: {manifest['sample_size_requested']}")
+    typer.echo(f"- sample_size_selected: {manifest['sample_size_selected']}")
+    typer.echo(f"- sample_size_downloaded: {manifest['sample_size_downloaded']}")
+    typer.echo(f"- sample_size_failed: {manifest['sample_size_failed']}")
+    typer.echo(f"- index_refreshed: {str(manifest['index_refreshed']).lower()}")
+    typer.echo(f"- manifest_path: {manifest_out}")
 
 
 @app.command("import-submissions")

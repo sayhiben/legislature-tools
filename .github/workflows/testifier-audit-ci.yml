@@ -13,6 +13,8 @@ on:
     paths:
       - "testifier_audit/**"
       - ".github/workflows/testifier-audit-ci.yml"
+  schedule:
+    - cron: "0 12 * * 1"
 
 permissions:
   contents: read
@@ -53,3 +55,69 @@ jobs:
 
       - name: Run test suite
         run: ./scripts/ci/test.sh
+
+  calibration_smoke:
+    name: Calibration Smoke
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: testifier_audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run calibration smoke gate
+        run: |
+          python ./scripts/tests/calibrate_position_duplicate_intervals.py \
+            --synthetic-replicates 12 \
+            --position-interval-draws 300 \
+            --coverage-min 0.75 \
+            --coverage-max 1.0 \
+            --subgroup-coverage-min 0.70 \
+            --subgroup-coverage-max 1.0 \
+            --subgroup-min-evaluable 8
+
+  calibration_full:
+    name: Calibration Full
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: testifier_audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run full calibration gate
+        run: |
+          python ./scripts/tests/calibrate_position_duplicate_intervals.py \
+            --synthetic-replicates 90 \
+            --position-interval-draws 1000 \
+            --coverage-min 0.93 \
+            --coverage-max 0.97 \
+            --subgroup-coverage-min 0.90 \
+            --subgroup-coverage-max 0.99 \
+            --subgroup-min-evaluable 30
+
+      - name: Upload calibration artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: position-interval-calibration
+          path: output/calibration/

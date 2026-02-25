@@ -1,0 +1,76 @@
+{
+  "rapidfuzz_ratio_cases": [
+    {
+      "left": "this is a test",
+      "right": "this is a test!",
+      "expected": 96.55172413793103,
+      "source": "https://rapidfuzz.github.io/RapidFuzz/Usage/fuzz.html#rapidfuzz.fuzz.ratio"
+    },
+    {
+      "left": "fuzzy wuzzy was a bear",
+      "right": "wuzzy fuzzy was a bear",
+      "expected": 90.9090909090909,
+      "source": "https://rapidfuzz.github.io/RapidFuzz/Usage/fuzz.html#rapidfuzz.fuzz.ratio"
+    }
+  ],
+  "binomial_tail_case": {
+    "observed_successes": 3,
+    "total_trials": 15,
+    "success_probability": 0.1,
+    "expected": 0.18406106910639106,
+    "source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.binomtest.html"
+  },
+  "fisher_exact_case": {
+    "successes_left": 6,
+    "total_left": 8,
+    "successes_right": 1,
+    "total_right": 5,
+    "expected_p_value": 0.10256410256410256,
+    "source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.fisher_exact.html"
+  },
+  "hypergeometric_tail_case": {
+    "observed_successes": 6,
+    "population_size": 13,
+    "population_successes": 7,
+    "sample_size": 8,
+    "expected": 0.08624708624708624,
+    "source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.hypergeom.html"
+  },
+  "bh_case": {
+    "p_values": [
+      0.0001,
+      0.0004,
+      0.0019,
+      0.0095,
+      0.0201,
+      0.0278,
+      0.0298,
+      0.0344,
+      0.0459,
+      0.324,
+      0.4262,
+      0.5719,
+      0.6528,
+      0.759,
+      1.0
+    ],
+    "expected": [
+      0.0015,
+      0.003,
+      0.0095,
+      0.035625,
+      0.0603,
+      0.06385714,
+      0.06385714,
+      0.0645,
+      0.0765,
+      0.486,
+      0.58118182,
+      0.714875,
+      0.75323077,
+      0.81321429,
+      1.0
+    ],
+    "source": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.false_discovery_control.html"
+  }
+}

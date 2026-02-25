@@ -1208,6 +1208,22 @@ code {
   padding: 0.42rem;
 }
 
+.triage-top-names-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.52rem;
+}
+
+.triage-top-names-column {
+  min-width: 0;
+}
+
+.triage-top-names-heading {
+  margin: 0 0 0.26rem;
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
 .detail-title {
   margin-bottom: 0.5rem;
 }
@@ -1394,7 +1410,7 @@ details.table-group > summary::-webkit-details-marker {
 .table-host {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  overflow: auto;
+  overflow: hidden;
   background: #ffffff;
   width: 100%;
 }
@@ -1582,7 +1598,7 @@ details.table-group > summary::-webkit-details-marker {
 .tabulator {
   border: 1px solid var(--table-border);
   background: var(--table-bg);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: var(--table-row-text);
 }
 
@@ -1599,6 +1615,10 @@ details.table-group > summary::-webkit-details-marker {
   font-weight: 600;
 }
 
+.tabulator .tabulator-header .tabulator-col:first-child {
+  border-left: 1px solid var(--table-border);
+}
+
 .tabulator .tabulator-header .tabulator-col:hover,
 .tabulator .tabulator-header .tabulator-col.tabulator-sortable.tabulator-col-sorter-element:hover {
   background: var(--table-bg-hover);
@@ -1611,6 +1631,10 @@ details.table-group > summary::-webkit-details-marker {
 .tabulator .tabulator-tableholder .tabulator-table {
   background: var(--table-bg);
   color: var(--table-row-text);
+}
+
+.tabulator .tabulator-tableholder {
+  overflow: auto;
 }
 
 .tabulator .tabulator-tableholder .tabulator-table .tabulator-row {

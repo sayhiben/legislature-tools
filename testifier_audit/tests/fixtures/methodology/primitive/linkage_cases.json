@@ -1,0 +1,96 @@
+{
+  "case_id": "linkage_tiers_core",
+  "thresholds": {
+    "strong_fuzzy_min_score": 92.0,
+    "weak_fuzzy_min_score": 84.0,
+    "ambiguous_score_gap": 2.0
+  },
+  "submission_names": [
+    "DOE|JANE",
+    "HERSHAW|NORM",
+    "SMITH|JON",
+    "PARK|ANN",
+    "BROWN|AVA"
+  ],
+  "exact_lookup": {
+    "DOE|JANE": 1
+  },
+  "nickname_map": {
+    "NORM": "NORMAN"
+  },
+  "candidate_lookup_by_last": {
+    "HERSHAW": [
+      {
+        "canonical_name": "HERSHAW|NORMAN",
+        "canonical_first": "NORMAN",
+        "n_registry_rows": 1
+      }
+    ],
+    "SMITH": [
+      {
+        "canonical_name": "SMITH|JOHN",
+        "canonical_first": "JOHN",
+        "n_registry_rows": 1
+      }
+    ],
+    "PARK": [
+      {
+        "canonical_name": "PARK|ANNA",
+        "canonical_first": "ANNA",
+        "n_registry_rows": 1
+      },
+      {
+        "canonical_name": "PARK|ANNE",
+        "canonical_first": "ANNE",
+        "n_registry_rows": 1
+      }
+    ]
+  },
+  "expected_rows": [
+    {
+      "canonical_name": "DOE|JANE",
+      "match_tier": "exact",
+      "primary_outcome": "matched_unique",
+      "balanced_outcome": "matched_unique",
+      "broad_outcome": "matched_unique",
+      "is_ambiguous": false,
+      "match_caveat": ""
+    },
+    {
+      "canonical_name": "HERSHAW|NORM",
+      "match_tier": "nickname_exact",
+      "primary_outcome": "matched_unique",
+      "balanced_outcome": "matched_unique",
+      "broad_outcome": "matched_unique",
+      "is_ambiguous": false,
+      "match_caveat": "nickname_equivalent"
+    },
+    {
+      "canonical_name": "SMITH|JON",
+      "match_tier": "weak_fuzzy",
+      "primary_outcome": "unmatched",
+      "balanced_outcome": "unmatched",
+      "broad_outcome": "matched_unique",
+      "is_ambiguous": false,
+      "match_caveat": "weak_similarity"
+    },
+    {
+      "canonical_name": "PARK|ANN",
+      "match_tier": "weak_fuzzy",
+      "primary_outcome": "unmatched",
+      "balanced_outcome": "unmatched",
+      "broad_outcome": "matched_ambiguous",
+      "is_ambiguous": true,
+      "match_caveat": "ambiguous_top_candidate,weak_similarity"
+    },
+    {
+      "canonical_name": "BROWN|AVA",
+      "match_tier": "unmatched",
+      "primary_outcome": "unmatched",
+      "balanced_outcome": "unmatched",
+      "broad_outcome": "unmatched",
+      "is_ambiguous": false,
+      "match_caveat": "no_last_name_candidates"
+    }
+  ]
+}

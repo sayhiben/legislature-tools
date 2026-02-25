@@ -4,15 +4,19 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import yaml
 
+from testifier_audit.config import load_config
 from testifier_audit.detectors.voter_registry_match import VoterRegistryMatchDetector
 
 
 _EXPECTED_TABLES = {
     "linkage_overview",
+    "linkage_overview_bounds",
     "linkage_by_position_rows",
     "linkage_by_position_unique",
     "position_pairwise_tests",
+    "position_bounds",
     "sensitivity_modes",
     "match_assignments",
     "match_by_bucket",
@@ -190,13 +194,24 @@ def test_voter_registry_match_detector_supports_multiple_bucket_windows(monkeypa
     )
     monkeypatch.setattr(
         "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
-        lambda **_kwargs: pd.DataFrame(
-            {
-                "canonical_last": ["DOE", "SMITH"],
-                "canonical_first": ["JANE", "JOHN"],
-                "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
-                "n_registry_rows": [1, 1],
-            }
+        lambda **kwargs: (
+            pd.DataFrame(
+                {
+                    "canonical_last": ["DOE"],
+                    "canonical_first": ["JANE"],
+                    "canonical_name": ["DOE|JANE"],
+                    "n_registry_rows": [1],
+                }
+            )
+            if kwargs.get("active_only", True)
+            else pd.DataFrame(
+                {
+                    "canonical_last": ["DOE", "SMITH"],
+                    "canonical_first": ["JANE", "JOHN"],
+                    "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
+                    "n_registry_rows": [1, 1],
+                }
+            )
         ),
     )
 
@@ -283,6 +298,83 @@ def test_voter_registry_match_nickname_equivalence_is_loose_only(
     assert assignments.loc["HERSHAW|NORM", "loose_outcome_selected"] == "matched_unique"
 
 
+def test_voter_registry_match_nickname_equivalence_uses_resolved_config_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    config_dir = tmp_path / "configs"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "nicknames.csv").write_text("alias,canonical\nNORM,NORMAN\n", encoding="utf-8")
+    config_path = config_dir / "voter_registry_enabled.yaml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "columns": {
+                    "id": "id",
+                    "name": "name",
+                    "organization": "organization",
+                    "position": "position",
+                    "time_signed_in": "time_signed_in",
+                },
+                "names": {
+                    "nickname_map_path": "configs/nicknames.csv",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    cfg = load_config(config_path)
+
+    df = pd.DataFrame(
+        {
+            "canonical_name": ["HARSHAW|NORM", "HARSHAW|NORMAN"],
+            "position_normalized": ["Pro", "Con"],
+            "minute_bucket": pd.to_datetime(["2026-02-01 00:05:00", "2026-02-01 00:06:00"]),
+            "name_display": ["HARSHAW, NORM", "HARSHAW, NORMAN"],
+        }
+    )
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_matching_voter_names",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_name": ["HARSHAW|NORMAN"],
+                "n_registry_rows": [1],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_last": ["HARSHAW"],
+                "canonical_first": ["NORMAN"],
+                "canonical_name": ["HARSHAW|NORMAN"],
+                "n_registry_rows": [1],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.count_registry_rows",
+        lambda **_kwargs: 1,
+    )
+
+    detector = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        bucket_minutes=30,
+        active_only=True,
+        nickname_map_path=cfg.names.nickname_map_path,
+    )
+    result = detector.run(df=df, features={})
+
+    assignments = result.tables["match_assignments"].set_index("canonical_name")
+    assert assignments.loc["HARSHAW|NORM", "match_tier"] == "nickname_exact"
+    assert assignments.loc["HARSHAW|NORM", "strict_outcome_selected"] == "unmatched"
+    assert assignments.loc["HARSHAW|NORM", "loose_outcome_selected"] == "matched_unique"
+
+
 def test_voter_registry_match_detector_reports_sensitivity_modes(monkeypatch) -> None:
     df = pd.DataFrame(
         {
@@ -352,3 +444,84 @@ def test_voter_registry_match_detector_reports_sensitivity_modes(monkeypatch) ->
     assert assignments.loc["DOE|JANE", "strict_outcome_selected"] == "matched_unique"
     assert assignments.loc["SMITH|JON", "loose_outcome_selected"] == "matched_unique"
     assert assignments.loc["BROWN|AVA", "primary_outcome"] == "unmatched"
+
+
+def test_voter_registry_match_dual_bounds_emits_lower_upper_ranges(monkeypatch) -> None:
+    df = pd.DataFrame(
+        {
+            "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
+            "position_normalized": ["Pro", "Con"],
+            "minute_bucket": pd.to_datetime(["2026-02-01 00:05:00", "2026-02-01 00:06:00"]),
+        }
+    )
+
+    def _exact_lookup(**kwargs) -> pd.DataFrame:
+        if kwargs.get("active_only", True):
+            return pd.DataFrame({"canonical_name": ["DOE|JANE"], "n_registry_rows": [1]})
+        return pd.DataFrame(
+            {
+                "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
+                "n_registry_rows": [1, 1],
+            }
+        )
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_matching_voter_names",
+        _exact_lookup,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
+        lambda **kwargs: (
+            pd.DataFrame(
+                {
+                    "canonical_last": ["DOE"],
+                    "canonical_first": ["JANE"],
+                    "canonical_name": ["DOE|JANE"],
+                    "n_registry_rows": [1],
+                }
+            )
+            if kwargs.get("active_only", True)
+            else pd.DataFrame(
+                {
+                    "canonical_last": ["DOE", "SMITH"],
+                    "canonical_first": ["JANE", "JOHN"],
+                    "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
+                    "n_registry_rows": [1, 1],
+                }
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.count_registry_rows",
+        lambda **kwargs: 1 if kwargs.get("active_only", True) else 2,
+    )
+
+    detector = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        status_mode="dual_bounds",
+        registry_snapshot_date="2026-02-02",
+    )
+    result = detector.run(df=df, features={})
+
+    assert result.summary["status_mode"] == "dual_bounds"
+    assert result.summary["registry_snapshot_date"] == "2026-02-02"
+    assert result.summary["matched_rate_rows_lower"] == pytest.approx(0.5)
+    assert result.summary["matched_rate_rows_upper"] == pytest.approx(1.0)
+    assert result.summary["matched_rate_rows_span"] == pytest.approx(0.5)
+    assert result.summary["unmatched_rate_rows_lower"] == pytest.approx(0.5)
+    assert result.summary["unmatched_rate_rows_upper"] == pytest.approx(0.0)
+
+    overview_bounds = result.tables["linkage_overview_bounds"]
+    assert set(overview_bounds["bound"]) == {"lower_active_only_true", "upper_active_only_false"}
+
+    position_bounds = result.tables["position_bounds"]
+    assert not position_bounds.empty
+    assert set(position_bounds["match_mode"]) == {"strict", "loose"}
+    assert (position_bounds["matched_rate_upper"] >= position_bounds["matched_rate_lower"]).all()
+    assert (position_bounds["matched_rate_span"] >= 0.0).all()
+
+    assignments = result.tables["match_assignments"].set_index("canonical_name")
+    assert assignments.loc["SMITH|JOHN", "primary_outcome_selected_lower"] == "unmatched"
+    assert assignments.loc["SMITH|JOHN", "primary_outcome_selected_upper"] == "matched_unique"

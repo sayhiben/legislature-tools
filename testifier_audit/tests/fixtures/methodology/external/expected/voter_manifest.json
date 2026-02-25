@@ -1,0 +1,25 @@
+{
+  "cases": [
+    {
+      "case_id": "febrl_dataset4_voter_fast",
+      "expected_json": "expected/febrl_dataset4_voter_fast.json",
+      "ground_truth_json": "expected/febrl_dataset4_voter_fast_ground_truth.json",
+      "registry_csv": "febrl/febrl_dataset4_registry_fast.csv",
+      "registry_fixture_sha256": "0c7dadda416291b5e331a3b95052680ab9dc0f894fa2fd49cc89bde006ac41e0",
+      "submissions_csv": "febrl/febrl_dataset4_submissions_fast.csv",
+      "submissions_fixture_sha256": "6219b30122b67967b30b20c245aece95d5d73bada2d605ba23aeab4b5e7cf34a",
+      "tier": "default"
+    }
+  ],
+  "source": {
+    "dataset_urls": {
+      "dataset1": "https://raw.githubusercontent.com/J535D165/recordlinkage/master/recordlinkage/datasets/febrl/dataset1.csv",
+      "dataset2": "https://raw.githubusercontent.com/J535D165/recordlinkage/master/recordlinkage/datasets/febrl/dataset2.csv",
+      "dataset4a": "https://raw.githubusercontent.com/J535D165/recordlinkage/master/recordlinkage/datasets/febrl/dataset4a.csv",
+      "dataset4b": "https://raw.githubusercontent.com/J535D165/recordlinkage/master/recordlinkage/datasets/febrl/dataset4b.csv"
+    },
+    "dataset_version": "0.16",
+    "license": "BSD-3-Clause",
+    "provider": "recordlinkage"
+  }
+}

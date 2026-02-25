@@ -149,17 +149,19 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "duplicates_exact_metric_diagnostics",
             "duplicates_exact_per_name_anomalies",
             "duplicates_exact_top_name_timing_exact",
-            "duplicates_exact_position_concentration",
+            "duplicates_exact_position_bucket_deviance",
             "duplicates_exact_swing_impact",
         ),
         how_to_read=(
-            "Interpret exact-name collisions as observed-versus-expected burden under the "
-            "configured baseline with explicit uncertainty and power context."
+            "Interpret bucket values as duplicated-anywhere presence: rows (or distinct names) "
+            "in the bucket whose names repeat anywhere in the hearing timeline. Expected values "
+            "use volume-share scaling from hearing-level duplicated totals, and deviation is "
+            "signed (observed minus expected)."
         ),
         what_to_look_for=(
-            "Excess duplicate burden with low p/q values, "
-            "one-sided repeated-name series (Pro-only or Con-only), and position concentration "
-            "differences that persist across neighboring windows."
+            "Buckets where duplicated-anywhere rows/names are persistently above expectation "
+            "across neighboring windows, then verify whether those intervals also show "
+            "position-specific deviance or concentrated repeated names."
         ),
         common_benign_causes=(
             "Common names and legitimate coordinated outreach can elevate duplicate pressure."
@@ -195,11 +197,13 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "voter_registry_linkage_by_position_unique",
             "voter_registry_pairwise_tests",
             "voter_registry_sensitivity_modes",
+            "voter_registry_position_bounds",
             "voter_registry_unmatched_names",
         ),
         how_to_read=(
             "Hero chart emphasizes conservative matched-rate trajectory with uncertainty; "
-            "detail charts retain unmatched-rate diagnostics across units and linkage modes."
+            "detail charts retain unmatched-rate diagnostics across units and linkage modes, "
+            "including historical-status lower/upper bounds when enabled."
         ),
         what_to_look_for=(
             "Sustained unmatched-rate differences across positions at both row and unique-name "

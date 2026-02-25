@@ -3,8 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pandas as pd
+import yaml
 
-from testifier_audit.config import NamesConfig
+from testifier_audit.config import NamesConfig, load_config
 from testifier_audit.preprocess.names import add_name_features
 
 
@@ -32,3 +33,37 @@ def test_add_name_features_preserves_strict_keys_and_emits_nickname_key(tmp_path
     assert out.loc[0, "canonical_key_nickname"] == "HERSHAW|NORMAN"
     assert out.loc[1, "canonical_key_nickname"] == "HERSHAW|NORMAN"
     assert out.loc[0, "canonical_name"] == "HERSHAW|NORM"
+
+
+def test_add_name_features_uses_configs_prefixed_nickname_map_from_loaded_config(
+    tmp_path: Path,
+) -> None:
+    config_dir = tmp_path / "configs"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "nicknames.csv").write_text("alias,canonical\nNORM,NORMAN\n", encoding="utf-8")
+
+    config_path = config_dir / "voter_registry_enabled.yaml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "columns": {
+                    "id": "id",
+                    "name": "name",
+                    "organization": "organization",
+                    "position": "position",
+                    "time_signed_in": "time_signed_in",
+                },
+                "names": {
+                    "nickname_map_path": "configs/nicknames.csv",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = load_config(config_path)
+    df = pd.DataFrame({"name": ["Harshaw, Norm", "Harshaw, Norman"]})
+    out = add_name_features(df=df, config=cfg.names)
+
+    assert out.loc[0, "canonical_key_nickname"] == "HARSHAW|NORMAN"
+    assert out.loc[1, "canonical_key_nickname"] == "HARSHAW|NORMAN"

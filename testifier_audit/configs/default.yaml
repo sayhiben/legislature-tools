@@ -77,6 +77,12 @@ name_analysis:
   low_power_min_unique_names: 25
   low_power_min_expected_duplicates: 5.0
   max_per_name_rows: 1000
+  position_hearing_baseline_enabled: true
+  position_baseline_shrink_k: 30.0
+  position_interval_nominal: 0.95
+  position_interval_draws: 5000
+  position_claim_min_rows_per_position: 25
+  contextual_baseline_path:
 
 rarity:
   enabled: false
@@ -102,6 +108,8 @@ voter_registry:
   weak_fuzzy_min_score: 84.0
   ambiguous_score_gap: 2.0
   pairwise_alpha: 0.05
+  status_mode: "single"
+  registry_snapshot_date:
 
 multivariate_anomaly:
   enabled: true

@@ -196,7 +196,7 @@
     typeof controls.duplicate_collision_metric_default === "string" &&
     duplicateMetricOptions.includes(controls.duplicate_collision_metric_default)
       ? controls.duplicate_collision_metric_default
-      : duplicateMetricOptions[0] || "repeated_group_rows";
+      : duplicateMetricOptions[0] || "rows_anywhere";
   const defaultDuplicateMatchMode =
     typeof controls.duplicate_match_mode_default === "string" &&
     duplicateMatchModeOptions.includes(String(controls.duplicate_match_mode_default).trim().toLowerCase())
@@ -1674,7 +1674,7 @@
       const item = document.createElement("article");
       item.className = "structured-pair-item";
 
-      const title = document.createElement("h4");
+      const title = document.createElement("div");
       title.className = "structured-pair-title";
       title.textContent = titleText || "entry";
       item.appendChild(title);
@@ -5529,6 +5529,7 @@
     "off_hours_primary_flag_channels",
     "voter_registry_linkage_by_position_rows",
     "voter_registry_linkage_by_position_unique",
+    "voter_registry_position_bounds",
     "voter_registry_sensitivity_modes",
     "voter_registry_match_tiers",
     "voter_registry_match_by_position",
@@ -5542,7 +5543,7 @@
     "duplicates_exact_metric_diagnostics",
     "duplicates_exact_top_names",
     "duplicates_exact_position_switch",
-    "duplicates_exact_position_concentration",
+    "duplicates_exact_position_bucket_deviance",
     "off_hours_hourly_profile",
     "off_hours_summary_compare",
     "org_anomalies_bursts",
@@ -5563,7 +5564,6 @@
   ]);
   const simpleBarRatioReferenceChartIds = new Set([
     "composite_high_priority",
-    "duplicates_exact_position_concentration",
     "voter_registry_pairwise_tests",
     "periodicity_autocorr",
     "procon_swings_time_of_day_profile",
@@ -5571,7 +5571,6 @@
     "sortedness_kendall_tau_summary",
   ]);
   const simpleBarDirectionalReferenceChartIds = new Set([
-    "duplicates_exact_position_concentration",
     "periodicity_autocorr",
     "procon_swings_time_of_day_profile",
     "sortedness_bucket_summary",
@@ -5808,7 +5807,6 @@
     } else if (simpleBarRatioReferenceChartIds.has(mount.chartId)) {
       const referenceByChartId = {
         composite_high_priority: 0.8,
-        duplicates_exact_position_concentration: 0.0,
         periodicity_autocorr: 0.0,
         procon_swings_time_of_day_profile: 0.5,
         sortedness_bucket_summary: 0.5,
@@ -5905,6 +5903,141 @@
         },
       yAxis: { type: "value", name: yAxisLabel, axisLabel: { color: theme.axisText } },
       series: [seriesEntry],
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
+  function renderDuplicateNamesByPosition(mount, rows) {
+    const theme = currentChartTheme();
+    const subset = rows
+      .map((row) => {
+        const displayName = String(row.display_name || row.canonical_name || "").trim();
+        const nPro = Math.max(0, Math.round(toNumber(row.n_pro)));
+        const nCon = Math.max(0, Math.round(toNumber(row.n_con)));
+        const total = Math.max(0, Math.round(toNumber(row.n)));
+        if (!displayName) {
+          return null;
+        }
+        if ((nPro > 0 && nCon > 0) || (nPro <= 0 && nCon <= 0)) {
+          return null;
+        }
+        return {
+          raw: row,
+          displayName: displayName,
+          nPro: nPro,
+          nCon: nCon,
+          total: total,
+          positionSeries: nPro > 0 ? "Pro" : "Con",
+          positionCount: nPro > 0 ? nPro : nCon,
+        };
+      })
+      .filter((row) => !!row);
+    if (!subset.length) {
+      return false;
+    }
+
+    subset.sort((left, right) => {
+      const positionDelta = toNumber(right.positionCount) - toNumber(left.positionCount);
+      if (positionDelta !== 0) {
+        return positionDelta;
+      }
+      const totalDelta = toNumber(right.total) - toNumber(left.total);
+      if (totalDelta !== 0) {
+        return totalDelta;
+      }
+      return String(left.displayName || "").localeCompare(String(right.displayName || ""));
+    });
+    const limited = subset.slice(0, 200);
+    const bucketLabel = bucketLabelFromValue(mount.activeBucket);
+    const xValues = limited.map((row) => row.displayName);
+
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params) => {
+          const entries = Array.isArray(params) ? params : [params];
+          if (!entries.length) {
+            return "";
+          }
+          const rowIndex = Number.isFinite(entries[0].dataIndex) ? entries[0].dataIndex : 0;
+          const row = limited[rowIndex] || null;
+          const lines = [
+            "<strong>Name:</strong> " +
+              escapeHtml(String((row && row.displayName) || entries[0].axisValue || "")),
+          ];
+          if (bucketLabel) {
+            lines.push("<strong>Bucket:</strong> " + bucketLabel);
+          }
+          if (row) {
+            lines.push("<strong>Series side:</strong> " + escapeHtml(String(row.positionSeries)));
+            lines.push("<strong>Pro duplicates:</strong> " + Number(toNumber(row.nPro)).toLocaleString());
+            lines.push("<strong>Con duplicates:</strong> " + Number(toNumber(row.nCon)).toLocaleString());
+            if (row.total > 0) {
+              lines.push(
+                "<strong>Total duplicate sign-ins:</strong> " +
+                  Number(toNumber(row.total)).toLocaleString()
+              );
+            }
+          }
+          entries.forEach((entry) => {
+            lines.push(
+              (entry.marker || "") +
+                "<strong>" +
+                escapeHtml(String(entry.seriesName || "value")) +
+                ":</strong> " +
+                formatTooltipValue(entry.value)
+            );
+          });
+          return lines.join("<br/>");
+        },
+      },
+      legend: {
+        top: 4,
+        textStyle: { color: theme.axisText },
+      },
+      grid: { left: 64, right: 20, top: 58, bottom: 94 },
+      xAxis: {
+        type: "category",
+        name: "Name",
+        data: xValues,
+        axisLabel: { interval: 0, rotate: 34, color: theme.axisText },
+      },
+      yAxis: {
+        type: "value",
+        name: "Duplicate sign-ins",
+        axisLabel: { color: theme.axisText },
+      },
+      series: [
+        {
+          name: "Pro",
+          type: "bar",
+          barMaxWidth: 22,
+          data: limited.map((row) => ({
+            value: row.nPro,
+            itemStyle: {
+              color: theme.contextLine,
+              opacity: row.nPro > 0 ? 0.9 : 0.0,
+            },
+          })),
+        },
+        {
+          name: "Con",
+          type: "bar",
+          barMaxWidth: 22,
+          data: limited.map((row) => ({
+            value: row.nCon,
+            itemStyle: {
+              color: theme.alertLower,
+              opacity: row.nCon > 0 ? 0.9 : 0.0,
+            },
+          })),
+        },
+      ],
     };
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
     mount.isTimeSeries = false;
@@ -6170,7 +6303,7 @@
     const modeMeta = {
       strict: {
         label: "Strict (last + first)",
-        fallbackDefinition: "Exact match on last-name and first-name tokens (nickname-sensitive).",
+        fallbackDefinition: "Exact match on last-name and first-name tokens.",
       },
       loose: {
         label: "Loose (last + nickname-root first)",
@@ -6774,8 +6907,17 @@
         barField: "n_rows",
         lineField: "duplicate_rows",
         extraLines: ["expected_duplicate_rows", "excess_duplicate_rows"],
-        lineAxisName: "Duplicate rows",
+        lineAxisName: "Duplicated count",
         barAxisName: "Total rows",
+      },
+      duplicates_exact_position_bucket_deviance: {
+        timeField: "bucket_start",
+        barField: "n_bucket_position",
+        lineField: "observed",
+        extraLines: ["expected", "excess"],
+        lowPowerField: "is_low_power",
+        lineAxisName: "Observed vs expected duplicates",
+        barAxisName: "Rows in position bucket",
       },
       sortedness_bucket_ratio: {
         timeField: "bucket_start",
@@ -6899,11 +7041,12 @@
     if (mount.chartId === "changepoints_hour_hist") {
       return renderSimpleBar(mount, rows, "change_hour", "n_changes", "changes");
     }
-    if (mount.chartId === "duplicates_exact_top_names") {
-      return renderSimpleBar(mount, rows, "display_name", "n", "count");
-    }
-    if (mount.chartId === "duplicates_exact_per_name_anomalies") {
-      return renderSimpleBar(mount, rows, "display_name", "n", "repeat count");
+    if (
+      mount.chartId === "duplicates_exact_top_names" ||
+      mount.chartId === "duplicates_exact_per_name_anomalies" ||
+      mount.chartId === "duplicates_exact_position_switch"
+    ) {
+      return renderDuplicateNamesByPosition(mount, rows);
     }
     if (mount.chartId === "duplicates_exact_top_name_timing_exact") {
       return renderDuplicateTopNameTiming(
@@ -6914,12 +7057,6 @@
     }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
       return renderSimpleBar(mount, rows, "metric", "observed", "observed");
-    }
-    if (mount.chartId === "duplicates_exact_position_switch") {
-      return renderSimpleBar(mount, rows, "display_name", "n", "count");
-    }
-    if (mount.chartId === "duplicates_exact_position_concentration") {
-      return renderDuplicatePositionConcentration(mount, rows);
     }
     if (mount.chartId === "duplicates_exact_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "duplicate_rows", "duplicate rows");
@@ -6968,6 +7105,15 @@
     }
     if (mount.chartId === "voter_registry_unmatched_names") {
       return renderSimpleBar(mount, rows, "display_name", "n_records", "count");
+    }
+    if (mount.chartId === "voter_registry_position_bounds") {
+      return renderSimpleBar(
+        mount,
+        rows,
+        "position_normalized",
+        "matched_rate_span",
+        "matched-rate span"
+      );
     }
     if (mount.chartId === "voter_registry_match_tiers") {
       const yField = rows.length && rows[0].record_rate !== undefined
@@ -7104,6 +7250,22 @@
       .join(" ");
   }
 
+  function humanizeTableSectionHeader(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return "";
+    }
+
+    const bucketSuffixMatch = raw.match(/^(.*?)(\s*\([^()]*\))$/);
+    if (bucketSuffixMatch && String(bucketSuffixMatch[1] || "").trim()) {
+      const base = humanizeTableColumnHeader(String(bucketSuffixMatch[1] || "").trim());
+      const suffix = String(bucketSuffixMatch[2] || "").trim();
+      return suffix ? base + " " + suffix : base;
+    }
+
+    return humanizeTableColumnHeader(raw);
+  }
+
   function fallbackColumnDescription(field) {
     const normalized = String(field || "").trim();
     const label = humanizeFieldName(normalized);
@@ -7216,7 +7378,11 @@
       context.push("time keys");
     }
     const contextText = context.length ? context.join(", ") : "detector-specific fields";
-    const tableLabel = humanizeFieldName((tableKey || "table").replace(/\./g, " "));
+    const tableLabel = humanizeTableSectionHeader(tableKey || "table");
+    const highlightedColumns = columns
+      .slice(0, 6)
+      .map((name) => humanizeTableColumnHeader(name))
+      .join(", ");
 
     return {
       what_is_this:
@@ -7237,7 +7403,7 @@
         "Sustained high/low runs across many rows suggest process-level behavior and deserve higher confidence. Extended highs can indicate durable mobilization or process skew; extended lows can indicate reduced activity or missing data segments.",
       column_highlight:
         "Primary columns in preview: " +
-        (columns.slice(0, 6).join(", ") || "none") +
+        (highlightedColumns || "none") +
         ". Use the glossary below for per-column definitions before drawing conclusions.",
     };
   }
@@ -8323,7 +8489,7 @@
     details.open = true;
 
     const summary = document.createElement("summary");
-    summary.textContent = "per_name_duplicates";
+    summary.textContent = humanizeTableSectionHeader("per_name_duplicates");
     decorateTableSummaryAnchor(summary, analysisId || "duplicates_exact", "per_name_duplicates");
     details.appendChild(summary);
 
@@ -8502,6 +8668,51 @@
     return true;
   }
 
+  function resolveDuplicateRowsForTriage(summary) {
+    const duplicateRowsFull = tablePreviewRows("duplicates_exact", "per_name_tests");
+    const duplicateRowsDisplay = tablePreviewRows("duplicates_exact", "per_name_display");
+    const duplicateRowsByModeAll = tablePreviewRows("duplicates_exact", "per_name_duplicates_by_mode");
+    const duplicateRowsByMode = duplicateRowsByModeAll.filter(
+      (row) =>
+        normalizeReportMatchMode(
+          (row || {}).match_mode,
+          state.defaultDuplicateMatchMode || "strict"
+        ) ===
+        normalizeReportMatchMode(
+          state.activeDuplicateMatchMode,
+          state.defaultDuplicateMatchMode || "strict"
+        )
+    );
+    const duplicateRowsByModeHasMode = duplicateRowsByModeAll.some((row) =>
+      Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
+    );
+    const topRepeatedNames = Array.isArray(summary.top_repeated_names) ? summary.top_repeated_names : [];
+    const rows = duplicateRowsByModeHasMode
+      ? duplicateRowsByMode
+      : duplicateRowsFull.length
+        ? duplicateRowsFull
+      : duplicateRowsDisplay.length
+        ? duplicateRowsDisplay
+        : topRepeatedNames;
+
+    const meta = duplicateRowsByModeHasMode
+      ? "Repeated names using " +
+        (normalizeReportMatchMode(state.activeDuplicateMatchMode, "strict") === "loose"
+          ? "loose"
+          : "strict") +
+        " first-name matching."
+      : duplicateRowsFull.length
+      ? "All repeated names from duplicates test rows."
+      : duplicateRowsDisplay.length
+        ? "Repeated canonical names from display-limited duplicates table."
+        : "Fallback from triage summary (top repeated names only).";
+
+    return {
+      rows: rows,
+      meta: meta,
+    };
+  }
+
   function renderTriageSummary() {
     const view = getRawTriageView();
     const summary = view.triage_summary || {};
@@ -8538,46 +8749,10 @@
     setTextById("triage-date-range", range.value);
     setTextById("triage-date-range-meta", range.meta);
 
-    const duplicateRowsFull = tablePreviewRows("duplicates_exact", "per_name_tests");
-    const duplicateRowsDisplay = tablePreviewRows("duplicates_exact", "per_name_display");
-    const duplicateRowsByModeAll = tablePreviewRows("duplicates_exact", "per_name_duplicates_by_mode");
-    const duplicateRowsByMode = duplicateRowsByModeAll.filter(
-      (row) =>
-        normalizeReportMatchMode(
-          (row || {}).match_mode,
-          state.defaultDuplicateMatchMode || "strict"
-        ) ===
-        normalizeReportMatchMode(
-          state.activeDuplicateMatchMode,
-          state.defaultDuplicateMatchMode || "strict"
-        )
-    );
-    const duplicateRowsByModeHasMode = duplicateRowsByModeAll.some((row) =>
-      Object.prototype.hasOwnProperty.call(row || {}, "match_mode")
-    );
-    const topRepeatedNames = Array.isArray(summary.top_repeated_names) ? summary.top_repeated_names : [];
-    const duplicateSourceRows = duplicateRowsByModeHasMode
-      ? duplicateRowsByMode
-      : duplicateRowsFull.length
-        ? duplicateRowsFull
-      : duplicateRowsDisplay.length
-        ? duplicateRowsDisplay
-        : topRepeatedNames;
+    const duplicateNames = resolveDuplicateRowsForTriage(summary);
+    const duplicateSourceRows = duplicateNames.rows;
     setTextById("triage-duplicate-names-total", duplicateSourceRows.length.toLocaleString());
-    setTextById(
-      "triage-duplicate-names-meta",
-      duplicateRowsByModeHasMode
-        ? "Repeated names using " +
-          (normalizeReportMatchMode(state.activeDuplicateMatchMode, "strict") === "loose"
-            ? "loose"
-            : "strict") +
-          " first-name matching."
-        : duplicateRowsFull.length
-        ? "All repeated names from duplicates test rows."
-        : duplicateRowsDisplay.length
-          ? "Repeated canonical names from display-limited duplicates table."
-          : "Fallback from triage summary (top repeated names only)."
-    );
+    setTextById("triage-duplicate-names-meta", duplicateNames.meta);
     renderKpiMiniBars("triage-duplicate-position-bars", duplicatePositionCounts(duplicateSourceRows), {
       valueFormatter: (value) => Math.round(value).toLocaleString(),
     });
@@ -8748,34 +8923,119 @@
     }
   }
 
+  function normalizeRepeatedNameLabel(value) {
+    const text = String(value === null || value === undefined ? "" : value).trim();
+    if (!text) {
+      return "";
+    }
+    const normalized = text.toLowerCase();
+    if (normalized === "none" || normalized === "null" || normalized === "nan") {
+      return "";
+    }
+    return text;
+  }
+
+  function repeatedNameDisplayLabel(row) {
+    const displayName = normalizeRepeatedNameLabel((row || {}).display_name);
+    if (displayName) {
+      return displayName;
+    }
+    const canonicalName = normalizeRepeatedNameLabel((row || {}).canonical_name || (row || {}).name_key);
+    return canonicalName || "Unknown";
+  }
+
+  function buildTopRepeatedNamesByPosition(
+    topNames,
+    positionField,
+    oppositeField,
+    positionLabel,
+    oppositeLabel
+  ) {
+    const rows = (Array.isArray(topNames) ? topNames : [])
+      .map((row) => {
+        const positionCount = Math.max(0, Math.round(toNumber((row || {})[positionField])));
+        if (positionCount <= 0) {
+          return null;
+        }
+        const oppositeCount = Math.max(0, Math.round(toNumber((row || {})[oppositeField])));
+        const reportedTotal = Math.max(
+          0,
+          Math.round(
+            toNumber(
+              (row || {}).n_records ??
+                (row || {}).n ??
+                (row || {}).observed_count ??
+                (row || {}).total_repeated_rows
+            )
+          )
+        );
+        const totalSignIns = Math.max(reportedTotal, positionCount + oppositeCount);
+        return {
+          name: repeatedNameDisplayLabel(row),
+          positionCount: positionCount,
+          oppositeCount: oppositeCount,
+          totalSignIns: totalSignIns,
+        };
+      })
+      .filter((row) => !!row);
+
+    rows.sort((left, right) => {
+      const positionDelta = toNumber(right.positionCount) - toNumber(left.positionCount);
+      if (positionDelta !== 0) {
+        return positionDelta;
+      }
+      const totalDelta = toNumber(right.totalSignIns) - toNumber(left.totalSignIns);
+      if (totalDelta !== 0) {
+        return totalDelta;
+      }
+      return String(left.name || "").localeCompare(String(right.name || ""));
+    });
+
+    return rows.slice(0, 10).map((row) => ({
+      title: row.name + " (" + positionLabel + " " + row.positionCount.toLocaleString() + ")",
+      body:
+        "Total sign-ins " +
+        row.totalSignIns.toLocaleString() +
+        " \u00b7 " +
+        oppositeLabel +
+        " " +
+        row.oppositeCount.toLocaleString(),
+    }));
+  }
+
   function renderInvestigationTables() {
     if (isOffHoursFocusOnly) {
       return;
     }
     const view = getRawTriageView();
     const summary = view.triage_summary || {};
-    const forensicsNamesHost = document.getElementById("forensics-top-names-host");
+    const forensicsNamesProHost = document.getElementById("forensics-top-names-pro-host");
+    const forensicsNamesConHost = document.getElementById("forensics-top-names-con-host");
     const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
 
-    const topNames = Array.isArray(summary.top_repeated_names)
-      ? summary.top_repeated_names
-      : [];
-    const topNamesRows = topNames.map((row) => ({
-      Name:
-        typeof (row || {}).display_name === "string" && row.display_name.trim()
-          ? row.display_name.trim()
-          : typeof (row || {}).canonical_name === "string" && row.canonical_name.trim()
-            ? row.canonical_name.trim()
-            : "",
-      "Total Sign-ins": Number(toNumber((row || {}).n_records ?? (row || {}).n)),
-      "# Pro": Number(toNumber((row || {}).n_pro)),
-      "# Con": Number(toNumber((row || {}).n_con)),
-    }));
-    mountTable(forensicsNamesHost, topNamesRows, {
-      paginationSize: 8,
-      maxHeight: "340px",
-      layout: "fitData",
-      tableKey: "triage.top_repeated_names",
+    const duplicateNames = resolveDuplicateRowsForTriage(summary);
+    const topNames = duplicateNames.rows;
+    const topNamesProRows = buildTopRepeatedNamesByPosition(
+      topNames,
+      "n_pro",
+      "n_con",
+      "Pro",
+      "Con"
+    );
+    const topNamesConRows = buildTopRepeatedNamesByPosition(
+      topNames,
+      "n_con",
+      "n_pro",
+      "Con",
+      "Pro"
+    );
+    mountTextPairCards(forensicsNamesProHost, topNamesProRows, {
+      titleField: "title",
+      bodyField: "body",
+    });
+    mountTextPairCards(forensicsNamesConHost, topNamesConRows, {
+      titleField: "title",
+      bodyField: "body",
     });
 
     const taxonomyRows = Array.isArray(methodology.evidence_taxonomy)
@@ -8804,44 +9064,18 @@
 
     const detectorKey = analysis.detector;
     const detectorTables = detectorKey ? (reportData.table_previews || {})[detectorKey] || {} : {};
-    if (analysis.id === "duplicates_exact") {
-      const methodRows = Array.isArray(detectorTables.collision_methods)
-        ? detectorTables.collision_methods
-        : [];
-      const scopedRows = methodRows.filter(
-        (row) => String((row || {}).scope || "") === String(state.activeDuplicateScope || "")
-      );
-      const activeRows = scopedRows.length ? scopedRows : methodRows;
-      const degraded = activeRows.some((row) => toBool((row || {}).baseline_degraded));
-      if (degraded) {
-        const methodRow = activeRows.length ? activeRows[0] || {} : {};
-        const warning = document.createElement("div");
-        warning.className = "warning-banner";
-        const source = String(methodRow.baseline_source || "unknown");
-        const model = String(methodRow.baseline_model || "unknown");
-        const scopeLabel = String(state.activeDuplicateScope || "unknown").replace(/_/g, " ");
-        warning.textContent =
-          "Duplicate baseline degraded for " +
-          scopeLabel +
-          " scope. Source=" +
-          source +
-          ", model=" +
-          model +
-          ". Interpret duplicate expectations descriptively.";
-        container.appendChild(warning);
-      }
-      renderUnifiedDuplicateNameTable(container, detectorTables, detectorKey, analysis.id);
-    }
     let tableNames = Object.keys(detectorTables).sort();
     if (analysis.id === "duplicates_exact") {
-      const mergedDuplicateNameSourceTables = new Set([
+      const hiddenDuplicateSurfaceTables = new Set([
+        "collision_methods",
+        "position_concentration_tests",
         "per_name_anomalies",
         "per_name_display",
         "per_name_tests",
         "per_name_duplicates_by_mode",
         "per_name_submission_timing_by_mode",
       ]);
-      tableNames = tableNames.filter((name) => !mergedDuplicateNameSourceTables.has(name));
+      tableNames = tableNames.filter((name) => !hiddenDuplicateSurfaceTables.has(name));
     }
     if (isOffHoursFocusOnly && analysis.id === "off_hours") {
       const preferred = [
@@ -8863,7 +9097,7 @@
       evidenceDetails.className = "table-group";
       evidenceDetails.open = true;
       const evidenceSummary = document.createElement("summary");
-      evidenceSummary.textContent = "evidence_bundle_preview";
+      evidenceSummary.textContent = humanizeTableSectionHeader("evidence_bundle_preview");
       decorateTableSummaryAnchor(evidenceSummary, analysis.id, "evidence_bundle_preview");
       evidenceDetails.appendChild(evidenceSummary);
       const evidenceWrap = document.createElement("div");
@@ -8906,7 +9140,7 @@
         details.className = "table-group";
         details.open = index === 0;
         const summary = document.createElement("summary");
-        summary.textContent = entry[0];
+        summary.textContent = humanizeTableSectionHeader(entry[0]);
         decorateTableSummaryAnchor(summary, analysis.id, entry[0]);
         details.appendChild(summary);
         const wrap = document.createElement("div");
@@ -8932,7 +9166,7 @@
         details.className = "table-group";
         details.open = true;
         const summary = document.createElement("summary");
-        summary.textContent = "clockface_top_preview";
+        summary.textContent = humanizeTableSectionHeader("clockface_top_preview");
         decorateTableSummaryAnchor(summary, analysis.id, "clockface_top_preview");
         details.appendChild(summary);
         const wrap = document.createElement("div");
@@ -8955,13 +9189,14 @@
       const sourceRows = detectorTables[tableName] || [];
       let rows = sourceRows;
       let tableBucketNote = "";
-      let tableTitle = tableName;
+      let tableTitle = humanizeTableSectionHeader(tableName);
       if (analysis.id === "duplicates_exact") {
         const bucketFiltered = filterRowsByDuplicateTableBucket(tableName, sourceRows);
         rows = bucketFiltered.rows;
         tableBucketNote = bucketFiltered.note;
         if (bucketFiltered.applied && Number.isFinite(state.activeBucket)) {
-          tableTitle = tableName + " (" + Math.round(state.activeBucket) + "m)";
+          tableTitle =
+            humanizeTableSectionHeader(tableName) + " (" + Math.round(state.activeBucket) + "m)";
         }
         const modeScopedRows = rows.filter((row) => {
           if (!Object.prototype.hasOwnProperty.call(row || {}, "match_mode")) {
@@ -9281,15 +9516,28 @@
         (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
       );
       const scopedFallback = scoped.length ? scoped : subset;
-      const metered = scopedFallback.filter(
+      const modeFiltered = filterByMatchMode(
+        scopedFallback,
+        state.activeDuplicateMatchMode,
+        state.defaultDuplicateMatchMode || "strict"
+      );
+      const modeFallback = modeFiltered.length ? modeFiltered : scopedFallback;
+      const metered = modeFallback.filter(
         (row) => String(row.metric || "") === String(state.activeDuplicateMetric || "")
       );
-      return metered.length ? metered : scopedFallback;
+      return metered.length ? metered : modeFallback;
     }
     if (chartId === "duplicates_exact_metric_diagnostics") {
       const scoped = subset.filter(
         (row) => String(row.scope || "") === String(state.activeDuplicateScope || "")
       );
+      return scoped.length ? scoped : subset;
+    }
+    if (chartId === "duplicates_exact_position_bucket_deviance") {
+      const scoped = subset.filter((row) => {
+        const scope = String((row || {}).scope || "").trim();
+        return !scope || scope === String(state.activeDuplicateScope || "");
+      });
       return scoped.length ? scoped : subset;
     }
     if (chartId === "duplicates_exact_top_name_timing_exact") {
@@ -9325,6 +9573,7 @@
       "voter_registry_linkage_by_position_unique",
       "voter_registry_pairwise_tests",
       "voter_registry_unmatched_names",
+      "voter_registry_position_bounds",
       "voter_registry_position_buckets",
       "voter_registry_match_by_position",
       "voter_registry_match_tiers",
@@ -9345,6 +9594,7 @@
       "duplicates_exact_metric_diagnostics",
       "duplicates_exact_top_name_timing_exact",
       "duplicates_exact_per_name_anomalies",
+      "duplicates_exact_position_bucket_deviance",
       "duplicates_exact_top_names",
       "duplicates_exact_position_switch",
     ]);
@@ -9465,10 +9715,14 @@
     }
 
     metricSelect.innerHTML = "";
+    const duplicateMetricLabelMap = {
+      rows_anywhere: "Rows (duplicated anywhere)",
+      names_anywhere: "Names (duplicated anywhere)",
+    };
     metricOptions.forEach((value) => {
       const option = document.createElement("option");
       option.value = value;
-      option.textContent = value.replace(/_/g, " ");
+      option.textContent = duplicateMetricLabelMap[value] || value.replace(/_/g, " ");
       metricSelect.appendChild(option);
     });
     metricSelect.value = state.activeDuplicateMetric;
@@ -9512,6 +9766,7 @@
       "voter_registry_linkage_by_position_unique",
       "voter_registry_pairwise_tests",
       "voter_registry_unmatched_names",
+      "voter_registry_position_bounds",
       "voter_registry_position_buckets",
       "voter_registry_match_by_position",
       "voter_registry_match_tiers",

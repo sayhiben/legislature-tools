@@ -8,6 +8,7 @@ from testifier_audit.detectors.off_hours import OffHoursDetector
 from testifier_audit.detectors.org_anomalies import OrganizationAnomaliesDetector
 from testifier_audit.detectors.procon_swings import ProConSwingsDetector
 from testifier_audit.detectors.voter_registry_match import VoterRegistryMatchDetector
+from testifier_audit.io.hearing_metadata import load_hearing_metadata
 
 
 def default_detectors(config: AppConfig) -> list[Detector]:
@@ -26,6 +27,16 @@ def default_detectors(config: AppConfig) -> list[Detector]:
         if requested_primary_bucket in off_hours_bucket_minutes
         else (30 if 30 in off_hours_bucket_minutes else off_hours_bucket_minutes[0])
     )
+    hearing_committee = ""
+    hearing_chamber = ""
+    if config.input.hearing_metadata_path:
+        try:
+            hearing_metadata = load_hearing_metadata(config.input.hearing_metadata_path)
+        except Exception:
+            hearing_metadata = None
+        if hearing_metadata is not None and isinstance(hearing_metadata.source, dict):
+            hearing_committee = str(hearing_metadata.source.get("committee_name") or "").strip()
+            hearing_chamber = str(hearing_metadata.source.get("chamber") or "").strip()
     detectors: list[Detector] = [
         VoterRegistryMatchDetector(
             enabled=config.voter_registry.enabled,
@@ -41,6 +52,8 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             ambiguous_score_gap=config.voter_registry.ambiguous_score_gap,
             pairwise_alpha=config.voter_registry.pairwise_alpha,
             nickname_map_path=config.names.nickname_map_path,
+            status_mode=config.voter_registry.status_mode,
+            registry_snapshot_date=config.voter_registry.registry_snapshot_date,
         ),
         DuplicatesExactDetector(
             top_n=config.thresholds.top_duplicate_names,
@@ -67,6 +80,16 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             low_power_min_unique_names=config.name_analysis.low_power_min_unique_names,
             low_power_min_expected_duplicates=config.name_analysis.low_power_min_expected_duplicates,
             max_per_name_rows=config.name_analysis.max_per_name_rows,
+            position_hearing_baseline_enabled=config.name_analysis.position_hearing_baseline_enabled,
+            position_baseline_shrink_k=config.name_analysis.position_baseline_shrink_k,
+            position_interval_nominal=config.name_analysis.position_interval_nominal,
+            position_interval_draws=config.name_analysis.position_interval_draws,
+            position_claim_min_rows_per_position=(
+                config.name_analysis.position_claim_min_rows_per_position
+            ),
+            contextual_baseline_path=config.name_analysis.contextual_baseline_path,
+            contextual_committee=hearing_committee,
+            contextual_chamber=hearing_chamber,
             voter_db_url=config.voter_registry.db_url,
             voter_table_name=config.voter_registry.table_name,
             voter_active_only=config.voter_registry.active_only,

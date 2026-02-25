@@ -1,0 +1,94 @@
+{
+  "collision_overview_rows": [
+    {
+      "expected": 228.18646879853216,
+      "metric": "repeated_group_rows",
+      "observed": 158.0,
+      "scope": "full_hearing"
+    },
+    {
+      "expected": 142.87521263282443,
+      "metric": "excess_rows",
+      "observed": 79.0,
+      "scope": "full_hearing"
+    },
+    {
+      "expected": 229.73927392739301,
+      "metric": "pairs",
+      "observed": 79.0,
+      "scope": "full_hearing"
+    }
+  ],
+  "position_duplicate_metrics_rows": [
+    {
+      "duplicate_row_rate": 0.2709677419354839,
+      "duplicate_rows": 42,
+      "expected_duplicate_row_rate": 0.5243156910029975,
+      "expected_duplicate_row_rate_p05": 0.43870967741935485,
+      "expected_duplicate_row_rate_p50": 0.5225806451612903,
+      "expected_duplicate_row_rate_p95": 0.6064516129032258,
+      "expected_duplicate_rows": 81.26893210546461,
+      "expected_duplicate_rows_p05": 68.0,
+      "expected_duplicate_rows_p50": 81.0,
+      "expected_duplicate_rows_p95": 94.0,
+      "inference_status": "tested",
+      "interval_draws_effective": 5000,
+      "interval_method_id": "position_duplicate_interval_multinomial_mc_v1",
+      "is_low_power": false,
+      "n_rows": 155,
+      "position_normalized": "Con"
+    },
+    {
+      "duplicate_row_rate": 0.20270270270270271,
+      "duplicate_rows": 30,
+      "expected_duplicate_row_rate": 0.5086590975108021,
+      "expected_duplicate_row_rate_p05": 0.4189189189189189,
+      "expected_duplicate_row_rate_p50": 0.5067567567567568,
+      "expected_duplicate_row_rate_p95": 0.5945945945945946,
+      "expected_duplicate_rows": 75.2815464315987,
+      "expected_duplicate_rows_p05": 62.0,
+      "expected_duplicate_rows_p50": 75.0,
+      "expected_duplicate_rows_p95": 88.0,
+      "inference_status": "tested",
+      "interval_draws_effective": 5000,
+      "interval_method_id": "position_duplicate_interval_multinomial_mc_v1",
+      "is_low_power": false,
+      "n_rows": 148,
+      "position_normalized": "Pro"
+    }
+  ],
+  "position_interval_summary": {
+    "position_claim_eligible": true,
+    "position_claim_reason": "eligible",
+    "position_interval_method_id": "position_duplicate_interval_multinomial_mc_v1",
+    "position_interval_nominal": 0.95
+  },
+  "reference_method": {
+    "description": "Independent expected-collision formulas computed from empirical name probabilities.",
+    "generated_at_utc": "2026-02-25T06:17:01.120900+00:00",
+    "id": "expected_duplicates_probability_formula_v1"
+  },
+  "source": {
+    "dataset_id": "febrl_dataset1_duplicates_fast",
+    "dataset_version": "0.16",
+    "fixture_sha256": "e44632ad8c0a04d8073cdc0d1f994703e4689be2f56f1a66ee1ec73f3226a586",
+    "source_sha256": "637acf9db993a77cc49d479c7c53b739a748615f272a050ff973e8038b1b9cb6"
+  },
+  "summary": {
+    "expected": {
+      "excess_rows": 142.87521263282443,
+      "pairs": 229.73927392739301,
+      "repeated_group_rows": 228.18646879853216
+    },
+    "n_rows": 303,
+    "n_unique_names": 224,
+    "observed": {
+      "excess_rows": 79.0,
+      "pairs": 79.0,
+      "repeated_group_rows": 158.0
+    }
+  },
+  "tolerances": {
+    "float_atol": 1e-09
+  }
+}

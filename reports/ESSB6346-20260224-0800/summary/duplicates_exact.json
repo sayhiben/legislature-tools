@@ -13,6 +13,12 @@
   "n_unique_names": 106775,
   "n_used": 129424,
   "name_key": "strict",
+  "position_baseline_shrink_k": 30.0,
+  "position_claim_eligible": false,
+  "position_claim_reason": "insufficient_position_support",
+  "position_hearing_baseline_enabled": true,
+  "position_interval_method_id": "position_duplicate_interval_multinomial_mc_v1",
+  "position_interval_nominal": 0.95,
   "primary_low_power": false,
   "stratification": "none"
 }

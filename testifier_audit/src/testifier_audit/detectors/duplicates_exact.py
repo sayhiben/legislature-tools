@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 from hashlib import sha1
 from pathlib import Path
@@ -70,6 +71,12 @@ def _safe_str_series(series: pd.Series) -> pd.Series:
 class DuplicatesExactDetector(Detector):
     name = "duplicates_exact"
     DEFAULT_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
+    POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
+    POSITION_CLAIM_REASON_ELIGIBLE = "eligible"
+    POSITION_CLAIM_REASON_UNSUPPORTED_MODEL = "unsupported_collision_baseline_model"
+    POSITION_CLAIM_REASON_NO_POSITION_ROWS = "no_position_rows"
+    POSITION_CLAIM_REASON_INSUFFICIENT_SUPPORT = "insufficient_position_support"
+    POSITION_CLAIM_REASON_INTERVAL_UNAVAILABLE = "position_interval_unavailable"
 
     def __init__(
         self,
@@ -98,6 +105,14 @@ class DuplicatesExactDetector(Detector):
         low_power_min_unique_names: int = 25,
         low_power_min_expected_duplicates: float = 5.0,
         max_per_name_rows: int = 1000,
+        position_hearing_baseline_enabled: bool = True,
+        position_baseline_shrink_k: float = 30.0,
+        position_interval_nominal: float = 0.95,
+        position_interval_draws: int = 5000,
+        position_claim_min_rows_per_position: int = 25,
+        contextual_baseline_path: str | None = None,
+        contextual_committee: str = "",
+        contextual_chamber: str = "",
         voter_db_url: str | None = None,
         voter_table_name: str = "voter_registry",
         voter_active_only: bool = True,
@@ -164,6 +179,17 @@ class DuplicatesExactDetector(Detector):
         self.low_power_min_unique_names = max(1, int(low_power_min_unique_names))
         self.low_power_min_expected_duplicates = float(max(low_power_min_expected_duplicates, 0.0))
         self.max_per_name_rows = max(10, int(max_per_name_rows))
+        self.position_hearing_baseline_enabled = bool(position_hearing_baseline_enabled)
+        self.position_baseline_shrink_k = float(max(float(position_baseline_shrink_k), 0.0))
+        nominal = float(position_interval_nominal)
+        if not math.isfinite(nominal):
+            nominal = 0.95
+        self.position_interval_nominal = float(min(max(nominal, 1e-6), 1.0 - 1e-6))
+        self.position_interval_draws = max(100, int(position_interval_draws))
+        self.position_claim_min_rows_per_position = max(1, int(position_claim_min_rows_per_position))
+        self.contextual_baseline_path = str(contextual_baseline_path or "").strip()
+        self.contextual_committee = str(contextual_committee or "").strip()
+        self.contextual_chamber = str(contextual_chamber or "").strip()
         self.voter_db_url = voter_db_url
         self.voter_table_name = voter_table_name
         self.voter_active_only = bool(voter_active_only)
@@ -223,6 +249,107 @@ class DuplicatesExactDetector(Detector):
         if float(expected_primary_metric) < self.low_power_min_expected_duplicates:
             return 0
         return self._collision_monte_carlo_draw_budget(n_rows=n, hard_cap=hard_cap)
+
+    def _position_interval_bounds(self) -> tuple[float, float]:
+        alpha = 1.0 - float(self.position_interval_nominal)
+        lower = max(0.0, min(0.5, alpha / 2.0))
+        upper = min(1.0, max(0.5, 1.0 - lower))
+        return float(lower), float(upper)
+
+    def _position_interval_from_histogram(
+        self,
+        *,
+        n_rows: int,
+        histogram: pd.DataFrame,
+        n_population: int | None,
+        rng: np.random.Generator,
+    ) -> dict[str, float | int]:
+        n = int(max(int(n_rows), 0))
+        expected_rows = float(
+            expected_collision_metrics(
+                n_rows=n,
+                histogram=histogram,
+                baseline_model=self.collision_baseline_model,
+                n_population=n_population if (n_population or 0) > 0 else None,
+            ).get("repeated_group_rows", 0.0)
+        )
+        if n <= 0:
+            return {
+                "expected_duplicate_rows": 0.0,
+                "expected_duplicate_rows_p05": 0.0,
+                "expected_duplicate_rows_p50": 0.0,
+                "expected_duplicate_rows_p95": 0.0,
+                "expected_duplicate_row_rate": 0.0,
+                "expected_duplicate_row_rate_p05": 0.0,
+                "expected_duplicate_row_rate_p50": 0.0,
+                "expected_duplicate_row_rate_p95": 0.0,
+                "interval_draws_effective": 0,
+            }
+
+        p05_rows = expected_rows
+        p50_rows = expected_rows
+        p95_rows = expected_rows
+        draws_effective = 0
+        if self.collision_baseline_model == "multinomial":
+            null_samples = simulate_collision_null_from_histogram(
+                n_rows=n,
+                histogram=histogram,
+                draws=self.position_interval_draws,
+                rng=rng,
+                baseline_model="multinomial",
+                n_population=n_population if (n_population or 0) > 0 else None,
+                max_draws=self.position_interval_draws,
+            )
+            repeated_rows = (
+                pd.to_numeric(
+                    null_samples.get("repeated_group_rows", pd.Series(dtype=float)),
+                    errors="coerce",
+                )
+                .dropna()
+                .to_numpy(dtype=float)
+            )
+            draws_effective = int(repeated_rows.size)
+            if repeated_rows.size > 0:
+                quantile_low, quantile_high = self._position_interval_bounds()
+                p05_rows = float(np.quantile(repeated_rows, quantile_low))
+                p50_rows = float(np.quantile(repeated_rows, 0.5))
+                p95_rows = float(np.quantile(repeated_rows, quantile_high))
+
+        p05_rows = float(max(0.0, min(p05_rows, float(n))))
+        p50_rows = float(max(0.0, min(p50_rows, float(n))))
+        p95_rows = float(max(0.0, min(p95_rows, float(n))))
+        ordered_rows = sorted([p05_rows, p50_rows, p95_rows])
+        p05_rows = float(ordered_rows[0])
+        p50_rows = float(ordered_rows[1])
+        p95_rows = float(ordered_rows[2])
+        row_rate_scale = float(n)
+
+        return {
+            "expected_duplicate_rows": float(expected_rows),
+            "expected_duplicate_rows_p05": p05_rows,
+            "expected_duplicate_rows_p50": p50_rows,
+            "expected_duplicate_rows_p95": p95_rows,
+            "expected_duplicate_row_rate": float(expected_rows / row_rate_scale),
+            "expected_duplicate_row_rate_p05": float(p05_rows / row_rate_scale),
+            "expected_duplicate_row_rate_p50": float(p50_rows / row_rate_scale),
+            "expected_duplicate_row_rate_p95": float(p95_rows / row_rate_scale),
+            "interval_draws_effective": int(draws_effective),
+        }
+
+    def _position_claim_status(
+        self,
+        *,
+        position_metrics: pd.DataFrame,
+    ) -> tuple[bool, str]:
+        if self.collision_baseline_model != "multinomial":
+            return False, self.POSITION_CLAIM_REASON_UNSUPPORTED_MODEL
+        if position_metrics.empty:
+            return False, self.POSITION_CLAIM_REASON_NO_POSITION_ROWS
+        if bool(position_metrics["is_low_power"].astype(bool).any()):
+            return False, self.POSITION_CLAIM_REASON_INSUFFICIENT_SUPPORT
+        if int(position_metrics["interval_draws_effective"].fillna(0).max()) <= 0:
+            return False, self.POSITION_CLAIM_REASON_INTERVAL_UNAVAILABLE
+        return True, self.POSITION_CLAIM_REASON_ELIGIBLE
 
     def _resolved_collision_key_column(self, frame: pd.DataFrame) -> str:
         configured = _KEY_TO_COLUMN.get(self.collision_key_mode, "canonical_key_strict")
@@ -825,6 +952,124 @@ class DuplicatesExactDetector(Detector):
             )
         return pd.DataFrame(rows)
 
+    @staticmethod
+    def _normalize_context_token(value: object) -> str:
+        return str(value or "").strip().lower()
+
+    def _load_contextual_baseline(self) -> pd.DataFrame:
+        path_value = self.contextual_baseline_path
+        if not path_value:
+            return pd.DataFrame()
+        path = Path(path_value)
+        if not path.exists():
+            return pd.DataFrame()
+        try:
+            if path.suffix.lower() == ".json":
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                rows_raw = payload.get("rows", []) if isinstance(payload, dict) else payload
+                contextual = pd.DataFrame(rows_raw if isinstance(rows_raw, list) else [])
+            elif path.suffix.lower() == ".parquet":
+                contextual = pd.read_parquet(path)
+            else:
+                contextual = pd.read_csv(path)
+        except Exception:
+            return pd.DataFrame()
+        if contextual.empty:
+            return pd.DataFrame()
+        normalized = contextual.copy()
+        normalized["bucket_minutes"] = (
+            pd.to_numeric(normalized.get("bucket_minutes"), errors="coerce").fillna(-1).astype(int)
+        )
+        normalized["hour_bin"] = (
+            pd.to_numeric(normalized.get("hour_bin"), errors="coerce").fillna(-1).astype(int)
+        )
+        normalized["weekday_bin"] = (
+            pd.to_numeric(normalized.get("weekday_bin"), errors="coerce").fillna(-1).astype(int)
+        )
+        normalized["committee"] = normalized.get("committee", "").map(self._normalize_context_token)
+        normalized["chamber"] = normalized.get("chamber", "").map(self._normalize_context_token)
+        normalized["shrink_k"] = pd.to_numeric(
+            normalized.get("shrink_k", self.position_baseline_shrink_k), errors="coerce"
+        ).fillna(self.position_baseline_shrink_k)
+        normalized["n_rows_total"] = pd.to_numeric(
+            normalized.get("n_rows_total", 0), errors="coerce"
+        ).fillna(0.0)
+        return normalized
+
+    def _resolve_contextual_shrink_k(
+        self,
+        *,
+        contextual_baseline: pd.DataFrame,
+        bucket_start: pd.Timestamp,
+        bucket_minutes: int,
+    ) -> tuple[float, str]:
+        default_k = float(self.position_baseline_shrink_k)
+        if contextual_baseline.empty:
+            return default_k, "default"
+        if pd.isna(bucket_start):
+            return default_k, "default"
+        hour_bin = int(pd.Timestamp(bucket_start).hour)
+        weekday_bin = int(pd.Timestamp(bucket_start).weekday())
+        committee = self._normalize_context_token(self.contextual_committee)
+        chamber = self._normalize_context_token(self.contextual_chamber)
+
+        by_bucket = contextual_baseline[
+            contextual_baseline["bucket_minutes"].astype(int) == int(bucket_minutes)
+        ].copy()
+        if by_bucket.empty:
+            return default_k, "default"
+
+        fallbacks: list[tuple[str, dict[str, object]]] = []
+        if committee and chamber:
+            fallbacks.append(
+                (
+                    "committee_chamber_hour_weekday_bucket",
+                    {
+                        "committee": committee,
+                        "chamber": chamber,
+                        "hour_bin": hour_bin,
+                        "weekday_bin": weekday_bin,
+                    },
+                )
+            )
+        if committee:
+            fallbacks.append(
+                (
+                    "committee_hour_weekday_bucket",
+                    {"committee": committee, "hour_bin": hour_bin, "weekday_bin": weekday_bin},
+                )
+            )
+        if chamber:
+            fallbacks.append(
+                (
+                    "chamber_hour_weekday_bucket",
+                    {"chamber": chamber, "hour_bin": hour_bin, "weekday_bin": weekday_bin},
+                )
+            )
+        fallbacks.append(
+            (
+                "hour_weekday_bucket",
+                {"hour_bin": hour_bin, "weekday_bin": weekday_bin},
+            )
+        )
+        fallbacks.append(("bucket", {}))
+
+        for level, required in fallbacks:
+            candidates = by_bucket.copy()
+            for column, value in required.items():
+                if column not in candidates.columns:
+                    candidates = pd.DataFrame()
+                    break
+                candidates = candidates[candidates[column] == value]
+            if candidates.empty:
+                continue
+            ordered = candidates.sort_values(["n_rows_total", "shrink_k"], ascending=[False, True])
+            candidate_k = float(ordered["shrink_k"].iloc[0])
+            if not np.isfinite(candidate_k) or candidate_k < 0:
+                candidate_k = default_k
+            return candidate_k, level
+        return default_k, "default"
+
     def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
         if df.empty:
             return DetectorResult(detector=self.name, summary={"n_records": 0}, tables={})
@@ -861,6 +1106,7 @@ class DuplicatesExactDetector(Detector):
         methods_rows: list[dict[str, object]] = []
         overview_frames: list[pd.DataFrame] = []
         bucket_frames: list[pd.DataFrame] = []
+        position_bucket_frames: list[dict[str, object]] = []
         per_name_tests_frames: list[pd.DataFrame] = []
         per_name_display_frames: list[pd.DataFrame] = []
         per_name_duplicates_by_mode_frames: list[pd.DataFrame] = []
@@ -890,10 +1136,13 @@ class DuplicatesExactDetector(Detector):
         primary_scope_n_population = 0
         primary_scope_low_power = True
         primary_scope_stratification = "none"
+        position_claim_eligible = False
+        position_claim_reason = self.POSITION_CLAIM_REASON_NO_POSITION_ROWS
         requested_stratification = self.collision_stratification
         effective_stratification = requested_stratification
         stratification_degraded = False
         stratum_frequencies = pd.DataFrame(columns=["name_key", "stratum", "n_registry_rows"])
+        contextual_baseline = self._load_contextual_baseline()
 
         if requested_stratification != "none":
             if self.collision_baseline_source == "hearing_empirical":
@@ -1574,6 +1823,99 @@ class DuplicatesExactDetector(Detector):
                                 "inference_status": "descriptive_only" if low_power else "tested",
                             }
                         )
+                    if self.position_hearing_baseline_enabled:
+                        all_name_counts = (
+                            group_frame.groupby(key_column, dropna=False).size().astype(float)
+                        )
+                        if not all_name_counts.empty and n_bucket > 0:
+                            probs_all = (all_name_counts / float(n_bucket)).astype(float)
+                            for position_label in sorted(
+                                {
+                                    str(value).strip() or "Unknown"
+                                    for value in group_frame["position_normalized"].tolist()
+                                }
+                            ):
+                                subset = group_frame[
+                                    _safe_str_series(group_frame["position_normalized"]).replace("", "Unknown")
+                                    == position_label
+                                ].copy()
+                                n_side = int(len(subset))
+                                if n_side <= 0:
+                                    continue
+                                side_counts = subset.groupby(key_column, dropna=False).size().astype(float)
+                                if side_counts.empty:
+                                    continue
+                                probs_side = (side_counts / float(n_side)).astype(float)
+                                aligned_index = probs_side.index.union(probs_all.index)
+                                side_aligned = probs_side.reindex(aligned_index, fill_value=0.0)
+                                all_aligned = probs_all.reindex(aligned_index, fill_value=0.0)
+                                shrink_k, prior_level = self._resolve_contextual_shrink_k(
+                                    contextual_baseline=contextual_baseline,
+                                    bucket_start=pd.to_datetime(start),
+                                    bucket_minutes=int(bucket_minutes),
+                                )
+                                lambda_side = (
+                                    float(n_side) / float(n_side + shrink_k)
+                                    if (float(n_side + shrink_k) > 0.0)
+                                    else 1.0
+                                )
+                                smoothed = (
+                                    lambda_side * side_aligned.astype(float)
+                                    + (1.0 - lambda_side) * all_aligned.astype(float)
+                                )
+                                smoothed_sum = float(smoothed.sum())
+                                if smoothed_sum <= 0.0 or not np.isfinite(smoothed_sum):
+                                    smoothed = side_aligned.astype(float)
+                                    smoothed_sum = float(smoothed.sum())
+                                if smoothed_sum <= 0.0 or not np.isfinite(smoothed_sum):
+                                    continue
+                                smoothed = smoothed / smoothed_sum
+                                expected_position_metrics = expected_collision_metrics_from_probabilities(
+                                    n_rows=n_side,
+                                    probabilities=smoothed.to_numpy(dtype=float),
+                                )
+                                observed_position_metrics = collision_metrics_from_counts(
+                                    side_counts.to_numpy(dtype=float)
+                                )
+                                observed_primary = float(
+                                    observed_position_metrics.get(self.collision_primary_metric, 0.0)
+                                )
+                                expected_primary = float(
+                                    expected_position_metrics.get(self.collision_primary_metric, 0.0)
+                                )
+                                n_side_unique = int(side_counts.size)
+                                low_power_position = bool(
+                                    n_side_unique < self.low_power_min_unique_names
+                                    or expected_primary < self.low_power_min_expected_duplicates
+                                )
+                                deviance = float(observed_primary - expected_primary)
+                                position_bucket_frames.append(
+                                    {
+                                        "scope": scope,
+                                        "metric": self.collision_primary_metric,
+                                        "bucket_start": pd.to_datetime(start),
+                                        "bucket_minutes": int(bucket_minutes),
+                                        "position_normalized": position_label,
+                                        "n_bucket_position": int(n_side),
+                                        "n_unique_names": int(n_side_unique),
+                                        "observed": observed_primary,
+                                        "expected": expected_primary,
+                                        "excess": deviance,
+                                        "deviance": deviance,
+                                        "deviance_ratio": (
+                                            float(deviance / expected_primary)
+                                            if expected_primary > 0.0
+                                            else 0.0
+                                        ),
+                                        "lambda_side": float(lambda_side),
+                                        "shrink_k": float(shrink_k),
+                                        "prior_level": str(prior_level),
+                                        "is_low_power": bool(low_power_position),
+                                        "inference_status": (
+                                            "descriptive_only" if low_power_position else "tested"
+                                        ),
+                                    }
+                                )
 
             if scope == self.collision_scope_primary:
                 primary_scope_row_count = int(n_scope)
@@ -1653,26 +1995,58 @@ class DuplicatesExactDetector(Detector):
                 legacy_top_repeated = legacy_top_repeated.sort_values("n", ascending=False).head(self.top_n)
 
                 position_rows: list[dict[str, object]] = []
+                position_interval_by_n: dict[int, dict[str, float | int]] = {}
+                position_model_supported = self.collision_baseline_model == "multinomial"
+                position_metric_columns = [
+                    "position_normalized",
+                    "n_rows",
+                    "n_unique_names",
+                    "duplicate_rows",
+                    "duplicate_row_rate",
+                    "duplicate_pairs",
+                    "expected_duplicate_rows",
+                    "expected_duplicate_rows_p05",
+                    "expected_duplicate_rows_p50",
+                    "expected_duplicate_rows_p95",
+                    "expected_duplicate_row_rate",
+                    "expected_duplicate_row_rate_p05",
+                    "expected_duplicate_row_rate_p50",
+                    "expected_duplicate_row_rate_p95",
+                    "interval_method_id",
+                    "interval_draws_effective",
+                    "excess_duplicate_rows",
+                    "is_low_power",
+                    "inference_status",
+                ]
                 for position in sorted(set(scope_frame["position_normalized"].unique())):
                     subset = scope_frame[scope_frame["position_normalized"] == position]
                     subset_counts = subset.groupby(key_column, dropna=False).size().to_numpy(dtype=float)
                     subset_metrics = collision_metrics_from_counts(subset_counts)
-                    expected_rows = float(
-                        expected_collision_metrics(
-                            n_rows=int(len(subset)),
+                    n_subset_rows = int(subset_metrics["n_rows"])
+                    if n_subset_rows not in position_interval_by_n:
+                        position_interval_by_n[n_subset_rows] = self._position_interval_from_histogram(
+                            n_rows=n_subset_rows,
                             histogram=histogram,
-                            baseline_model=self.collision_baseline_model,
                             n_population=n_population if n_population > 0 else None,
-                        ).get("repeated_group_rows", 0.0)
-                    )
+                            rng=rng,
+                        )
+                    interval_stats = position_interval_by_n[n_subset_rows]
+                    expected_rows = float(interval_stats.get("expected_duplicate_rows", 0.0))
                     low_power = bool(
-                        int(subset_metrics["n_unique_names"]) < self.low_power_min_unique_names
+                        n_subset_rows < self.position_claim_min_rows_per_position
+                        or int(subset_metrics["n_unique_names"]) < self.low_power_min_unique_names
                         or expected_rows < self.low_power_min_expected_duplicates
+                    )
+                    has_interval_draws = int(interval_stats.get("interval_draws_effective", 0)) > 0
+                    inference_status = (
+                        "tested"
+                        if position_model_supported and not low_power and has_interval_draws
+                        else "descriptive_only"
                     )
                     position_rows.append(
                         {
                             "position_normalized": position,
-                            "n_rows": int(subset_metrics["n_rows"]),
+                            "n_rows": n_subset_rows,
                             "n_unique_names": int(subset_metrics["n_unique_names"]),
                             "duplicate_rows": int(subset_metrics["repeated_group_rows"]),
                             "duplicate_row_rate": (
@@ -1682,19 +2056,44 @@ class DuplicatesExactDetector(Detector):
                             ),
                             "duplicate_pairs": float(subset_metrics["pairs"]),
                             "expected_duplicate_rows": float(expected_rows),
-                            "expected_duplicate_row_rate": (
-                                float(expected_rows / subset_metrics["n_rows"])
-                                if subset_metrics["n_rows"] > 0
-                                else 0.0
+                            "expected_duplicate_rows_p05": float(
+                                interval_stats.get("expected_duplicate_rows_p05", expected_rows)
+                            ),
+                            "expected_duplicate_rows_p50": float(
+                                interval_stats.get("expected_duplicate_rows_p50", expected_rows)
+                            ),
+                            "expected_duplicate_rows_p95": float(
+                                interval_stats.get("expected_duplicate_rows_p95", expected_rows)
+                            ),
+                            "expected_duplicate_row_rate": float(
+                                interval_stats.get("expected_duplicate_row_rate", 0.0)
+                            ),
+                            "expected_duplicate_row_rate_p05": float(
+                                interval_stats.get("expected_duplicate_row_rate_p05", 0.0)
+                            ),
+                            "expected_duplicate_row_rate_p50": float(
+                                interval_stats.get("expected_duplicate_row_rate_p50", 0.0)
+                            ),
+                            "expected_duplicate_row_rate_p95": float(
+                                interval_stats.get("expected_duplicate_row_rate_p95", 0.0)
+                            ),
+                            "interval_method_id": self.POSITION_INTERVAL_METHOD_ID,
+                            "interval_draws_effective": int(
+                                interval_stats.get("interval_draws_effective", 0)
                             ),
                             "excess_duplicate_rows": float(
                                 max(subset_metrics["repeated_group_rows"] - expected_rows, 0.0)
                             ),
                             "is_low_power": low_power,
-                            "inference_status": "descriptive_only" if low_power else "tested",
+                            "inference_status": inference_status,
                         }
                     )
-                legacy_position_metrics = pd.DataFrame(position_rows)
+                legacy_position_metrics = pd.DataFrame(position_rows, columns=position_metric_columns)
+                position_claim_eligible, position_claim_reason = self._position_claim_status(
+                    position_metrics=legacy_position_metrics
+                )
+                if not position_claim_eligible and not legacy_position_metrics.empty:
+                    legacy_position_metrics["inference_status"] = "descriptive_only"
                 legacy_position_tests = self._position_permutation_test(scope_frame, key_column, rng=rng)
                 if not legacy_position_tests.empty and not legacy_position_metrics.empty:
                     legacy_position_tests["left_is_low_power"] = bool(
@@ -1829,6 +2228,13 @@ class DuplicatesExactDetector(Detector):
             if bucket_frames
             else pd.DataFrame()
         )
+        collision_by_bucket_position = (
+            pd.DataFrame(position_bucket_frames).sort_values(
+                ["scope", "bucket_minutes", "bucket_start", "position_normalized"]
+            )
+            if position_bucket_frames
+            else pd.DataFrame()
+        )
         per_name_tests = pd.concat(per_name_tests_frames, ignore_index=True) if per_name_tests_frames else pd.DataFrame()
         per_name_display = (
             pd.concat(per_name_display_frames, ignore_index=True) if per_name_display_frames else pd.DataFrame()
@@ -1896,6 +2302,12 @@ class DuplicatesExactDetector(Detector):
             "N_used": int(primary_scope_n_population),
             "baseline_degraded": bool(primary_scope_degraded),
             "stratification": primary_scope_stratification,
+            "position_hearing_baseline_enabled": bool(self.position_hearing_baseline_enabled),
+            "position_baseline_shrink_k": float(self.position_baseline_shrink_k),
+            "position_interval_nominal": float(self.position_interval_nominal),
+            "position_interval_method_id": self.POSITION_INTERVAL_METHOD_ID,
+            "position_claim_eligible": bool(position_claim_eligible),
+            "position_claim_reason": str(position_claim_reason),
         }
 
         return DetectorResult(
@@ -1905,6 +2317,7 @@ class DuplicatesExactDetector(Detector):
                 "collision_methods": collision_methods,
                 "collision_overview": collision_overview,
                 "collision_by_bucket": collision_by_bucket,
+                "collision_by_bucket_position": collision_by_bucket_position,
                 "collision_stratification_sensitivity": collision_stratification_sensitivity,
                 "per_name_tests": per_name_tests,
                 "per_name_display": per_name_display,

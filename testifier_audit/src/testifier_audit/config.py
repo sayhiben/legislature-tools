@@ -115,6 +115,12 @@ class NameAnalysisConfig(BaseModel):
     low_power_min_unique_names: int = Field(default=25, ge=1)
     low_power_min_expected_duplicates: float = Field(default=5.0, ge=0.0)
     max_per_name_rows: int = Field(default=1000, ge=10)
+    position_hearing_baseline_enabled: bool = True
+    position_baseline_shrink_k: float = Field(default=30.0, ge=0.0)
+    position_interval_nominal: float = Field(default=0.95, gt=0.0, lt=1.0)
+    position_interval_draws: int = Field(default=5000, ge=100)
+    position_claim_min_rows_per_position: int = Field(default=25, ge=1)
+    contextual_baseline_path: str | None = None
 
 
 class RarityConfig(BaseModel):
@@ -143,6 +149,8 @@ class VoterRegistryConfig(BaseModel):
     weak_fuzzy_min_score: float = Field(default=84.0, ge=0.0, le=100.0)
     ambiguous_score_gap: float = Field(default=2.0, ge=0.0, le=100.0)
     pairwise_alpha: float = Field(default=0.05, gt=0.0, lt=1.0)
+    status_mode: Literal["single", "dual_bounds"] = "single"
+    registry_snapshot_date: str | None = None
 
 
 class MultivariateAnomalyConfig(BaseModel):
@@ -208,7 +216,22 @@ def _resolve_optional_path(path_value: str | None, base_dir: Path) -> str | None
     candidate = Path(path_value)
     if candidate.is_absolute():
         return str(candidate)
-    return str((base_dir / candidate).resolve())
+    probes: list[Path] = [base_dir / candidate]
+    # Recover common "configs/<file>" entries when the config itself lives under configs/.
+    if candidate.parts and candidate.parts[0] == base_dir.name and len(candidate.parts) > 1:
+        probes.append(base_dir.parent / candidate)
+    probes.append(Path.cwd() / candidate)
+
+    seen: set[Path] = set()
+    fallback = (base_dir / candidate).resolve()
+    for probe in probes:
+        resolved = probe.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if resolved.exists():
+            return str(resolved)
+    return str(fallback)
 
 
 def load_config(path: Path) -> AppConfig:
@@ -231,6 +254,10 @@ def load_config(path: Path) -> AppConfig:
     )
     config.input.hearing_metadata_path = _resolve_optional_path(
         config.input.hearing_metadata_path,
+        base_dir,
+    )
+    config.name_analysis.contextual_baseline_path = _resolve_optional_path(
+        config.name_analysis.contextual_baseline_path,
         base_dir,
     )
     config.input.db_url = (

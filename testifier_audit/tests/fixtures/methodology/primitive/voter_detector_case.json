@@ -1,0 +1,113 @@
+{
+  "case_id": "voter_detector_strict_loose_core",
+  "bucket_minutes": [30],
+  "nickname_map": {
+    "NORM": "NORMAN"
+  },
+  "submissions": [
+    {
+      "canonical_name": "HERSHAW|NORM",
+      "name_display": "HERSHAW, NORM",
+      "position_normalized": "Pro",
+      "minute_bucket": "2026-02-01T00:05:00Z"
+    },
+    {
+      "canonical_name": "HERSHAW|NORMAN",
+      "name_display": "HERSHAW, NORMAN",
+      "position_normalized": "Con",
+      "minute_bucket": "2026-02-01T00:06:00Z"
+    },
+    {
+      "canonical_name": "DOE|JANE",
+      "name_display": "DOE, JANE",
+      "position_normalized": "Pro",
+      "minute_bucket": "2026-02-01T00:35:00Z"
+    },
+    {
+      "canonical_name": "BROWN|AVA",
+      "name_display": "BROWN, AVA",
+      "position_normalized": "Con",
+      "minute_bucket": "2026-02-01T00:36:00Z"
+    }
+  ],
+  "registry_rows": [
+    {
+      "canonical_name": "HERSHAW|NORMAN",
+      "canonical_last": "HERSHAW",
+      "canonical_first": "NORMAN",
+      "n_registry_rows": 1
+    },
+    {
+      "canonical_name": "DOE|JANE",
+      "canonical_last": "DOE",
+      "canonical_first": "JANE",
+      "n_registry_rows": 1
+    }
+  ],
+  "expected_summary": {
+    "active": true,
+    "primary_match_mode": "loose",
+    "n_rows": 4,
+    "n_matched_unique_rows": 3,
+    "n_matched_ambiguous_rows": 0,
+    "n_unmatched_rows": 1,
+    "matched_rate_rows": 0.75,
+    "unmatched_rate_rows": 0.25
+  },
+  "expected_sensitivity_modes": [
+    {
+      "mode": "strict",
+      "match_mode": "strict",
+      "n_rows": 4,
+      "n_matched_unique_rows": 2,
+      "n_matched_ambiguous_rows": 0,
+      "n_unmatched_rows": 2
+    },
+    {
+      "mode": "loose",
+      "match_mode": "loose",
+      "n_rows": 4,
+      "n_matched_unique_rows": 3,
+      "n_matched_ambiguous_rows": 0,
+      "n_unmatched_rows": 1
+    }
+  ],
+  "expected_match_by_bucket": [
+    {
+      "match_mode": "strict",
+      "bucket_minutes": 30,
+      "bucket_start": "2026-02-01T00:00:00Z",
+      "n_total": 2,
+      "n_matched_unique": 1,
+      "n_matched_ambiguous": 0,
+      "n_unmatched": 1
+    },
+    {
+      "match_mode": "strict",
+      "bucket_minutes": 30,
+      "bucket_start": "2026-02-01T00:30:00Z",
+      "n_total": 2,
+      "n_matched_unique": 1,
+      "n_matched_ambiguous": 0,
+      "n_unmatched": 1
+    },
+    {
+      "match_mode": "loose",
+      "bucket_minutes": 30,
+      "bucket_start": "2026-02-01T00:00:00Z",
+      "n_total": 2,
+      "n_matched_unique": 2,
+      "n_matched_ambiguous": 0,
+      "n_unmatched": 0
+    },
+    {
+      "match_mode": "loose",
+      "bucket_minutes": 30,
+      "bucket_start": "2026-02-01T00:30:00Z",
+      "n_total": 2,
+      "n_matched_unique": 1,
+      "n_matched_ambiguous": 0,
+      "n_unmatched": 1
+    }
+  ]
+}

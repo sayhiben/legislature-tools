@@ -6,7 +6,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 import yaml
 
 from testifier_audit.io.hearing_metadata import PACIFIC_TIMEZONE_NAME
+from testifier_audit.io.http_rate_limit import wait_for_global_http_slot
 
 CSI_BASE_URL = "https://app.leg.wa.gov/csi/Home"
 RETRIABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
@@ -175,6 +176,7 @@ def _request_text_with_retries(
     while True:
         attempt += 1
         start = time.monotonic()
+        wait_for_global_http_slot()
         request = Request(url, headers={"User-Agent": user_agent, "Accept": accept})
         try:
             with opener.open(request, timeout=timeout_seconds) as response:
@@ -568,6 +570,7 @@ def _build_sidecar_payload(
     agenda_item: CSIAgendaItem,
     stats: Mapping[str, int | float],
 ) -> dict[str, Any]:
+    sign_in_cutoff = meeting.meeting_start - timedelta(hours=1)
     hearing_id = (
         f"{_sanitize_bill_token(meeting.short_bill_id or meeting.bill_number)}-"
         f"{meeting.meeting_family_id}-{agenda_item.agenda_item_id}"
@@ -577,6 +580,7 @@ def _build_sidecar_payload(
         "hearing_id": hearing_id,
         "timezone": PACIFIC_TIMEZONE_NAME,
         "meeting_start": meeting.meeting_start.isoformat(),
+        "sign_in_cutoff": sign_in_cutoff.isoformat(),
         "stats": dict(stats),
         "source": {
             "provider": "wa_leg_csi",
@@ -598,6 +602,171 @@ def _build_sidecar_payload(
 def _write_sidecar(path: Path, payload: Mapping[str, Any]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(dict(payload), handle, sort_keys=False, allow_unicode=False)
+
+
+def _coerce_pacific_datetime(value: datetime) -> datetime:
+    pacific = ZoneInfo(PACIFIC_TIMEZONE_NAME)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=pacific)
+    return value.astimezone(pacific)
+
+
+def _persist_download_outputs(
+    *,
+    query: str,
+    meeting: CSIMeeting,
+    agenda_item: CSIAgendaItem,
+    testifying_rows: list[CSITestifierRow],
+    not_testifying_rows: list[CSITestifierRow],
+    csv_out_dir: Path,
+    metadata_out_dir: Path,
+    overwrite: bool,
+    logger: logging.Logger,
+) -> CSIDownloadResult:
+    combined_rows = [*testifying_rows, *not_testifying_rows]
+    logger.info(
+        "Parsed testifier rows: testifying=%s not_testifying=%s total=%s",
+        len(testifying_rows),
+        len(not_testifying_rows),
+        len(combined_rows),
+    )
+
+    output_stem = _build_output_stem(meeting)
+    csv_path = csv_out_dir / f"{output_stem}.csv"
+    metadata_path = metadata_out_dir / f"{output_stem}.hearing.yaml"
+
+    csv_out_dir.mkdir(parents=True, exist_ok=True)
+    metadata_out_dir.mkdir(parents=True, exist_ok=True)
+
+    if not overwrite and csv_path.exists():
+        raise CSIDownloadError(f"CSV already exists and overwrite is disabled: {csv_path}")
+    if not overwrite and metadata_path.exists():
+        raise CSIDownloadError(
+            f"Hearing metadata sidecar already exists and overwrite is disabled: {metadata_path}"
+        )
+
+    if overwrite and csv_path.exists():
+        logger.warning("Overwriting existing CSV: %s", csv_path)
+    if overwrite and metadata_path.exists():
+        logger.warning("Overwriting existing hearing metadata sidecar: %s", metadata_path)
+
+    _write_csv(csv_path, combined_rows)
+    sidecar_stats = _build_sidecar_stats(
+        testifying_rows=testifying_rows,
+        not_testifying_rows=not_testifying_rows,
+    )
+    sidecar_payload = _build_sidecar_payload(
+        search_query=query,
+        meeting=meeting,
+        agenda_item=agenda_item,
+        stats=sidecar_stats,
+    )
+    _write_sidecar(metadata_path, sidecar_payload)
+    logger.info("Wrote CSV: %s", csv_path)
+    logger.info("Wrote hearing metadata sidecar: %s", metadata_path)
+
+    return CSIDownloadResult(
+        search_query=query,
+        csv_path=csv_path,
+        metadata_path=metadata_path,
+        short_bill_id=meeting.short_bill_id,
+        bill_title=meeting.bill_title,
+        meeting_family_id=meeting.meeting_family_id,
+        agenda_item_family_id=agenda_item.agenda_item_family_id,
+        agenda_item_id=agenda_item.agenda_item_id,
+        meeting_start=meeting.meeting_start,
+        testifying_rows=len(testifying_rows),
+        not_testifying_rows=len(not_testifying_rows),
+    )
+
+
+def download_csi_testifier_csv_by_agenda_item(
+    *,
+    bill_query: str,
+    meeting_family_id: str,
+    agenda_item_id: str,
+    meeting_start: datetime,
+    short_bill_id: str,
+    csv_out_dir: Path,
+    metadata_out_dir: Path,
+    bill_number: str = "",
+    bill_title: str = "",
+    committee_name: str = "",
+    chamber: str = "",
+    agenda_item_family_id: str = "",
+    agenda_item_description: str = "",
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    retry_backoff_seconds: float = DEFAULT_RETRY_BACKOFF_SECONDS,
+    overwrite: bool = True,
+    user_agent: str = DEFAULT_USER_AGENT,
+    logger: logging.Logger | None = None,
+) -> CSIDownloadResult:
+    query = _normalize_whitespace(bill_query)
+    if not query:
+        raise CSIDownloadError("bill_query must be a non-empty string")
+    resolved_meeting_family_id = _normalize_whitespace(meeting_family_id)
+    if not resolved_meeting_family_id:
+        raise CSIDownloadError("meeting_family_id must be a non-empty string")
+    resolved_agenda_item_id = _normalize_whitespace(agenda_item_id)
+    if not resolved_agenda_item_id:
+        raise CSIDownloadError("agenda_item_id must be a non-empty string")
+    resolved_short_bill_id = _normalize_whitespace(short_bill_id)
+    if not resolved_short_bill_id:
+        raise CSIDownloadError("short_bill_id must be a non-empty string")
+
+    active_logger = logger or logging.getLogger(__name__)
+    meeting_start_pacific = _coerce_pacific_datetime(meeting_start)
+    resolved_chamber = _normalize_whitespace(chamber)
+    meeting = CSIMeeting(
+        leg_id="",
+        committee_id="",
+        committee_name=_normalize_whitespace(committee_name),
+        chamber=resolved_chamber,
+        meeting_family_id=resolved_meeting_family_id,
+        bill_title=_normalize_whitespace(bill_title),
+        bill_number=_normalize_whitespace(bill_number),
+        short_bill_id=resolved_short_bill_id,
+        chamber_abbr=(resolved_chamber[:1].upper() if resolved_chamber else ""),
+        meeting_date_time_formatted=meeting_start_pacific.strftime("%m/%d/%y %I:%M %p"),
+        meeting_start=meeting_start_pacific,
+    )
+    agenda_item = CSIAgendaItem(
+        agenda_item_family_id=_normalize_whitespace(agenda_item_family_id),
+        agenda_item_id=resolved_agenda_item_id,
+        description=_normalize_whitespace(agenda_item_description),
+    )
+
+    opener = build_opener()
+    testifiers_query = urlencode({"agendaItemId": resolved_agenda_item_id})
+    testifiers_url = f"{CSI_BASE_URL}/GetOtherTestifiers/?{testifiers_query}"
+    active_logger.info(
+        "Fetching testifiers directly by agenda_item_id=%s meeting_family_id=%s",
+        resolved_agenda_item_id,
+        resolved_meeting_family_id,
+    )
+    testifiers_html = _request_text_with_retries(
+        opener=opener,
+        url=testifiers_url,
+        logger=active_logger,
+        timeout_seconds=timeout_seconds,
+        max_retries=max_retries,
+        retry_backoff_seconds=retry_backoff_seconds,
+        user_agent=user_agent,
+        accept="text/html",
+    )
+    testifying_rows, not_testifying_rows = parse_testifier_rows(testifiers_html)
+    return _persist_download_outputs(
+        query=query,
+        meeting=meeting,
+        agenda_item=agenda_item,
+        testifying_rows=testifying_rows,
+        not_testifying_rows=not_testifying_rows,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        overwrite=overwrite,
+        logger=active_logger,
+    )
 
 
 def download_csi_testifier_csv(
@@ -703,59 +872,14 @@ def download_csi_testifier_csv(
         accept="text/html",
     )
     testifying_rows, not_testifying_rows = parse_testifier_rows(testifiers_html)
-
-    combined_rows = [*testifying_rows, *not_testifying_rows]
-    active_logger.info(
-        "Parsed testifier rows: testifying=%s not_testifying=%s total=%s",
-        len(testifying_rows),
-        len(not_testifying_rows),
-        len(combined_rows),
-    )
-
-    output_stem = _build_output_stem(meeting)
-    csv_path = csv_out_dir / f"{output_stem}.csv"
-    metadata_path = metadata_out_dir / f"{output_stem}.hearing.yaml"
-
-    csv_out_dir.mkdir(parents=True, exist_ok=True)
-    metadata_out_dir.mkdir(parents=True, exist_ok=True)
-
-    if not overwrite and csv_path.exists():
-        raise CSIDownloadError(f"CSV already exists and overwrite is disabled: {csv_path}")
-    if not overwrite and metadata_path.exists():
-        raise CSIDownloadError(
-            f"Hearing metadata sidecar already exists and overwrite is disabled: {metadata_path}"
-        )
-
-    if overwrite and csv_path.exists():
-        active_logger.warning("Overwriting existing CSV: %s", csv_path)
-    if overwrite and metadata_path.exists():
-        active_logger.warning("Overwriting existing hearing metadata sidecar: %s", metadata_path)
-
-    _write_csv(csv_path, combined_rows)
-    sidecar_stats = _build_sidecar_stats(
-        testifying_rows=testifying_rows,
-        not_testifying_rows=not_testifying_rows,
-    )
-    sidecar_payload = _build_sidecar_payload(
-        search_query=query,
+    return _persist_download_outputs(
+        query=query,
         meeting=meeting,
         agenda_item=agenda_item,
-        stats=sidecar_stats,
-    )
-    _write_sidecar(metadata_path, sidecar_payload)
-    active_logger.info("Wrote CSV: %s", csv_path)
-    active_logger.info("Wrote hearing metadata sidecar: %s", metadata_path)
-
-    return CSIDownloadResult(
-        search_query=query,
-        csv_path=csv_path,
-        metadata_path=metadata_path,
-        short_bill_id=meeting.short_bill_id,
-        bill_title=meeting.bill_title,
-        meeting_family_id=meeting.meeting_family_id,
-        agenda_item_family_id=agenda_item.agenda_item_family_id,
-        agenda_item_id=agenda_item.agenda_item_id,
-        meeting_start=meeting.meeting_start,
-        testifying_rows=len(testifying_rows),
-        not_testifying_rows=len(not_testifying_rows),
+        testifying_rows=testifying_rows,
+        not_testifying_rows=not_testifying_rows,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        overwrite=overwrite,
+        logger=active_logger,
     )

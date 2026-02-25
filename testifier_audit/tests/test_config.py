@@ -27,6 +27,9 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
         "names": {
             "nickname_map_path": "nicknames.csv",
         },
+        "name_analysis": {
+            "contextual_baseline_path": "contextual_baseline.csv",
+        },
         "rarity": {
             "enabled": True,
             "first_name_frequency_path": "first.csv",
@@ -37,6 +40,10 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
         },
     }
     config_path = tmp_path / "config.yaml"
+    (tmp_path / "contextual_baseline.csv").write_text(
+        "bucket_minutes,shrink_k\n30,30.0\n",
+        encoding="utf-8",
+    )
     config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
 
     cfg = load_config(config_path)
@@ -45,6 +52,32 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
     assert Path(cfg.rarity.first_name_frequency_path or "").is_absolute()
     assert Path(cfg.rarity.last_name_frequency_path or "").is_absolute()
     assert Path(cfg.input.hearing_metadata_path or "").is_absolute()
+    assert Path(cfg.name_analysis.contextual_baseline_path or "").is_absolute()
+
+
+def test_load_config_resolves_configs_prefixed_paths_from_configs_dir(tmp_path: Path) -> None:
+    config_dir = tmp_path / "configs"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    nickname_path = config_dir / "nicknames.csv"
+    nickname_path.write_text("alias,canonical\nNORM,NORMAN\n", encoding="utf-8")
+
+    config_data = {
+        "columns": {
+            "id": "id",
+            "name": "name",
+            "organization": "organization",
+            "position": "position",
+            "time_signed_in": "time_signed_in",
+        },
+        "names": {
+            "nickname_map_path": "configs/nicknames.csv",
+        },
+    }
+    config_path = config_dir / "voter_registry_enabled.yaml"
+    config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
+
+    cfg = load_config(config_path)
+    assert Path(cfg.names.nickname_map_path) == nickname_path.resolve()
 
 
 def test_load_config_uses_env_db_url_for_input(monkeypatch, tmp_path: Path) -> None:
@@ -88,6 +121,12 @@ def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
     assert base_cfg.report.min_cell_n_for_rates == 25
     assert base_cfg.name_analysis.collision_scope_primary == "full_hearing"
     assert base_cfg.name_analysis.collision_scope_overlays == []
+    assert base_cfg.name_analysis.position_hearing_baseline_enabled is True
+    assert base_cfg.name_analysis.position_baseline_shrink_k == 30.0
+    assert base_cfg.name_analysis.position_interval_nominal == 0.95
+    assert base_cfg.name_analysis.position_interval_draws == 5000
+    assert base_cfg.name_analysis.position_claim_min_rows_per_position == 25
+    assert base_cfg.voter_registry.status_mode == "single"
 
     override = {
         **base,
@@ -95,12 +134,20 @@ def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
             "default_dedup_mode": "raw",
             "min_cell_n_for_rates": 40,
         },
+        "name_analysis": {
+            "position_interval_nominal": 0.9,
+            "position_interval_draws": 1234,
+            "position_claim_min_rows_per_position": 40,
+        },
     }
     override_path = tmp_path / "override.yaml"
     override_path.write_text(yaml.safe_dump(override), encoding="utf-8")
     override_cfg = load_config(override_path)
     assert override_cfg.report.default_dedup_mode == "raw"
     assert override_cfg.report.min_cell_n_for_rates == 40
+    assert override_cfg.name_analysis.position_interval_nominal == 0.9
+    assert override_cfg.name_analysis.position_interval_draws == 1234
+    assert override_cfg.name_analysis.position_claim_min_rows_per_position == 40
 
 
 def test_load_config_off_hours_defaults_and_overrides(tmp_path: Path) -> None:

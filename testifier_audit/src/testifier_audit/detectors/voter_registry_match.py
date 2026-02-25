@@ -35,6 +35,7 @@ REPORT_MATCH_MODE_TO_OUTCOME_COLUMN = {
     "loose": "loose_outcome",
 }
 DEFAULT_REPORT_MATCH_MODE = "loose"
+STATUS_MODES = {"single", "dual_bounds"}
 
 
 def _safe_str_series(series: pd.Series) -> pd.Series:
@@ -68,6 +69,8 @@ class VoterRegistryMatchDetector(Detector):
         ambiguous_score_gap: float = 2.0,
         pairwise_alpha: float = 0.05,
         nickname_map_path: str = "",
+        status_mode: str = "single",
+        registry_snapshot_date: str | None = None,
     ) -> None:
         self.enabled = bool(enabled)
         self.db_url = db_url
@@ -92,6 +95,9 @@ class VoterRegistryMatchDetector(Detector):
         self.ambiguous_score_gap = max(0.0, float(ambiguous_score_gap))
         self.pairwise_alpha = max(0.0, min(float(pairwise_alpha), 1.0))
         self.nickname_map_path = str(nickname_map_path or "").strip()
+        resolved_status_mode = str(status_mode or "single").strip().lower()
+        self.status_mode = resolved_status_mode if resolved_status_mode in STATUS_MODES else "single"
+        self.registry_snapshot_date = str(registry_snapshot_date or "").strip()
 
     @staticmethod
     def _empty_tables() -> dict[str, pd.DataFrame]:
@@ -105,6 +111,8 @@ class VoterRegistryMatchDetector(Detector):
             "match_by_bucket": pd.DataFrame(),
             "match_by_bucket_position": pd.DataFrame(),
             "unmatched_names": pd.DataFrame(),
+            "position_bounds": pd.DataFrame(),
+            "linkage_overview_bounds": pd.DataFrame(),
         }
 
     @staticmethod
@@ -425,7 +433,13 @@ class VoterRegistryMatchDetector(Detector):
         )
         return by_bucket, by_bucket_position
 
-    def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
+    def _run_single(
+        self,
+        df: pd.DataFrame,
+        features: dict[str, pd.DataFrame],
+        *,
+        active_only: bool,
+    ) -> DetectorResult:
         if not self.enabled:
             return DetectorResult(
                 detector=self.name,
@@ -499,19 +513,19 @@ class VoterRegistryMatchDetector(Detector):
                 db_url=self.db_url,
                 table_name=self.table_name,
                 canonical_names=submission_names,
-                active_only=self.active_only,
+                active_only=active_only,
             )
             candidate_frame = fetch_voter_candidates_by_last_name(
                 db_url=self.db_url,
                 table_name=self.table_name,
                 canonical_lasts=submission_last_names,
-                active_only=self.active_only,
+                active_only=active_only,
             )
             registry_row_count = int(
                 count_registry_rows(
                     db_url=self.db_url,
                     table_name=self.table_name,
-                    active_only=self.active_only,
+                    active_only=active_only,
                 )
             )
         except Exception as exc:
@@ -825,7 +839,7 @@ class VoterRegistryMatchDetector(Detector):
                             "weak_fuzzy_min_score": float(self.weak_fuzzy_min_score),
                             "ambiguous_score_gap": float(self.ambiguous_score_gap),
                             "pairwise_alpha": float(self.pairwise_alpha),
-                            "active_only": bool(self.active_only),
+                            "active_only": bool(active_only),
                             "registry_row_count": int(registry_row_count),
                             "voter_signal_role": "supporting_evidence_only",
                             "match_language_rule": "unmatched_to_wa_active_voter_file_only",
@@ -1017,6 +1031,9 @@ class VoterRegistryMatchDetector(Detector):
         summary = {
             "enabled": True,
             "active": True,
+            "status_mode": "single",
+            "active_only": bool(active_only),
+            "registry_snapshot_date": self.registry_snapshot_date or None,
             "primary_match_mode": str(primary_match_mode),
             "primary_outcome_column": str(primary_outcome_column),
             "match_mode_default": str(primary_match_mode),
@@ -1046,5 +1063,190 @@ class VoterRegistryMatchDetector(Detector):
             "match_by_bucket": match_by_bucket,
             "match_by_bucket_position": match_by_bucket_position,
             "unmatched_names": unmatched_names,
+            "position_bounds": pd.DataFrame(),
+            "linkage_overview_bounds": pd.DataFrame(),
         }
         return DetectorResult(detector=self.name, summary=summary, tables=tables)
+
+    def _build_dual_bounds_result(
+        self,
+        *,
+        lower: DetectorResult,
+        upper: DetectorResult,
+    ) -> DetectorResult:
+        if not bool(lower.summary.get("active")) or not bool(upper.summary.get("active")):
+            return lower
+
+        lower_summary = dict(lower.summary)
+        upper_summary = dict(upper.summary)
+        lower_summary["status_mode"] = "dual_bounds"
+        lower_summary["registry_snapshot_date"] = self.registry_snapshot_date or None
+        lower_summary["matched_rate_rows_lower"] = float(lower_summary.get("matched_rate_rows", 0.0) or 0.0)
+        lower_summary["matched_rate_rows_upper"] = float(upper_summary.get("matched_rate_rows", 0.0) or 0.0)
+        lower_summary["matched_rate_rows_span"] = float(
+            max(
+                lower_summary["matched_rate_rows_upper"] - lower_summary["matched_rate_rows_lower"],
+                0.0,
+            )
+        )
+        lower_summary["unmatched_rate_rows_lower"] = float(
+            lower_summary.get("unmatched_rate_rows", 0.0) or 0.0
+        )
+        lower_summary["unmatched_rate_rows_upper"] = float(
+            upper_summary.get("unmatched_rate_rows", 0.0) or 0.0
+        )
+        lower_summary["unmatched_rate_rows_span"] = float(
+            max(
+                lower_summary["unmatched_rate_rows_lower"] - lower_summary["unmatched_rate_rows_upper"],
+                0.0,
+            )
+        )
+
+        lower_overview = lower.tables.get("linkage_overview", pd.DataFrame()).copy()
+        upper_overview = upper.tables.get("linkage_overview", pd.DataFrame()).copy()
+        if not lower_overview.empty:
+            lower_overview["bound"] = "lower_active_only_true"
+        if not upper_overview.empty:
+            upper_overview["bound"] = "upper_active_only_false"
+        linkage_overview_bounds = (
+            pd.concat([lower_overview, upper_overview], ignore_index=True)
+            if (not lower_overview.empty or not upper_overview.empty)
+            else pd.DataFrame()
+        )
+
+        lower_positions = lower.tables.get("linkage_by_position_rows", pd.DataFrame()).copy()
+        upper_positions = upper.tables.get("linkage_by_position_rows", pd.DataFrame()).copy()
+        if not lower_positions.empty:
+            lower_positions = lower_positions.rename(
+                columns={
+                    "n_total": "n_total_lower",
+                    "matched_rate": "matched_rate_lower",
+                    "unmatched_rate": "unmatched_rate_lower",
+                    "is_low_power": "is_low_power_lower",
+                }
+            )
+        if not upper_positions.empty:
+            upper_positions = upper_positions.rename(
+                columns={
+                    "n_total": "n_total_upper",
+                    "matched_rate": "matched_rate_upper",
+                    "unmatched_rate": "unmatched_rate_upper",
+                    "is_low_power": "is_low_power_upper",
+                }
+            )
+        if not lower_positions.empty and not upper_positions.empty:
+            position_bounds = lower_positions.merge(
+                upper_positions[
+                    [
+                        "match_mode",
+                        "unit",
+                        "position_normalized",
+                        "n_total_upper",
+                        "matched_rate_upper",
+                        "unmatched_rate_upper",
+                        "is_low_power_upper",
+                    ]
+                ],
+                on=["match_mode", "unit", "position_normalized"],
+                how="outer",
+            )
+        elif not lower_positions.empty:
+            position_bounds = lower_positions.copy()
+        elif not upper_positions.empty:
+            position_bounds = upper_positions.copy()
+        else:
+            position_bounds = pd.DataFrame()
+
+        if not position_bounds.empty:
+            position_bounds["matched_rate_lower"] = pd.to_numeric(
+                position_bounds.get("matched_rate_lower", 0.0), errors="coerce"
+            ).fillna(0.0)
+            position_bounds["matched_rate_upper"] = pd.to_numeric(
+                position_bounds.get("matched_rate_upper", 0.0), errors="coerce"
+            ).fillna(0.0)
+            position_bounds["unmatched_rate_lower"] = pd.to_numeric(
+                position_bounds.get("unmatched_rate_lower", 0.0), errors="coerce"
+            ).fillna(0.0)
+            position_bounds["unmatched_rate_upper"] = pd.to_numeric(
+                position_bounds.get("unmatched_rate_upper", 0.0), errors="coerce"
+            ).fillna(0.0)
+            position_bounds["matched_rate_span"] = (
+                position_bounds["matched_rate_upper"] - position_bounds["matched_rate_lower"]
+            ).clip(lower=0.0)
+            position_bounds["unmatched_rate_span"] = (
+                position_bounds["unmatched_rate_lower"] - position_bounds["unmatched_rate_upper"]
+            ).clip(lower=0.0)
+            position_bounds["inference_status"] = "tested"
+            low_power_lower = pd.Series(
+                position_bounds.get(
+                    "is_low_power_lower",
+                    pd.Series(False, index=position_bounds.index),
+                ),
+                index=position_bounds.index,
+            ).fillna(False).astype(bool)
+            low_power_upper = pd.Series(
+                position_bounds.get(
+                    "is_low_power_upper",
+                    pd.Series(False, index=position_bounds.index),
+                ),
+                index=position_bounds.index,
+            ).fillna(False).astype(bool)
+            position_bounds.loc[low_power_lower | low_power_upper, "inference_status"] = "descriptive_only"
+            position_bounds = position_bounds.sort_values(
+                ["match_mode", "unit", "position_normalized"]
+            ).reset_index(drop=True)
+
+        lower_assignments = lower.tables.get("match_assignments", pd.DataFrame()).copy()
+        upper_assignments = upper.tables.get("match_assignments", pd.DataFrame()).copy()
+        if not lower_assignments.empty and not upper_assignments.empty:
+            upper_subset = upper_assignments[
+                [
+                    "canonical_name",
+                    "primary_outcome_selected",
+                    "strict_outcome_selected",
+                    "loose_outcome_selected",
+                ]
+            ].rename(
+                columns={
+                    "primary_outcome_selected": "primary_outcome_selected_upper",
+                    "strict_outcome_selected": "strict_outcome_selected_upper",
+                    "loose_outcome_selected": "loose_outcome_selected_upper",
+                }
+            )
+            lower_assignments = lower_assignments.merge(
+                upper_subset,
+                on="canonical_name",
+                how="left",
+            )
+            lower_assignments["primary_outcome_selected_lower"] = _safe_str_series(
+                lower_assignments.get("primary_outcome_selected")
+            ).replace("", "unmatched")
+            lower_assignments["strict_outcome_selected_lower"] = _safe_str_series(
+                lower_assignments.get("strict_outcome_selected")
+            ).replace("", "unmatched")
+            lower_assignments["loose_outcome_selected_lower"] = _safe_str_series(
+                lower_assignments.get("loose_outcome_selected")
+            ).replace("", "unmatched")
+            lower_assignments["primary_outcome_selected_upper"] = _safe_str_series(
+                lower_assignments.get("primary_outcome_selected_upper")
+            ).replace("", "unmatched")
+            lower_assignments["strict_outcome_selected_upper"] = _safe_str_series(
+                lower_assignments.get("strict_outcome_selected_upper")
+            ).replace("", "unmatched")
+            lower_assignments["loose_outcome_selected_upper"] = _safe_str_series(
+                lower_assignments.get("loose_outcome_selected_upper")
+            ).replace("", "unmatched")
+
+        merged_tables = dict(lower.tables)
+        merged_tables["position_bounds"] = position_bounds
+        merged_tables["linkage_overview_bounds"] = linkage_overview_bounds
+        merged_tables["match_assignments"] = lower_assignments if not lower_assignments.empty else lower.tables.get("match_assignments", pd.DataFrame())
+        return DetectorResult(detector=self.name, summary=lower_summary, tables=merged_tables)
+
+    def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
+        if self.status_mode != "dual_bounds":
+            return self._run_single(df=df, features=features, active_only=self.active_only)
+
+        lower = self._run_single(df=df, features=features, active_only=True)
+        upper = self._run_single(df=df, features=features, active_only=False)
+        return self._build_dual_bounds_result(lower=lower, upper=upper)

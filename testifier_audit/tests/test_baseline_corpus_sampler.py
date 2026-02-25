@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -14,6 +14,7 @@ from testifier_audit.io.baseline_corpus_sampler import (
     sample_unsampled_baseline_corpus,
 )
 from testifier_audit.io.csi_testifiers import CSIDownloadError, CSIDownloadResult
+from testifier_audit.io.wa_committee_service import CommitteeMeetingItem
 
 
 def test_derive_recent_session_years_uses_anchor_year() -> None:
@@ -148,19 +149,16 @@ def test_sample_unsampled_baseline_corpus_downloads_only_unsampled(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    index_path = tmp_path / "index.json"
-    index_csv = tmp_path / "index.csv"
+    index_path = tmp_path / "meetings_cache.json"
+    index_csv = tmp_path / "legacy.csv"
+    items_cache_dir = tmp_path / "meeting_items_cache"
     csv_out_dir = tmp_path / "raw"
     metadata_out_dir = tmp_path / "metadata"
     manifest_path = tmp_path / "manifest.json"
 
-    rows = [
+    meetings_rows = [
         {
             "agenda_id": "100",
-            "agenda_item_id": "200",
-            "bill_id": "SB 1000",
-            "item_description": "first bill",
-            "hearing_type_description": "Public Hearing",
             "meeting_date": "2026-02-10T10:30:00",
             "revised_date": "2026-02-10T11:00:00",
             "agency": "Senate",
@@ -168,10 +166,6 @@ def test_sample_unsampled_baseline_corpus_downloads_only_unsampled(
         },
         {
             "agenda_id": "101",
-            "agenda_item_id": "201",
-            "bill_id": "HB 2000",
-            "item_description": "second bill",
-            "hearing_type_description": "Public Hearing",
             "meeting_date": "2025-02-10T10:30:00",
             "revised_date": "2025-02-10T11:00:00",
             "agency": "House",
@@ -179,18 +173,71 @@ def test_sample_unsampled_baseline_corpus_downloads_only_unsampled(
         },
         {
             "agenda_id": "102",
-            "agenda_item_id": "202",
-            "bill_id": "SB 3000",
-            "item_description": "third bill",
-            "hearing_type_description": "Public Hearing",
             "meeting_date": "2024-02-10T10:30:00",
             "revised_date": "2024-02-10T11:00:00",
             "agency": "Senate",
             "committee_name": "Ways & Means",
         },
     ]
-    index_payload = {"schema_version": 1, "rows": rows}
+    index_payload = {
+        "schema_version": 1,
+        "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+        "rows": meetings_rows,
+    }
     index_path.write_text(json.dumps(index_payload), encoding="utf-8")
+
+    items_cache_dir.mkdir(parents=True, exist_ok=True)
+    (items_cache_dir / "100.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "rows": [
+                    {
+                        "agenda_item_id": "200",
+                        "bill_id": "SB 1000",
+                        "item_description": "first bill",
+                        "hearing_type_description": "Public Hearing",
+                    }
+                ],
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    (items_cache_dir / "101.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "rows": [
+                    {
+                        "agenda_item_id": "201",
+                        "bill_id": "HB 2000",
+                        "item_description": "second bill",
+                        "hearing_type_description": "Public Hearing",
+                    }
+                ],
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    (items_cache_dir / "102.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "rows": [
+                    {
+                        "agenda_item_id": "202",
+                        "bill_id": "SB 3000",
+                        "item_description": "third bill",
+                        "hearing_type_description": "Public Hearing",
+                    }
+                ],
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
 
     metadata_out_dir.mkdir(parents=True, exist_ok=True)
     existing_sidecar = {
@@ -255,6 +302,7 @@ def test_sample_unsampled_baseline_corpus_downloads_only_unsampled(
         session_count=3,
         index_json_path=index_path,
         index_csv_path=index_csv,
+        meeting_items_cache_dir=items_cache_dir,
         csv_out_dir=csv_out_dir,
         metadata_out_dir=metadata_out_dir,
         manifest_path=manifest_path,
@@ -277,36 +325,64 @@ def test_sample_unsampled_baseline_corpus_falls_back_when_agenda_item_missing(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    index_path = tmp_path / "index.json"
-    index_csv = tmp_path / "index.csv"
+    index_path = tmp_path / "meetings_cache.json"
+    index_csv = tmp_path / "legacy.csv"
+    items_cache_dir = tmp_path / "meeting_items_cache"
     csv_out_dir = tmp_path / "raw"
     metadata_out_dir = tmp_path / "metadata"
     manifest_path = tmp_path / "manifest.json"
-    rows = [
+    meetings_rows = [
         {
             "agenda_id": "700",
-            "agenda_item_id": "",
-            "bill_id": "SB 7000",
-            "item_description": "fallback bill",
-            "hearing_type_description": "Public Hearing",
             "meeting_date": "2026-02-10T10:30:00",
             "revised_date": "2026-02-10T11:00:00",
             "agency": "Senate",
             "committee_name": "Transportation",
         }
     ]
-    index_path.write_text(json.dumps({"schema_version": 1, "rows": rows}), encoding="utf-8")
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+                "rows": meetings_rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+    items_cache_dir.mkdir(parents=True, exist_ok=True)
+    (items_cache_dir / "700.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "rows": [
+                    {
+                        "agenda_item_id": "",
+                        "bill_id": "SB 7000",
+                        "item_description": "fallback bill",
+                        "hearing_type_description": "Public Hearing",
+                    }
+                ],
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
 
-    called: dict[str, bool | int] = {"fallback_calls": 0, "direct": False}
+    called: dict[str, bool | int] = {
+        "fallback_calls": 0,
+        "direct": False,
+        "by_meeting_family_calls": 0,
+    }
+    fallback_kwargs: list[dict[str, object]] = []
 
     def _fake_direct(**kwargs: object) -> CSIDownloadResult:
         called["direct"] = True
         raise AssertionError("direct path should not be used when agenda_item_id is missing")
 
     def _fake_fallback(**kwargs: object) -> CSIDownloadResult:
+        fallback_kwargs.append(dict(kwargs))
         called["fallback_calls"] = int(called["fallback_calls"]) + 1
-        if kwargs.get("meeting_family_id"):
-            raise CSIDownloadError("Meeting family id '700' was not returned for query 'SB 7000'")
         csv_path = Path(str(kwargs["csv_out_dir"])) / "SB7000-20260210-1030.csv"
         metadata_path = Path(str(kwargs["metadata_out_dir"])) / "SB7000-20260210-1030.hearing.yaml"
         csv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -337,9 +413,17 @@ def test_sample_unsampled_baseline_corpus_falls_back_when_agenda_item_missing(
             not_testifying_rows=0,
         )
 
+    def _fake_by_meeting_family(**kwargs: object) -> CSIDownloadResult:
+        called["by_meeting_family_calls"] = int(called["by_meeting_family_calls"]) + 1
+        raise CSIDownloadError("No agenda items found for chamber=Senate meetingFamilyId=700")
+
     monkeypatch.setattr(
         "testifier_audit.io.baseline_corpus_sampler.download_csi_testifier_csv_by_agenda_item",
         _fake_direct,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.io.baseline_corpus_sampler.download_csi_testifier_csv_by_meeting_family",
+        _fake_by_meeting_family,
     )
     monkeypatch.setattr(
         "testifier_audit.io.baseline_corpus_sampler.download_csi_testifier_csv",
@@ -351,6 +435,7 @@ def test_sample_unsampled_baseline_corpus_falls_back_when_agenda_item_missing(
         session_count=1,
         index_json_path=index_path,
         index_csv_path=index_csv,
+        meeting_items_cache_dir=items_cache_dir,
         csv_out_dir=csv_out_dir,
         metadata_out_dir=metadata_out_dir,
         manifest_path=manifest_path,
@@ -360,7 +445,356 @@ def test_sample_unsampled_baseline_corpus_falls_back_when_agenda_item_missing(
         reference_date=date(2026, 2, 25),
     )
 
-    assert called["fallback_calls"] == 2
+    assert called["by_meeting_family_calls"] == 1
+    assert called["fallback_calls"] == 1
     assert called["direct"] is False
+    assert [entry.get("meeting_year") for entry in fallback_kwargs] == [2026]
     assert manifest["sample_size_downloaded"] == 1
     assert manifest["successes"][0]["agenda_item_id"] == "70001"
+
+
+def test_sample_unsampled_baseline_corpus_caps_uncached_meeting_item_fetches(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    index_path = tmp_path / "meetings_cache.json"
+    index_csv = tmp_path / "legacy.csv"
+    items_cache_dir = tmp_path / "meeting_items_cache"
+    csv_out_dir = tmp_path / "raw"
+    metadata_out_dir = tmp_path / "metadata"
+    manifest_path = tmp_path / "manifest.json"
+    meetings_rows = [
+        {
+            "agenda_id": "701",
+            "meeting_date": "2026-02-10T10:30:00",
+            "revised_date": "2026-02-10T11:00:00",
+            "agency": "Senate",
+            "committee_name": "Transportation",
+        },
+        {
+            "agenda_id": "702",
+            "meeting_date": "2026-02-11T10:30:00",
+            "revised_date": "2026-02-11T11:00:00",
+            "agency": "House",
+            "committee_name": "Appropriations",
+        },
+        {
+            "agenda_id": "703",
+            "meeting_date": "2026-02-12T10:30:00",
+            "revised_date": "2026-02-12T11:00:00",
+            "agency": "Senate",
+            "committee_name": "Ways & Means",
+        },
+        {
+            "agenda_id": "704",
+            "meeting_date": "2026-02-13T10:30:00",
+            "revised_date": "2026-02-13T11:00:00",
+            "agency": "House",
+            "committee_name": "Health Care",
+        },
+    ]
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+                "rows": meetings_rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    fetch_calls = {"value": 0}
+
+    def _fake_fetch_meeting_items(
+        *,
+        agenda_id: str,
+        timeout_seconds: float,
+    ) -> list[CommitteeMeetingItem]:
+        _ = timeout_seconds
+        fetch_calls["value"] = int(fetch_calls["value"]) + 1
+        return [
+            CommitteeMeetingItem(
+                agenda_item_id=f"{agenda_id}01",
+                hearing_type_description="Public Hearing",
+                bill_id=f"SB {agenda_id}",
+                item_description=f"bill {agenda_id}",
+            )
+        ]
+
+    def _fake_download(**kwargs: object) -> CSIDownloadResult:
+        agenda_item_id = str(kwargs["agenda_item_id"])
+        meeting_start = kwargs["meeting_start"]
+        assert isinstance(meeting_start, datetime)
+        csv_path = Path(str(kwargs["csv_out_dir"])) / f"{agenda_item_id}.csv"
+        metadata_path = Path(str(kwargs["metadata_out_dir"])) / f"{agenda_item_id}.hearing.yaml"
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        csv_path.write_text("Group,Name,Organization,Position,Time Signed In\n", encoding="utf-8")
+        metadata_path.write_text(
+            yaml.safe_dump(
+                {
+                    "schema_version": 1,
+                    "source": {
+                        "meeting_family_id": str(kwargs["meeting_family_id"]),
+                        "agenda_item_id": agenda_item_id,
+                    },
+                },
+                sort_keys=False,
+                allow_unicode=False,
+            ),
+            encoding="utf-8",
+        )
+        return CSIDownloadResult(
+            search_query=str(kwargs["bill_query"]),
+            csv_path=csv_path,
+            metadata_path=metadata_path,
+            short_bill_id=str(kwargs["short_bill_id"]),
+            bill_title=str(kwargs.get("bill_title") or ""),
+            meeting_family_id=str(kwargs["meeting_family_id"]),
+            agenda_item_family_id=str(kwargs.get("agenda_item_family_id") or ""),
+            agenda_item_id=agenda_item_id,
+            meeting_start=meeting_start,
+            testifying_rows=1,
+            not_testifying_rows=0,
+        )
+
+    monkeypatch.setattr(
+        "testifier_audit.io.baseline_corpus_sampler.fetch_committee_meeting_items",
+        _fake_fetch_meeting_items,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.io.baseline_corpus_sampler.download_csi_testifier_csv_by_agenda_item",
+        _fake_download,
+    )
+
+    manifest = sample_unsampled_baseline_corpus(
+        sample_size=2,
+        session_count=1,
+        index_json_path=index_path,
+        index_csv_path=index_csv,
+        meeting_items_cache_dir=items_cache_dir,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        manifest_path=manifest_path,
+        refresh_index=False,
+        seed=11,
+        rate_limit_seconds=0.0,
+        reference_date=date(2026, 2, 25),
+    )
+
+    assert fetch_calls["value"] == 2
+    assert manifest["sample_size_downloaded"] == 2
+    assert manifest["selection_stats"]["meeting_items_uncached_fetches"] == 2
+
+
+def test_sample_unsampled_baseline_corpus_reuses_meeting_items_cache_across_runs(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    index_path = tmp_path / "meetings_cache.json"
+    index_csv = tmp_path / "legacy.csv"
+    items_cache_dir = tmp_path / "meeting_items_cache"
+    csv_out_dir = tmp_path / "raw"
+    metadata_out_dir = tmp_path / "metadata"
+    manifest_path = tmp_path / "manifest.json"
+    meetings_rows = [
+        {
+            "agenda_id": "810",
+            "meeting_date": "2026-02-14T10:30:00",
+            "revised_date": "2026-02-14T11:00:00",
+            "agency": "Senate",
+            "committee_name": "Transportation",
+        }
+    ]
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+                "rows": meetings_rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    fetch_calls = {"value": 0}
+
+    def _fake_fetch_meeting_items(
+        *,
+        agenda_id: str,
+        timeout_seconds: float,
+    ) -> list[CommitteeMeetingItem]:
+        _ = timeout_seconds
+        fetch_calls["value"] = int(fetch_calls["value"]) + 1
+        return [
+            CommitteeMeetingItem(
+                agenda_item_id=f"{agenda_id}01",
+                hearing_type_description="Public Hearing",
+                bill_id="SB 8100",
+                item_description="bill 8100",
+            )
+        ]
+
+    def _fake_download(**kwargs: object) -> CSIDownloadResult:
+        agenda_item_id = str(kwargs["agenda_item_id"])
+        meeting_start = kwargs["meeting_start"]
+        assert isinstance(meeting_start, datetime)
+        csv_path = Path(str(kwargs["csv_out_dir"])) / f"{agenda_item_id}.csv"
+        metadata_path = Path(str(kwargs["metadata_out_dir"])) / f"{agenda_item_id}.hearing.yaml"
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        csv_path.write_text("Group,Name,Organization,Position,Time Signed In\n", encoding="utf-8")
+        metadata_path.write_text(
+            yaml.safe_dump(
+                {
+                    "schema_version": 1,
+                    "source": {
+                        "meeting_family_id": str(kwargs["meeting_family_id"]),
+                        "agenda_item_id": agenda_item_id,
+                    },
+                },
+                sort_keys=False,
+                allow_unicode=False,
+            ),
+            encoding="utf-8",
+        )
+        return CSIDownloadResult(
+            search_query=str(kwargs["bill_query"]),
+            csv_path=csv_path,
+            metadata_path=metadata_path,
+            short_bill_id=str(kwargs["short_bill_id"]),
+            bill_title=str(kwargs.get("bill_title") or ""),
+            meeting_family_id=str(kwargs["meeting_family_id"]),
+            agenda_item_family_id=str(kwargs.get("agenda_item_family_id") or ""),
+            agenda_item_id=agenda_item_id,
+            meeting_start=meeting_start,
+            testifying_rows=1,
+            not_testifying_rows=0,
+        )
+
+    monkeypatch.setattr(
+        "testifier_audit.io.baseline_corpus_sampler.fetch_committee_meeting_items",
+        _fake_fetch_meeting_items,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.io.baseline_corpus_sampler.download_csi_testifier_csv_by_agenda_item",
+        _fake_download,
+    )
+
+    manifest_first = sample_unsampled_baseline_corpus(
+        sample_size=1,
+        session_count=1,
+        index_json_path=index_path,
+        index_csv_path=index_csv,
+        meeting_items_cache_dir=items_cache_dir,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        manifest_path=manifest_path,
+        refresh_index=False,
+        seed=19,
+        rate_limit_seconds=0.0,
+        reference_date=date(2026, 2, 25),
+    )
+    manifest_second = sample_unsampled_baseline_corpus(
+        sample_size=1,
+        session_count=1,
+        index_json_path=index_path,
+        index_csv_path=index_csv,
+        meeting_items_cache_dir=items_cache_dir,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        manifest_path=manifest_path,
+        refresh_index=False,
+        seed=19,
+        rate_limit_seconds=0.0,
+        reference_date=date(2026, 2, 25),
+    )
+
+    assert manifest_first["sample_size_downloaded"] == 1
+    assert manifest_second["sample_size_selected"] == 0
+    assert manifest_second["sample_size_downloaded"] == 0
+    assert fetch_calls["value"] == 1
+    assert manifest_second["selection_stats"]["meeting_items_cache_hits"] == 1
+
+
+def test_sample_unsampled_baseline_corpus_treats_empty_items_cache_as_cache_hit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    index_path = tmp_path / "meetings_cache.json"
+    index_csv = tmp_path / "legacy.csv"
+    items_cache_dir = tmp_path / "meeting_items_cache"
+    csv_out_dir = tmp_path / "raw"
+    metadata_out_dir = tmp_path / "metadata"
+    manifest_path = tmp_path / "manifest.json"
+    meetings_rows = [
+        {
+            "agenda_id": "820",
+            "meeting_date": "2026-02-15T10:30:00",
+            "revised_date": "2026-02-15T11:00:00",
+            "agency": "House",
+            "committee_name": "Appropriations",
+        }
+    ]
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+                "rows": meetings_rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    items_cache_dir.mkdir(parents=True, exist_ok=True)
+    (items_cache_dir / "820.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+                "agenda_id": "820",
+                "row_count": 0,
+                "rows": [],
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    fetch_calls = {"value": 0}
+
+    def _fake_fetch_meeting_items(
+        *,
+        agenda_id: str,
+        timeout_seconds: float,
+    ) -> list[CommitteeMeetingItem]:
+        _ = agenda_id, timeout_seconds
+        fetch_calls["value"] = int(fetch_calls["value"]) + 1
+        return []
+
+    monkeypatch.setattr(
+        "testifier_audit.io.baseline_corpus_sampler.fetch_committee_meeting_items",
+        _fake_fetch_meeting_items,
+    )
+
+    manifest = sample_unsampled_baseline_corpus(
+        sample_size=1,
+        session_count=1,
+        index_json_path=index_path,
+        index_csv_path=index_csv,
+        meeting_items_cache_dir=items_cache_dir,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        manifest_path=manifest_path,
+        refresh_index=False,
+        seed=23,
+        rate_limit_seconds=0.0,
+        reference_date=date(2026, 2, 25),
+    )
+
+    assert fetch_calls["value"] == 0
+    assert manifest["sample_size_selected"] == 0
+    assert manifest["selection_stats"]["meeting_items_cache_hits"] == 1
+    assert manifest["selection_stats"]["meeting_items_cache_misses"] == 0

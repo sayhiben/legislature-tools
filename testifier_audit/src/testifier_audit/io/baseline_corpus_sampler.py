@@ -18,12 +18,19 @@ from testifier_audit.io.csi_testifiers import (
     CSIDownloadError,
     download_csi_testifier_csv,
     download_csi_testifier_csv_by_agenda_item,
+    download_csi_testifier_csv_by_meeting_family,
 )
 from testifier_audit.io.hearing_metadata import PACIFIC_TIMEZONE_NAME
-from testifier_audit.io.meeting_bill_index import run_build_meeting_bill_index
+from testifier_audit.io.wa_committee_service import (
+    CommitteeMeetingItem,
+    fetch_committee_meeting_items,
+    fetch_committee_meetings,
+)
 
-DEFAULT_INDEX_JSON = Path("data/metadata/wa_meeting_bill_index.json")
+DEFAULT_INDEX_JSON = Path("data/metadata/wa_committee_meetings_cache.json")
 DEFAULT_INDEX_CSV = Path("data/metadata/wa_meeting_bill_index.csv")
+DEFAULT_MEETING_ITEMS_CACHE_DIR = Path("data/metadata/wa_committee_meeting_items")
+DEFAULT_MEETINGS_CACHE_MAX_AGE_HOURS = 12.0
 DEFAULT_CSV_OUT_DIR = Path("data/raw")
 DEFAULT_METADATA_OUT_DIR = Path("data/metadata")
 DEFAULT_MANIFEST_OUT = Path("data/metadata/baseline_sample_manifest.json")
@@ -56,6 +63,29 @@ class BaselineSampleCandidate:
             "bill_id": self.bill_id,
             "item_description": self.item_description,
             "hearing_type_description": self.hearing_type_description,
+            "meeting_start": self.meeting_start.isoformat(),
+            "revised_date": self.revised_date,
+            "session_year": int(self.session_year),
+            "chamber": self.chamber,
+            "committee_name": self.committee_name,
+        }
+
+
+@dataclass(frozen=True)
+class BaselineMeetingCandidate:
+    agenda_id: str
+    meeting_start: datetime
+    revised_date: str
+    chamber: str
+    committee_name: str
+
+    @property
+    def session_year(self) -> int:
+        return int(self.meeting_start.year)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "agenda_id": self.agenda_id,
             "meeting_start": self.meeting_start.isoformat(),
             "revised_date": self.revised_date,
             "session_year": int(self.session_year),
@@ -162,6 +192,403 @@ def _session_bounds(
     else:
         end = date(max_year, 12, 31)
     return start, end
+
+
+def _parse_utc_timestamp(value: str) -> datetime | None:
+    raw = _safe_text(value)
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _normalize_meeting_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    deduped: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        agenda_id = _safe_text(row.get("agenda_id"))
+        meeting_date = _safe_text(row.get("meeting_date"))
+        if not agenda_id or not meeting_date:
+            continue
+        normalized_row = {
+            "agenda_id": agenda_id,
+            "meeting_date": meeting_date,
+            "revised_date": _safe_text(row.get("revised_date")),
+            "agency": _safe_text(row.get("agency")),
+            "committee_acronym": _safe_text(row.get("committee_acronym")),
+            "committee_name": _safe_text(row.get("committee_name")),
+        }
+        prior = deduped.get(agenda_id)
+        if prior is None or normalized_row["revised_date"] > prior["revised_date"]:
+            deduped[agenda_id] = normalized_row
+    normalized = list(deduped.values())
+    normalized.sort(
+        key=lambda row: (
+            str(row.get("meeting_date") or ""),
+            str(row.get("agenda_id") or ""),
+        )
+    )
+    return normalized
+
+
+def _meeting_row_from_service(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "agenda_id": _safe_text(row.get("agenda_id")),
+        "meeting_date": _safe_text(row.get("meeting_date")),
+        "revised_date": _safe_text(row.get("revised_date")),
+        "agency": _safe_text(row.get("agency")),
+        "committee_acronym": _safe_text(row.get("committee_acronym")),
+        "committee_name": _safe_text(row.get("committee_name")),
+    }
+
+
+def _build_meetings_cache_payload(
+    *,
+    start_date: date,
+    end_date: date,
+    rows: Sequence[Mapping[str, Any]],
+    max_age_hours: float,
+) -> dict[str, Any]:
+    normalized_rows = [_meeting_row_from_service(row) for row in _normalize_meeting_rows(rows)]
+    return {
+        "schema_version": 1,
+        "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+        "source": {
+            "service": "wa_committee_meeting_service",
+            "endpoint": "GetCommitteeMeetings",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "include_revised": False,
+        },
+        "cache": {
+            "max_age_hours": float(max_age_hours),
+        },
+        "row_count": int(len(normalized_rows)),
+        "rows": normalized_rows,
+    }
+
+
+def _load_json_payload(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"rows": []}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"rows": []}
+    if isinstance(payload, dict):
+        return payload
+    if isinstance(payload, list):
+        return {"rows": payload}
+    return {"rows": []}
+
+
+def _meetings_cache_is_stale(
+    *,
+    payload: Mapping[str, Any],
+    max_age_hours: float,
+    now_utc: datetime | None = None,
+) -> bool:
+    if max_age_hours <= 0:
+        return False
+    retrieved_at = _parse_utc_timestamp(_safe_text(payload.get("retrieved_at_utc")))
+    if retrieved_at is None:
+        return True
+    reference = now_utc or datetime.now(tz=timezone.utc)
+    age_hours = (reference - retrieved_at).total_seconds() / 3600.0
+    return age_hours > float(max_age_hours)
+
+
+def _build_meeting_pool(
+    *,
+    rows: Sequence[Mapping[str, Any]],
+    session_years: Sequence[int],
+) -> list[BaselineMeetingCandidate]:
+    target_years = set(int(year) for year in session_years)
+    deduped: dict[str, BaselineMeetingCandidate] = {}
+    for row in rows:
+        agenda_id = _safe_text(row.get("agenda_id"))
+        meeting_start = _parse_meeting_start(_safe_text(row.get("meeting_date")))
+        if not agenda_id or meeting_start is None:
+            continue
+        if int(meeting_start.year) not in target_years:
+            continue
+        candidate = BaselineMeetingCandidate(
+            agenda_id=agenda_id,
+            meeting_start=meeting_start,
+            revised_date=_safe_text(row.get("revised_date")),
+            chamber=_normalize_chamber(_safe_text(row.get("agency"))),
+            committee_name=_normalize_committee(_safe_text(row.get("committee_name"))),
+        )
+        prior = deduped.get(agenda_id)
+        if prior is None or candidate.revised_date > prior.revised_date:
+            deduped[agenda_id] = candidate
+    return list(deduped.values())
+
+
+def _meeting_items_cache_path(*, meeting_items_cache_dir: Path, agenda_id: str) -> Path:
+    return meeting_items_cache_dir / f"{agenda_id}.json"
+
+
+def _normalize_meeting_item_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        bill_id = _safe_text(row.get("bill_id"))
+        if not bill_id:
+            continue
+        out.append(
+            {
+                "agenda_item_id": _safe_text(row.get("agenda_item_id")),
+                "hearing_type_description": _safe_text(row.get("hearing_type_description")),
+                "bill_id": bill_id,
+                "item_description": _safe_text(row.get("item_description")),
+            }
+        )
+    return out
+
+
+def _meeting_item_row_from_service(item: CommitteeMeetingItem) -> dict[str, Any]:
+    return {
+        "agenda_item_id": _safe_text(item.agenda_item_id),
+        "hearing_type_description": _safe_text(item.hearing_type_description),
+        "bill_id": _safe_text(item.bill_id),
+        "item_description": _safe_text(item.item_description),
+    }
+
+
+def _load_meeting_items_cache_rows(cache_path: Path) -> list[dict[str, Any]] | None:
+    if not cache_path.exists():
+        return None
+    payload = _load_json_payload(cache_path)
+    raw_rows = payload.get("rows") if isinstance(payload, Mapping) else None
+    if not isinstance(raw_rows, list):
+        return None
+    rows = _extract_index_rows(payload)
+    return _normalize_meeting_item_rows(rows)
+
+
+def _write_meeting_items_cache(
+    *,
+    cache_path: Path,
+    agenda_id: str,
+    rows: Sequence[Mapping[str, Any]],
+) -> None:
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": 1,
+        "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+        "agenda_id": str(agenda_id),
+        "row_count": int(len(rows)),
+        "rows": list(rows),
+    }
+    cache_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _load_or_fetch_meeting_items_rows(
+    *,
+    agenda_id: str,
+    meeting_items_cache_dir: Path,
+    timeout_seconds: float,
+) -> tuple[list[dict[str, Any]], bool]:
+    cache_path = _meeting_items_cache_path(
+        meeting_items_cache_dir=meeting_items_cache_dir,
+        agenda_id=agenda_id,
+    )
+    cached_rows = _load_meeting_items_cache_rows(cache_path)
+    if cached_rows is not None:
+        return cached_rows, False
+
+    fetched = fetch_committee_meeting_items(
+        agenda_id=agenda_id,
+        timeout_seconds=timeout_seconds,
+    )
+    fetched_rows = _normalize_meeting_item_rows(
+        [_meeting_item_row_from_service(item) for item in fetched]
+    )
+    _write_meeting_items_cache(
+        cache_path=cache_path,
+        agenda_id=agenda_id,
+        rows=fetched_rows,
+    )
+    return fetched_rows, True
+
+
+def _ensure_index(
+    *,
+    index_json_path: Path,
+    index_csv_path: Path,
+    session_years: Sequence[int],
+    timeout_seconds: float,
+    refresh_index: bool,
+    reference_date: date | None = None,
+    meetings_cache_max_age_hours: float = DEFAULT_MEETINGS_CACHE_MAX_AGE_HOURS,
+) -> tuple[dict[str, Any], bool]:
+    del index_csv_path
+    meetings_payload = _load_json_payload(index_json_path)
+    meetings_rows = _extract_index_rows(meetings_payload)
+    cache_stale = _meetings_cache_is_stale(
+        payload=meetings_payload,
+        max_age_hours=float(meetings_cache_max_age_hours),
+    )
+    has_year_coverage = _index_contains_session_years(
+        rows=meetings_rows,
+        session_years=session_years,
+    )
+    should_refresh = (
+        bool(refresh_index) or (not meetings_rows) or cache_stale or (not has_year_coverage)
+    )
+    if not should_refresh:
+        return meetings_payload, False
+
+    start_date, end_date = _session_bounds(
+        session_years=session_years,
+        reference_date=reference_date,
+    )
+    fetched_meetings = fetch_committee_meetings(
+        begin_date=start_date,
+        end_date=end_date,
+        revised=False,
+        timeout_seconds=float(timeout_seconds),
+    )
+    rows: list[dict[str, Any]] = []
+    for meeting in fetched_meetings:
+        rows.append(
+            {
+                "agenda_id": _safe_text(meeting.agenda_id),
+                "meeting_date": _safe_text(meeting.meeting_date),
+                "revised_date": _safe_text(meeting.revised_date),
+                "agency": _safe_text(meeting.agency),
+                "committee_acronym": _safe_text(meeting.acronym),
+                "committee_name": _safe_text(meeting.long_name or meeting.committee_name),
+            }
+        )
+    refreshed_payload = _build_meetings_cache_payload(
+        start_date=start_date,
+        end_date=end_date,
+        rows=rows,
+        max_age_hours=float(meetings_cache_max_age_hours),
+    )
+    index_json_path.parent.mkdir(parents=True, exist_ok=True)
+    index_json_path.write_text(
+        json.dumps(refreshed_payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return refreshed_payload, True
+
+
+def _select_candidates_from_meetings(
+    *,
+    meetings: Sequence[BaselineMeetingCandidate],
+    sample_size: int,
+    sampled_keys: set[tuple[str, str]],
+    meeting_items_cache_dir: Path,
+    timeout_seconds: float,
+    seed: int | None,
+    max_uncached_meeting_item_fetches: int,
+) -> tuple[list[BaselineSampleCandidate], dict[str, int]]:
+    rng = random.Random(seed)
+    cached_meetings: list[BaselineMeetingCandidate] = []
+    uncached_meetings: list[BaselineMeetingCandidate] = []
+    for meeting in meetings:
+        cache_path = _meeting_items_cache_path(
+            meeting_items_cache_dir=meeting_items_cache_dir,
+            agenda_id=meeting.agenda_id,
+        )
+        if cache_path.exists():
+            cached_meetings.append(meeting)
+        else:
+            uncached_meetings.append(meeting)
+    rng.shuffle(cached_meetings)
+    rng.shuffle(uncached_meetings)
+    meeting_order = [*cached_meetings, *uncached_meetings]
+
+    selected: list[BaselineSampleCandidate] = []
+    in_run_fallback_keys: set[tuple[str, str]] = set()
+    seen_sampled_keys = set(sampled_keys)
+
+    cache_hits = 0
+    cache_misses = 0
+    meetings_examined = 0
+    meetings_without_items = 0
+    meetings_skipped_fetch_budget = 0
+    uncached_fetches = 0
+
+    for meeting in meeting_order:
+        if len(selected) >= sample_size:
+            break
+        cache_path = _meeting_items_cache_path(
+            meeting_items_cache_dir=meeting_items_cache_dir,
+            agenda_id=meeting.agenda_id,
+        )
+        cache_exists = cache_path.exists()
+        if (not cache_exists) and uncached_fetches >= max_uncached_meeting_item_fetches:
+            meetings_skipped_fetch_budget += 1
+            continue
+
+        items_rows, was_fetched = _load_or_fetch_meeting_items_rows(
+            agenda_id=meeting.agenda_id,
+            meeting_items_cache_dir=meeting_items_cache_dir,
+            timeout_seconds=float(timeout_seconds),
+        )
+        if was_fetched:
+            cache_misses += 1
+            uncached_fetches += 1
+        else:
+            cache_hits += 1
+        meetings_examined += 1
+
+        eligible_items: list[dict[str, Any]] = []
+        for row in items_rows:
+            bill_id = _safe_text(row.get("bill_id"))
+            agenda_item_id = _safe_text(row.get("agenda_item_id"))
+            if not bill_id:
+                continue
+            if agenda_item_id:
+                if (meeting.agenda_id, agenda_item_id) in seen_sampled_keys:
+                    continue
+            else:
+                fallback_key = (meeting.agenda_id, bill_id)
+                if fallback_key in in_run_fallback_keys:
+                    continue
+            eligible_items.append(dict(row))
+
+        if not eligible_items:
+            meetings_without_items += 1
+            continue
+
+        chosen_row = rng.choice(eligible_items)
+        chosen_bill_id = _safe_text(chosen_row.get("bill_id"))
+        chosen_agenda_item_id = _safe_text(chosen_row.get("agenda_item_id"))
+        if chosen_agenda_item_id:
+            seen_sampled_keys.add((meeting.agenda_id, chosen_agenda_item_id))
+        else:
+            in_run_fallback_keys.add((meeting.agenda_id, chosen_bill_id))
+
+        selected.append(
+            BaselineSampleCandidate(
+                agenda_id=meeting.agenda_id,
+                agenda_item_id=chosen_agenda_item_id,
+                bill_id=chosen_bill_id,
+                item_description=_safe_text(chosen_row.get("item_description")),
+                hearing_type_description=_safe_text(chosen_row.get("hearing_type_description")),
+                meeting_start=meeting.meeting_start,
+                revised_date=meeting.revised_date,
+                chamber=meeting.chamber,
+                committee_name=meeting.committee_name,
+            )
+        )
+
+    return selected, {
+        "meeting_items_cache_hits": int(cache_hits),
+        "meeting_items_cache_misses": int(cache_misses),
+        "meeting_items_uncached_fetches": int(uncached_fetches),
+        "meetings_examined_count": int(meetings_examined),
+        "meetings_without_eligible_items_count": int(meetings_without_items),
+        "meetings_skipped_fetch_budget_count": int(meetings_skipped_fetch_budget),
+    }
 
 
 def _collect_sampled_keys_from_sidecars(metadata_dir: Path) -> set[tuple[str, str]]:
@@ -370,25 +797,28 @@ def _materialize_candidates(
             else:
                 # Fallback path for index rows that omit agenda_item_id.
                 try:
-                    result = download_csi_testifier_csv(
+                    result = download_csi_testifier_csv_by_meeting_family(
                         bill_query=candidate.bill_id,
+                        meeting_family_id=candidate.agenda_id,
+                        chamber=candidate.chamber,
+                        meeting_start=candidate.meeting_start,
+                        short_bill_id=candidate.bill_id,
                         csv_out_dir=csv_out_dir,
                         metadata_out_dir=metadata_out_dir,
-                        meeting_family_id=candidate.agenda_id,
+                        bill_number=_extract_bill_number(candidate.bill_id),
+                        bill_title=candidate.item_description,
+                        committee_name=candidate.committee_name,
                         timeout_seconds=timeout_seconds,
                         max_retries=max_retries,
                         retry_backoff_seconds=retry_backoff_seconds,
                         overwrite=overwrite,
                     )
-                except CSIDownloadError as exc:
-                    # If the service search no longer returns this meeting family id,
-                    # retry using bill query only.
-                    if "was not returned for query" not in str(exc):
-                        raise
+                except CSIDownloadError:
                     result = download_csi_testifier_csv(
                         bill_query=candidate.bill_id,
                         csv_out_dir=csv_out_dir,
                         metadata_out_dir=metadata_out_dir,
+                        meeting_year=candidate.session_year,
                         timeout_seconds=timeout_seconds,
                         max_retries=max_retries,
                         retry_backoff_seconds=retry_backoff_seconds,
@@ -413,51 +843,13 @@ def _materialize_candidates(
     return successes, failures
 
 
-def _ensure_index(
-    *,
-    index_json_path: Path,
-    index_csv_path: Path,
-    session_years: Sequence[int],
-    timeout_seconds: float,
-    refresh_index: bool,
-    reference_date: date | None = None,
-) -> tuple[dict[str, Any], bool]:
-    index_exists = index_json_path.exists()
-    index_payload: dict[str, Any] = {"rows": []}
-    if index_exists:
-        index_payload = _load_index_payload(index_json_path)
-
-    if refresh_index or not index_exists:
-        should_refresh = True
-    else:
-        should_refresh = not _index_contains_session_years(
-            rows=_extract_index_rows(index_payload),
-            session_years=session_years,
-        )
-    if not should_refresh:
-        return index_payload, False
-
-    start_date, end_date = _session_bounds(
-        session_years=session_years,
-        reference_date=reference_date,
-    )
-    rebuilt = run_build_meeting_bill_index(
-        start_date=start_date,
-        end_date=end_date,
-        output_json=index_json_path,
-        output_csv=index_csv_path,
-        include_revised=True,
-        timeout_seconds=timeout_seconds,
-    )
-    return rebuilt, True
-
-
 def sample_unsampled_baseline_corpus(
     *,
     sample_size: int,
     session_count: int = 3,
     index_json_path: Path = DEFAULT_INDEX_JSON,
     index_csv_path: Path = DEFAULT_INDEX_CSV,
+    meeting_items_cache_dir: Path = DEFAULT_MEETING_ITEMS_CACHE_DIR,
     csv_out_dir: Path = DEFAULT_CSV_OUT_DIR,
     metadata_out_dir: Path = DEFAULT_METADATA_OUT_DIR,
     manifest_path: Path = DEFAULT_MANIFEST_OUT,
@@ -468,10 +860,17 @@ def sample_unsampled_baseline_corpus(
     max_retries: int = 3,
     retry_backoff_seconds: float = 1.5,
     rate_limit_seconds: float = 1.0,
+    meetings_cache_max_age_hours: float = DEFAULT_MEETINGS_CACHE_MAX_AGE_HOURS,
+    max_meeting_items_fetches: int | None = None,
     overwrite: bool = False,
     reference_date: date | None = None,
 ) -> dict[str, Any]:
     requested = max(0, int(sample_size))
+    uncached_fetch_budget = (
+        int(requested)
+        if max_meeting_items_fetches is None
+        else max(0, int(max_meeting_items_fetches))
+    )
     session_years = derive_recent_session_years(
         session_count=max(1, int(session_count)),
         reference_date=reference_date,
@@ -488,21 +887,25 @@ def sample_unsampled_baseline_corpus(
         timeout_seconds=float(timeout_seconds),
         refresh_index=bool(refresh_index),
         reference_date=reference_date,
+        meetings_cache_max_age_hours=float(meetings_cache_max_age_hours),
     )
-    rows = _extract_index_rows(index_payload)
+    meeting_rows = _extract_index_rows(index_payload)
+    meetings = _build_meeting_pool(
+        rows=meeting_rows,
+        session_years=session_years,
+    )
     sampled_keys = collect_sampled_keys(
         metadata_dirs=unique_metadata_dirs,
         manifest_path=manifest_path if manifest_path.exists() else None,
     )
-    candidates = build_candidate_pool(
-        rows=rows,
-        session_years=session_years,
-        sampled_keys=sampled_keys,
-    )
-    selected = sample_candidates(
-        candidates=candidates,
+    selected, selection_stats = _select_candidates_from_meetings(
+        meetings=meetings,
         sample_size=requested,
+        sampled_keys=sampled_keys,
+        meeting_items_cache_dir=meeting_items_cache_dir,
+        timeout_seconds=float(timeout_seconds),
         seed=seed,
+        max_uncached_meeting_item_fetches=uncached_fetch_budget,
     )
     successes, failures = _materialize_candidates(
         candidates=selected,
@@ -525,14 +928,18 @@ def sample_unsampled_baseline_corpus(
         "sample_size_failed": int(len(failures)),
         "seed": seed,
         "rate_limit_seconds": float(max(0.0, rate_limit_seconds)),
+        "meetings_cache_max_age_hours": float(max(0.0, meetings_cache_max_age_hours)),
+        "max_meeting_items_fetches": int(uncached_fetch_budget),
         "index_json_path": str(index_json_path),
         "index_csv_path": str(index_csv_path),
+        "meeting_items_cache_dir": str(meeting_items_cache_dir),
         "index_refreshed": bool(index_refreshed),
-        "index_row_count": int(len(rows)),
-        "candidate_pool_count": int(len(candidates)),
+        "index_row_count": int(len(meeting_rows)),
+        "candidate_pool_count": int(len(meetings)),
         "existing_sampled_key_count": int(len(sampled_keys)),
         "sampled_metadata_dirs": [str(path) for path in unique_metadata_dirs],
         "selected_candidates": [candidate.to_dict() for candidate in selected],
+        "selection_stats": selection_stats,
         "successes": successes,
         "failures": failures,
     }
@@ -565,12 +972,35 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--index-json",
         default=str(DEFAULT_INDEX_JSON),
-        help="Meeting/bill index JSON path used as candidate source.",
+        help="Cached GetCommitteeMeetings JSON path used as candidate source.",
     )
     parser.add_argument(
         "--index-csv",
         default=str(DEFAULT_INDEX_CSV),
-        help="Meeting/bill index CSV path written when index is refreshed.",
+        help="Legacy argument retained for compatibility; value is no longer used.",
+    )
+    parser.add_argument(
+        "--meeting-items-cache-dir",
+        default=str(DEFAULT_MEETING_ITEMS_CACHE_DIR),
+        help=(
+            "Directory containing per-meeting GetCommitteeMeetingItems cache files. "
+            "Missing meeting caches are fetched on demand."
+        ),
+    )
+    parser.add_argument(
+        "--meetings-cache-max-age-hours",
+        type=float,
+        default=float(DEFAULT_MEETINGS_CACHE_MAX_AGE_HOURS),
+        help="Max age for GetCommitteeMeetings cache before it is refreshed.",
+    )
+    parser.add_argument(
+        "--max-meeting-items-fetches",
+        type=int,
+        default=None,
+        help=(
+            "Maximum uncached GetCommitteeMeetingItems fetches allowed in a single run. "
+            "Defaults to sample-size when omitted."
+        ),
     )
     parser.add_argument(
         "--csv-out-dir",
@@ -599,7 +1029,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--refresh-index",
         action="store_true",
-        help="Force rebuilding the meeting/bill index before sampling.",
+        help="Force refreshing the cached GetCommitteeMeetings payload before sampling.",
     )
     parser.add_argument(
         "--seed",
@@ -643,6 +1073,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
     index_json_path = Path(args.index_json).resolve()
     index_csv_path = Path(args.index_csv).resolve()
+    meeting_items_cache_dir = Path(args.meeting_items_cache_dir).resolve()
     csv_out_dir = Path(args.csv_out_dir).resolve()
     metadata_out_dir = Path(args.metadata_out_dir).resolve()
     manifest_path = Path(args.manifest_out).resolve()
@@ -652,6 +1083,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         session_count=int(args.session_count),
         index_json_path=index_json_path,
         index_csv_path=index_csv_path,
+        meeting_items_cache_dir=meeting_items_cache_dir,
         csv_out_dir=csv_out_dir,
         metadata_out_dir=metadata_out_dir,
         manifest_path=manifest_path,
@@ -662,6 +1094,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         max_retries=int(args.max_retries),
         retry_backoff_seconds=float(args.retry_backoff_seconds),
         rate_limit_seconds=float(args.rate_limit_seconds),
+        meetings_cache_max_age_hours=float(args.meetings_cache_max_age_hours),
+        max_meeting_items_fetches=args.max_meeting_items_fetches,
         overwrite=bool(args.overwrite),
     )
     write_manifest(manifest_path, manifest)

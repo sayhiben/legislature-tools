@@ -21,6 +21,12 @@ from testifier_audit.io.baseline_corpus_sampler import (
     DEFAULT_MANIFEST_OUT as DEFAULT_BASELINE_SAMPLE_MANIFEST_OUT,
 )
 from testifier_audit.io.baseline_corpus_sampler import (
+    DEFAULT_MEETING_ITEMS_CACHE_DIR as DEFAULT_BASELINE_SAMPLE_MEETING_ITEMS_CACHE_DIR,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
+    DEFAULT_MEETINGS_CACHE_MAX_AGE_HOURS as DEFAULT_BASELINE_SAMPLE_MEETINGS_CACHE_MAX_AGE_HOURS,
+)
+from testifier_audit.io.baseline_corpus_sampler import (
     DEFAULT_METADATA_OUT_DIR as DEFAULT_BASELINE_SAMPLE_METADATA_OUT_DIR,
 )
 from testifier_audit.io.baseline_corpus_sampler import (
@@ -436,12 +442,33 @@ def sample_baseline_corpus_command(
     index_json: Path = typer.Option(
         DEFAULT_BASELINE_SAMPLE_INDEX_JSON,
         resolve_path=True,
-        help="Meeting/bill index JSON path.",
+        help="Cached GetCommitteeMeetings JSON path.",
     ),
     index_csv: Path = typer.Option(
         DEFAULT_BASELINE_SAMPLE_INDEX_CSV,
         resolve_path=True,
-        help="Meeting/bill index CSV path when index refresh is needed.",
+        help="Legacy option retained for compatibility (unused).",
+    ),
+    meeting_items_cache_dir: Path = typer.Option(
+        DEFAULT_BASELINE_SAMPLE_MEETING_ITEMS_CACHE_DIR,
+        resolve_path=True,
+        help=(
+            "Directory containing per-meeting GetCommitteeMeetingItems cache files. "
+            "Missing meeting files are fetched on demand."
+        ),
+    ),
+    meetings_cache_max_age_hours: float = typer.Option(
+        float(DEFAULT_BASELINE_SAMPLE_MEETINGS_CACHE_MAX_AGE_HOURS),
+        min=0.0,
+        help="Max cache age before GetCommitteeMeetings is refreshed.",
+    ),
+    max_meeting_items_fetches: int | None = typer.Option(
+        None,
+        min=0,
+        help=(
+            "Maximum uncached GetCommitteeMeetingItems requests per run. "
+            "Defaults to sample-size."
+        ),
     ),
     csv_out_dir: Path = typer.Option(
         DEFAULT_BASELINE_SAMPLE_CSV_OUT_DIR,
@@ -469,7 +496,7 @@ def sample_baseline_corpus_command(
     refresh_index: bool = typer.Option(
         False,
         "--refresh-index/--no-refresh-index",
-        help="Force rebuilding the meeting/bill index.",
+        help="Force refreshing cached GetCommitteeMeetings data.",
     ),
     seed: int | None = typer.Option(
         None,
@@ -510,6 +537,7 @@ def sample_baseline_corpus_command(
         session_count=session_count,
         index_json_path=index_json,
         index_csv_path=index_csv,
+        meeting_items_cache_dir=meeting_items_cache_dir,
         csv_out_dir=csv_out_dir,
         metadata_out_dir=metadata_out_dir,
         manifest_path=manifest_out,
@@ -520,6 +548,8 @@ def sample_baseline_corpus_command(
         max_retries=max_retries,
         retry_backoff_seconds=retry_backoff_seconds,
         rate_limit_seconds=rate_limit_seconds,
+        meetings_cache_max_age_hours=meetings_cache_max_age_hours,
+        max_meeting_items_fetches=max_meeting_items_fetches,
         overwrite=overwrite,
     )
     write_baseline_sample_manifest(manifest_out, manifest)

@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-02-25T22:20:39.608590-08:00",
-  "interactive_payload_build_ms": 522.202,
-  "template_render_ms": 19.857,
-  "report_write_ms": 0.203,
-  "report_total_ms": 707.04,
+  "generated_at": "2026-02-26T00:30:18.920316-08:00",
+  "interactive_payload_build_ms": 587.175,
+  "template_render_ms": 18.904,
+  "report_write_ms": 0.187,
+  "report_total_ms": 877.622,
   "report_html_bytes": 96312,
-  "report_data_json_bytes": 353202,
+  "report_data_json_bytes": 364984,
   "report_data_shards_json_bytes": 2830961
 }

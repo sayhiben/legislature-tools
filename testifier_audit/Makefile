@@ -3,7 +3,8 @@
 	setup-env teardown-db reset-db \
 	start stop restart status \
 	start-postgres stop-postgres restart-postgres status-postgres \
-	start-web stop-web restart-web status-web
+	start-web stop-web restart-web status-web \
+	rerender-all-reports
 
 install:
 	python -m pip install -e .[dev]
@@ -64,3 +65,6 @@ restart-web:
 
 status-web:
 	@./scripts/local/web_server.sh status || true
+
+rerender-all-reports:
+	./scripts/report/rerender_all_reports.sh

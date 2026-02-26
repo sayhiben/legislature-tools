@@ -656,6 +656,75 @@ def test_collision_by_bucket_position_uses_contextual_shrink_k(tmp_path: Path) -
     assert pro_row["prior_level"] == "bucket"
 
 
+def test_collision_by_bucket_position_uses_scope_level_position_priors() -> None:
+    rows: list[dict[str, object]] = []
+    row_id = 1
+    first_bucket = pd.Timestamp("2026-02-01 00:00:00")
+
+    for index in range(40):
+        timestamp = first_bucket + pd.Timedelta(minutes=index)
+        rows.append(
+            {
+                "id": row_id,
+                "canonical_name": f"TARGET_CON_{index:03d}|NAME",
+                "position_normalized": "Con",
+                "timestamp": timestamp,
+                "minute_bucket": timestamp.floor("min"),
+                "name_display": f"TARGET CON {index:03d}, NAME",
+            }
+        )
+        row_id += 1
+
+    for index in range(40):
+        timestamp = first_bucket + pd.Timedelta(minutes=index)
+        rows.append(
+            {
+                "id": row_id,
+                "canonical_name": f"TARGET_PRO_{index:03d}|NAME",
+                "position_normalized": "Pro",
+                "timestamp": timestamp,
+                "minute_bucket": timestamp.floor("min"),
+                "name_display": f"TARGET PRO {index:03d}, NAME",
+            }
+        )
+        row_id += 1
+
+    background_start = pd.Timestamp("2026-02-01 01:00:00")
+    for index in range(400):
+        timestamp = background_start + pd.Timedelta(minutes=index)
+        rows.append(
+            {
+                "id": row_id,
+                "canonical_name": f"BACKGROUND_CON_{index:03d}|NAME",
+                "position_normalized": "Con",
+                "timestamp": timestamp,
+                "minute_bucket": timestamp.floor("min"),
+                "name_display": f"BACKGROUND CON {index:03d}, NAME",
+            }
+        )
+        row_id += 1
+
+    frame = pd.DataFrame(rows)
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[60],
+        collision_uncertainty_mode="analytic_only",
+        position_hearing_baseline_enabled=True,
+        position_baseline_shrink_k=30.0,
+    )
+    result = detector.run(df=frame, features={})
+    by_bucket_position = result.tables["collision_by_bucket_position"]
+    focus_row = by_bucket_position[
+        (pd.to_datetime(by_bucket_position["bucket_start"], errors="coerce") == first_bucket)
+        & (by_bucket_position["position_normalized"].astype(str) == "Con")
+    ].iloc[0]
+
+    assert int(focus_row["n_bucket_position"]) == 40
+    assert int(focus_row["n_unique_names"]) == 40
+    assert float(focus_row["observed"]) == pytest.approx(0.0)
+    assert float(focus_row["expected"]) < 8.0
+
+
 def _build_position_interval_frame(
     *,
     n_rows_per_position: int,

@@ -9,6 +9,7 @@ from typing import Any, Mapping
 import numpy as np
 
 GLOBAL_BASELINES_FILENAME = "global_baselines.json"
+LEAVE_ONE_OUT_BASELINE_FILENAME = "cross_hearing_baseline_loo.json"
 FEATURE_VECTOR_SCHEMA_VERSION = 2
 GLOBAL_BASELINES_SCHEMA_VERSION = 1
 
@@ -377,17 +378,7 @@ def collect_report_feature_records(reports_dir: Path) -> list[ReportFeatureRecor
     return records
 
 
-def build_global_baselines(records: list[ReportFeatureRecord]) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "schema_version": GLOBAL_BASELINES_SCHEMA_VERSION,
-        "generated_at_utc": datetime.now(tz=timezone.utc).isoformat(),
-        "report_count": int(len(records)),
-        "reports": [record.report_id for record in records],
-        "by_report": {},
-    }
-    if not records:
-        return payload
-
+def _build_metric_distributions(records: list[ReportFeatureRecord]) -> dict[str, list[float]]:
     metrics_by_key: dict[str, list[float]] = {key: [] for key, _ in _COMPARATOR_METRIC_SPECS}
     for record in records:
         metrics = _as_dict(record.feature_vector.get("metrics"))
@@ -395,7 +386,10 @@ def build_global_baselines(records: list[ReportFeatureRecord]) -> dict[str, Any]
             value = _safe_float(metrics.get(key, record.feature_vector.get(key)))
             if value is not None:
                 metrics_by_key[key].append(value)
+    return metrics_by_key
 
+
+def _build_name_occurrence_index(records: list[ReportFeatureRecord]) -> dict[str, dict[str, Any]]:
     name_occurrences: dict[str, dict[str, Any]] = {}
     for record in records:
         for row in _normalize_name_rows(_as_rows(record.feature_vector.get("top_repeated_names"))):
@@ -416,68 +410,110 @@ def build_global_baselines(records: list[ReportFeatureRecord]) -> dict[str, Any]
                 int(entry.get("max_n_records") or 0),
                 _safe_int(row.get("n_records"), default=0),
             )
+    return name_occurrences
 
-    max_name_records_values = [
-        float(entry["max_n_records"])
-        for entry in name_occurrences.values()
-        if entry["max_n_records"] > 0
-    ]
+
+def _max_name_record_values(name_occurrences: Mapping[str, Mapping[str, Any]]) -> list[float]:
+    values: list[float] = []
+    for entry in name_occurrences.values():
+        raw = entry.get("max_n_records")
+        parsed = _safe_int(raw, default=0)
+        if parsed > 0:
+            values.append(float(parsed))
+    return values
+
+
+def _build_report_comparator_entry(
+    *,
+    report_id: str,
+    feature_vector: Mapping[str, Any],
+    metrics_by_key: Mapping[str, list[float]],
+    name_occurrences: Mapping[str, Mapping[str, Any]],
+    max_name_records_values: list[float],
+    report_count: int,
+) -> dict[str, Any]:
+    feature = dict(feature_vector)
+    metrics = _as_dict(feature.get("metrics"))
+
+    metric_comparators: list[dict[str, Any]] = []
+    for key, label in _COMPARATOR_METRIC_SPECS:
+        value = _safe_float(metrics.get(key, feature.get(key)))
+        distribution = list(metrics_by_key.get(key, []))
+        if value is None or not distribution:
+            continue
+        metric_comparators.append(
+            {
+                "metric": key,
+                "label": label,
+                "value": value,
+                "percentile": _percentile_rank(distribution, value),
+                "band_p10": _quantile(distribution, 0.10),
+                "band_p50": _quantile(distribution, 0.50),
+                "band_p90": _quantile(distribution, 0.90),
+                "n_reports": len(distribution),
+            }
+        )
+
+    top_name_cues: list[dict[str, Any]] = []
+    for row in _normalize_name_rows(_as_rows(feature.get("top_repeated_names"))):
+        canonical_name = str(row.get("canonical_name") or "").strip()
+        if not canonical_name:
+            continue
+        corpus = name_occurrences.get(canonical_name, {})
+        report_ids = corpus.get("report_ids", set())
+        report_name_count = int(len(report_ids))
+        current_n_records = _safe_int(row.get("n_records"), default=0)
+        max_n_records = _safe_int(corpus.get("max_n_records"), default=current_n_records)
+        top_name_cues.append(
+            {
+                "canonical_name": canonical_name,
+                "display_name": str(row.get("display_name") or ""),
+                "current_n_records": current_n_records,
+                "report_count": report_name_count,
+                "report_share": (
+                    (report_name_count / float(report_count)) if report_count > 0 else 0.0
+                ),
+                "max_n_records_across_reports": max_n_records,
+                "max_n_records_percentile": _percentile_rank(
+                    max_name_records_values,
+                    float(max_n_records),
+                ),
+            }
+        )
+
+    return {
+        "available": True,
+        "report_id": report_id,
+        "report_count": int(report_count),
+        "metric_comparators": metric_comparators,
+        "top_name_cues": top_name_cues,
+    }
+
+
+def build_global_baselines(records: list[ReportFeatureRecord]) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "schema_version": GLOBAL_BASELINES_SCHEMA_VERSION,
+        "generated_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+        "report_count": int(len(records)),
+        "reports": [record.report_id for record in records],
+        "by_report": {},
+    }
+    if not records:
+        return payload
+
+    metrics_by_key = _build_metric_distributions(records)
+    name_occurrences = _build_name_occurrence_index(records)
+    max_name_records_values = _max_name_record_values(name_occurrences)
 
     for record in records:
-        feature = record.feature_vector
-        metrics = _as_dict(feature.get("metrics"))
-
-        metric_comparators: list[dict[str, Any]] = []
-        for key, label in _COMPARATOR_METRIC_SPECS:
-            value = _safe_float(metrics.get(key, feature.get(key)))
-            distribution = metrics_by_key.get(key, [])
-            if value is None or not distribution:
-                continue
-            metric_comparators.append(
-                {
-                    "metric": key,
-                    "label": label,
-                    "value": value,
-                    "percentile": _percentile_rank(distribution, value),
-                    "band_p10": _quantile(distribution, 0.10),
-                    "band_p50": _quantile(distribution, 0.50),
-                    "band_p90": _quantile(distribution, 0.90),
-                    "n_reports": len(distribution),
-                }
-            )
-
-        top_name_cues: list[dict[str, Any]] = []
-        for row in _normalize_name_rows(_as_rows(feature.get("top_repeated_names"))):
-            canonical_name = str(row.get("canonical_name") or "").strip()
-            if not canonical_name:
-                continue
-            corpus = name_occurrences.get(canonical_name, {})
-            report_ids = corpus.get("report_ids", set())
-            report_count = int(len(report_ids))
-            current_n_records = _safe_int(row.get("n_records"), default=0)
-            max_n_records = _safe_int(corpus.get("max_n_records"), default=current_n_records)
-            top_name_cues.append(
-                {
-                    "canonical_name": canonical_name,
-                    "display_name": str(row.get("display_name") or ""),
-                    "current_n_records": current_n_records,
-                    "report_count": report_count,
-                    "report_share": ((report_count / float(len(records))) if records else 0.0),
-                    "max_n_records_across_reports": max_n_records,
-                    "max_n_records_percentile": _percentile_rank(
-                        max_name_records_values,
-                        float(max_n_records),
-                    ),
-                }
-            )
-
-        payload["by_report"][record.report_id] = {
-            "available": True,
-            "report_id": record.report_id,
-            "report_count": len(records),
-            "metric_comparators": metric_comparators,
-            "top_name_cues": top_name_cues,
-        }
+        payload["by_report"][record.report_id] = _build_report_comparator_entry(
+            report_id=record.report_id,
+            feature_vector=record.feature_vector,
+            metrics_by_key=metrics_by_key,
+            name_occurrences=name_occurrences,
+            max_name_records_values=max_name_records_values,
+            report_count=len(records),
+        )
 
     return payload
 
@@ -485,6 +521,85 @@ def build_global_baselines(records: list[ReportFeatureRecord]) -> dict[str, Any]
 def build_global_baselines_from_reports_dir(reports_dir: Path) -> dict[str, Any]:
     records = collect_report_feature_records(reports_dir)
     return build_global_baselines(records)
+
+
+def build_leave_one_out_baseline(
+    *,
+    records: list[ReportFeatureRecord],
+    target_report_id: str,
+    excluded_report_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    target_id = str(target_report_id or "").strip()
+    excluded = sorted(
+        {
+            str(report_id).strip()
+            for report_id in (excluded_report_ids or [])
+            if str(report_id or "").strip()
+        }
+    )
+    payload: dict[str, Any] = {
+        "schema_version": GLOBAL_BASELINES_SCHEMA_VERSION,
+        "generated_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+        "available": False,
+        "source": "leave_one_out",
+        "target_report_id": target_id,
+        "excluded_report_ids": excluded,
+        "comparison_report_ids": [],
+        "report_count": 0,
+        "metric_comparators": [],
+        "top_name_cues": [],
+    }
+    if not target_id:
+        payload["reason"] = "target_report_id_required"
+        return payload
+
+    record_by_id = {record.report_id: record for record in records}
+    target_record = record_by_id.get(target_id)
+    if target_record is None:
+        payload["reason"] = "target_report_not_found"
+        return payload
+
+    excluded_set = set(excluded)
+    comparison_records = [
+        record
+        for record in records
+        if record.report_id != target_id and record.report_id not in excluded_set
+    ]
+    payload["comparison_report_ids"] = [record.report_id for record in comparison_records]
+    payload["report_count"] = int(len(comparison_records))
+    if not comparison_records:
+        payload["reason"] = "no_comparison_reports"
+        return payload
+
+    metrics_by_key = _build_metric_distributions(comparison_records)
+    name_occurrences = _build_name_occurrence_index(comparison_records)
+    max_name_records_values = _max_name_record_values(name_occurrences)
+    comparator = _build_report_comparator_entry(
+        report_id=target_id,
+        feature_vector=target_record.feature_vector,
+        metrics_by_key=metrics_by_key,
+        name_occurrences=name_occurrences,
+        max_name_records_values=max_name_records_values,
+        report_count=len(comparison_records),
+    )
+    payload.update(comparator)
+    payload["available"] = True
+    payload.pop("reason", None)
+    return payload
+
+
+def build_leave_one_out_baseline_from_reports_dir(
+    *,
+    reports_dir: Path,
+    target_report_id: str,
+    excluded_report_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    records = collect_report_feature_records(reports_dir)
+    return build_leave_one_out_baseline(
+        records=records,
+        target_report_id=target_report_id,
+        excluded_report_ids=excluded_report_ids,
+    )
 
 
 def write_global_baselines(

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from testifier_audit.report.global_baselines import (
     build_feature_vector,
     build_global_baselines_from_reports_dir,
+    build_leave_one_out_baseline_from_reports_dir,
     load_cross_hearing_baseline,
     write_global_baselines,
 )
@@ -156,3 +158,124 @@ def test_global_baselines_build_and_load_round_trip(tmp_path: Path) -> None:
     assert loaded["available"] is True
     assert loaded["report_count"] == 2
     assert isinstance(loaded["metric_comparators"], list)
+
+
+def _write_feature_vector(report_dir: Path, payload: dict[str, object]) -> None:
+    (report_dir / "summary").mkdir(parents=True)
+    (report_dir / "summary" / "feature_vector.json").write_text(
+        json.dumps(payload, indent=2),
+        encoding="utf-8",
+    )
+
+
+def test_leave_one_out_baseline_excludes_target_from_comparison_corpus(tmp_path: Path) -> None:
+    reports_dir = tmp_path / "reports"
+    report_a = reports_dir / "SB1111-20260201-1000"
+    report_b = reports_dir / "SB2222-20260202-1000"
+
+    _write_feature_vector(
+        report_a,
+        {
+            "report_id": report_a.name,
+            "metrics": {
+                "total_submissions": 100,
+                "overall_pro_rate": 0.35,
+                "window_high_share": 0.2,
+                "window_top_score": 0.82,
+                "window_top_abs_z": 3.4,
+                "window_top_dup_fraction": 0.18,
+                "top_name_max_records": 8,
+                "off_hours_ratio": 0.12,
+                "dedup_drop_fraction": 0.03,
+            },
+            "top_repeated_names": [
+                {"canonical_name": "DOE|JANE", "display_name": "Doe, Jane", "n_records": 8}
+            ],
+        },
+    )
+    _write_feature_vector(
+        report_b,
+        {
+            "report_id": report_b.name,
+            "metrics": {
+                "total_submissions": 250,
+                "overall_pro_rate": 0.61,
+                "window_high_share": 0.45,
+                "window_top_score": 0.97,
+                "window_top_abs_z": 6.1,
+                "window_top_dup_fraction": 0.31,
+                "top_name_max_records": 15,
+                "off_hours_ratio": 0.08,
+                "dedup_drop_fraction": 0.01,
+            },
+            "top_repeated_names": [
+                {"canonical_name": "DOE|JANE", "display_name": "Doe, Jane", "n_records": 15},
+                {"canonical_name": "SMITH|JOHN", "display_name": "Smith, John", "n_records": 9},
+            ],
+        },
+    )
+
+    payload = build_leave_one_out_baseline_from_reports_dir(
+        reports_dir=reports_dir,
+        target_report_id=report_a.name,
+    )
+
+    assert payload["available"] is True
+    assert payload["target_report_id"] == report_a.name
+    assert payload["comparison_report_ids"] == [report_b.name]
+    assert payload["report_count"] == 1
+
+    by_metric = {row["metric"]: row for row in payload["metric_comparators"]}
+    total_submissions = by_metric["total_submissions"]
+    assert total_submissions["n_reports"] == 1
+    assert total_submissions["percentile"] == 0.0
+    assert total_submissions["band_p10"] == 250.0
+    assert total_submissions["band_p50"] == 250.0
+    assert total_submissions["band_p90"] == 250.0
+
+    by_name = {row["canonical_name"]: row for row in payload["top_name_cues"]}
+    assert by_name["DOE|JANE"]["report_count"] == 1
+    assert by_name["DOE|JANE"]["report_share"] == 1.0
+    assert by_name["DOE|JANE"]["max_n_records_across_reports"] == 15
+
+
+def test_leave_one_out_baseline_handles_missing_target(tmp_path: Path) -> None:
+    reports_dir = tmp_path / "reports"
+    report_a = reports_dir / "SB1111-20260201-1000"
+    _write_feature_vector(
+        report_a,
+        {
+            "report_id": report_a.name,
+            "metrics": {"total_submissions": 100},
+        },
+    )
+
+    payload = build_leave_one_out_baseline_from_reports_dir(
+        reports_dir=reports_dir,
+        target_report_id="DOES-NOT-EXIST",
+    )
+    assert payload["available"] is False
+    assert payload["reason"] == "target_report_not_found"
+    assert payload["report_count"] == 0
+    assert payload["comparison_report_ids"] == []
+
+
+def test_leave_one_out_baseline_handles_empty_comparison_corpus(tmp_path: Path) -> None:
+    reports_dir = tmp_path / "reports"
+    report_a = reports_dir / "SB1111-20260201-1000"
+    _write_feature_vector(
+        report_a,
+        {
+            "report_id": report_a.name,
+            "metrics": {"total_submissions": 100},
+        },
+    )
+
+    payload = build_leave_one_out_baseline_from_reports_dir(
+        reports_dir=reports_dir,
+        target_report_id=report_a.name,
+    )
+    assert payload["available"] is False
+    assert payload["reason"] == "no_comparison_reports"
+    assert payload["report_count"] == 0
+    assert payload["comparison_report_ids"] == []

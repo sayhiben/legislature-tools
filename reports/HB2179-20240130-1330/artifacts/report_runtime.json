@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-02-25T22:31:09.918447-08:00",
+  "interactive_payload_build_ms": 465.639,
+  "template_render_ms": 17.084,
+  "report_write_ms": 0.123,
+  "report_total_ms": 659.58,
+  "report_html_bytes": 96312,
+  "report_data_json_bytes": 408237,
+  "report_data_shards_json_bytes": 3883153
+}

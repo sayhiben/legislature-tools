@@ -256,6 +256,7 @@ def build_off_hours_tables_and_summary(
         contingency.sum() > 0
         and contingency.shape == (2, 2)
         and (contingency.sum(axis=1) > 0).all()
+        and (contingency.sum(axis=0) > 0).all()
     ):
         _chi2, p_value, _dof, _expected = chi2_contingency(contingency, correction=False)
 

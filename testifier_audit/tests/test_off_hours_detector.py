@@ -199,6 +199,39 @@ def test_off_hours_detector_day_adjusted_control_profile_flags_supported_windows
     assert bool(off_window["is_primary_alert_window"]) is False
 
 
+def test_off_hours_detector_skips_chi_square_when_contingency_column_is_empty() -> None:
+    df = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "position_normalized": ["Pro", "Pro", "Pro", "Pro"],
+            "is_off_hours": [True, True, False, False],
+            "hour": [1, 1, 10, 10],
+            "day_of_week": [6, 6, 6, 6],
+            "timestamp": pd.to_datetime(
+                [
+                    "2026-02-01T01:05:00Z",
+                    "2026-02-01T01:25:00Z",
+                    "2026-02-01T10:10:00Z",
+                    "2026-02-01T10:35:00Z",
+                ]
+            ),
+            "minute_bucket": pd.to_datetime(
+                [
+                    "2026-02-01T01:05:00Z",
+                    "2026-02-01T01:25:00Z",
+                    "2026-02-01T10:10:00Z",
+                    "2026-02-01T10:35:00Z",
+                ]
+            ),
+        }
+    )
+
+    result = OffHoursDetector().run(df=df, features={})
+    chi_square_p = float(result.summary["chi_square_p_value"])
+    assert chi_square_p == 1.0
+    assert float(result.tables["off_hours_summary"].iloc[0]["chi_square_p_value"]) == 1.0
+
+
 def test_off_hours_detector_uses_model_baseline_when_data_supports_fit() -> None:
     records: list[dict[str, object]] = []
     idx = 1

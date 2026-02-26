@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-02-25T02:17:10.104319-08:00",
-  "interactive_payload_build_ms": 700.875,
-  "template_render_ms": 16.188,
-  "report_write_ms": 0.193,
-  "report_total_ms": 1026.416,
+  "generated_at": "2026-02-25T22:18:59.984980-08:00",
+  "interactive_payload_build_ms": 630.898,
+  "template_render_ms": 17.241,
+  "report_write_ms": 0.273,
+  "report_total_ms": 978.668,
   "report_html_bytes": 96312,
-  "report_data_json_bytes": 467858,
-  "report_data_shards_json_bytes": 8378067
+  "report_data_json_bytes": 468218,
+  "report_data_shards_json_bytes": 8398232
 }

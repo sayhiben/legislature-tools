@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+on_error() {
+  local exit_code="$?"
+  local line="${BASH_LINENO[0]:-unknown}"
+  local cmd="${BASH_COMMAND:-unknown}"
+  echo "ERROR: run_all_metadata_reports_with_loo.sh failed at line ${line}: ${cmd}" >&2
+  exit "${exit_code}"
+}
+trap on_error ERR
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REPO_ROOT="$(cd "${PROJECT_ROOT}/.." && pwd)"
@@ -75,6 +84,14 @@ RAW_DIR="${RAW_DIR:-${REPO_ROOT}/data/raw}"
 REPORTS_ROOT="${REPORTS_ROOT:-${REPO_ROOT}/reports}"
 CONTEXTUAL_JSON="${CONTEXTUAL_JSON:-${REPO_ROOT}/data/metadata/contextual_duplicate_baseline.json}"
 CONTEXTUAL_CSV="${CONTEXTUAL_CSV:-${REPO_ROOT}/data/metadata/contextual_duplicate_baseline.csv}"
+RUN_LOG_DIR="${RUN_LOG_DIR:-${REPO_ROOT}/output/run_logs}"
+
+mkdir -p "${RUN_LOG_DIR}"
+RUN_TS="$(date +"%Y%m%d-%H%M%S")"
+RUN_LOG_PATH="${RUN_LOG_DIR}/run_all_metadata_reports_with_loo-${RUN_TS}.log"
+RUN_FAILURES_PATH="${RUN_LOG_DIR}/run_all_metadata_reports_with_loo-${RUN_TS}.failures.txt"
+exec > >(tee -a "${RUN_LOG_PATH}") 2>&1
+echo "Run log: ${RUN_LOG_PATH}"
 
 if [[ ! -f "${VRDB_EXTRACT}" ]]; then
   echo "VRDB extract not found: ${VRDB_EXTRACT}" >&2
@@ -105,6 +122,18 @@ array_contains() {
     fi
   done
   return 1
+}
+
+progress_label() {
+  local phase="$1"
+  local current="$2"
+  local total="$3"
+  local stem="$4"
+  local percent=0
+  if [[ "${total}" -gt 0 ]]; then
+    percent=$(( (current * 100) / total ))
+  fi
+  printf '  [%s %d/%d %d%%] %s\n' "${phase}" "${current}" "${total}" "${percent}" "${stem}"
 }
 
 declare -a STEMS=()
@@ -141,13 +170,15 @@ export CI_SKIP_INSTALL=1
 
 declare -a PASS1_OK=()
 declare -a PASS1_FAILED=()
+PASS1_TOTAL="${#STEMS[@]}"
 
-echo "Pass 1: generating reports for all matched datasets..."
+echo "Pass 1/3: generating reports for all matched datasets - ${PASS1_TOTAL} total..."
 for i in "${!STEMS[@]}"; do
   stem="${STEMS[$i]}"
   csv_path="${CSVS[$i]}"
   sidecar_path="${SIDECARS[$i]}"
-  echo "  [pass1] ${stem}"
+  current=$((i + 1))
+  progress_label "pass1" "${current}" "${PASS1_TOTAL}" "${stem}"
   if CONFIG_PATH="${BASE_CONFIG_PATH}" REPORTS_ROOT="${REPORTS_ROOT}" \
     "${PROJECT_ROOT}/scripts/report/run_unified_report.sh" "${csv_path}" "${VRDB_EXTRACT}" "${sidecar_path}"; then
     PASS1_OK+=("${stem}")
@@ -161,6 +192,7 @@ if [[ "${#PASS1_OK[@]}" -eq 0 ]]; then
   echo "All first-pass report generations failed." >&2
   exit 1
 fi
+echo "Pass 1 complete: ${#PASS1_OK[@]} succeeded, ${#PASS1_FAILED[@]} failed."
 
 CONTEXTUAL_CONFIG_PATH="$(mktemp "${REPO_ROOT}/output/contextual-baseline-config.XXXXXX.yaml")"
 TMP_CONTEXTUAL_CSV_DIR="$(mktemp -d "${REPO_ROOT}/output/contextual-csvs.XXXXXX")"
@@ -218,15 +250,18 @@ declare -a FINAL_OK=()
 declare -a PASS2_FAILED=()
 
 if [[ "${SKIP_CONTEXTUAL_RERUN}" -eq 0 ]]; then
-  echo "Pass 2: rerunning reports with contextual baseline enabled..."
+  PASS2_TOTAL="${#PASS1_OK[@]}"
+  echo "Pass 2/3: rerunning successful pass1 reports with contextual baseline enabled - ${PASS2_TOTAL} total..."
+  pass2_current=0
   for i in "${!STEMS[@]}"; do
     stem="${STEMS[$i]}"
     if ! array_contains "${stem}" "${PASS1_OK[@]}"; then
       continue
     fi
+    pass2_current=$((pass2_current + 1))
     csv_path="${CSVS[$i]}"
     sidecar_path="${SIDECARS[$i]}"
-    echo "  [pass2] ${stem}"
+    progress_label "pass2" "${pass2_current}" "${PASS2_TOTAL}" "${stem}"
     if CONFIG_PATH="${CONTEXTUAL_CONFIG_PATH}" REPORTS_ROOT="${REPORTS_ROOT}" \
       "${PROJECT_ROOT}/scripts/report/run_unified_report.sh" "${csv_path}" "${VRDB_EXTRACT}" "${sidecar_path}"; then
       FINAL_OK+=("${stem}")
@@ -235,6 +270,7 @@ if [[ "${SKIP_CONTEXTUAL_RERUN}" -eq 0 ]]; then
       echo "  [pass2][failed] ${stem}" >&2
     fi
   done
+  echo "Pass 2 complete: ${#FINAL_OK[@]} succeeded, ${#PASS2_FAILED[@]} failed."
 else
   echo "Skipping contextual rerun (--skip-contextual-rerun)."
   FINAL_OK=("${PASS1_OK[@]}")
@@ -253,9 +289,12 @@ echo "Rebuilding reports index + global baselines..."
 )
 
 declare -a LOO_FAILED=()
-echo "Building leave-one-out baseline payloads for each successful report..."
+LOO_TOTAL="${#FINAL_OK[@]}"
+echo "Pass 3/3: building leave-one-out baseline payloads for each successful report - ${LOO_TOTAL} total..."
+loo_current=0
 for stem in "${FINAL_OK[@]}"; do
-  echo "  [loo] ${stem}"
+  loo_current=$((loo_current + 1))
+  progress_label "loo" "${loo_current}" "${LOO_TOTAL}" "${stem}"
   if ! (
     cd "${PROJECT_ROOT}" && \
     python ./scripts/report/build_leave_one_out_baseline.py \
@@ -266,6 +305,7 @@ for stem in "${FINAL_OK[@]}"; do
     echo "  [loo][failed] ${stem}" >&2
   fi
 done
+echo "Pass 3 complete: ${#LOO_FAILED[@]} LOO failures."
 
 echo ""
 echo "Run complete."
@@ -279,6 +319,23 @@ echo "  contextual_baseline_json: ${CONTEXTUAL_JSON}"
 echo "  global_baselines_json: ${REPORTS_ROOT}/global_baselines.json"
 
 if [[ "${#PASS1_FAILED[@]}" -gt 0 || "${#PASS2_FAILED[@]}" -gt 0 || "${#LOO_FAILED[@]}" -gt 0 ]]; then
+  {
+    echo "run_log=${RUN_LOG_PATH}"
+    echo "matched_datasets=${#STEMS[@]}"
+    echo "pass1_failed=${#PASS1_FAILED[@]}"
+    echo "pass2_failed=${#PASS2_FAILED[@]}"
+    echo "loo_failed=${#LOO_FAILED[@]}"
+    echo ""
+    echo "[pass1_failed_stems]"
+    printf '%s\n' "${PASS1_FAILED[@]}"
+    echo ""
+    echo "[pass2_failed_stems]"
+    printf '%s\n' "${PASS2_FAILED[@]}"
+    echo ""
+    echo "[loo_failed_stems]"
+    printf '%s\n' "${LOO_FAILED[@]}"
+  } > "${RUN_FAILURES_PATH}"
+  echo "Failure details written: ${RUN_FAILURES_PATH}" >&2
   echo "One or more steps failed for some datasets." >&2
   exit 1
 fi

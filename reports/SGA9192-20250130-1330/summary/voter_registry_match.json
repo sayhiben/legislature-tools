@@ -1,0 +1,34 @@
+{
+  "active": true,
+  "active_only": true,
+  "attribution_caveat": "Voter linkage is supporting evidence only and cannot independently establish identity or intent.",
+  "bucket_minutes": [
+    1,
+    5,
+    15,
+    30,
+    60,
+    120
+  ],
+  "enabled": true,
+  "match_mode_default": "loose",
+  "match_mode_options": [
+    "strict",
+    "loose"
+  ],
+  "matched_rate_rows": 0.8073770491803278,
+  "n_matched_ambiguous_rows": 462,
+  "n_matched_unique_rows": 917,
+  "n_rows": 1708,
+  "n_unique_names": 1619,
+  "n_unmatched_rows": 329,
+  "n_unmatched_unique": 308,
+  "primary_match_mode": "loose",
+  "primary_outcome_column": "loose_outcome",
+  "registry_row_count": 5088115,
+  "registry_snapshot_date": null,
+  "status_mode": "single",
+  "unmatched_rate_rows": 0.19262295081967212,
+  "unmatched_rate_unique": 0.19024088943792464,
+  "voter_signal_role": "supporting_evidence_only"
+}

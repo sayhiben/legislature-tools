@@ -10,7 +10,7 @@
 />
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/dist/tippy.css" />
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/themes/light-border.css" />
-<link rel="stylesheet" href="assets/report/report.css?v=7e1332d60b19" />  </head>
+<link rel="stylesheet" href="assets/report/report.css?v=227f103df278" />  </head>
   <body>
 
     <div class="page-shell" id="page-shell">
@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-26T00:30:27.624028-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-26T01:41:42.335998-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -236,6 +236,21 @@
                 ></div>
               </article>
             </section>
+            <article class="detail-card detail-card-compact">
+              <h3 class="detail-title">Cross-Hearing Expected vs Actual</h3>
+              <p class="tiny-note">
+                Context-only leave-one-out comparators. Detector inferential scoring channels remain unchanged.
+              </p>
+              <div class="cross-hearing-controls">
+                <label for="cross-hearing-channel-select">Comparator Channel</label>
+                <select id="cross-hearing-channel-select"></select>
+              </div>
+              <p id="cross-hearing-overview-summary" class="tiny-note"></p>
+              <div id="cross-hearing-overview-warning" class="warning-banner hidden"></div>
+              <div class="table-wrap">
+                <div id="cross-hearing-overview-table" class="table-host"></div>
+              </div>
+            </article>
             <div class="analysis-detail-grid analysis-detail-grid-compact">
               <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Hearing Context Metadata</h3>
@@ -423,6 +438,21 @@
     <p><strong>Common benign causes:</strong> Common names and legitimate coordinated outreach can elevate duplicate pressure.</p>
   </div>
 </details>
+
+      <article
+        class="detail-card detail-card-half analysis-expected-callout hidden"
+        data-analysis-expected-for="duplicates_exact"
+      >
+        <h3 class="detail-title">Expected vs Actual (Cross-Hearing)</h3>
+        <p class="tiny-note" data-analysis-expected-summary-for="duplicates_exact"></p>
+        <div
+          id="analysis-expected-warning-duplicates_exact"
+          class="warning-banner hidden"
+        ></div>
+        <div class="table-wrap">
+          <div id="analysis-expected-host-duplicates_exact" class="table-host"></div>
+        </div>
+      </article>
 
         <div class="analysis-detail-grid">
             <article class="detail-card">
@@ -614,6 +644,21 @@
     <p><strong>Common benign causes:</strong> Name normalization gaps, registration recency, and non-registered participants can raise unmatched rates.</p>
   </div>
 </details>
+
+      <article
+        class="detail-card detail-card-half analysis-expected-callout hidden"
+        data-analysis-expected-for="voter_registry_match"
+      >
+        <h3 class="detail-title">Expected vs Actual (Cross-Hearing)</h3>
+        <p class="tiny-note" data-analysis-expected-summary-for="voter_registry_match"></p>
+        <div
+          id="analysis-expected-warning-voter_registry_match"
+          class="warning-banner hidden"
+        ></div>
+        <div class="table-wrap">
+          <div id="analysis-expected-host-voter_registry_match" class="table-host"></div>
+        </div>
+      </article>
 
         <div class="analysis-detail-grid">
             <article class="detail-card">
@@ -820,6 +865,21 @@
   </div>
 </details>
 
+      <article
+        class="detail-card detail-card-half analysis-expected-callout hidden"
+        data-analysis-expected-for="off_hours"
+      >
+        <h3 class="detail-title">Expected vs Actual (Cross-Hearing)</h3>
+        <p class="tiny-note" data-analysis-expected-summary-for="off_hours"></p>
+        <div
+          id="analysis-expected-warning-off_hours"
+          class="warning-banner hidden"
+        ></div>
+        <div class="table-wrap">
+          <div id="analysis-expected-host-off_hours" class="table-host"></div>
+        </div>
+      </article>
+
         <div class="analysis-detail-grid">
             <article class="detail-card">
               <h3 class="detail-title">Off Hours Funnel Plot</h3>
@@ -981,6 +1041,6 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/theme/roma.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
-    <script type="module" src="assets/report/main.js?v=769676e51a31"></script>
+    <script type="module" src="assets/report/main.js?v=0500b4fbc2b4"></script>
   </body>
 </html>

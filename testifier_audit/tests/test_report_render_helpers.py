@@ -523,34 +523,44 @@ def test_render_report_json_payload_does_not_include_nan_literals(tmp_path: Path
         assert "NaN" not in shard_path.read_text(encoding="utf-8")
 
 
-def test_render_report_does_not_load_cross_hearing_baseline_payload(tmp_path: Path) -> None:
+def test_render_report_loads_cross_hearing_baseline_payload(tmp_path: Path) -> None:
     reports_dir = tmp_path / "reports"
     out_dir = reports_dir / "SB9999-20260221-1000"
-    out_dir.mkdir(parents=True)
-    baseline_path = reports_dir / "global_baselines.json"
+    (out_dir / "summary").mkdir(parents=True)
+    baseline_path = out_dir / "summary" / "cross_hearing_baseline_loo.json"
     baseline_path.write_text(
         json.dumps(
             {
                 "schema_version": 1,
-                "report_count": 3,
-                "by_report": {
-                    out_dir.name: {
+                "target_report_id": out_dir.name,
+                "selected_channel": "global_loo",
+                "channels": {
+                    "global_loo": {
                         "available": True,
-                        "report_id": out_dir.name,
-                        "report_count": 3,
+                        "report_count": 18,
+                        "support_tier": "descriptive_only",
+                        "comparison_report_ids": ["A", "B"],
                         "metric_comparators": [
                             {
                                 "metric": "total_submissions",
                                 "label": "Total submissions",
-                                "value": 123.0,
+                                "observed": 123.0,
+                                "expected": 80.0,
+                                "delta": 43.0,
                                 "percentile": 0.91,
                                 "band_p10": 20.0,
                                 "band_p50": 80.0,
                                 "band_p90": 150.0,
-                                "n_reports": 3,
+                                "n_reports": 18,
+                                "support_tier": "descriptive_only",
                             }
                         ],
-                    }
+                    },
+                    "cohort_loo": {
+                        "available": False,
+                        "reason": "insufficient_support",
+                        "report_count": 4,
+                    },
                 },
             }
         ),
@@ -562,8 +572,13 @@ def test_render_report_does_not_load_cross_hearing_baseline_payload(tmp_path: Pa
     report_data_payload = _load_report_data_payload(out_dir)
     interactive_payload = report_data_payload.get("interactive_charts", {})
     assert isinstance(interactive_payload, dict)
-    assert "cross_hearing_baseline" not in interactive_payload
-    assert "Cross-Hearing Comparator" not in rendered
+    cross_hearing = interactive_payload.get("cross_hearing_baseline", {})
+    assert isinstance(cross_hearing, dict)
+    assert "channels" in cross_hearing
+    assert "global_loo" in cross_hearing["channels"]
+    assert cross_hearing["selected_channel"] == "global_loo"
+    assert cross_hearing["channels"]["global_loo"]["metric_comparators"]
+    assert "Cross-Hearing Expected vs Actual" in rendered
 
 
 def test_render_report_includes_external_assets_and_runtime_contracts(
@@ -627,6 +642,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert 'id="duplicate-scope-select"' in rendered
     assert 'id="duplicate-metric-select"' in rendered
     assert 'for="duplicate-metric-select">Unit</label>' in rendered
+    assert 'id="cross-hearing-channel-select"' in rendered
+    assert 'id="cross-hearing-overview-table"' in rendered
     assert 'id="voter-match-mode-panel"' in rendered
     assert 'id="voter-match-mode-select"' in rendered
     assert 'id="sidebar-bill-meta"' not in rendered
@@ -687,6 +704,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "duplicates_exact_top_name_timing_loose" not in rendered
     assert "overview_position_volume_by_bucket" in rendered
     assert "renderOverviewPositionVolumeByBucket" in js_text
+    assert "renderCrossHearingOverviewPanel()" in js_text
+    assert "renderAnalysisExpectedCallouts()" in js_text
     assert "SPC-only flag" in js_text
     assert "FDR-only flag" in js_text
     assert "simpleBarCategoricalChartIds" in js_text

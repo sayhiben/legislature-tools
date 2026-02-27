@@ -47,6 +47,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "reports/<report-id>/summary/cross_hearing_baseline_loo.json."
         ),
     )
+    parser.add_argument(
+        "--cohort-strategy",
+        default="hierarchical",
+        choices=["hierarchical"],
+        help="Cohort strategy for cohort LOO channel (default: hierarchical).",
+    )
     return parser.parse_args(argv)
 
 
@@ -68,6 +74,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         reports_dir=reports_dir,
         target_report_id=report_id,
         excluded_report_ids=list(args.exclude_report_id or []),
+        cohort_strategy=str(args.cohort_strategy or "hierarchical"),
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -81,9 +88,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     if reason:
         availability = f"{availability}:{reason}"
     comparison_count = int(payload.get("report_count") or 0)
+    selected_channel = str(payload.get("selected_channel") or "cohort_loo")
     print(
         f"Wrote {output_path} "
-        f"(target={report_id} status={availability} comparisons={comparison_count})"
+        f"(target={report_id} status={availability} selected_channel={selected_channel} comparisons={comparison_count})"
     )
 
 

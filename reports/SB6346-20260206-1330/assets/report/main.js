@@ -139,6 +139,7 @@
   const triageSummary = interactive.triage_summary || {};
   const dataQualityPanel = interactive.data_quality_panel || {};
   const hearingContextPanel = interactive.hearing_context_panel || {};
+  const crossHearingBaseline = normalizeCrossHearingBaseline(interactive.cross_hearing_baseline || {});
   const controls = interactive.controls || {};
   const focusAnalysisIds = Array.isArray(controls.focus_analysis_ids)
     ? controls.focus_analysis_ids
@@ -236,6 +237,8 @@
     activeSectionControlKey: "",
     globalControlsExpandedMobile: false,
     renderToc: null,
+    activeCrossHearingChannel: crossHearingBaseline.selectedChannel,
+    defaultCrossHearingChannel: crossHearingBaseline.defaultChannel,
     selectedWindowRange: null,
     zoom: {
       minTime: null,
@@ -375,6 +378,121 @@
       return normalized === "true" || normalized === "1" || normalized === "yes";
     }
     return false;
+  }
+
+  function normalizeCrossHearingChannel(channelId, label, value) {
+    const payload = value && typeof value === "object" ? value : {};
+    const reportCount = Math.max(0, Math.round(toNumber(payload.report_count)));
+    const metricComparators = Array.isArray(payload.metric_comparators)
+      ? payload.metric_comparators
+      : [];
+    const topNameCues = Array.isArray(payload.top_name_cues) ? payload.top_name_cues : [];
+    const supportTierRaw =
+      typeof payload.support_tier === "string" && payload.support_tier.trim()
+        ? payload.support_tier.trim()
+        : reportCount >= 20
+          ? "supported"
+          : reportCount >= 10
+            ? "descriptive_only"
+            : "unavailable";
+    return {
+      channel: channelId,
+      label: label,
+      available: !!payload.available,
+      reason:
+        typeof payload.reason === "string" && payload.reason.trim()
+          ? payload.reason.trim()
+          : payload.available
+            ? ""
+            : "Comparator unavailable",
+      reportCount: reportCount,
+      comparisonReportIds: Array.isArray(payload.comparison_report_ids)
+        ? payload.comparison_report_ids
+        : [],
+      supportTier: supportTierRaw,
+      descriptiveOnly: !!payload.descriptive_only || supportTierRaw === "descriptive_only",
+      lowPower: !!payload.low_power || supportTierRaw !== "supported",
+      metricComparators: metricComparators,
+      topNameCues: topNameCues,
+      metadata: payload.metadata && typeof payload.metadata === "object" ? payload.metadata : {},
+    };
+  }
+
+  function normalizeCrossHearingBaseline(rawValue) {
+    const raw = rawValue && typeof rawValue === "object" ? rawValue : {};
+    const rawChannels = raw.channels && typeof raw.channels === "object" ? raw.channels : {};
+    const optionsRaw = Array.isArray(raw.channel_options) ? raw.channel_options : [];
+    const optionIds = new Set();
+    const channelOptions = optionsRaw
+      .map((entry) => {
+        const id = String((entry && entry.id) || "").trim();
+        if (!id) {
+          return null;
+        }
+        optionIds.add(id);
+        const label = String((entry && entry.label) || "").trim() || id;
+        return { id: id, label: label };
+      })
+      .filter((entry) => !!entry);
+
+    if (!optionIds.has("cohort_loo")) {
+      optionIds.add("cohort_loo");
+      channelOptions.unshift({ id: "cohort_loo", label: "Cohort LOO" });
+    }
+    if (!optionIds.has("global_loo")) {
+      optionIds.add("global_loo");
+      channelOptions.push({ id: "global_loo", label: "Global LOO" });
+    }
+
+    const channels = {};
+    channelOptions.forEach((option) => {
+      channels[option.id] = normalizeCrossHearingChannel(
+        option.id,
+        option.label,
+        rawChannels[option.id]
+      );
+    });
+
+    const fallbackChannel = channels.cohort_loo && channels.cohort_loo.available
+      ? "cohort_loo"
+      : channels.global_loo && channels.global_loo.available
+        ? "global_loo"
+        : "cohort_loo";
+    const defaultChannelRaw =
+      typeof raw.default_channel === "string" && raw.default_channel.trim()
+        ? raw.default_channel.trim()
+        : fallbackChannel;
+    const selectedChannelRaw =
+      typeof raw.selected_channel === "string" && raw.selected_channel.trim()
+        ? raw.selected_channel.trim()
+        : defaultChannelRaw;
+    const selectedChannel = Object.prototype.hasOwnProperty.call(channels, selectedChannelRaw)
+      ? selectedChannelRaw
+      : fallbackChannel;
+    const defaultChannel = Object.prototype.hasOwnProperty.call(channels, defaultChannelRaw)
+      ? defaultChannelRaw
+      : fallbackChannel;
+    const analysisMetricMap = raw.analysis_metric_map && typeof raw.analysis_metric_map === "object"
+      ? raw.analysis_metric_map
+      : {};
+
+    return {
+      schemaVersion: toNumber(raw.schema_version || 0),
+      available: !!raw.available,
+      reason:
+        typeof raw.reason === "string" && raw.reason.trim()
+          ? raw.reason.trim()
+          : "",
+      selectedChannel: selectedChannel,
+      defaultChannel: defaultChannel,
+      channelOptions: channelOptions,
+      channels: channels,
+      analysisMetricMap: analysisMetricMap,
+      sourcePath:
+        typeof raw.source_path === "string" && raw.source_path.trim()
+          ? raw.source_path.trim()
+          : "",
+    };
   }
 
   function activeThemeId() {
@@ -5699,13 +5817,41 @@
     return true;
   }
 
-  function renderSimpleBar(mount, rows, xField, yField, title) {
+  function renderSimpleBar(mount, rows, xField, yField, title, options) {
     const theme = currentChartTheme();
+    const chartOptions = options && typeof options === "object" ? options : {};
+    const expectedField =
+      typeof chartOptions.expectedField === "string" && chartOptions.expectedField.trim()
+        ? chartOptions.expectedField.trim()
+        : "";
+    const bandLowField =
+      typeof chartOptions.bandLowField === "string" && chartOptions.bandLowField.trim()
+        ? chartOptions.bandLowField.trim()
+        : "";
+    const bandHighField =
+      typeof chartOptions.bandHighField === "string" && chartOptions.bandHighField.trim()
+        ? chartOptions.bandHighField.trim()
+        : "";
+    const observedSeriesName =
+      typeof chartOptions.observedSeriesName === "string" && chartOptions.observedSeriesName.trim()
+        ? chartOptions.observedSeriesName.trim()
+        : title || "value";
+    const expectedSeriesName =
+      typeof chartOptions.expectedSeriesName === "string" && chartOptions.expectedSeriesName.trim()
+        ? chartOptions.expectedSeriesName.trim()
+        : "Expected";
+    const expectedBandName =
+      typeof chartOptions.expectedBandName === "string" && chartOptions.expectedBandName.trim()
+        ? chartOptions.expectedBandName.trim()
+        : "Expected band";
     const subset = rows
       .map((row) => ({
         raw: row,
         x: row[xField],
         y: toFiniteNumberOrNull(row[yField]),
+        expected: expectedField ? toFiniteNumberOrNull(row[expectedField]) : null,
+        bandLow: bandLowField ? toFiniteNumberOrNull(row[bandLowField]) : null,
+        bandHigh: bandHighField ? toFiniteNumberOrNull(row[bandHighField]) : null,
       }))
       .filter((row) => row.x !== undefined && row.x !== null && row.y !== null)
       .slice(0, 200);
@@ -5845,6 +5991,7 @@
     }
 
     const seriesEntry = {
+      name: observedSeriesName,
       type: "bar",
       data: barSeriesData,
     };
@@ -5853,6 +6000,59 @@
         symbol: ["none", "none"],
         data: markLineData,
       };
+    }
+    const hasExpectedSeries = subset.some((row) => row.expected !== null);
+    const hasExpectedBand =
+      bandLowField &&
+      bandHighField &&
+      subset.some((row) => row.bandLow !== null && row.bandHigh !== null && row.bandHigh >= row.bandLow);
+    const series = [seriesEntry];
+    if (hasExpectedBand) {
+      const baselineSeries = {
+        name: "__expected-band-floor",
+        type: "line",
+        data: subset.map((row) => (row.bandLow !== null ? row.bandLow : null)),
+        stack: "__expected-band",
+        showSymbol: false,
+        lineStyle: { opacity: 0 },
+        areaStyle: { opacity: 0 },
+        tooltip: { show: false },
+        emphasis: { disabled: true },
+      };
+      const bandSeries = {
+        name: expectedBandName,
+        type: "line",
+        data: subset.map((row) => {
+          if (row.bandLow === null || row.bandHigh === null) {
+            return null;
+          }
+          return Math.max(0, row.bandHigh - row.bandLow);
+        }),
+        stack: "__expected-band",
+        showSymbol: false,
+        lineStyle: { opacity: 0 },
+        areaStyle: {
+          color: theme.comparatorBandFill,
+          opacity: 0.38,
+        },
+        tooltip: { show: false },
+        emphasis: { disabled: true },
+      };
+      series.push(baselineSeries, bandSeries);
+    }
+    if (hasExpectedSeries) {
+      series.push({
+        name: expectedSeriesName,
+        type: "line",
+        data: subset.map((row) => row.expected),
+        showSymbol: false,
+        lineStyle: {
+          color: theme.referenceLine,
+          width: 1.5,
+          type: "dashed",
+          opacity: 0.92,
+        },
+      });
     }
 
     const option = {
@@ -5883,6 +6083,9 @@
               lines.push("<strong>Bucket:</strong> " + bucketLabel);
             }
             entries.forEach((entry) => {
+              if (String(entry.seriesName || "").startsWith("__expected-band-floor")) {
+                return;
+              }
               lines.push(
                 (entry.marker || "") +
                   "<strong>" +
@@ -5900,9 +6103,9 @@
           name: xAxisLabel,
           data: subset.map((row) => String(row.x)),
           axisLabel: { interval: 0, rotate: 34, color: theme.axisText },
-        },
+      },
       yAxis: { type: "value", name: yAxisLabel, axisLabel: { color: theme.axisText } },
-      series: [seriesEntry],
+      series: series,
     };
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
     mount.isTimeSeries = false;
@@ -7357,7 +7560,14 @@
       );
     }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
-      return renderSimpleBar(mount, rows, "metric", "observed", "observed");
+      return renderSimpleBar(mount, rows, "metric", "observed", "observed", {
+        observedSeriesName: "Observed",
+        expectedField: "expected",
+        expectedSeriesName: "Expected",
+        bandLowField: "expected_p05",
+        bandHighField: "expected_p95",
+        expectedBandName: "Expected p05-p95",
+      });
     }
     if (mount.chartId === "duplicates_exact_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "duplicate_rows", "duplicate rows");
@@ -7799,6 +8009,24 @@
     const valueText = String(value === null || value === undefined ? "" : value)
       .trim()
       .toLowerCase();
+
+    if (key === "cross_hearing_baseline.metric_comparators") {
+      if (column === "support_tier") {
+        if (valueText === "supported") {
+          return "table-cell-semantic-context";
+        }
+        if (valueText === "descriptive_only") {
+          return "table-cell-semantic-warn";
+        }
+        return "table-cell-semantic-alert";
+      }
+      if (column === "descriptive_only" || column === "low_power") {
+        return truthy ? "table-cell-semantic-warn" : "";
+      }
+      if (column === "empirical_tail_p_two_sided" && numeric !== null && numeric <= 0.05) {
+        return "table-cell-semantic-context";
+      }
+    }
 
     if (key === "off_hours.off_hours_summary") {
       if (offHoursSummaryAlertColumns.has(column)) {
@@ -9012,6 +9240,236 @@
       rows: rows,
       meta: meta,
     };
+  }
+
+  function activeCrossHearingChannelPayload() {
+    const fallback = crossHearingBaseline.channels[crossHearingBaseline.defaultChannel] || null;
+    if (!state.activeCrossHearingChannel) {
+      return fallback;
+    }
+    return crossHearingBaseline.channels[state.activeCrossHearingChannel] || fallback;
+  }
+
+  function supportTierLabel(value) {
+    const tier = String(value || "").trim().toLowerCase();
+    if (tier === "supported") {
+      return "Supported";
+    }
+    if (tier === "descriptive_only") {
+      return "Descriptive-only";
+    }
+    return "Unavailable";
+  }
+
+  function mapComparatorRowsForDisplay(rows) {
+    return (Array.isArray(rows) ? rows : [])
+      .map((row) => {
+        const metricId = String((row || {}).metric || "").trim();
+        if (!metricId) {
+          return null;
+        }
+        const observed = toFiniteNumberOrNull((row || {}).observed ?? (row || {}).value);
+        const expected = toFiniteNumberOrNull((row || {}).expected ?? (row || {}).band_p50);
+        const delta = toFiniteNumberOrNull((row || {}).delta);
+        const percentile = toFiniteNumberOrNull((row || {}).percentile);
+        const nReports = Math.max(0, Math.round(toNumber((row || {}).n_reports)));
+        const supportTier =
+          typeof row.support_tier === "string" && row.support_tier.trim()
+            ? row.support_tier.trim()
+            : nReports >= 20
+              ? "supported"
+              : nReports >= 10
+                ? "descriptive_only"
+                : "unavailable";
+        return {
+          metric_id: metricId,
+          metric:
+            (typeof row.label === "string" && row.label.trim() ? row.label.trim() : humanizeFieldName(metricId)),
+          observed: observed,
+          expected: expected,
+          delta: delta,
+          percentile: percentile,
+          n_reports: nReports,
+          support_tier: supportTier,
+          low_power: !!row.low_power || supportTier !== "supported",
+          descriptive_only: !!row.descriptive_only || supportTier === "descriptive_only",
+          robust_z: toFiniteNumberOrNull((row || {}).robust_z),
+          empirical_tail_p_two_sided: toFiniteNumberOrNull((row || {}).empirical_tail_p_two_sided),
+          band_p10: toFiniteNumberOrNull((row || {}).band_p10),
+          band_p90: toFiniteNumberOrNull((row || {}).band_p90),
+        };
+      })
+      .filter((row) => !!row);
+  }
+
+  function comparatorRowsToTable(rows) {
+    return (Array.isArray(rows) ? rows : []).map((row) => ({
+      metric: row.metric,
+      observed: row.observed,
+      expected: row.expected,
+      delta: row.delta,
+      percentile: row.percentile,
+      n_reports: row.n_reports,
+      support_tier: row.support_tier,
+      low_power: row.low_power,
+      descriptive_only: row.descriptive_only,
+      robust_z: row.robust_z,
+      empirical_tail_p_two_sided: row.empirical_tail_p_two_sided,
+      band_p10: row.band_p10,
+      band_p90: row.band_p90,
+    }));
+  }
+
+  function renderCrossHearingOverviewPanel() {
+    const select = document.getElementById("cross-hearing-channel-select");
+    const summaryHost = document.getElementById("cross-hearing-overview-summary");
+    const warningHost = document.getElementById("cross-hearing-overview-warning");
+    const tableHost = document.getElementById("cross-hearing-overview-table");
+    if (!select || !summaryHost || !warningHost || !tableHost) {
+      return;
+    }
+
+    const options = Array.isArray(crossHearingBaseline.channelOptions)
+      ? crossHearingBaseline.channelOptions
+      : [];
+    if (!options.length) {
+      summaryHost.textContent = "Cross-hearing comparators are unavailable for this run.";
+      warningHost.classList.add("hidden");
+      mountTable(tableHost, [], { pagination: false, tableKey: "cross_hearing_baseline.metric_comparators" });
+      return;
+    }
+
+    const selectedOption = options.find((option) => option.id === state.activeCrossHearingChannel) || options[0];
+    if (selectedOption && state.activeCrossHearingChannel !== selectedOption.id) {
+      state.activeCrossHearingChannel = selectedOption.id;
+    }
+
+    if (!select.options.length) {
+      select.innerHTML = "";
+      options.forEach((option) => {
+        const element = document.createElement("option");
+        element.value = option.id;
+        element.textContent = option.label;
+        select.appendChild(element);
+      });
+      select.addEventListener("change", () => {
+        state.activeCrossHearingChannel = select.value;
+        renderCrossHearingOverviewPanel();
+        renderAnalysisExpectedCallouts();
+      });
+    }
+    select.value = state.activeCrossHearingChannel;
+
+    const channel = activeCrossHearingChannelPayload();
+    const comparatorRows = mapComparatorRowsForDisplay(channel ? channel.metricComparators : []);
+    const supportText = supportTierLabel(channel ? channel.supportTier : "unavailable");
+    const reportCount = channel ? Math.max(0, Math.round(toNumber(channel.reportCount))) : 0;
+    const channelLabel = channel ? channel.label : "LOO";
+    if (!channel || !channel.available) {
+      const reason = channel && channel.reason ? channel.reason : "insufficient_support";
+      summaryHost.textContent =
+        channelLabel +
+        ": comparator unavailable (" +
+        reason.replace(/_/g, " ") +
+        "). At least 10 comparison reports are required.";
+      warningHost.classList.remove("hidden");
+      warningHost.classList.remove("ok");
+      warningHost.textContent =
+        "Cross-hearing comparator is unavailable for this channel due to insufficient support.";
+      mountTable(tableHost, [], { pagination: false, tableKey: "cross_hearing_baseline.metric_comparators" });
+      return;
+    }
+
+    summaryHost.textContent =
+      channelLabel +
+      ": " +
+      reportCount.toLocaleString() +
+      " comparison reports · support " +
+      supportText +
+      ".";
+    if (channel.descriptiveOnly) {
+      warningHost.classList.remove("hidden");
+      warningHost.classList.remove("ok");
+      warningHost.textContent =
+        "Descriptive-only comparator support (10–19 reports). Treat expected-vs-actual differences as context, not inferential severity.";
+    } else {
+      warningHost.classList.add("hidden");
+      warningHost.textContent = "";
+    }
+
+    mountTable(tableHost, comparatorRowsToTable(comparatorRows), {
+      pagination: false,
+      maxHeight: "300px",
+      tableKey: "cross_hearing_baseline.metric_comparators",
+    });
+  }
+
+  function renderAnalysisExpectedCallouts() {
+    const channel = activeCrossHearingChannelPayload();
+    const comparatorRows = mapComparatorRowsForDisplay(channel ? channel.metricComparators : []);
+    const byMetric = new Map(comparatorRows.map((row) => [String(row.metric_id || ""), row]));
+    const supportsChannel = !!(channel && channel.available);
+    const channelLabel = channel ? channel.label : "LOO";
+    const analysisMap =
+      crossHearingBaseline.analysisMetricMap && typeof crossHearingBaseline.analysisMetricMap === "object"
+        ? crossHearingBaseline.analysisMetricMap
+        : {};
+
+    const hosts = Array.from(document.querySelectorAll("[data-analysis-expected-for]"));
+    hosts.forEach((card) => {
+      const analysisId = String(card.getAttribute("data-analysis-expected-for") || "").trim();
+      const summaryHost = card.querySelector(
+        '[data-analysis-expected-summary-for="' + analysisId + '"]'
+      );
+      const warningHost = document.getElementById("analysis-expected-warning-" + analysisId);
+      const tableHost = document.getElementById("analysis-expected-host-" + analysisId);
+      if (!analysisId || !summaryHost || !warningHost || !tableHost) {
+        return;
+      }
+
+      const analysis = analysisById.get(analysisId) || {};
+      const keysRaw = Array.isArray(analysisMap[analysisId])
+        ? analysisMap[analysisId]
+        : Array.isArray(analysis.expected_metric_keys)
+          ? analysis.expected_metric_keys
+          : [];
+      const metricKeys = keysRaw
+        .map((key) => String(key || "").trim())
+        .filter((key) => !!key);
+      const rows = metricKeys
+        .map((metricKey) => byMetric.get(metricKey))
+        .filter((row) => !!row);
+
+      if (!supportsChannel || !rows.length) {
+        card.classList.add("hidden");
+        mountTable(tableHost, [], { pagination: false, tableKey: "cross_hearing_baseline.metric_comparators" });
+        return;
+      }
+
+      card.classList.remove("hidden");
+      summaryHost.textContent =
+        channelLabel +
+        " context for " +
+        (analysis && analysis.title ? String(analysis.title) : analysisId) +
+        ". Support: " +
+        supportTierLabel(channel.supportTier) +
+        ".";
+      if (channel.descriptiveOnly) {
+        warningHost.classList.remove("hidden");
+        warningHost.classList.remove("ok");
+        warningHost.textContent =
+          "Descriptive-only support: expected-vs-actual values are contextual and should not be severity-colored.";
+      } else {
+        warningHost.classList.add("hidden");
+        warningHost.textContent = "";
+      }
+
+      mountTable(tableHost, comparatorRowsToTable(rows), {
+        pagination: false,
+        maxHeight: "220px",
+        tableKey: "cross_hearing_baseline.metric_comparators",
+      });
+    });
   }
 
   function renderTriageSummary() {
@@ -11203,9 +11661,11 @@
     renderDataQualityPanel();
     renderHearingContextPanel();
     renderTriageSummary();
+    renderCrossHearingOverviewPanel();
     await ensureWindowDrilldownDataLoaded();
     renderInvestigationTables();
   }
+  renderAnalysisExpectedCallouts();
   initSidebarToggle();
   initGlobalControlsCollapse();
   initBucketTabs();

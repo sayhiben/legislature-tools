@@ -1,29 +1,34 @@
 {
   "schema_version": 2,
   "report_id": "ESSB6346-20260224-0800",
-  "generated_at_utc": "2026-02-24T00:10:49.134772+00:00",
+  "generated_at_utc": "2026-02-26T09:41:51.217092+00:00",
   "lens": "side_by_side",
   "date_range_start": "2026-02-18T16:08:00-08:00",
-  "date_range_end": "2026-02-23T16:04:00-08:00",
+  "date_range_end": "2026-02-24T06:59:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Finance"
+  },
+  "chamber": "House",
+  "committee_name": "Finance",
   "metrics": {
-    "total_submissions": 121110,
-    "overall_pro_rate": 0.0854264718024936,
-    "overall_con_rate": 0.9115845099496326,
+    "total_submissions": 129971,
+    "overall_pro_rate": 0.09774488155049972,
+    "overall_con_rate": 0.8992313669972533,
     "window_queue_size": 0,
-    "record_queue_size": 250,
-    "cluster_queue_size": 250,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
     "window_high_count": 0,
     "window_medium_count": 0,
     "window_watch_count": 0,
-    "window_high_share": 0.0,
+    "window_high_share": null,
     "window_top_score": null,
     "window_top_abs_z": null,
-    "window_top_dup_fraction": null,
+    "window_top_dup_fraction": 0.2901471133638274,
     "window_min_q_value": null,
     "top_name_max_records": 141,
-    "top_cluster_max_records": 36,
-    "off_hours_ratio": 0.049335315002889936,
-    "dedup_drop_fraction": 0.006564280406242259
+    "off_hours_ratio": 0.05205007270852729,
+    "dedup_drop_fraction": 0.006539920443791307
   },
   "top_repeated_names": [
     {
@@ -34,68 +39,41 @@
       "n_con": 141
     },
     {
+      "canonical_name": "MERRITT|BECKY||",
+      "display_name": "MERRITT, BECKY",
+      "n_records": 99,
+      "n_pro": 0,
+      "n_con": 99
+    },
+    {
+      "canonical_name": "HARSHAW|NORM||",
+      "display_name": "HARSHAW, NORM",
+      "n_records": 82,
+      "n_pro": 0,
+      "n_con": 82
+    },
+    {
       "canonical_name": "KESSELRING|BEVERLY||",
       "display_name": "KESSELRING, BEVERLY",
-      "n_records": 68,
+      "n_records": 70,
       "n_pro": 0,
-      "n_con": 68
+      "n_con": 70
     },
     {
-      "canonical_name": "BACKOUS|KATHLEEN||",
-      "display_name": "BACKOUS, KATHLEEN",
-      "n_records": 42,
+      "canonical_name": "CONNER|DOUG||",
+      "display_name": "CONNER, DOUG",
+      "n_records": 46,
       "n_pro": 0,
-      "n_con": 42
-    },
-    {
-      "canonical_name": "KESSELRING|JERRY||",
-      "display_name": "KESSELRING, JERRY",
-      "n_records": 41,
-      "n_pro": 0,
-      "n_con": 41
-    },
-    {
-      "canonical_name": "DURHAM|RHONDA||",
-      "display_name": "DURHAM, RHONDA",
-      "n_records": 36,
-      "n_pro": 0,
-      "n_con": 36
-    }
-  ],
-  "top_near_dup_clusters": [
-    {
-      "cluster_id": "cluster_0001",
-      "cluster_size": 16,
-      "n_records": 36
-    },
-    {
-      "cluster_id": "cluster_0003",
-      "cluster_size": 11,
-      "n_records": 25
-    },
-    {
-      "cluster_id": "cluster_0005",
-      "cluster_size": 10,
-      "n_records": 20
-    },
-    {
-      "cluster_id": "cluster_0002",
-      "cluster_size": 11,
-      "n_records": 15
-    },
-    {
-      "cluster_id": "cluster_0004",
-      "cluster_size": 11,
-      "n_records": 11
+      "n_con": 46
     }
   ],
   "material_quality_metric_count": 0,
-  "total_submissions": 121110,
-  "overall_pro_rate": 0.0854264718024936,
-  "overall_con_rate": 0.9115845099496326,
+  "total_submissions": 129971,
+  "overall_pro_rate": 0.09774488155049972,
+  "overall_con_rate": 0.8992313669972533,
   "window_queue_size": 0,
-  "record_queue_size": 250,
-  "cluster_queue_size": 250,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
   "window_high_count": 0,
   "window_medium_count": 0,
   "window_watch_count": 0

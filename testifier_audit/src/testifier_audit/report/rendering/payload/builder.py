@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from collections import defaultdict
+from pathlib import Path
 from time import perf_counter
 from typing import Any
 
@@ -30,6 +31,10 @@ from testifier_audit.report.analysis_registry import (
     focus_mode_for_analysis_ids as registry_focus_mode_for_analysis_ids,
 )
 from testifier_audit.report.contracts import default_color_semantics
+from testifier_audit.report.global_baselines import (
+    default_cross_hearing_loo_payload,
+    normalize_leave_one_out_baseline_payload,
+)
 from testifier_audit.report.help_registry import (
     build_methodology_content,
     default_evidence_taxonomy,
@@ -204,10 +209,32 @@ def _build_bucketed_day_hour_profiles(
     return _with_expected_columns(grouped, expected)
 
 
+def _load_cross_hearing_baseline_payload(out_dir: Path | None) -> dict[str, Any]:
+    if out_dir is None:
+        return normalize_leave_one_out_baseline_payload(default_cross_hearing_loo_payload())
+    summary_path = out_dir / "summary" / "cross_hearing_baseline_loo.json"
+    if not summary_path.exists():
+        normalized = normalize_leave_one_out_baseline_payload(default_cross_hearing_loo_payload())
+        normalized["source_path"] = str(summary_path)
+        return normalized
+    try:
+        with summary_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        normalized = normalize_leave_one_out_baseline_payload(default_cross_hearing_loo_payload())
+        normalized["source_path"] = str(summary_path)
+        normalized["reason"] = "invalid_baseline_payload"
+        return normalized
+    normalized = normalize_leave_one_out_baseline_payload(payload if isinstance(payload, dict) else None)
+    normalized["source_path"] = str(summary_path)
+    return normalized
+
+
 def _build_interactive_chart_payload_v2(
     table_map: dict[str, pd.DataFrame],
     detector_summaries: dict[str, dict[str, Any]],
     *,
+    cross_hearing_baseline: dict[str, Any] | None = None,
     default_dedup_mode: str | None = None,
     min_cell_n_for_rates: int = 25,
     hearing_metadata: HearingMetadata | None = None,
@@ -2102,6 +2129,7 @@ def _build_interactive_chart_payload_v2(
             lower_alert | upper_alert
         )
 
+    global_match_rate = float("nan")
     if not voter_bucket.empty:
         voter_bucket["n_total"] = pd.to_numeric(
             voter_bucket.get("n_total"), errors="coerce"
@@ -2229,6 +2257,14 @@ def _build_interactive_chart_payload_v2(
             voter_bucket["is_match_rate_alert_lower"].astype(bool)
             | voter_bucket["is_match_rate_alert_upper"].astype(bool)
         )
+    expected_unmatched_rate_global = (
+        (1.0 - global_match_rate) if np.isfinite(global_match_rate) else float("nan")
+    )
+    for position_frame in (voter_position_rows, voter_position_unique):
+        if position_frame.empty:
+            continue
+        position_frame["expected_match_rate_global"] = global_match_rate
+        position_frame["expected_unmatched_rate_global"] = expected_unmatched_rate_global
 
     baseline_bucket_profiles = _build_bucketed_baseline_profiles(
         counts_per_minute=counts_per_minute,
@@ -3387,12 +3423,14 @@ def _build_interactive_chart_payload_v2(
     )
     charts["voter_registry_linkage_by_position_rows"] = _records_from_frame(
         voter_position_rows.sort_values(["match_mode", "position_normalized"]),
-        columns=list(_VOTER_LINKAGE_POSITION_CHART_COLUMNS),
+        columns=list(_VOTER_LINKAGE_POSITION_CHART_COLUMNS)
+        + ["expected_match_rate_global", "expected_unmatched_rate_global"],
         max_rows=100,
     )
     charts["voter_registry_linkage_by_position_unique"] = _records_from_frame(
         voter_position_unique.sort_values(["match_mode", "position_normalized"]),
-        columns=list(_VOTER_LINKAGE_POSITION_CHART_COLUMNS),
+        columns=list(_VOTER_LINKAGE_POSITION_CHART_COLUMNS)
+        + ["expected_match_rate_global", "expected_unmatched_rate_global"],
         max_rows=100,
     )
     voter_unmatched_top = voter_unmatched.sort_values(
@@ -3653,6 +3691,9 @@ def _build_interactive_chart_payload_v2(
     )
 
     analysis_definitions = registry_analysis_definitions()
+    cross_hearing_payload = normalize_leave_one_out_baseline_payload(
+        cross_hearing_baseline if isinstance(cross_hearing_baseline, dict) else None
+    )
     look_for_details = _detailed_what_to_look_for_by_analysis()
     analysis_help_docs = _build_analysis_help_docs(
         analysis_definitions=analysis_definitions,
@@ -3715,6 +3756,7 @@ def _build_interactive_chart_payload_v2(
                 "what_to_look_for": definition["what_to_look_for"],
                 "what_to_look_for_details": look_for_details.get(str(definition["id"]), []),
                 "common_benign_causes": definition["common_benign_causes"],
+                "expected_metric_keys": list(definition.get("expected_metric_keys") or []),
                 "help_sections": analysis_help_docs.get(str(definition["id"]), {}),
             }
         )
@@ -3737,6 +3779,16 @@ def _build_interactive_chart_payload_v2(
         analysis_id for analysis_id in analysis_allowlist if analysis_id in visible_analysis_id_set
     ]
     focus_mode = registry_focus_mode_for_analysis_ids(focus_analysis_ids)
+    analysis_metric_map = {
+        str(analysis.get("id") or ""): [
+            str(metric_key)
+            for metric_key in analysis.get("expected_metric_keys", [])
+            if isinstance(metric_key, str) and metric_key
+        ]
+        for analysis in analysis_catalog
+        if str(analysis.get("id") or "")
+    }
+    cross_hearing_payload["analysis_metric_map"] = analysis_metric_map
     visible_chart_ids = {
         str(chart_id)
         for analysis in analysis_catalog
@@ -3898,6 +3950,7 @@ def _build_interactive_chart_payload_v2(
         "charts": charts,
         "chart_legend_docs": chart_legend_docs,
         "chart_help_docs": chart_help_docs,
+        "cross_hearing_baseline": cross_hearing_payload,
         "triage_views": triage_views,
         "triage_summary": triage_summary,
         "data_quality_panel": data_quality_panel,
@@ -3977,15 +4030,18 @@ def _interactive_chart_payload_from_results(
     results: dict[str, DetectorResult],
     artifacts: dict[str, pd.DataFrame],
     *,
+    out_dir: Path | None = None,
     default_dedup_mode: str | None = None,
     min_cell_n_for_rates: int = 25,
     hearing_metadata: HearingMetadata | None = None,
 ) -> dict[str, Any]:
     table_map = _load_table_map_from_results(results=results, artifacts=artifacts)
     detector_summaries = {name: result.summary for name, result in sorted(results.items())}
+    cross_hearing_baseline = _load_cross_hearing_baseline_payload(out_dir)
     return _build_interactive_chart_payload_v2(
         table_map=table_map,
         detector_summaries=detector_summaries,
+        cross_hearing_baseline=cross_hearing_baseline,
         default_dedup_mode=default_dedup_mode,
         min_cell_n_for_rates=min_cell_n_for_rates,
         hearing_metadata=hearing_metadata,
@@ -4001,9 +4057,11 @@ def _interactive_chart_payload_from_disk(
 ) -> dict[str, Any]:
     table_map = _load_table_map_from_disk(out_dir=out_dir)
     detector_summaries = _load_summaries_from_disk(out_dir)
+    cross_hearing_baseline = _load_cross_hearing_baseline_payload(out_dir)
     return _build_interactive_chart_payload_v2(
         table_map=table_map,
         detector_summaries=detector_summaries,
+        cross_hearing_baseline=cross_hearing_baseline,
         default_dedup_mode=default_dedup_mode,
         min_cell_n_for_rates=min_cell_n_for_rates,
         hearing_metadata=hearing_metadata,

@@ -724,6 +724,34 @@ code {
   padding: 0.3rem 0.5rem;
 }
 
+.cross-hearing-controls {
+  margin-top: 0.48rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+}
+
+.cross-hearing-controls label {
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cross-hearing-controls select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.24rem 0.48rem;
+}
+
+.analysis-expected-callout {
+  margin-top: 0.68rem;
+}
+
 .warning-banner {
   margin-top: 0.5rem;
   border: 1px solid #fde68a;
@@ -1932,7 +1960,8 @@ tr.duplicate-name-inline-detail-row > td {
 :root[data-theme="dark"] .control-icon-button,
 :root[data-theme="dark"] .control-button,
 :root[data-theme="dark"] .bucket-tab,
-:root[data-theme="dark"] .triage-lens-select {
+:root[data-theme="dark"] .triage-lens-select,
+:root[data-theme="dark"] .cross-hearing-controls select {
   background: #0f1e33;
   color: var(--ink);
   border-color: #365175;

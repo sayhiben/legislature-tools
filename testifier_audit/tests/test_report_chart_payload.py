@@ -209,6 +209,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
         assert entry["bucket_options"] == EXPECTED_BASELINE_BUCKETS
         assert isinstance(entry["group"], str) and entry["group"]
         assert isinstance(entry["priority"], int)
+        assert isinstance(entry["expected_metric_keys"], list)
         assert isinstance(entry["what_to_look_for_details"], list)
         assert entry["what_to_look_for_details"]
         assert hero_chart_id in payload["chart_legend_docs"]
@@ -239,6 +240,14 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert linkage_rows_chart
     assert linkage_unique_chart
     assert list(linkage_rows_chart[0].keys()) == list(linkage_unique_chart[0].keys())
+    assert "expected_match_rate_global" in linkage_rows_chart[0]
+    assert "expected_unmatched_rate_global" in linkage_rows_chart[0]
+    expected_match_rate = linkage_rows_chart[0]["expected_match_rate_global"]
+    expected_unmatched_rate = linkage_rows_chart[0]["expected_unmatched_rate_global"]
+    assert isinstance(expected_match_rate, (int, float))
+    assert isinstance(expected_unmatched_rate, (int, float))
+    assert 0.0 <= float(expected_match_rate) <= 1.0
+    assert 0.0 <= float(expected_unmatched_rate) <= 1.0
 
     controls = payload["controls"]
     assert "global_bucket_options" in controls
@@ -311,7 +320,12 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert payload["data_quality_panel"]["status"] in {"ok", "warning"}
     assert isinstance(payload["data_quality_panel"]["triage_raw_vs_dedup_metrics"], list)
     assert payload["hearing_context_panel"]["available"] is False
-    assert "cross_hearing_baseline" not in payload
+    cross_hearing = payload["cross_hearing_baseline"]
+    assert isinstance(cross_hearing, dict)
+    assert int(cross_hearing["schema_version"]) >= 2
+    assert isinstance(cross_hearing["channels"], dict)
+    assert {"cohort_loo", "global_loo"}.issubset(set(cross_hearing["channels"].keys()))
+    assert isinstance(cross_hearing["analysis_metric_map"], dict)
 
 
 def test_payload_color_semantics_cover_key_chart_families() -> None:

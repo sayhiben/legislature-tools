@@ -299,7 +299,8 @@ for stem in "${FINAL_OK[@]}"; do
     cd "${PROJECT_ROOT}" && \
     python ./scripts/report/build_leave_one_out_baseline.py \
       --reports-dir "${REPORTS_ROOT}" \
-      --report-id "${stem}"
+      --report-id "${stem}" \
+      --cohort-strategy hierarchical
   ); then
     LOO_FAILED+=("${stem}")
     echo "  [loo][failed] ${stem}" >&2

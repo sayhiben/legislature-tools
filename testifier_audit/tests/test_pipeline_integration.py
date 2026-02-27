@@ -160,6 +160,7 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert (out_dir / "report_data" / "index.json").exists()
     assert any((out_dir / "report_data" / "analyses").rglob("base.json"))
     assert (out_dir / "summary" / "investigation_summary.json").exists()
+    assert (out_dir / "summary" / "feature_vector.json").exists()
     enabled_detector_names = configured_detector_names()
     if _configured_focus_analysis_ids():
         assert enabled_detector_names
@@ -244,6 +245,14 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         if isinstance(report_data_payload, dict)
         else {}
     )
+    cross_hearing_baseline = (
+        report_data_payload.get("interactive_charts", {}).get("cross_hearing_baseline", {})
+        if isinstance(report_data_payload, dict)
+        else {}
+    )
+    assert isinstance(cross_hearing_baseline, dict)
+    assert int(cross_hearing_baseline.get("schema_version", 0)) >= 2
+    assert isinstance(cross_hearing_baseline.get("channels"), dict)
     duplicate_manifest = (
         chart_manifest.get("analysis", {}).get("duplicates_exact", {})
         if isinstance(chart_manifest, dict)
@@ -343,6 +352,7 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         ],
     )
     assert report_result.exit_code == 0, report_result.stdout
+    assert (out_dir / "summary" / "feature_vector.json").exists()
     reloaded_report_text = (out_dir / "report.html").read_text(encoding="utf-8")
     if _is_off_hours_only_view():
         assert 'data-analysis-id="off_hours"' in reloaded_report_text

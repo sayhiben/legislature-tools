@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import pandas as pd
 
+from testifier_audit.report.global_baselines import build_feature_vector
 from testifier_audit.report.rendering.serialization import _json_safe
 
 try:
@@ -15,6 +16,11 @@ except ImportError:  # pragma: no cover
     pq = None
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
 
 def _rows_to_frame(rows: Any) -> pd.DataFrame:
     if not isinstance(rows, list) or not rows:
@@ -40,8 +46,11 @@ def _rows_to_frame(rows: Any) -> pd.DataFrame:
 
 def _write_investigation_artifacts(
     out_dir: Path,
+    report_id: str,
     triage_summary: dict[str, Any],
     data_quality_panel: Any,
+    detector_summaries: Mapping[str, Mapping[str, Any]] | None = None,
+    hearing_context_panel: Mapping[str, Any] | None = None,
 ) -> None:
     summary_dir = out_dir / "summary"
     tables_dir = out_dir / "tables"
@@ -51,6 +60,21 @@ def _write_investigation_artifacts(
     summary_payload = _json_safe(triage_summary if isinstance(triage_summary, dict) else {})
     (summary_dir / "investigation_summary.json").write_text(
         json.dumps(summary_payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    feature_vector_payload = build_feature_vector(
+        report_id=str(report_id or out_dir.name),
+        triage_summary=summary_payload,
+        window_evidence_queue=[],
+        record_evidence_queue=[],
+        cluster_evidence_queue=[],
+        data_quality_panel=_as_dict(data_quality_panel),
+        detector_summaries=_as_dict(detector_summaries),
+        hearing_context_panel=_as_dict(hearing_context_panel),
+    )
+    (summary_dir / "feature_vector.json").write_text(
+        json.dumps(_json_safe(feature_vector_payload), indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
 

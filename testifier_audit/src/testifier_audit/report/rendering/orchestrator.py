@@ -79,6 +79,7 @@ def render_report(
         _interactive_chart_payload_from_results(
             results=results,
             artifacts=artifacts,
+            out_dir=out_dir,
             default_dedup_mode=default_dedup_mode,
             min_cell_n_for_rates=min_cell_n_for_rates,
             hearing_metadata=hearing_metadata,
@@ -100,8 +101,11 @@ def render_report(
         interactive_charts["controls"]["runtime"] = runtime_metrics
     _write_investigation_artifacts(
         out_dir=out_dir,
+        report_id=out_dir.name,
         triage_summary=interactive_charts.get("triage_summary", {}),
         data_quality_panel=interactive_charts.get("data_quality_panel", {}),
+        detector_summaries=detector_summaries,
+        hearing_context_panel=interactive_charts.get("hearing_context_panel", {}),
     )
 
     detector_summaries_safe = _json_safe(detector_summaries)

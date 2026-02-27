@@ -14,6 +14,7 @@ class AnalysisDefinition:
     how_to_read: str
     what_to_look_for: str
     common_benign_causes: str
+    expected_metric_keys: tuple[str, ...] = ()
     group: str = "detector_analysis"
     priority: int = 50
 
@@ -27,6 +28,7 @@ class AnalysisDefinition:
             "how_to_read": self.how_to_read,
             "what_to_look_for": self.what_to_look_for,
             "common_benign_causes": self.common_benign_causes,
+            "expected_metric_keys": list(self.expected_metric_keys),
             "group": self.group,
             "priority": self.priority,
         }
@@ -68,6 +70,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "Hearing schedule transitions and reminder cascades can create expected "
             "baseline shifts."
         ),
+        expected_metric_keys=("total_submissions", "overall_pro_rate"),
     ),
     AnalysisDefinition(
         id="bursts",
@@ -88,6 +91,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "Agenda release timing and outbound campaign alerts can generate short-lived "
             "legitimate bursts."
         ),
+        expected_metric_keys=("window_high_share", "window_top_score"),
     ),
     AnalysisDefinition(
         id="procon_swings",
@@ -113,6 +117,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "Daypart participation mix and event-response waves can move ratios without "
             "manipulation."
         ),
+        expected_metric_keys=("overall_pro_rate", "window_top_abs_z"),
     ),
     AnalysisDefinition(
         id="off_hours",
@@ -139,6 +144,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "Time-zone spillover, campaign scheduling, and hearing-deadline pushes can "
             "produce legitimate overnight composition shifts."
         ),
+        expected_metric_keys=("off_hours_ratio",),
     ),
     AnalysisDefinition(
         id="duplicates_exact",
@@ -166,6 +172,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         common_benign_causes=(
             "Common names and legitimate coordinated outreach can elevate duplicate pressure."
         ),
+        expected_metric_keys=("top_name_max_records", "dedup_drop_fraction", "window_top_dup_fraction"),
     ),
     AnalysisDefinition(
         id="org_anomalies",
@@ -186,6 +193,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "Form UX and campaign guidance often increase legitimate blank organization "
             "submissions."
         ),
+        expected_metric_keys=("total_submissions",),
     ),
     AnalysisDefinition(
         id="voter_registry_match",
@@ -213,6 +221,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "Name normalization gaps, registration recency, and non-registered participants can "
             "raise unmatched rates."
         ),
+        expected_metric_keys=("overall_pro_rate",),
     ),
 )
 

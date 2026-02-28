@@ -37,9 +37,7 @@ class AnalysisDefinition:
 # Temporary analysis scope for active development.
 # Uncomment analyses to run/render; leave empty to run/render the full pack.
 ANALYSES_TO_PERFORM: tuple[str, ...] = (
-    "baseline_profile",
     "bursts",
-    # "procon_swings",
     "duplicates_exact",
     "org_anomalies",
     "voter_registry_match",
@@ -48,30 +46,6 @@ ANALYSES_TO_PERFORM: tuple[str, ...] = (
 
 
 _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
-    AnalysisDefinition(
-        id="baseline_profile",
-        title="Baseline Profile",
-        detector=None,
-        hero_chart_id="baseline_volume_pro_rate",
-        detail_chart_ids=(
-            "baseline_day_hour_volume",
-            "baseline_top_names",
-            "baseline_name_length_distribution",
-        ),
-        how_to_read=(
-            "Start with baseline volume and pro-rate movement to establish normal tempo "
-            "before detector-specific interpretation."
-        ),
-        what_to_look_for=(
-            "Baseline breaks in volume or composition that align with detector flags "
-            "and repeat across adjacent windows."
-        ),
-        common_benign_causes=(
-            "Hearing schedule transitions and reminder cascades can create expected "
-            "baseline shifts."
-        ),
-        expected_metric_keys=("total_submissions", "overall_pro_rate"),
-    ),
     AnalysisDefinition(
         id="bursts",
         title="Burst Windows",
@@ -95,32 +69,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "legitimate bursts."
         ),
         expected_metric_keys=("window_high_share", "window_top_score"),
-    ),
-    AnalysisDefinition(
-        id="procon_swings",
-        title="Pro/Con Swings",
-        detector="procon_swings",
-        hero_chart_id="procon_swings_hero_bucket_trend",
-        detail_chart_ids=(
-            "procon_swings_shift_heatmap",
-            "procon_swings_day_hour_heatmap",
-            "procon_swings_time_of_day_profile",
-            "procon_swings_direction_runs",
-            "procon_swings_null_distribution",
-        ),
-        how_to_read=(
-            "Track pro-rate relative to stable bands and baseline while preserving "
-            "per-bucket uncertainty context."
-        ),
-        what_to_look_for=(
-            "Sustained directional ratio changes across neighboring buckets and repeated "
-            "dayparts, especially when contiguous same-direction runs lengthen."
-        ),
-        common_benign_causes=(
-            "Daypart participation mix and event-response waves can move ratios without "
-            "manipulation."
-        ),
-        expected_metric_keys=("overall_pro_rate", "window_top_abs_z"),
     ),
     AnalysisDefinition(
         id="off_hours",
@@ -185,8 +133,9 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "org_anomalies_position_rates",
         ),
         how_to_read=(
-            "Track overall blank-organization rate over time first, then compare "
-            "blank-rate differences by position in the same windows."
+            "Track overall blank-organization rate over time first using stacked "
+            "Pro/Con volume context bars, then compare position-specific blank-rate "
+            "differences in the same windows."
         ),
         what_to_look_for=(
             "Sustained blank-rate elevation in bucketed timelines, and consistent Pro/Con "
@@ -231,9 +180,7 @@ _ANALYSIS_DETECTOR_DEPENDENCIES: dict[str, tuple[str, ...]] = {}
 
 
 _ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
-    "baseline_profile": ("baseline", 100),
     "bursts": ("window_signals", 95),
-    "procon_swings": ("window_signals", 94),
     "off_hours": ("window_signals", 86),
     "duplicates_exact": ("identity_forensics", 88),
     "org_anomalies": ("field_quality", 78),

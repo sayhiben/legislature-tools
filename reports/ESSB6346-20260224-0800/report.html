@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-27T18:51:19.108807-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-27T21:35:00.808815-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -292,7 +292,7 @@
       <p><strong>Legend guide:</strong> Stacked pro/con/other volume by time bucket.</p>
         <ul>
             <li><strong>Stacked columns:</strong> Each bucket stacks Pro, Con, and Other testimony counts so composition and total support are visible at once.</li>
-            <li><strong>Pro-share lines:</strong> Solid line is observed Pro share in each bucket; dashed line at 50% is the neutral split reference to highlight when sentiment is majority Pro versus majority Con.</li>
+            <li><strong>Pro-share lines:</strong> Solid line is observed Pro share in each bucket; dashed horizontal line at 50% is the neutral split reference; dashed Wilson low/high bounds show 95% uncertainty for the Pro-share estimate.</li>
             <li><strong>Axes:</strong> X-axis is bucket timestamp in report timezone; Y-axis is submission count.</li>
         </ul>
   </div>
@@ -379,137 +379,6 @@
             </div>
           </section>
 <section id="analysis-root" class="report-section">
-    <section
-      class="analysis-section"
-      id="section-baseline_profile"
-      data-analysis-id="baseline_profile"
-      data-analysis-status="ready"
-      data-analysis-detector=""
-    >
-      <div class="analysis-header">
-        <h2 id="analysis-baseline_profile" class="toc-heading">Baseline Profile</h2>
-      </div>
-
-      <div class="analysis-hero-block">
-        <div class="chart-host chart-host-hero" data-chart-id="baseline_volume_pro_rate" data-chart-role="hero"></div>
-<p class="empty-message hidden" data-chart-empty-for="baseline_volume_pro_rate">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="baseline_volume_pro_rate"></p>
-        <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Baseline trend of submissions and pro share. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Volume, Pro rate, Wilson low / Wilson high, Low-power.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Baseline trend of submissions and pro share.</p>
-        <ul>
-            <li><strong>Volume:</strong> Bars show record volume in each time bucket.</li>
-            <li><strong>Pro rate:</strong> Line shows pro-position share per bucket.</li>
-            <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
-            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
-        </ul>
-  </div>
-</details>
-
-      </div>
-
-      <details class="analysis-help-card">
-  <summary>Analysis Help</summary>
-  <div class="analysis-help-body">
-      <p><strong>What is this?</strong> Baseline Profile focuses on baseline volume and composition drift. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
-      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
-      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
-      <p><strong>What do I look for?</strong> Baseline breaks in volume or composition that align with detector flags and repeat across adjacent windows. Short, isolated spikes in volume with no matching shift in pro rate or corroborating detector flags are often random campaign pulses rather than systemic manipulation. Extended level shifts (for example, 60-240 minutes) in both volume and composition, especially when Wilson bands tighten, suggest a meaningful regime change worth cross-checking against corroborating detector evidence. Very low overnight volume can create dramatic percentage swings; prioritize windows where elevated rates persist after local volume recovers into daytime traffic. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
-      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate a short notice event, reminder blast, or temporary queue release. Momentary lows can indicate normal minute-level quiet periods or ingest timing jitter. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
-      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate a sustained participation regime shift that can affect all downstream detectors. Extended lows can indicate potential ingestion gaps, hearing lulls, or sustained reduced campaign activity. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
-      <ul>
-          <li>Short, isolated spikes in volume with no matching shift in pro rate or corroborating detector flags are often random campaign pulses rather than systemic manipulation.</li>
-          <li>Extended level shifts (for example, 60-240 minutes) in both volume and composition, especially when Wilson bands tighten, suggest a meaningful regime change worth cross-checking against corroborating detector evidence.</li>
-          <li>Very low overnight volume can create dramatic percentage swings; prioritize windows where elevated rates persist after local volume recovers into daytime traffic.</li>
-      </ul>
-    <p><strong>Common benign causes:</strong> Hearing schedule transitions and reminder cascades can create expected baseline shifts.</p>
-  </div>
-</details>
-
-        <div class="analysis-detail-grid">
-            <article class="detail-card">
-              <h3 class="detail-title">Baseline Day Hour Volume</h3>
-              <p class="tiny-note"><code>baseline_day_hour_volume</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="baseline_day_hour_volume" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="baseline_day_hour_volume">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="baseline_day_hour_volume"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Day/hour baseline heatmap. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Cell color, X/Y axes.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Day/hour baseline heatmap.</p>
-        <ul>
-            <li><strong>Cell color:</strong> Darker cells indicate higher submission volume for that weekday/hour.</li>
-            <li><strong>X/Y axes:</strong> X-axis is hour of day; Y-axis is weekday.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Baseline Top Names</h3>
-              <p class="tiny-note"><code>baseline_top_names</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="baseline_top_names" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="baseline_top_names">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="baseline_top_names"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Top-frequency names. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis names.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Top-frequency names.</p>
-        <ul>
-            <li><strong>Bar height:</strong> Total submissions associated with each displayed name.</li>
-            <li><strong>X-axis names:</strong> Most frequent names (trimmed to top slice for readability).</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-            <article class="detail-card">
-              <h3 class="detail-title">Baseline Name Length Distribution</h3>
-              <p class="tiny-note"><code>baseline_name_length_distribution</code></p>
-              <div class="chart-host chart-host-detail" data-chart-id="baseline_name_length_distribution" data-chart-role="detail"></div>
-<p class="empty-message hidden" data-chart-empty-for="baseline_name_length_distribution">No chartable records for this run.</p>
-<p class="tiny-note chart-note" data-chart-note-for="baseline_name_length_distribution"></p>
-              <details class="chart-help-card">
-  <summary>Chart Help</summary>
-  <div class="chart-help-body">
-      <p><strong>What is this?</strong> Name-length histogram view. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
-      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
-      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
-      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
-      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Name-length histogram view.</p>
-        <ul>
-            <li><strong>Bar height:</strong> Count of names with the corresponding character length.</li>
-            <li><strong>X-axis:</strong> Normalized name length in characters.</li>
-        </ul>
-  </div>
-</details>
-
-            </article>
-        </div>
-
-      <div class="analysis-tables" data-analysis-tables-for="baseline_profile"></div>
-    </section>
     <section
       class="analysis-section"
       id="section-bursts"
@@ -827,12 +696,12 @@
       <p><strong>What is this?</strong> Blank organization-rate trend with position splits. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
       <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
       <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
-      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Volume, Blank org rate, Wilson low / Wilson high, Pro blank org rate, Con blank org rate, Low-power.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Positioned rows, Blank org rate, Wilson low / Wilson high, Pro blank org rate, Con blank org rate, Low-power.</p>
       <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
       <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
       <p><strong>Legend guide:</strong> Blank organization-rate trend with position splits.</p>
         <ul>
-            <li><strong>Volume:</strong> Bars show record volume in each time bucket.</li>
+            <li><strong>Positioned rows:</strong> Stacked Pro/Con row counts in each bucket (desaturated context bars).</li>
             <li><strong>Blank org rate:</strong> Overall blank/null organization share per bucket.</li>
             <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
             <li><strong>Pro blank org rate:</strong> Blank-org share among pro records.</li>
@@ -872,17 +741,19 @@
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Per-position blank-org rates by time bucket. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>What is this?</strong> Per-position blank-org rates (Pro/Con/Other) by time bucket. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
       <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
       <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Volume, Blank org rate, Wilson low / Wilson high, Low-power.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Positioned rows, Pro blank org rate, Wilson low / Wilson high, Con blank org rate, Other blank org rate, Low-power.</p>
       <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
       <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
-      <p><strong>Legend guide:</strong> Per-position blank-org rates by time bucket.</p>
+      <p><strong>Legend guide:</strong> Per-position blank-org rates (Pro/Con/Other) by time bucket.</p>
         <ul>
-            <li><strong>Volume:</strong> Bars show record volume in each time bucket.</li>
-            <li><strong>Blank org rate:</strong> Position-specific blank organization share.</li>
+            <li><strong>Positioned rows:</strong> Stacked Pro/Con row counts in each bucket (desaturated context bars).</li>
+            <li><strong>Pro blank org rate:</strong> Blank organization share among Pro records in each bucket.</li>
             <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
+            <li><strong>Con blank org rate:</strong> Blank organization share among Con records.</li>
+            <li><strong>Other blank org rate:</strong> Blank organization share among non-Pro/Con records.</li>
             <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
         </ul>
   </div>
@@ -1222,6 +1093,6 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/theme/roma.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
-    <script type="module" src="assets/report/main.js?v=ded3848448fd"></script>
+    <script type="module" src="assets/report/main.js?v=8a2a8ec52822"></script>
   </body>
 </html>

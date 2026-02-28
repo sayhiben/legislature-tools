@@ -6,24 +6,6 @@ from testifier_audit.report.rendering.constants import _SCATTER_CHART_IDS
 
 def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
     return {
-        "baseline_profile": [
-            (
-                "Short, isolated spikes in volume with no matching shift in pro rate "
-                "or corroborating detector flags are often random campaign pulses "
-                "rather than systemic manipulation."
-            ),
-            (
-                "Extended level shifts (for example, 60-240 minutes) in both volume "
-                "and composition, especially when Wilson bands tighten, suggest a "
-                "meaningful regime change worth cross-checking against corroborating "
-                "detector evidence."
-            ),
-            (
-                "Very low overnight volume can create dramatic percentage swings; "
-                "prioritize windows where elevated rates persist after local volume "
-                "recovers into daytime traffic."
-            ),
-        ],
         "bursts": [
             (
                 "Prioritize merged burst windows that last multiple minutes; "
@@ -36,24 +18,6 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
             (
                 "When duration and excess remain elevated across adjacent windows, "
                 "treat the burst as sustained and correlate with other analyses."
-            ),
-        ],
-        "procon_swings": [
-            (
-                "Brief pro-rate jumps with wide Wilson intervals typically indicate "
-                "low-support noise; treat them as weak unless adjacent buckets move "
-                "in the same direction with tighter intervals."
-            ),
-            (
-                "Extended daytime streaks of positive or negative shifts (multiple "
-                "contiguous buckets) can indicate directional mobilization, queueing "
-                "effects, or operational gating; confirm with day/hour and "
-                "time-of-day panels."
-            ),
-            (
-                "Large off-hours directional blocks that reverse at wake-hour "
-                "transitions may indicate temporally segmented participation behavior, "
-                "including potential strategic timing by one side."
             ),
         ],
         "off_hours": [
@@ -130,23 +94,6 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
 
 def _analysis_help_hints() -> dict[str, dict[str, str]]:
     return {
-        "baseline_profile": {
-            "primary_metric": "baseline volume and composition drift",
-            "momentary_high": (
-                "a short notice event, reminder blast, or temporary queue release"
-            ),
-            "momentary_low": (
-                "normal minute-level quiet periods or ingest timing jitter"
-            ),
-            "extended_high": (
-                "a sustained participation regime shift that can affect all downstream "
-                "detectors"
-            ),
-            "extended_low": (
-                "potential ingestion gaps, hearing lulls, or sustained reduced campaign "
-                "activity"
-            ),
-        },
         "bursts": {
             "primary_metric": "burst duration, excess volume, and position impact counts",
             "momentary_high": (
@@ -161,23 +108,6 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             ),
             "extended_low": (
                 "baseline activity without concentrated burst windows"
-            ),
-        },
-        "procon_swings": {
-            "primary_metric": (
-                "directional pro/con ratio movement relative to expected bands"
-            ),
-            "momentary_high": "small-sample randomness, especially in low-power buckets",
-            "momentary_low": (
-                "brief balancing waves where opposite-side submissions cluster together"
-            ),
-            "extended_high": (
-                "persistent directional mobilization or process-side skew in intake "
-                "timing"
-            ),
-            "extended_low": (
-                "prolonged suppression of one side that may indicate queueing or "
-                "campaign fatigue"
             ),
         },
         "off_hours": {
@@ -574,48 +504,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         return {"summary": summary, "items": items}
 
     docs: dict[str, dict[str, Any]] = {
-        "baseline_volume_pro_rate": timebar(
-            summary="Baseline trend of submissions and pro share.",
-            primary_label="Pro rate",
-            primary_desc="Line shows pro-position share per bucket.",
-            include_wilson=True,
-        ),
-        "baseline_day_hour_volume": {
-            "summary": "Day/hour baseline heatmap.",
-            "items": [
-                {
-                    "label": "Cell color",
-                    "description": (
-                        "Darker cells indicate higher submission volume for that "
-                        "weekday/hour."
-                    ),
-                },
-                {"label": "X/Y axes", "description": "X-axis is hour of day; Y-axis is weekday."},
-            ],
-        },
-        "baseline_top_names": {
-            "summary": "Top-frequency names.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Total submissions associated with each displayed name.",
-                },
-                {
-                    "label": "X-axis names",
-                    "description": "Most frequent names (trimmed to top slice for readability).",
-                },
-            ],
-        },
-        "baseline_name_length_distribution": {
-            "summary": "Name-length histogram view.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Count of names with the corresponding character length.",
-                },
-                {"label": "X-axis", "description": "Normalized name length in characters."},
-            ],
-        },
         "bursts_hero_timeline": timebar(
             summary="Detected burst windows with timing, intensity, and dominant position impact.",
             primary_label="Rate ratio",
@@ -666,91 +554,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {
                     "label": "Bar height",
                     "description": "Maximum simulated count observed in each null iteration.",
-                },
-                {"label": "X-axis", "description": "Simulation iteration index."},
-            ],
-        },
-        "procon_swings_hero_bucket_trend": timebar(
-            summary="Pro-rate trend against baseline stability bands.",
-            primary_label="Pro rate",
-            primary_desc="Observed pro share in each bucket.",
-            include_wilson=True,
-            flagged_label="Flagged",
-            flagged_desc="Buckets flagged by swing detector for abnormal deviation.",
-            extra=[
-                {
-                    "label": "Baseline pro rate",
-                    "description": "Expected day/time pro share baseline.",
-                },
-                {
-                    "label": "Stable lower / stable upper",
-                    "description": "Expected range around baseline for normal fluctuation.",
-                },
-            ],
-        ),
-        "procon_swings_shift_heatmap": {
-            "summary": "Day/slot deviation heatmap.",
-            "items": [
-                {
-                    "label": "Cell color",
-                    "description": (
-                        "Red cells are more pro-heavy than expected for that slot; "
-                        "blue cells are more con-heavy."
-                    ),
-                },
-                {
-                    "label": "Slot outlier dots",
-                    "description": "Highlighted cells that exceed detector outlier thresholds.",
-                },
-                {
-                    "label": "Axes",
-                    "description": (
-                        "X-axis is slot-of-day; Y-axis is calendar date in chronological "
-                        "top-down order (earliest at top)."
-                    ),
-                },
-            ],
-        },
-        "procon_swings_day_hour_heatmap": {
-            "summary": "Average pro-rate by weekday/hour.",
-            "items": [
-                {"label": "Cell color", "description": "Darker cells indicate higher pro rate."},
-                {
-                    "label": "Axes",
-                    "description": (
-                        "X-axis is hour of day; Y-axis is weekday in chronological "
-                        "top-down order (Monday to Sunday)."
-                    ),
-                },
-            ],
-        },
-        "procon_swings_time_of_day_profile": {
-            "summary": "Pro-rate profile by slot-of-day.",
-            "items": [
-                {"label": "Bar height", "description": "Pro share in that slot-of-day bucket."},
-                {"label": "X-axis", "description": "Slot start minute from midnight."},
-            ],
-        },
-        "procon_swings_direction_runs": {
-            "summary": "Contiguous pro/con directional runs over time.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Number of contiguous buckets in each directional run.",
-                },
-                {
-                    "label": "Line",
-                    "description": "Mean absolute pro-rate shift magnitude across the run.",
-                },
-                {"label": "X-axis", "description": "Run start timestamp."},
-            ],
-        },
-        "procon_swings_null_distribution": {
-            "summary": "Null distribution for swing extremes.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Maximum absolute pro-rate delta per null iteration.",
                 },
                 {"label": "X-axis", "description": "Simulation iteration index."},
             ],
@@ -982,9 +785,9 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {
                     "label": "Pro-share lines",
                     "description": (
-                        "Solid line is observed Pro share in each bucket; dashed line at 50% "
-                        "is the neutral split reference to highlight when sentiment is majority "
-                        "Pro versus majority Con."
+                        "Solid line is observed Pro share in each bucket; dashed horizontal "
+                        "line at 50% is the neutral split reference; dashed Wilson low/high "
+                        "bounds show 95% uncertainty for the Pro-share estimate."
                     ),
                 },
                 {
@@ -1234,6 +1037,8 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             primary_label="Blank org rate",
             primary_desc="Overall blank/null organization share per bucket.",
             include_wilson=True,
+            volume_label="Positioned rows",
+            volume_desc="Stacked Pro/Con row counts in each bucket (desaturated context bars).",
             extra=[
                 {
                     "label": "Pro blank org rate",
@@ -1246,10 +1051,22 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         ),
         "org_anomalies_position_rates": timebar(
-            summary="Per-position blank-org rates by time bucket.",
-            primary_label="Blank org rate",
-            primary_desc="Position-specific blank organization share.",
+            summary="Per-position blank-org rates (Pro/Con/Other) by time bucket.",
+            primary_label="Pro blank org rate",
+            primary_desc="Blank organization share among Pro records in each bucket.",
             include_wilson=True,
+            volume_label="Positioned rows",
+            volume_desc="Stacked Pro/Con row counts in each bucket (desaturated context bars).",
+            extra=[
+                {
+                    "label": "Con blank org rate",
+                    "description": "Blank organization share among Con records.",
+                },
+                {
+                    "label": "Other blank org rate",
+                    "description": "Blank organization share among non-Pro/Con records.",
+                },
+            ],
         ),
         "voter_registry_match_rates": timebar(
             summary="Conservative voter-linkage trend with matched-rate focus.",

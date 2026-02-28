@@ -24,6 +24,10 @@ def test_stats_basic_helpers_handle_edge_cases() -> None:
     with pytest.raises(ValueError, match="window must be >= 1"):
         rolling_sum(np.array([1.0, 2.0]), window=0)
     assert rolling_sum(np.array([1.0, 2.0]), window=5).size == 0
+    np.testing.assert_allclose(
+        rolling_sum(np.array([3.0, 1.5, 0.0, 2.0]), window=1),
+        np.array([3.0, 1.5, 0.0, 2.0]),
+    )
 
     assert empirical_tail_p_values(np.array([], dtype=float), np.array([1.0])).size == 0
     np.testing.assert_allclose(

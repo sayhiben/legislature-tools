@@ -23,6 +23,22 @@ try:
 except ImportError:  # pragma: no cover
     pq = None
 
+
+_EXCLUDED_REPORT_PREVIEW_TABLES: dict[str, frozenset[str]] = {
+    "org_anomalies": frozenset(
+        {
+            "organization_blank_rate_by_bucket",
+            "organization_blank_rate_by_bucket_position",
+            "organization_blank_rate_summary",
+        }
+    )
+}
+
+
+def _include_detector_table_preview(detector_name: str, table_name: str) -> bool:
+    return table_name not in _EXCLUDED_REPORT_PREVIEW_TABLES.get(detector_name, frozenset())
+
+
 def _preview_columns_for_detector_table(
     detector_name: str,
     table_name: str,
@@ -492,6 +508,8 @@ def _table_previews_from_results(
     for detector_name, result in sorted(results.items()):
         detector_tables: dict[str, list[dict[str, Any]]] = {}
         for table_name, table in sorted(result.tables.items()):
+            if not _include_detector_table_preview(detector_name, table_name):
+                continue
             if table.empty:
                 continue
             table_max_rows = _preview_row_limit_for_detector_table(
@@ -523,6 +541,8 @@ def _load_table_previews_from_disk(
         if "__" not in path.stem:
             continue
         detector_name, table_name = path.stem.split("__", 1)
+        if not _include_detector_table_preview(detector_name, table_name):
+            continue
         table_max_rows = _preview_row_limit_for_detector_table(
             detector_name,
             table_name,

@@ -116,7 +116,7 @@ def build_profile_artifacts(
         write_table(table, output_path, fmt=config.outputs.tables_format)
 
     analysis_scope_ids = registry_configured_analysis_ids()
-    if analysis_scope_ids and "baseline_profile" not in set(analysis_scope_ids):
+    if analysis_scope_ids:
         _remove_stale_profile_figures(out_dir=out_dir, figure_suffix=config.outputs.figures_format)
         return artifacts
 

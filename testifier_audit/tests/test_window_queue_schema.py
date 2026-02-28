@@ -49,21 +49,6 @@ def test_triage_summary_schema_contains_required_fields() -> None:
                 "q_value": [0.01],
             }
         ),
-        "procon_swings.swing_significant_windows": pd.DataFrame(
-            {
-                "window_minutes": [2],
-                "start_minute": pd.to_datetime(["2026-02-01T00:01:00Z"]),
-                "end_minute": pd.to_datetime(["2026-02-01T00:02:00Z"]),
-                "n_total": [21],
-                "pro_rate": [0.58],
-                "delta_pro_rate": [0.2],
-                "abs_delta_pro_rate": [0.2],
-                "z_score": [2.3],
-                "p_value": [0.01],
-                "q_value": [0.03],
-                "is_low_power": [False],
-            }
-        ),
         "duplicates_exact.top_repeated_names": pd.DataFrame(
             {
                 "display_name": ["Doe, Jane"],

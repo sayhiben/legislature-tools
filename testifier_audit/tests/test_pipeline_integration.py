@@ -124,7 +124,6 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert (out_dir / "summary" / "investigation_summary.json").exists()
     assert (out_dir / "summary" / "feature_vector.json").exists()
     enabled_detector_names = configured_detector_names()
-    focus_analysis_ids = _configured_focus_analysis_ids()
     if _configured_focus_analysis_ids():
         assert enabled_detector_names
         for detector_name in enabled_detector_names:
@@ -136,7 +135,6 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         )
         for detector_name in (
             "bursts",
-            "procon_swings",
             "duplicates_exact",
             "org_anomalies",
             "voter_registry_match",
@@ -145,25 +143,14 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
             if detector_name in enabled_detector_names:
                 continue
             assert not (out_dir / "summary" / f"{detector_name}.json").exists()
-        if "baseline_profile" in focus_analysis_ids:
-            assert (out_dir / "figures" / "counts_per_minute.png").exists()
-            assert (out_dir / "figures" / "counts_heatmap_day_hour.png").exists()
-            assert (out_dir / "figures" / "top_duplicate_names.png").exists()
-            assert (out_dir / "figures" / "name_length_distribution.png").exists()
-        else:
-            assert not any((out_dir / "figures").glob("*.png"))
+        assert not any((out_dir / "figures").glob("*.png"))
     else:
         assert (out_dir / "summary" / "bursts.json").exists()
-        assert (out_dir / "summary" / "procon_swings.json").exists()
         assert (out_dir / "summary" / "off_hours.json").exists()
         assert (out_dir / "summary" / "voter_registry_match.json").exists()
         assert (out_dir / "tables" / "bursts__burst_window_tests.csv").exists()
-        assert (out_dir / "tables" / "procon_swings__swing_window_tests.csv").exists()
         assert (out_dir / "tables" / "duplicates_exact__repeated_same_bucket.csv").exists()
         assert (out_dir / "tables" / "duplicates_exact__repeated_same_bucket_summary.csv").exists()
-        assert (out_dir / "tables" / "procon_swings__time_bucket_profiles.csv").exists()
-        assert (out_dir / "tables" / "procon_swings__time_of_day_bucket_profiles.csv").exists()
-        assert (out_dir / "tables" / "procon_swings__day_bucket_profiles.csv").exists()
         assert (
             out_dir / "tables" / "org_anomalies__organization_blank_rate_by_bucket.csv"
         ).exists()
@@ -183,25 +170,8 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_60m.png").exists()
         assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_120m.png").exists()
         assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_240m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_shift_heatmap_1m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_shift_heatmap_5m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_shift_heatmap_15m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_shift_heatmap_30m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_shift_heatmap_60m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_shift_heatmap_120m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_shift_heatmap_240m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends_1m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends_5m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends_15m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends_30m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends_60m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends_120m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_bucket_trends_240m.png").exists()
-        assert (out_dir / "figures" / "pro_rate_time_of_day_profiles.png").exists()
         assert (out_dir / "figures" / "organization_blank_rates.png").exists()
         assert (out_dir / "figures" / "bursts_null_distribution.png").exists()
-        assert (out_dir / "figures" / "swing_null_distribution.png").exists()
 
     report_data_payload = json.loads((out_dir / "report_data" / "index.json").read_text(encoding="utf-8"))
     chart_manifest = (

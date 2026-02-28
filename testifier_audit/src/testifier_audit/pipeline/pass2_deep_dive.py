@@ -19,18 +19,14 @@ from testifier_audit.report.analysis_registry import (
 )
 from testifier_audit.viz.distributions import (
     plot_burst_null_distribution,
-    plot_swing_null_distribution,
 )
 from testifier_audit.viz.heatmaps import (
     plot_pro_rate_day_hour_heatmap,
-    plot_ratio_shift_heatmap_by_bucket,
 )
 from testifier_audit.viz.time_series import (
     plot_counts_with_annotations,
     plot_organization_blank_rates,
-    plot_pro_rate_bucket_trends,
     plot_pro_rate_with_annotations,
-    plot_time_of_day_ratio_profiles,
     plot_voter_registry_match_rates,
 )
 
@@ -60,17 +56,12 @@ def _remove_stale_overlay_figures(paths: OutputPaths, figure_suffix: str) -> Non
         "counts_with_anomalies",
         "pro_rate_with_anomalies",
         "bursts_null_distribution",
-        "swing_null_distribution",
         "pro_rate_heatmap_day_hour",
-        "pro_rate_bucket_trends",
-        "pro_rate_time_of_day_profiles",
         "organization_blank_rates",
         "voter_registry_match_rates",
     }
     for bucket_minutes in (1, 5, 15, 30, 60, 120, 240):
         figure_names.add(f"pro_rate_heatmap_day_hour_{int(bucket_minutes)}m")
-        figure_names.add(f"pro_rate_shift_heatmap_{int(bucket_minutes)}m")
-        figure_names.add(f"pro_rate_bucket_trends_{int(bucket_minutes)}m")
     for figure_name in sorted(figure_names):
         (paths.figures / f"{figure_name}.{suffix}").unlink(missing_ok=True)
 
@@ -90,16 +81,6 @@ def _render_detector_figures(
     bursts = feature_context.get("bursts.burst_significant_windows", pd.DataFrame())
     burst_tests = feature_context.get("bursts.burst_window_tests", pd.DataFrame())
     burst_null_distribution = feature_context.get("bursts.burst_null_distribution", pd.DataFrame())
-    swings = feature_context.get("procon_swings.swing_significant_windows", pd.DataFrame())
-    swing_tests = feature_context.get("procon_swings.swing_window_tests", pd.DataFrame())
-    swing_null_distribution = feature_context.get(
-        "procon_swings.swing_null_distribution", pd.DataFrame()
-    )
-    time_bucket_profiles = feature_context.get("procon_swings.time_bucket_profiles", pd.DataFrame())
-    time_of_day_bucket_profiles = feature_context.get(
-        "procon_swings.time_of_day_bucket_profiles", pd.DataFrame()
-    )
-    day_bucket_profiles = feature_context.get("procon_swings.day_bucket_profiles", pd.DataFrame())
     organization_blank_rates = feature_context.get(
         "org_anomalies.organization_blank_rate_by_bucket",
         pd.DataFrame(),
@@ -116,18 +97,13 @@ def _render_detector_figures(
         )
         plot_pro_rate_with_annotations(
             counts_per_minute=counts,
-            swing_windows=swings,
+            swing_windows=pd.DataFrame(),
             output_path=paths.figures / f"pro_rate_with_anomalies.{figure_suffix}",
         )
         plot_burst_null_distribution(
             null_distribution=burst_null_distribution,
             burst_tests=burst_tests,
             output_path=paths.figures / f"bursts_null_distribution.{figure_suffix}",
-        )
-        plot_swing_null_distribution(
-            null_distribution=swing_null_distribution,
-            swing_tests=swing_tests,
-            output_path=paths.figures / f"swing_null_distribution.{figure_suffix}",
         )
         plot_pro_rate_day_hour_heatmap(
             counts_per_minute=counts,
@@ -140,37 +116,6 @@ def _render_detector_figures(
                 / f"pro_rate_heatmap_day_hour_{int(bucket_minutes)}m.{figure_suffix}",
                 bucket_minutes=bucket_minutes,
             )
-        for bucket_minutes in (1, 5, 15, 30, 60, 120, 240):
-            plot_ratio_shift_heatmap_by_bucket(
-                day_bucket_profiles=day_bucket_profiles,
-                bucket_minutes=bucket_minutes,
-                output_path=paths.figures
-                / f"pro_rate_shift_heatmap_{int(bucket_minutes)}m.{figure_suffix}",
-            )
-        plot_pro_rate_bucket_trends(
-            time_bucket_profiles=time_bucket_profiles,
-            output_path=paths.figures / f"pro_rate_bucket_trends.{figure_suffix}",
-        )
-        requested_bucket_variants = (1, 5, 15, 30, 60, 120, 240)
-        available_bucket_variants = set(
-            time_bucket_profiles.get("bucket_minutes", pd.Series(dtype=float))
-            .dropna()
-            .astype(int)
-            .tolist()
-        )
-        for bucket_minutes in requested_bucket_variants:
-            if bucket_minutes not in available_bucket_variants:
-                continue
-            plot_pro_rate_bucket_trends(
-                time_bucket_profiles=time_bucket_profiles,
-                output_path=paths.figures
-                / f"pro_rate_bucket_trends_{int(bucket_minutes)}m.{figure_suffix}",
-                preferred_buckets=(int(bucket_minutes),),
-            )
-        plot_time_of_day_ratio_profiles(
-            time_of_day_bucket_profiles=time_of_day_bucket_profiles,
-            output_path=paths.figures / f"pro_rate_time_of_day_profiles.{figure_suffix}",
-        )
         plot_organization_blank_rates(
             blank_rate_by_bucket=organization_blank_rates,
             output_path=paths.figures / f"organization_blank_rates.{figure_suffix}",

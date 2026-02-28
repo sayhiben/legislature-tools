@@ -12,11 +12,7 @@ import pandas as pd
 from testifier_audit.detectors.base import DetectorResult
 from testifier_audit.features.dedup import DEDUP_MODES, DEFAULT_DEDUP_MODE, normalize_dedup_mode
 from testifier_audit.io.hearing_metadata import HearingMetadata
-from testifier_audit.proportion_stats import (
-    DEFAULT_LOW_POWER_MIN_TOTAL,
-    low_power_mask,
-    wilson_interval,
-)
+from testifier_audit.proportion_stats import wilson_interval
 from testifier_audit.report.analysis_registry import (
     analysis_status as analysis_registry_status,
 )
@@ -70,141 +66,6 @@ from testifier_audit.report.rendering.table_previews import _load_summaries_from
 from testifier_audit.report.triage_builder import build_investigation_views
 
 LOGGER = logging.getLogger(__name__)
-
-def _build_bucketed_baseline_profiles(
-    counts_per_minute: pd.DataFrame,
-    bucket_minutes: list[int] | None = None,
-) -> pd.DataFrame:
-    expected = [
-        "minute_bucket",
-        "bucket_minutes",
-        "n_total",
-        "n_pro",
-        "n_con",
-        "pro_rate",
-        "pro_rate_wilson_low",
-        "pro_rate_wilson_high",
-        "is_low_power",
-    ]
-    if counts_per_minute.empty or "minute_bucket" not in counts_per_minute.columns:
-        return _with_expected_columns(pd.DataFrame(), expected)
-
-    windows = sorted(
-        {
-            int(value)
-            for value in (bucket_minutes or BASELINE_PROFILE_BUCKET_MINUTES)
-            if int(value) > 0
-        }
-    )
-    if not windows:
-        return _with_expected_columns(pd.DataFrame(), expected)
-
-    working = counts_per_minute.copy()
-    working["minute_bucket"] = pd.to_datetime(working["minute_bucket"], errors="coerce")
-    working = working.dropna(subset=["minute_bucket"])
-    if working.empty:
-        return _with_expected_columns(pd.DataFrame(), expected)
-
-    for column in ["n_total", "n_pro", "n_con"]:
-        if column not in working.columns:
-            working[column] = 0
-        working[column] = pd.to_numeric(working[column], errors="coerce").fillna(0.0)
-
-    bucketed: list[pd.DataFrame] = []
-    for minutes in windows:
-        grouped = (
-            working.assign(bucket_start=working["minute_bucket"].dt.floor(f"{int(minutes)}min"))
-            .groupby("bucket_start", dropna=True)
-            .agg(
-                n_total=("n_total", "sum"),
-                n_pro=("n_pro", "sum"),
-                n_con=("n_con", "sum"),
-            )
-            .reset_index()
-            .rename(columns={"bucket_start": "minute_bucket"})
-            .sort_values("minute_bucket")
-        )
-        if grouped.empty:
-            continue
-
-        grouped["bucket_minutes"] = int(minutes)
-        grouped["pro_rate"] = (grouped["n_pro"] / grouped["n_total"]).where(grouped["n_total"] > 0)
-        grouped["pro_rate_wilson_low"], grouped["pro_rate_wilson_high"] = wilson_interval(
-            successes=grouped["n_pro"],
-            totals=grouped["n_total"],
-        )
-        grouped["is_low_power"] = low_power_mask(
-            totals=grouped["n_total"],
-            min_total=DEFAULT_LOW_POWER_MIN_TOTAL,
-        )
-        bucketed.append(grouped)
-
-    if not bucketed:
-        return _with_expected_columns(pd.DataFrame(), expected)
-
-    combined = pd.concat(bucketed, ignore_index=True).sort_values(
-        ["bucket_minutes", "minute_bucket"]
-    )
-    return _with_expected_columns(combined, expected)
-
-
-def _build_bucketed_day_hour_profiles(
-    baseline_bucket_profiles: pd.DataFrame,
-    counts_per_hour: pd.DataFrame,
-) -> pd.DataFrame:
-    expected = [
-        "bucket_minutes",
-        "day_of_week",
-        "hour",
-        "n_total",
-        "pro_rate",
-        "pro_rate_wilson_low",
-        "pro_rate_wilson_high",
-        "is_low_power",
-    ]
-
-    if baseline_bucket_profiles.empty:
-        if counts_per_hour.empty:
-            return _with_expected_columns(pd.DataFrame(), expected)
-        fallback = counts_per_hour.copy()
-        fallback["bucket_minutes"] = 1
-        return _with_expected_columns(fallback, expected)
-
-    working = baseline_bucket_profiles.copy()
-    if "minute_bucket" not in working.columns:
-        return _with_expected_columns(pd.DataFrame(), expected)
-    working["minute_bucket"] = pd.to_datetime(working["minute_bucket"], errors="coerce")
-    working = working.dropna(subset=["minute_bucket"])
-    if working.empty:
-        return _with_expected_columns(pd.DataFrame(), expected)
-
-    for column in ["n_total", "n_pro"]:
-        if column not in working.columns:
-            working[column] = 0
-        working[column] = pd.to_numeric(working[column], errors="coerce").fillna(0.0)
-
-    working["day_of_week"] = working["minute_bucket"].dt.day_name()
-    working["hour"] = working["minute_bucket"].dt.hour
-
-    grouped = (
-        working.groupby(["bucket_minutes", "day_of_week", "hour"], dropna=True)
-        .agg(
-            n_total=("n_total", "sum"),
-            n_pro=("n_pro", "sum"),
-        )
-        .reset_index()
-        .sort_values(["bucket_minutes", "day_of_week", "hour"])
-    )
-    grouped["pro_rate"] = (grouped["n_pro"] / grouped["n_total"]).where(grouped["n_total"] > 0)
-    grouped["pro_rate_wilson_low"], grouped["pro_rate_wilson_high"] = wilson_interval(
-        successes=grouped["n_pro"],
-        totals=grouped["n_total"],
-    )
-    grouped["is_low_power"] = low_power_mask(
-        totals=grouped["n_total"],
-        min_total=DEFAULT_LOW_POWER_MIN_TOTAL,
-    )
-    return _with_expected_columns(grouped, expected)
 
 
 def _load_cross_hearing_baseline_payload(out_dir: Path | None) -> dict[str, Any]:
@@ -334,26 +195,6 @@ def _build_interactive_chart_payload_v2(
             "threshold_unique_ratio",
         ],
     )
-    counts_per_hour = _with_expected_columns(
-        table_map.get("artifacts.counts_per_hour", pd.DataFrame()),
-        [
-            "day_of_week",
-            "hour",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-        ],
-    )
-    name_frequency = _with_expected_columns(
-        table_map.get("artifacts.name_frequency", pd.DataFrame()),
-        ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
-    )
-    name_text_features = _with_expected_columns(
-        table_map.get("artifacts.name_text_features", pd.DataFrame()),
-        ["name_length"],
-    )
 
     bursts_significant = _with_expected_columns(
         table_map.get(_table_key("bursts", "burst_significant_windows"), pd.DataFrame()),
@@ -395,88 +236,6 @@ def _build_interactive_chart_payload_v2(
     bursts_null = _with_expected_columns(
         table_map.get(_table_key("bursts", "burst_null_distribution"), pd.DataFrame()),
         ["window_minutes", "bucket_minutes", "iteration", "max_window_count"],
-    )
-
-    time_bucket_profiles = _with_expected_columns(
-        table_map.get(_table_key("procon_swings", "time_bucket_profiles"), pd.DataFrame()),
-        [
-            "bucket_start",
-            "bucket_minutes",
-            "n_total",
-            "pro_rate",
-            "baseline_pro_rate",
-            "stable_lower",
-            "stable_upper",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_flagged",
-            "is_low_power",
-        ],
-    )
-    day_bucket_profiles = _with_expected_columns(
-        table_map.get(_table_key("procon_swings", "day_bucket_profiles"), pd.DataFrame()),
-        [
-            "date",
-            "bucket_minutes",
-            "slot_start_minute",
-            "delta_from_slot_pro_rate",
-            "n_total",
-            "is_slot_outlier",
-            "is_low_power",
-        ],
-    )
-    pro_rate_by_hour = _with_expected_columns(
-        table_map.get(_table_key("procon_swings", "pro_rate_by_hour"), pd.DataFrame()),
-        [
-            "day_of_week",
-            "hour",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-        ],
-    )
-    time_of_day_profiles = _with_expected_columns(
-        table_map.get(
-            _table_key("procon_swings", "time_of_day_bucket_profiles"),
-            pd.DataFrame(),
-        ),
-        [
-            "bucket_minutes",
-            "slot_start_minute",
-            "n_total",
-            "pro_rate",
-            "baseline_pro_rate",
-            "stable_lower",
-            "stable_upper",
-            "is_flagged",
-            "is_low_power",
-        ],
-    )
-    procon_direction_runs = _with_expected_columns(
-        table_map.get(_table_key("procon_swings", "direction_runs"), pd.DataFrame()),
-        [
-            "bucket_minutes",
-            "run_id",
-            "run_direction",
-            "start_bucket",
-            "end_bucket",
-            "run_length_buckets",
-            "total_n",
-            "support_n",
-            "mean_abs_delta_pro_rate",
-            "max_abs_delta_pro_rate",
-            "n_flagged_buckets",
-            "n_low_power_buckets",
-            "flagged_ratio",
-            "low_power_ratio",
-            "is_long_run",
-        ],
-    )
-    swing_null = _with_expected_columns(
-        table_map.get(_table_key("procon_swings", "swing_null_distribution"), pd.DataFrame()),
-        ["window_minutes", "iteration", "max_abs_delta_pro_rate"],
     )
 
     off_hours_hourly = _with_expected_columns(
@@ -1657,14 +1416,25 @@ def _build_interactive_chart_payload_v2(
             "bucket_start",
             "bucket_minutes",
             "n_total",
+            "n_pro",
+            "n_con",
+            "n_unknown",
             "blank_org_rate",
             "blank_org_rate_wilson_low",
             "blank_org_rate_wilson_high",
             "pro_blank_org_rate",
+            "pro_blank_org_rate_wilson_low",
+            "pro_blank_org_rate_wilson_high",
             "con_blank_org_rate",
+            "con_blank_org_rate_wilson_low",
+            "con_blank_org_rate_wilson_high",
+            "unknown_blank_org_rate",
+            "unknown_blank_org_rate_wilson_low",
+            "unknown_blank_org_rate_wilson_high",
             "is_low_power",
             "pro_is_low_power",
             "con_is_low_power",
+            "unknown_is_low_power",
         ],
     )
     org_position_rates = _with_expected_columns(
@@ -1929,21 +1699,17 @@ def _build_interactive_chart_payload_v2(
         (counts_per_minute, "minute_bucket"),
         (bursts_significant, "start_minute"),
         (bursts_tests, "start_minute"),
-        (time_bucket_profiles, "bucket_start"),
-        (procon_direction_runs, "start_bucket"),
-        (procon_direction_runs, "end_bucket"),
-        (day_bucket_profiles, "date"),
         (off_hours_window_control, "bucket_start"),
         (dup_exact_bucket, "bucket_start"),
         (dup_exact_per_name, "first_seen"),
-            (dup_exact_per_name, "last_seen"),
-            (org_blank_rates, "bucket_start"),
-            (org_position_rates, "bucket_start"),
-            (voter_bucket, "bucket_start"),
-            (voter_bucket_position, "bucket_start"),
-            (voter_unmatched, "first_seen"),
-            (voter_unmatched, "last_seen"),
-        ]:
+        (dup_exact_per_name, "last_seen"),
+        (org_blank_rates, "bucket_start"),
+        (org_position_rates, "bucket_start"),
+        (voter_bucket, "bucket_start"),
+        (voter_bucket_position, "bucket_start"),
+        (voter_unmatched, "first_seen"),
+        (voter_unmatched, "last_seen"),
+    ]:
         if not frame.empty and column in frame.columns:
             frame[column] = pd.to_datetime(frame[column], errors="coerce")
 
@@ -2349,68 +2115,7 @@ def _build_interactive_chart_payload_v2(
             else:
                 burst_events = burst_windows.copy()
 
-    baseline_bucket_profiles = _build_bucketed_baseline_profiles(
-        counts_per_minute=counts_per_minute,
-        bucket_minutes=BASELINE_PROFILE_BUCKET_MINUTES,
-    )
-    baseline_day_hour_profiles = _build_bucketed_day_hour_profiles(
-        baseline_bucket_profiles=baseline_bucket_profiles,
-        counts_per_hour=counts_per_hour,
-    )
-
     charts: dict[str, list[dict[str, Any]]] = {}
-
-    charts["baseline_volume_pro_rate"] = _records_from_frame(
-        baseline_bucket_profiles.sort_values(["bucket_minutes", "minute_bucket"]),
-        columns=[
-            "minute_bucket",
-            "bucket_minutes",
-            "n_total",
-            "n_pro",
-            "n_con",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-        ],
-        max_rows=25_000,
-    )
-    charts["baseline_day_hour_volume"] = _records_from_frame(
-        baseline_day_hour_profiles.sort_values(["bucket_minutes", "day_of_week", "hour"]),
-        columns=[
-            "bucket_minutes",
-            "day_of_week",
-            "hour",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-        ],
-        max_rows=500,
-    )
-    charts["baseline_top_names"] = _records_from_frame(
-        name_frequency.sort_values("n", ascending=False),
-        columns=["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
-        max_rows=200,
-    )
-    if not name_text_features.empty and "name_length" in name_text_features.columns:
-        length_dist = (
-            pd.to_numeric(name_text_features["name_length"], errors="coerce")
-            .dropna()
-            .astype(int)
-            .value_counts()
-            .sort_index()
-            .rename_axis("name_length")
-            .reset_index(name="n_names")
-        )
-    else:
-        length_dist = pd.DataFrame()
-    charts["baseline_name_length_distribution"] = _records_from_frame(
-        length_dist,
-        columns=["name_length", "n_names"],
-        max_rows=200,
-    )
 
     bursts_chart_source = (
         burst_events.copy() if not burst_events.empty else bursts_significant.copy()
@@ -2514,90 +2219,6 @@ def _build_interactive_chart_payload_v2(
     charts["bursts_null_distribution"] = _records_from_frame(
         bursts_null.sort_values(["window_minutes", "iteration"]),
         columns=["window_minutes", "bucket_minutes", "iteration", "max_window_count"],
-        max_rows=25_000,
-    )
-
-    charts["procon_swings_hero_bucket_trend"] = _records_from_frame(
-        time_bucket_profiles.sort_values(["bucket_minutes", "bucket_start"]),
-        columns=[
-            "bucket_start",
-            "bucket_minutes",
-            "n_total",
-            "pro_rate",
-            "baseline_pro_rate",
-            "stable_lower",
-            "stable_upper",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_flagged",
-            "is_low_power",
-        ],
-        max_rows=25_000,
-    )
-    charts["procon_swings_shift_heatmap"] = _records_from_frame(
-        day_bucket_profiles.sort_values(["bucket_minutes", "date", "slot_start_minute"]),
-        columns=[
-            "date",
-            "bucket_minutes",
-            "slot_start_minute",
-            "delta_from_slot_pro_rate",
-            "n_total",
-            "is_slot_outlier",
-            "is_low_power",
-        ],
-        max_rows=25_000,
-    )
-    charts["procon_swings_day_hour_heatmap"] = _records_from_frame(
-        pro_rate_by_hour.sort_values(["day_of_week", "hour"]),
-        columns=[
-            "day_of_week",
-            "hour",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-        ],
-        max_rows=1_000,
-    )
-    charts["procon_swings_time_of_day_profile"] = _records_from_frame(
-        time_of_day_profiles.sort_values(["bucket_minutes", "slot_start_minute"]),
-        columns=[
-            "bucket_minutes",
-            "slot_start_minute",
-            "n_total",
-            "pro_rate",
-            "baseline_pro_rate",
-            "stable_lower",
-            "stable_upper",
-            "is_flagged",
-            "is_low_power",
-        ],
-        max_rows=25_000,
-    )
-    charts["procon_swings_direction_runs"] = _records_from_frame(
-        procon_direction_runs.sort_values(["bucket_minutes", "start_bucket"]),
-        columns=[
-            "bucket_minutes",
-            "run_id",
-            "run_direction",
-            "start_bucket",
-            "end_bucket",
-            "run_length_buckets",
-            "support_n",
-            "mean_abs_delta_pro_rate",
-            "max_abs_delta_pro_rate",
-            "n_flagged_buckets",
-            "n_low_power_buckets",
-            "flagged_ratio",
-            "low_power_ratio",
-            "is_long_run",
-        ],
-        max_rows=10_000,
-    )
-    charts["procon_swings_null_distribution"] = _records_from_frame(
-        swing_null.sort_values(["window_minutes", "iteration"]),
-        columns=["window_minutes", "iteration", "max_abs_delta_pro_rate"],
         max_rows=25_000,
     )
 
@@ -2838,8 +2459,45 @@ def _build_interactive_chart_payload_v2(
             overview_position_volume["n_unknown"], errors="coerce"
         ).fillna(0.0)
         residual_other = (n_total - n_pro - n_con).clip(lower=0.0)
-        overview_position_volume["n_other_position"] = n_unknown.where(
-            n_unknown > 0, residual_other
+        n_other_position = n_unknown.where(n_unknown > 0, residual_other)
+        overview_position_volume["n_other_position"] = n_other_position
+
+        overview_position_volume["pro_share_total"] = (n_pro / n_total).where(n_total > 0.0)
+        overview_position_volume["con_share_total"] = (n_con / n_total).where(n_total > 0.0)
+        overview_position_volume["other_share_total"] = (n_other_position / n_total).where(
+            n_total > 0.0
+        )
+
+        pro_share_low, pro_share_high = wilson_interval(successes=n_pro, totals=n_total)
+        con_share_low, con_share_high = wilson_interval(successes=n_con, totals=n_total)
+        other_share_low, other_share_high = wilson_interval(
+            successes=n_other_position,
+            totals=n_total,
+        )
+        overview_position_volume["pro_share_total_wilson_low"] = pro_share_low
+        overview_position_volume["pro_share_total_wilson_high"] = pro_share_high
+        overview_position_volume["con_share_total_wilson_low"] = con_share_low
+        overview_position_volume["con_share_total_wilson_high"] = con_share_high
+        overview_position_volume["other_share_total_wilson_low"] = other_share_low
+        overview_position_volume["other_share_total_wilson_high"] = other_share_high
+
+        overview_position_volume["n_pro_wilson_low"] = (
+            pd.Series(pro_share_low, index=overview_position_volume.index) * n_total
+        )
+        overview_position_volume["n_pro_wilson_high"] = (
+            pd.Series(pro_share_high, index=overview_position_volume.index) * n_total
+        )
+        overview_position_volume["n_con_wilson_low"] = (
+            pd.Series(con_share_low, index=overview_position_volume.index) * n_total
+        )
+        overview_position_volume["n_con_wilson_high"] = (
+            pd.Series(con_share_high, index=overview_position_volume.index) * n_total
+        )
+        overview_position_volume["n_other_position_wilson_low"] = (
+            pd.Series(other_share_low, index=overview_position_volume.index) * n_total
+        )
+        overview_position_volume["n_other_position_wilson_high"] = (
+            pd.Series(other_share_high, index=overview_position_volume.index) * n_total
         )
     charts["overview_position_volume_by_bucket"] = _records_from_frame(
         overview_position_volume.sort_values(["bucket_minutes", "bucket_start"]),
@@ -2850,6 +2508,21 @@ def _build_interactive_chart_payload_v2(
             "n_pro",
             "n_con",
             "n_other_position",
+            "pro_share_total",
+            "pro_share_total_wilson_low",
+            "pro_share_total_wilson_high",
+            "con_share_total",
+            "con_share_total_wilson_low",
+            "con_share_total_wilson_high",
+            "other_share_total",
+            "other_share_total_wilson_low",
+            "other_share_total_wilson_high",
+            "n_pro_wilson_low",
+            "n_pro_wilson_high",
+            "n_con_wilson_low",
+            "n_con_wilson_high",
+            "n_other_position_wilson_low",
+            "n_other_position_wilson_high",
             "n_unknown",
             "n_known",
             "is_off_hours_window",
@@ -3283,6 +2956,8 @@ def _build_interactive_chart_payload_v2(
             "bucket_start",
             "bucket_minutes",
             "n_total",
+            "n_pro",
+            "n_con",
             "blank_org_rate",
             "blank_org_rate_wilson_low",
             "blank_org_rate_wilson_high",
@@ -3295,16 +2970,26 @@ def _build_interactive_chart_payload_v2(
         max_rows=25_000,
     )
     charts["org_anomalies_position_rates"] = _records_from_frame(
-        org_position_rates.sort_values(["bucket_minutes", "bucket_start", "position_normalized"]),
+        org_blank_rates.sort_values(["bucket_minutes", "bucket_start"]),
         columns=[
             "bucket_start",
             "bucket_minutes",
-            "position_normalized",
             "n_total",
-            "blank_org_rate",
-            "blank_org_rate_wilson_low",
-            "blank_org_rate_wilson_high",
-            "is_low_power",
+            "n_pro",
+            "n_con",
+            "n_unknown",
+            "pro_blank_org_rate",
+            "pro_blank_org_rate_wilson_low",
+            "pro_blank_org_rate_wilson_high",
+            "pro_is_low_power",
+            "con_blank_org_rate",
+            "con_blank_org_rate_wilson_low",
+            "con_blank_org_rate_wilson_high",
+            "con_is_low_power",
+            "unknown_blank_org_rate",
+            "unknown_blank_org_rate_wilson_low",
+            "unknown_blank_org_rate_wilson_high",
+            "unknown_is_low_power",
         ],
         max_rows=25_000,
     )
@@ -3490,14 +3175,7 @@ def _build_interactive_chart_payload_v2(
     analysis_catalog: list[dict[str, Any]] = []
 
     bucket_map: dict[str, list[int]] = {
-        "baseline_profile": _extract_bucket_options(
-            baseline_bucket_profiles,
-            baseline_day_hour_profiles,
-        ),
         "bursts": _extract_bucket_options(bursts_significant, bursts_tests),
-        "procon_swings": _extract_bucket_options(
-            time_bucket_profiles, day_bucket_profiles, time_of_day_profiles, procon_direction_runs
-        ),
         "off_hours": _extract_bucket_options(off_hours_window_control),
         "duplicates_exact": _extract_bucket_options(dup_exact_bucket),
         "org_anomalies": _extract_bucket_options(org_blank_rates, org_position_rates),
@@ -3618,11 +3296,9 @@ def _build_interactive_chart_payload_v2(
         global_bucket_options = preferred_global
 
     absolute_time_chart_ids = [
-        "baseline_volume_pro_rate",
         "bursts_hero_timeline",
         "bursts_significance_by_window",
         "bursts_composition_shift",
-        "procon_swings_hero_bucket_trend",
         "overview_position_volume_by_bucket",
         "off_hours_control_timeline",
         "off_hours_primary_residual_timeline",
@@ -3778,15 +3454,11 @@ def _build_interactive_chart_payload_v2(
 
 def _build_interactive_chart_payload(
     counts_per_minute: pd.DataFrame,
-    time_bucket_profiles: pd.DataFrame,
-    day_bucket_profiles: pd.DataFrame,
     org_blank_rates: pd.DataFrame,
     voter_match_by_bucket: pd.DataFrame,
 ) -> dict[str, Any]:
     placeholder_table_map = {
         "artifacts.counts_per_minute": counts_per_minute,
-        _table_key("procon_swings", "time_bucket_profiles"): time_bucket_profiles,
-        _table_key("procon_swings", "day_bucket_profiles"): day_bucket_profiles,
         _table_key("org_anomalies", "organization_blank_rate_by_bucket"): org_blank_rates,
         _table_key("voter_registry_match", "match_by_bucket"): voter_match_by_bucket,
     }

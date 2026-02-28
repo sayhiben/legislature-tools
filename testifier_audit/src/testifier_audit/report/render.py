@@ -48,8 +48,6 @@ from testifier_audit.report.rendering.investigation_artifacts import (
 )
 from testifier_audit.report.rendering.orchestrator import render_report
 from testifier_audit.report.rendering.payload.builder import (
-    _build_bucketed_baseline_profiles,
-    _build_bucketed_day_hour_profiles,
     _build_interactive_chart_payload,
     _build_interactive_chart_payload_v2,
     _interactive_chart_payload_from_disk,
@@ -101,8 +99,6 @@ __all__ = [
     "_analysis_help_hints",
     "_artifact_rows_from_disk",
     "_build_analysis_help_docs",
-    "_build_bucketed_baseline_profiles",
-    "_build_bucketed_day_hour_profiles",
     "_build_chart_data_manifest",
     "_build_chart_help_docs",
     "_build_deadline_ramp_metrics",

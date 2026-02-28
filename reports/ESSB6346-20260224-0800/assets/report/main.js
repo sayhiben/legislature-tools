@@ -257,7 +257,6 @@
     "off_hours_date_hour_pro_heatmap",
     "off_hours_date_hour_primary_residual_heatmap",
     "off_hours_date_hour_volume_heatmap",
-    "procon_swings_shift_heatmap",
   ]);
   const DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE = 10;
   const DUPLICATE_TOP_NAME_TIMING_MAX_PAGES = 20;
@@ -5635,6 +5634,24 @@
 
   function renderOverviewPositionVolumeByBucket(mount, rows) {
     const theme = currentChartTheme();
+    const wilsonInterval = (successesRaw, totalsRaw, zValue) => {
+      const z = Number.isFinite(zValue) ? zValue : 1.96;
+      const successes = toFiniteNumberOrNull(successesRaw);
+      const totals = toFiniteNumberOrNull(totalsRaw);
+      if (successes === null || totals === null || totals <= 0) {
+        return { low: null, high: null };
+      }
+      const p = Math.max(0, Math.min(1, successes / totals));
+      const z2 = z * z;
+      const denom = 1 + z2 / totals;
+      const center = (p + z2 / (2 * totals)) / denom;
+      const halfWidth =
+        (z * Math.sqrt((p * (1 - p) + z2 / (4 * totals)) / totals)) / denom;
+      return {
+        low: Math.max(0, Math.min(1, center - halfWidth)),
+        high: Math.max(0, Math.min(1, center + halfWidth)),
+      };
+    };
     const points = rows
       .map((row) => {
         const bucketStart = toEpochMillis(row.bucket_start);
@@ -5648,6 +5665,52 @@
         const nOther = Math.max(0, toNumber(nOtherRaw));
         const nTotalRaw = toFiniteNumberOrNull(row.n_total);
         const nTotal = nTotalRaw !== null ? Math.max(0, nTotalRaw) : nPro + nCon + nOther;
+        const fallbackProShare = nTotal > 0 ? nPro / nTotal : null;
+        const fallbackConShare = nTotal > 0 ? nCon / nTotal : null;
+        const fallbackOtherShare = nTotal > 0 ? nOther / nTotal : null;
+        let proShare = toFiniteNumberOrNull(row.pro_share_total);
+        let conShare = toFiniteNumberOrNull(row.con_share_total);
+        let otherShare = toFiniteNumberOrNull(row.other_share_total);
+        proShare = proShare === null ? fallbackProShare : proShare;
+        conShare = conShare === null ? fallbackConShare : conShare;
+        otherShare = otherShare === null ? fallbackOtherShare : otherShare;
+        let proShareWilsonLow = toFiniteNumberOrNull(row.pro_share_total_wilson_low);
+        let proShareWilsonHigh = toFiniteNumberOrNull(row.pro_share_total_wilson_high);
+        if ((proShareWilsonLow === null || proShareWilsonHigh === null) && nTotal > 0) {
+          const computed = wilsonInterval(nPro, nTotal, 1.96);
+          proShareWilsonLow =
+            proShareWilsonLow === null ? computed.low : proShareWilsonLow;
+          proShareWilsonHigh =
+            proShareWilsonHigh === null ? computed.high : proShareWilsonHigh;
+        }
+        let nProWilsonLow = toFiniteNumberOrNull(row.n_pro_wilson_low);
+        let nProWilsonHigh = toFiniteNumberOrNull(row.n_pro_wilson_high);
+        if ((nProWilsonLow === null || nProWilsonHigh === null) && nTotal > 0) {
+          nProWilsonLow =
+            nProWilsonLow === null && proShareWilsonLow !== null
+              ? proShareWilsonLow * nTotal
+              : nProWilsonLow;
+          nProWilsonHigh =
+            nProWilsonHigh === null && proShareWilsonHigh !== null
+              ? proShareWilsonHigh * nTotal
+              : nProWilsonHigh;
+        }
+        let nConWilsonLow = toFiniteNumberOrNull(row.n_con_wilson_low);
+        let nConWilsonHigh = toFiniteNumberOrNull(row.n_con_wilson_high);
+        if ((nConWilsonLow === null || nConWilsonHigh === null) && nTotal > 0) {
+          const computed = wilsonInterval(nCon, nTotal, 1.96);
+          nConWilsonLow = nConWilsonLow === null ? computed.low * nTotal : nConWilsonLow;
+          nConWilsonHigh = nConWilsonHigh === null ? computed.high * nTotal : nConWilsonHigh;
+        }
+        let nOtherWilsonLow = toFiniteNumberOrNull(row.n_other_position_wilson_low);
+        let nOtherWilsonHigh = toFiniteNumberOrNull(row.n_other_position_wilson_high);
+        if ((nOtherWilsonLow === null || nOtherWilsonHigh === null) && nTotal > 0) {
+          const computed = wilsonInterval(nOther, nTotal, 1.96);
+          nOtherWilsonLow =
+            nOtherWilsonLow === null ? computed.low * nTotal : nOtherWilsonLow;
+          nOtherWilsonHigh =
+            nOtherWilsonHigh === null ? computed.high * nTotal : nOtherWilsonHigh;
+        }
         return {
           bucketStart,
           bucketMinutes,
@@ -5655,6 +5718,17 @@
           nCon,
           nOther,
           nTotal,
+          proShare,
+          conShare,
+          otherShare,
+          proShareWilsonLow,
+          proShareWilsonHigh,
+          nProWilsonLow,
+          nProWilsonHigh,
+          nConWilsonLow,
+          nConWilsonHigh,
+          nOtherWilsonLow,
+          nOtherWilsonHigh,
         };
       })
       .filter((row) => row.bucketStart !== null)
@@ -5673,9 +5747,14 @@
         value: [point.bucketStart, point[field]],
         meta: point,
       }));
-    const proShareSeries = points.map((point) => [
+    const proShareSeries = points.map((point) => [point.bucketStart, point.proShare]);
+    const proShareWilsonLowSeries = points.map((point) => [
       point.bucketStart,
-      point.nTotal > 0 ? point.nPro / point.nTotal : null,
+      point.proShareWilsonLow,
+    ]);
+    const proShareWilsonHighSeries = points.map((point) => [
+      point.bucketStart,
+      point.proShareWilsonHigh,
     ]);
     const proShareMidpointSeries = points.map((point) => [point.bucketStart, 0.5]);
 
@@ -5732,6 +5811,46 @@
                 formatPercent(meta.nCon / meta.nTotal) +
                 " / " +
                 formatPercent(meta.nOther / meta.nTotal)
+            );
+          }
+          const proShareWilsonLow = toFiniteNumberOrNull(meta.proShareWilsonLow);
+          const proShareWilsonHigh = toFiniteNumberOrNull(meta.proShareWilsonHigh);
+          if (proShareWilsonLow !== null && proShareWilsonHigh !== null) {
+            lines.push(
+              "<strong>Pro share Wilson (95%):</strong> " +
+                formatPercent(proShareWilsonLow) +
+                " - " +
+                formatPercent(proShareWilsonHigh)
+            );
+          }
+          const nProWilsonLow = toFiniteNumberOrNull(meta.nProWilsonLow);
+          const nProWilsonHigh = toFiniteNumberOrNull(meta.nProWilsonHigh);
+          const nConWilsonLow = toFiniteNumberOrNull(meta.nConWilsonLow);
+          const nConWilsonHigh = toFiniteNumberOrNull(meta.nConWilsonHigh);
+          const nOtherWilsonLow = toFiniteNumberOrNull(meta.nOtherWilsonLow);
+          const nOtherWilsonHigh = toFiniteNumberOrNull(meta.nOtherWilsonHigh);
+          if (nProWilsonLow !== null && nProWilsonHigh !== null) {
+            lines.push(
+              "<strong>Pro volume Wilson (95%):</strong> " +
+                formatTooltipValue(nProWilsonLow) +
+                " - " +
+                formatTooltipValue(nProWilsonHigh)
+            );
+          }
+          if (nConWilsonLow !== null && nConWilsonHigh !== null) {
+            lines.push(
+              "<strong>Con volume Wilson (95%):</strong> " +
+                formatTooltipValue(nConWilsonLow) +
+                " - " +
+                formatTooltipValue(nConWilsonHigh)
+            );
+          }
+          if (nOtherWilsonLow !== null && nOtherWilsonHigh !== null) {
+            lines.push(
+              "<strong>Other volume Wilson (95%):</strong> " +
+                formatTooltipValue(nOtherWilsonLow) +
+                " - " +
+                formatTooltipValue(nOtherWilsonHigh)
             );
           }
           return lines.join("<br/>");
@@ -5820,11 +5939,29 @@
           showSymbol: false,
           lineStyle: { color: theme.primaryLine, width: 1.45, opacity: 0.9 },
         },
+        {
+          name: "Pro share Wilson low",
+          type: "line",
+          yAxisIndex: 1,
+          data: proShareWilsonLowSeries,
+          showSymbol: false,
+          lineStyle: { color: theme.intervalBand, width: 1, type: "dashed", opacity: 0.72 },
+        },
+        {
+          name: "Pro share Wilson high",
+          type: "line",
+          yAxisIndex: 1,
+          data: proShareWilsonHighSeries,
+          showSymbol: false,
+          lineStyle: { color: theme.intervalBand, width: 1, type: "dashed", opacity: 0.72 },
+        },
       ],
     };
 
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
     mount.seriesId = mainSeriesId;
+    mount.customChartNote =
+      "Dashed lines show 95% Wilson bounds for Pro share; tooltip includes count-space bounds for Pro/Con/Other.";
     mount.isTimeSeries = true;
     mount.isAbsoluteTime = state.absoluteTimeSet.has(mount.chartId);
     return true;
@@ -5841,8 +5978,6 @@
     "voter_registry_match_by_position",
   ]);
   const simpleBarRankedChartIds = new Set([
-    "baseline_top_names",
-    "baseline_name_length_distribution",
     "duplicates_exact_per_name_anomalies",
     "duplicates_exact_metric_diagnostics",
     "duplicates_exact_top_names",
@@ -5856,7 +5991,6 @@
   const simpleBarNullDiagnosticChartIds = new Set([
     "bursts_null_distribution",
     "duplicates_exact_null_distribution",
-    "procon_swings_null_distribution",
   ]);
   const simpleBarRatioReferenceChartIds = new Set([
     "voter_registry_pairwise_tests",
@@ -6221,7 +6355,6 @@
       }
     } else if (simpleBarRatioReferenceChartIds.has(mount.chartId)) {
       const referenceByChartId = {
-        procon_swings_time_of_day_profile: 0.5,
         voter_registry_pairwise_tests: 0.0,
       };
       const referenceValue = Object.prototype.hasOwnProperty.call(referenceByChartId, mount.chartId)
@@ -7570,15 +7703,6 @@
       return false;
     }
 
-    if (mount.chartId === "procon_swings_shift_heatmap") {
-      return renderShiftHeatmap(mount, rows);
-    }
-    if (mount.chartId === "procon_swings_day_hour_heatmap") {
-      return renderDayHourHeatmap(mount, rows, "pro_rate");
-    }
-    if (mount.chartId === "baseline_day_hour_volume") {
-      return renderDayHourHeatmap(mount, rows, "n_total");
-    }
     if (mount.chartId === "off_hours_date_hour_pro_heatmap") {
       return renderDateHourHeatmap(mount, rows, "pro_rate", "Pro rate", {
         scaleMode: "rate_diverging",
@@ -7618,30 +7742,6 @@
     }
 
     const timeOverrides = {
-      baseline_volume_pro_rate: {
-        timeField: "minute_bucket",
-        barField: "n_total",
-        lineField: "pro_rate",
-        lineLow: "pro_rate_wilson_low",
-        lineHigh: "pro_rate_wilson_high",
-        lowPowerField: "is_low_power",
-        lineAxisName: "Pro rate",
-        lineMin: 0,
-        lineMax: 1,
-      },
-      procon_swings_hero_bucket_trend: {
-        timeField: "bucket_start",
-        barField: "n_total",
-        lineField: "pro_rate",
-        lineLow: "pro_rate_wilson_low",
-        lineHigh: "pro_rate_wilson_high",
-        lowPowerField: "is_low_power",
-        flaggedField: "is_flagged",
-        extraLines: ["baseline_pro_rate", "stable_lower", "stable_upper"],
-        lineAxisName: "Pro rate",
-        lineMin: 0,
-        lineMax: 1,
-      },
       off_hours_control_timeline: {
         timeField: "bucket_start",
         barField: "n_total",
@@ -7682,12 +7782,17 @@
       },
       org_anomalies_blank_rate: {
         timeField: "bucket_start",
-        barField: "n_total",
+        barField: null,
+        stackedBarFields: [
+          { field: "n_pro", name: "Pro volume", color: "contextLine", opacity: 0.44 },
+          { field: "n_con", name: "Con volume", color: "alertLower", opacity: 0.44 },
+        ],
         lineField: "blank_org_rate",
         lineLow: "blank_org_rate_wilson_low",
         lineHigh: "blank_org_rate_wilson_high",
         extraLines: ["pro_blank_org_rate", "con_blank_org_rate"],
         lowPowerField: "is_low_power",
+        barAxisName: "Positioned rows",
         lineAxisName: "Blank org rate",
         lineMin: 0,
         lineMax: 1,
@@ -7716,13 +7821,6 @@
         lineMin: 0,
         lineMax: 1,
       },
-      procon_swings_direction_runs: {
-        timeField: "start_bucket",
-        barField: "run_length_buckets",
-        lineField: "mean_abs_delta_pro_rate",
-        lineAxisName: "Mean abs delta",
-        barAxisName: "Run length",
-      },
       duplicates_exact_bucket_concentration: {
         timeField: "bucket_start",
         barField: null,
@@ -7737,12 +7835,19 @@
       },
       org_anomalies_position_rates: {
         timeField: "bucket_start",
-        barField: "n_total",
-        lineField: "blank_org_rate",
-        lineLow: "blank_org_rate_wilson_low",
-        lineHigh: "blank_org_rate_wilson_high",
-        lowPowerField: "is_low_power",
-        lineAxisName: "Blank org rate",
+        barField: null,
+        stackedBarFields: [
+          { field: "n_pro", name: "Pro volume", color: "contextLine", opacity: 0.44 },
+          { field: "n_con", name: "Con volume", color: "alertLower", opacity: 0.44 },
+        ],
+        lineField: "pro_blank_org_rate",
+        lineLow: "pro_blank_org_rate_wilson_low",
+        lineHigh: "pro_blank_org_rate_wilson_high",
+        lineSeriesName: "Pro blank org rate",
+        extraLines: ["con_blank_org_rate", "unknown_blank_org_rate"],
+        lowPowerField: "pro_is_low_power",
+        barAxisName: "Positioned rows",
+        lineAxisName: "Blank org rate by position",
         lineMin: 0,
         lineMax: 1,
       },
@@ -7804,17 +7909,8 @@
         expectedSeriesName: "On-hours pro rate",
       });
     }
-    if (mount.chartId === "baseline_top_names") {
-      return renderSimpleBar(mount, rows, "display_name", "n", "count");
-    }
-    if (mount.chartId === "baseline_name_length_distribution") {
-      return renderSimpleBar(mount, rows, "name_length", "n_names", "names");
-    }
     if (mount.chartId === "bursts_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "max_window_count", "max count");
-    }
-    if (mount.chartId === "procon_swings_null_distribution") {
-      return renderSimpleBar(mount, rows, "iteration", "max_abs_delta_pro_rate", "max abs delta");
     }
     if (
       mount.chartId === "duplicates_exact_top_names" ||
@@ -7929,16 +8025,6 @@
         : "unmatched_rate_rows";
       const xField = rows.length && rows[0].match_tier !== undefined ? "match_tier" : "mode";
       return renderSimpleBar(mount, rows, xField, yField, "record rate");
-    }
-    if (mount.chartId === "procon_swings_time_of_day_profile") {
-      return renderSimpleBar(mount, rows, "slot_start_minute", "pro_rate", "pro rate", {
-        observedSeriesName: "Observed pro rate",
-        expectedField: "baseline_pro_rate",
-        expectedSeriesName: "Baseline pro rate",
-        bandLowField: "stable_lower",
-        bandHighField: "stable_upper",
-        expectedBandName: "Stable band",
-      });
     }
     const timeField = inferTimeField(rows);
     if (timeField) {
@@ -11887,12 +11973,7 @@
     if (isOffHoursFocusOnly) {
       return;
     }
-    const requiredAnalyses = [
-      "baseline_profile",
-      "bursts",
-      "procon_swings",
-      "duplicates_exact",
-    ];
+    const requiredAnalyses = ["bursts", "duplicates_exact"];
     const available = requiredAnalyses.filter((analysisId) =>
       !!chartShardEntryForAnalysis(analysisId)
     );

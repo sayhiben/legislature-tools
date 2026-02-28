@@ -32,10 +32,8 @@ def rolling_sum(values: np.ndarray, window: int) -> np.ndarray:
         return np.array([], dtype=float)
 
     cumulative = np.cumsum(values, dtype=float)
-    out = cumulative[window - 1 :].copy()
-    if window > 1:
-        out[1:] = out[1:] - cumulative[:-window]
-    return out
+    previous = np.concatenate(([0.0], cumulative[:-window]))
+    return cumulative[window - 1 :] - previous
 
 
 def empirical_tail_p_values(observed: np.ndarray, null_samples: np.ndarray) -> np.ndarray:

@@ -399,22 +399,6 @@ def build_investigation_view(
             "window_minutes",
         ],
     )
-    swings = _with_columns(
-        _table(table_map, "procon_swings.swing_significant_windows"),
-        [
-            "start_minute",
-            "end_minute",
-            "n_total",
-            "pro_rate",
-            "delta_pro_rate",
-            "abs_delta_pro_rate",
-            "z_score",
-            "p_value",
-            "q_value",
-            "window_minutes",
-            "is_low_power",
-        ],
-    )
     dup_exact_top = _with_columns(
         _table(table_map, "duplicates_exact.top_repeated_names"),
         ["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"],
@@ -455,10 +439,6 @@ def build_investigation_view(
     bursts["end_minute"] = pd.to_datetime(bursts["end_minute"], errors="coerce")
     bursts = bursts.dropna(subset=["start_minute", "end_minute"]).reset_index(drop=True)
 
-    swings["start_minute"] = pd.to_datetime(swings["start_minute"], errors="coerce")
-    swings["end_minute"] = pd.to_datetime(swings["end_minute"], errors="coerce")
-    swings = swings.dropna(subset=["start_minute", "end_minute"]).reset_index(drop=True)
-
     summary = _empty_summary()
     if not counts.empty:
         n_total = float(
@@ -495,28 +475,6 @@ def build_investigation_view(
                 "q_value": _to_float(row.q_value),
             }
             for row in burst_preview.itertuples(index=False)
-        ]
-
-    if not swings.empty:
-        swing_preview = swings.copy()
-        for column in ("q_value", "abs_delta_pro_rate", "n_total"):
-            swing_preview[column] = pd.to_numeric(swing_preview[column], errors="coerce")
-        swing_preview = swing_preview.sort_values(
-            by=["q_value", "abs_delta_pro_rate", "n_total"],
-            ascending=[True, False, False],
-            na_position="last",
-        ).head(5)
-        summary["top_swing_windows"] = [
-            {
-                "start_time": _iso_or_none(_to_timestamp(row.start_minute)),
-                "end_time": _iso_or_none(_to_timestamp(row.end_minute)),
-                "n_total": _to_float(row.n_total),
-                "pro_rate": _to_float(row.pro_rate),
-                "delta_pro_rate": _to_float(row.delta_pro_rate),
-                "z_score": _to_float(row.z_score),
-                "q_value": _to_float(row.q_value),
-            }
-            for row in swing_preview.itertuples(index=False)
         ]
 
     top_repeated_source = dup_exact_top if not dup_exact_top.empty else dup_exact_anomalies

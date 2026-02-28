@@ -64,26 +64,6 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
                 "unique_ratio": [1.0, 0.92, 0.88],
             }
         ),
-        "procon_swings.time_bucket_profiles": pd.DataFrame(
-            {
-                "bucket_start": pd.to_datetime(
-                    [
-                        "2026-02-01T00:00:00Z",
-                        "2026-02-01T00:30:00Z",
-                    ]
-                ),
-                "bucket_minutes": [30, 30],
-                "n_total": [22, 19],
-                "pro_rate": [0.45, 0.37],
-                "pro_rate_wilson_low": [0.25, 0.2],
-                "pro_rate_wilson_high": [0.65, 0.55],
-                "baseline_pro_rate": [0.4, 0.4],
-                "stable_lower": [0.3, 0.3],
-                "stable_upper": [0.5, 0.5],
-                "is_flagged": [False, True],
-                "is_low_power": [False, False],
-            }
-        ),
         "voter_registry_match.match_by_bucket": pd.DataFrame(
             {
                 "bucket_start": pd.to_datetime(
@@ -308,12 +288,11 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
         assert controls.get("focus_analysis_ids") == []
 
     catalog_by_id = {entry["id"]: entry for entry in payload["analysis_catalog"]}
-    target_analysis = (
-        "baseline_profile"
-        if "baseline_profile" in catalog_by_id
-        else next(iter(catalog_by_id.keys()))
-    )
-    assert catalog_by_id[target_analysis]["bucket_options"] == EXPECTED_BASELINE_BUCKETS
+    assert "baseline_profile" not in catalog_by_id
+    assert "baseline_volume_pro_rate" not in payload["charts"]
+    assert "baseline_day_hour_volume" not in payload["charts"]
+    assert "baseline_top_names" not in payload["charts"]
+    assert "baseline_name_length_distribution" not in payload["charts"]
 
     triage_views = payload["triage_views"]
     assert {"raw", "exact_row_dedup", "side_by_side"}.issubset(set(triage_views.keys()))
@@ -473,6 +452,29 @@ def test_payload_color_semantics_cover_key_chart_families() -> None:
 
     overview_volume_row = charts["overview_position_volume_by_bucket"][0]
     assert overview_volume_row["n_other_position"] == 20.0
+    assert overview_volume_row["pro_share_total"] == 35.0 / 120.0
+    assert overview_volume_row["con_share_total"] == 65.0 / 120.0
+    assert overview_volume_row["other_share_total"] == 20.0 / 120.0
+    assert (
+        overview_volume_row["pro_share_total_wilson_low"]
+        < overview_volume_row["pro_share_total"]
+        < overview_volume_row["pro_share_total_wilson_high"]
+    )
+    assert (
+        overview_volume_row["n_pro_wilson_low"]
+        < overview_volume_row["n_pro"]
+        < overview_volume_row["n_pro_wilson_high"]
+    )
+    assert (
+        overview_volume_row["n_con_wilson_low"]
+        < overview_volume_row["n_con"]
+        < overview_volume_row["n_con_wilson_high"]
+    )
+    assert (
+        overview_volume_row["n_other_position_wilson_low"]
+        < overview_volume_row["n_other_position"]
+        < overview_volume_row["n_other_position_wilson_high"]
+    )
 
 
 def test_empty_and_disabled_analyses_are_still_in_catalog() -> None:
@@ -1692,6 +1694,154 @@ def test_voter_registry_match_rates_preserve_mode_bucket_rows_without_cross_join
     loose_5 = by_mode_bucket[("loose", 5)]
     assert loose_5["matched_rate_pro"] == 0.85
     assert loose_5["matched_rate_con"] == 0.95
+
+
+def test_org_anomalies_position_rates_chart_uses_bucket_level_series_rows() -> None:
+    org_by_bucket = pd.DataFrame(
+        [
+            {
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 5,
+                "n_total": 20,
+                "n_pro": 10,
+                "n_con": 8,
+                "n_unknown": 2,
+                "blank_org_rate": 0.45,
+                "blank_org_rate_wilson_low": 0.25,
+                "blank_org_rate_wilson_high": 0.65,
+                "pro_blank_org_rate": 0.60,
+                "pro_blank_org_rate_wilson_low": 0.35,
+                "pro_blank_org_rate_wilson_high": 0.80,
+                "con_blank_org_rate": 0.25,
+                "con_blank_org_rate_wilson_low": 0.10,
+                "con_blank_org_rate_wilson_high": 0.50,
+                "unknown_blank_org_rate": 0.50,
+                "unknown_blank_org_rate_wilson_low": 0.10,
+                "unknown_blank_org_rate_wilson_high": 0.90,
+                "is_low_power": False,
+                "pro_is_low_power": False,
+                "con_is_low_power": False,
+                "unknown_is_low_power": True,
+            },
+            {
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "n_total": 24,
+                "n_pro": 12,
+                "n_con": 10,
+                "n_unknown": 2,
+                "blank_org_rate": 0.35,
+                "blank_org_rate_wilson_low": 0.18,
+                "blank_org_rate_wilson_high": 0.55,
+                "pro_blank_org_rate": 0.40,
+                "pro_blank_org_rate_wilson_low": 0.20,
+                "pro_blank_org_rate_wilson_high": 0.65,
+                "con_blank_org_rate": 0.30,
+                "con_blank_org_rate_wilson_low": 0.12,
+                "con_blank_org_rate_wilson_high": 0.56,
+                "unknown_blank_org_rate": 0.00,
+                "unknown_blank_org_rate_wilson_low": 0.00,
+                "unknown_blank_org_rate_wilson_high": 0.80,
+                "is_low_power": False,
+                "pro_is_low_power": False,
+                "con_is_low_power": False,
+                "unknown_is_low_power": True,
+            },
+        ]
+    )
+    org_by_bucket_position = pd.DataFrame(
+        [
+            {
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Pro",
+                "n_total": 10,
+                "blank_org_rate": 0.60,
+                "blank_org_rate_wilson_low": 0.35,
+                "blank_org_rate_wilson_high": 0.80,
+                "is_low_power": False,
+            },
+            {
+                "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Con",
+                "n_total": 8,
+                "blank_org_rate": 0.25,
+                "blank_org_rate_wilson_low": 0.10,
+                "blank_org_rate_wilson_high": 0.50,
+                "is_low_power": False,
+            },
+            {
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Pro",
+                "n_total": 12,
+                "blank_org_rate": 0.40,
+                "blank_org_rate_wilson_low": 0.20,
+                "blank_org_rate_wilson_high": 0.65,
+                "is_low_power": False,
+            },
+            {
+                "bucket_start": pd.Timestamp("2026-02-01T00:05:00Z"),
+                "bucket_minutes": 5,
+                "position_normalized": "Con",
+                "n_total": 10,
+                "blank_org_rate": 0.30,
+                "blank_org_rate_wilson_low": 0.12,
+                "blank_org_rate_wilson_high": 0.56,
+                "is_low_power": False,
+            },
+        ]
+    )
+
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                    "n_total": [20],
+                    "n_pro": [10],
+                    "n_con": [8],
+                    "pro_rate": [0.556],
+                    "pro_rate_wilson_low": [0.35],
+                    "pro_rate_wilson_high": [0.73],
+                    "is_low_power": [False],
+                    "n_unique_names": [19],
+                    "unique_ratio": [0.95],
+                }
+            ),
+            "org_anomalies.organization_blank_rate_by_bucket": org_by_bucket,
+            "org_anomalies.organization_blank_rate_by_bucket_position": org_by_bucket_position,
+        },
+        detector_summaries={},
+    )
+
+    blank_rows = payload["charts"]["org_anomalies_blank_rate"]
+    assert len(blank_rows) == int(org_by_bucket["bucket_start"].nunique())
+    assert all("n_pro" in row for row in blank_rows)
+    assert all("n_con" in row for row in blank_rows)
+    assert blank_rows[0]["n_pro"] == 10
+    assert blank_rows[0]["n_con"] == 8
+    assert blank_rows[1]["n_pro"] == 12
+    assert blank_rows[1]["n_con"] == 10
+
+    position_rows = payload["charts"]["org_anomalies_position_rates"]
+    assert len(position_rows) == int(org_by_bucket["bucket_start"].nunique())
+    assert all("position_normalized" not in row for row in position_rows)
+    assert all("n_pro" in row for row in position_rows)
+    assert all("n_con" in row for row in position_rows)
+    assert all("pro_blank_org_rate" in row for row in position_rows)
+    assert all("con_blank_org_rate" in row for row in position_rows)
+    assert all("unknown_blank_org_rate" in row for row in position_rows)
+
+    first_row = position_rows[0]
+    second_row = position_rows[1]
+    assert first_row["pro_blank_org_rate"] == 0.60
+    assert first_row["con_blank_org_rate"] == 0.25
+    assert first_row["unknown_blank_org_rate"] == 0.50
+    assert second_row["pro_blank_org_rate"] == 0.40
+    assert second_row["con_blank_org_rate"] == 0.30
+    assert second_row["unknown_blank_org_rate"] == 0.00
 
 
 def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> None:

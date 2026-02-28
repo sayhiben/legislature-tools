@@ -6,7 +6,6 @@ from testifier_audit.detectors.bursts import BurstsDetector
 from testifier_audit.detectors.duplicates_exact import DuplicatesExactDetector
 from testifier_audit.detectors.off_hours import OffHoursDetector
 from testifier_audit.detectors.org_anomalies import OrganizationAnomaliesDetector
-from testifier_audit.detectors.procon_swings import ProConSwingsDetector
 from testifier_audit.detectors.voter_registry_match import VoterRegistryMatchDetector
 from testifier_audit.io.hearing_metadata import load_hearing_metadata
 
@@ -103,22 +102,6 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             calibration_iterations=config.calibration.iterations,
             calibration_seed=config.calibration.random_seed,
             calibration_support_alpha=config.calibration.support_alpha,
-        ),
-        ProConSwingsDetector(
-            window_minutes=sorted(
-                set(config.windows.scan_window_minutes + [config.windows.swing_window_minutes])
-            ),
-            fdr_alpha=config.thresholds.procon_swing_fdr_alpha,
-            min_window_total=config.thresholds.swing_min_window_total,
-            calibration_enabled=config.calibration.enabled,
-            calibration_mode=config.calibration.mode,
-            significance_policy=config.calibration.significance_policy,
-            calibration_iterations=config.calibration.iterations,
-            calibration_seed=config.calibration.random_seed,
-            calibration_support_alpha=config.calibration.support_alpha,
-            profile_bucket_minutes=sorted(
-                set(bucket_minutes + ProConSwingsDetector.DEFAULT_PROFILE_BUCKET_MINUTES)
-            ),
         ),
         OffHoursDetector(
             bucket_minutes=off_hours_bucket_minutes,

@@ -369,6 +369,82 @@ def test_table_previews_from_results_filter_duplicate_name_tests_and_keep_full_r
     assert len(previews["duplicates_exact"]["repeated_same_bucket"]) == 4
 
 
+def test_table_previews_exclude_org_anomalies_blank_rate_tables_from_results() -> None:
+    results = {
+        "org_anomalies": DetectorResult(
+            detector="org_anomalies",
+            summary={},
+            tables={
+                "organization_blank_rate_by_bucket": pd.DataFrame(
+                    [{"bucket_minutes": 5, "blank_org_rate": 0.3, "n_total": 10}]
+                ),
+                "organization_blank_rate_by_bucket_position": pd.DataFrame(
+                    [
+                        {
+                            "bucket_minutes": 5,
+                            "bucket_start": "2026-02-01T00:00:00-08:00",
+                            "position_normalized": "Pro",
+                            "blank_org_rate": 0.4,
+                            "n_total": 5,
+                        }
+                    ]
+                ),
+                "organization_blank_rate_summary": pd.DataFrame(
+                    [{"bucket_minutes": 5, "blank_org_ratio": 0.32}]
+                ),
+                "other_table": pd.DataFrame([{"value": 1}]),
+            },
+        )
+    }
+
+    previews = _table_previews_from_results(results, max_rows=5)
+    assert "org_anomalies" in previews
+    assert "organization_blank_rate_by_bucket" not in previews["org_anomalies"]
+    assert "organization_blank_rate_by_bucket_position" not in previews["org_anomalies"]
+    assert "organization_blank_rate_summary" not in previews["org_anomalies"]
+    assert "other_table" in previews["org_anomalies"]
+
+
+def test_table_previews_exclude_org_anomalies_blank_rate_tables_from_disk(tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    tables_dir = out_dir / "tables"
+    tables_dir.mkdir(parents=True)
+
+    pd.DataFrame([{"bucket_minutes": 5, "blank_org_rate": 0.3, "n_total": 10}]).to_csv(
+        tables_dir / "org_anomalies__organization_blank_rate_by_bucket.csv",
+        index=False,
+    )
+    pd.DataFrame(
+        [
+            {
+                "bucket_minutes": 5,
+                "bucket_start": "2026-02-01T00:00:00-08:00",
+                "position_normalized": "Pro",
+                "blank_org_rate": 0.4,
+                "n_total": 5,
+            }
+        ]
+    ).to_csv(
+        tables_dir / "org_anomalies__organization_blank_rate_by_bucket_position.csv",
+        index=False,
+    )
+    pd.DataFrame([{"bucket_minutes": 5, "blank_org_ratio": 0.32}]).to_csv(
+        tables_dir / "org_anomalies__organization_blank_rate_summary.csv",
+        index=False,
+    )
+    pd.DataFrame([{"value": 1}]).to_csv(
+        tables_dir / "org_anomalies__other_table.csv",
+        index=False,
+    )
+
+    previews = _load_table_previews_from_disk(out_dir, max_rows=5)
+    assert "org_anomalies" in previews
+    assert "organization_blank_rate_by_bucket" not in previews["org_anomalies"]
+    assert "organization_blank_rate_by_bucket_position" not in previews["org_anomalies"]
+    assert "organization_blank_rate_summary" not in previews["org_anomalies"]
+    assert "other_table" in previews["org_anomalies"]
+
+
 def test_table_previews_align_voter_linkage_position_columns_and_order() -> None:
     results = {
         "voter_registry_match": DetectorResult(
@@ -862,9 +938,31 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "renderHearingContextPanel()" in js_text
     assert "buildProcessMarkerLines()" in js_text
     assert "voter_registry_match_tiers" in js_text
+    org_blank_block_start = js_text.find("org_anomalies_blank_rate: {")
+    org_blank_block_end = js_text.find(
+        "voter_registry_match_rates:",
+        org_blank_block_start if org_blank_block_start >= 0 else 0,
+    )
+    assert org_blank_block_start >= 0 and org_blank_block_end > org_blank_block_start
+    org_blank_block = js_text[org_blank_block_start:org_blank_block_end]
+    assert "stackedBarFields" in org_blank_block
+    assert '{ field: "n_pro", name: "Pro volume", color: "contextLine", opacity: 0.44 }' in org_blank_block
+    assert '{ field: "n_con", name: "Con volume", color: "alertLower", opacity: 0.44 }' in org_blank_block
+    assert 'barField: "n_total"' not in org_blank_block
+    org_position_block_start = js_text.find("org_anomalies_position_rates: {")
+    org_position_block_end = js_text.find(
+        "voter_registry_position_buckets:",
+        org_position_block_start if org_position_block_start >= 0 else 0,
+    )
+    assert org_position_block_start >= 0 and org_position_block_end > org_position_block_start
+    org_position_block = js_text[org_position_block_start:org_position_block_end]
+    assert "stackedBarFields" in org_position_block
+    assert '{ field: "n_pro", name: "Pro volume", color: "contextLine", opacity: 0.44 }' in org_position_block
+    assert '{ field: "n_con", name: "Con volume", color: "alertLower", opacity: 0.44 }' in org_position_block
+    assert 'barField: "n_total"' not in org_position_block
     voter_rates_block_start = js_text.find("voter_registry_match_rates: {")
     voter_rates_block_end = js_text.find(
-        "procon_swings_direction_runs:",
+        "duplicates_exact_bucket_concentration:",
         voter_rates_block_start if voter_rates_block_start >= 0 else 0,
     )
     assert voter_rates_block_start >= 0 and voter_rates_block_end > voter_rates_block_start

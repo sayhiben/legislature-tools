@@ -35,21 +35,6 @@ def test_triage_summary_contract_contains_required_phase2_fields() -> None:
                 "q_value": [0.01],
             }
         ),
-        "procon_swings.swing_significant_windows": pd.DataFrame(
-            {
-                "window_minutes": [2],
-                "start_minute": pd.to_datetime(["2026-02-01T00:01:00Z"]),
-                "end_minute": pd.to_datetime(["2026-02-01T00:02:00Z"]),
-                "n_total": [20],
-                "pro_rate": [0.55],
-                "delta_pro_rate": [0.18],
-                "abs_delta_pro_rate": [0.18],
-                "z_score": [2.1],
-                "p_value": [0.03],
-                "q_value": [0.04],
-                "is_low_power": [False],
-            }
-        ),
         "duplicates_exact.top_repeated_names": pd.DataFrame(
             {
                 "display_name": ["Doe, Jane"],

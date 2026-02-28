@@ -6,43 +6,43 @@
   "overall_con_rate": 0.8992313669972533,
   "top_burst_windows": [
     {
-      "start_time": "2026-02-24T06:59:00-08:00",
-      "end_time": "2026-02-24T06:59:00-08:00",
-      "observed_count": 129971.0,
-      "expected_count": 16.061665842807713,
-      "rate_ratio": 8091.999999999999,
+      "start_time": "2026-02-21T11:27:00-08:00",
+      "end_time": "2026-02-21T11:56:00-08:00",
+      "observed_count": 1864.0,
+      "expected_count": 481.8499752842314,
+      "rate_ratio": 3.868423981760033,
       "q_value": 0.0
     },
     {
-      "start_time": "2026-02-24T06:58:00-08:00",
-      "end_time": "2026-02-24T06:58:00-08:00",
-      "observed_count": 129957.0,
-      "expected_count": 16.061665842807713,
-      "rate_ratio": 8091.12835940325,
+      "start_time": "2026-02-21T11:28:00-08:00",
+      "end_time": "2026-02-21T11:57:00-08:00",
+      "observed_count": 1856.0,
+      "expected_count": 481.8499752842314,
+      "rate_ratio": 3.8518213037267284,
       "q_value": 0.0
     },
     {
-      "start_time": "2026-02-24T06:57:00-08:00",
-      "end_time": "2026-02-24T06:57:00-08:00",
-      "observed_count": 129943.0,
-      "expected_count": 16.061665842807713,
-      "rate_ratio": 8090.256718806502,
+      "start_time": "2026-02-21T11:26:00-08:00",
+      "end_time": "2026-02-21T11:55:00-08:00",
+      "observed_count": 1850.0,
+      "expected_count": 481.8499752842314,
+      "rate_ratio": 3.8393692952017497,
       "q_value": 0.0
     },
     {
-      "start_time": "2026-02-24T06:56:00-08:00",
-      "end_time": "2026-02-24T06:56:00-08:00",
-      "observed_count": 129937.0,
-      "expected_count": 16.061665842807713,
-      "rate_ratio": 8089.883158550752,
+      "start_time": "2026-02-21T11:29:00-08:00",
+      "end_time": "2026-02-21T11:58:00-08:00",
+      "observed_count": 1850.0,
+      "expected_count": 481.8499752842314,
+      "rate_ratio": 3.8393692952017497,
       "q_value": 0.0
     },
     {
-      "start_time": "2026-02-24T06:55:00-08:00",
-      "end_time": "2026-02-24T06:55:00-08:00",
-      "observed_count": 129929.0,
-      "expected_count": 16.061665842807713,
-      "rate_ratio": 8089.385078209753,
+      "start_time": "2026-02-21T11:25:00-08:00",
+      "end_time": "2026-02-21T11:54:00-08:00",
+      "observed_count": 1836.0,
+      "expected_count": 481.8499752842314,
+      "rate_ratio": 3.8103146086434663,
       "q_value": 0.0
     }
   ],

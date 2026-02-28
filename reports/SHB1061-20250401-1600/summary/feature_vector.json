@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "report_id": "SHB1061-20250401-1600",
+  "generated_at_utc": "2026-02-28T01:09:12.025114+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-03-26T19:12:00-07:00",
+  "date_range_end": "2025-04-01T14:55:00-07:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 120,
+    "overall_pro_rate": 0.9416666666666667,
+    "overall_con_rate": 0.058333333333333334,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.05,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.05,
+    "dedup_drop_fraction": 0.008333333333333333
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "HOOK|JUDY||",
+      "display_name": "HOOK, JUDY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HUFNAGEL|EARL||",
+      "display_name": "HUFNAGEL, EARL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MOONEY|PATRICK||",
+      "display_name": "MOONEY, PATRICK",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 120,
+  "overall_pro_rate": 0.9416666666666667,
+  "overall_con_rate": 0.058333333333333334,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

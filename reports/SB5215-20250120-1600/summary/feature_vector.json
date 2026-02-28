@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5215-20250120-1600",
+  "generated_at_utc": "2026-02-28T01:07:21.032856+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-16T15:30:00-08:00",
+  "date_range_end": "2025-01-20T14:34:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 14,
+    "overall_pro_rate": 0.5,
+    "overall_con_rate": 0.21428571428571427,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.0,
+    "window_min_q_value": null,
+    "top_name_max_records": 1,
+    "off_hours_ratio": 0.0,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "DEVERE|JEFF||",
+      "display_name": "DEVERE, JEFF",
+      "n_records": 1,
+      "n_pro": 0,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "DOLL|JOHN||",
+      "display_name": "DOLL, JOHN",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HOLLAND|RYAN||",
+      "display_name": "HOLLAND, RYAN",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "LYON|PETER||",
+      "display_name": "LYON, PETER",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MCALEENAN|MELLANI||",
+      "display_name": "MCALEENAN, MELLANI",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 14,
+  "overall_pro_rate": 0.5,
+  "overall_con_rate": 0.21428571428571427,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

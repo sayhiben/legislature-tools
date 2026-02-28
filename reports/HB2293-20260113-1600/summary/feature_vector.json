@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2293-20260113-1600",
+  "generated_at_utc": "2026-02-28T01:06:21.420726+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-11T19:01:00-08:00",
+  "date_range_end": "2026-01-13T13:50:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 21,
+    "overall_pro_rate": 0.6190476190476191,
+    "overall_con_rate": 0.38095238095238093,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.09523809523809523,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.09523809523809523,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "NELSON|ERIK||",
+      "display_name": "NELSON, ERIK",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 21,
+  "overall_pro_rate": 0.6190476190476191,
+  "overall_con_rate": 0.38095238095238093,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

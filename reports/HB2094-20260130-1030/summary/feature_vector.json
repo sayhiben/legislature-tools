@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2094-20260130-1030",
+  "generated_at_utc": "2026-02-28T01:05:53.196516+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-22T18:16:00-08:00",
+  "date_range_end": "2026-01-30T09:12:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 319,
+    "overall_pro_rate": 0.45768025078369906,
+    "overall_con_rate": 0.5391849529780565,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.1518987341772152,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.034482758620689655,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CARR|CHRISTINE||",
+      "display_name": "CARR, CHRISTINE",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "CLARK|JAMES||",
+      "display_name": "CLARK, JAMES",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "COX|MARK||",
+      "display_name": "COX, MARK",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "SULLIVAN|DENNIS||",
+      "display_name": "SULLIVAN, DENNIS",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "TUCKER|DANA||",
+      "display_name": "TUCKER, DANA",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 319,
+  "overall_pro_rate": 0.45768025078369906,
+  "overall_con_rate": 0.5391849529780565,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

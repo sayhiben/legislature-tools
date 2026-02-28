@@ -139,6 +139,7 @@
   const triageSummary = interactive.triage_summary || {};
   const dataQualityPanel = interactive.data_quality_panel || {};
   const hearingContextPanel = interactive.hearing_context_panel || {};
+  const crossHearingBaseline = normalizeCrossHearingBaseline(interactive.cross_hearing_baseline || {});
   const controls = interactive.controls || {};
   const focusAnalysisIds = Array.isArray(controls.focus_analysis_ids)
     ? controls.focus_analysis_ids
@@ -236,6 +237,8 @@
     activeSectionControlKey: "",
     globalControlsExpandedMobile: false,
     renderToc: null,
+    activeCrossHearingChannel: crossHearingBaseline.selectedChannel,
+    defaultCrossHearingChannel: crossHearingBaseline.defaultChannel,
     selectedWindowRange: null,
     zoom: {
       minTime: null,
@@ -257,9 +260,13 @@
     "procon_swings_shift_heatmap",
   ]);
   const DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE = 10;
-  const DUPLICATE_TOP_NAME_TIMING_MAX_PAGES = 10;
+  const DUPLICATE_TOP_NAME_TIMING_MAX_PAGES = 20;
   const DUPLICATE_TOP_NAME_TIMING_MAX_NAMES =
     DUPLICATE_TOP_NAME_TIMING_PAGE_SIZE * DUPLICATE_TOP_NAME_TIMING_MAX_PAGES;
+  const DUPLICATE_PER_NAME_CHART_PAGE_SIZE = 10;
+  const DUPLICATE_PER_NAME_CHART_MAX_PAGES = 10;
+  const DUPLICATE_PER_NAME_CHART_MAX_NAMES =
+    DUPLICATE_PER_NAME_CHART_PAGE_SIZE * DUPLICATE_PER_NAME_CHART_MAX_PAGES;
   const DUPLICATE_PER_NAME_TABLE_MAX_NAMES = 100;
   const DUPLICATE_INLINE_TIMING_CHART_HEIGHT_PX = 136;
   const zonedDateTimeEpochCache = new Map();
@@ -375,6 +382,121 @@
       return normalized === "true" || normalized === "1" || normalized === "yes";
     }
     return false;
+  }
+
+  function normalizeCrossHearingChannel(channelId, label, value) {
+    const payload = value && typeof value === "object" ? value : {};
+    const reportCount = Math.max(0, Math.round(toNumber(payload.report_count)));
+    const metricComparators = Array.isArray(payload.metric_comparators)
+      ? payload.metric_comparators
+      : [];
+    const topNameCues = Array.isArray(payload.top_name_cues) ? payload.top_name_cues : [];
+    const supportTierRaw =
+      typeof payload.support_tier === "string" && payload.support_tier.trim()
+        ? payload.support_tier.trim()
+        : reportCount >= 20
+          ? "supported"
+          : reportCount >= 10
+            ? "descriptive_only"
+            : "unavailable";
+    return {
+      channel: channelId,
+      label: label,
+      available: !!payload.available,
+      reason:
+        typeof payload.reason === "string" && payload.reason.trim()
+          ? payload.reason.trim()
+          : payload.available
+            ? ""
+            : "Comparator unavailable",
+      reportCount: reportCount,
+      comparisonReportIds: Array.isArray(payload.comparison_report_ids)
+        ? payload.comparison_report_ids
+        : [],
+      supportTier: supportTierRaw,
+      descriptiveOnly: !!payload.descriptive_only || supportTierRaw === "descriptive_only",
+      lowPower: !!payload.low_power || supportTierRaw !== "supported",
+      metricComparators: metricComparators,
+      topNameCues: topNameCues,
+      metadata: payload.metadata && typeof payload.metadata === "object" ? payload.metadata : {},
+    };
+  }
+
+  function normalizeCrossHearingBaseline(rawValue) {
+    const raw = rawValue && typeof rawValue === "object" ? rawValue : {};
+    const rawChannels = raw.channels && typeof raw.channels === "object" ? raw.channels : {};
+    const optionsRaw = Array.isArray(raw.channel_options) ? raw.channel_options : [];
+    const optionIds = new Set();
+    const channelOptions = optionsRaw
+      .map((entry) => {
+        const id = String((entry && entry.id) || "").trim();
+        if (!id) {
+          return null;
+        }
+        optionIds.add(id);
+        const label = String((entry && entry.label) || "").trim() || id;
+        return { id: id, label: label };
+      })
+      .filter((entry) => !!entry);
+
+    if (!optionIds.has("cohort_loo")) {
+      optionIds.add("cohort_loo");
+      channelOptions.unshift({ id: "cohort_loo", label: "Cohort LOO" });
+    }
+    if (!optionIds.has("global_loo")) {
+      optionIds.add("global_loo");
+      channelOptions.push({ id: "global_loo", label: "Global LOO" });
+    }
+
+    const channels = {};
+    channelOptions.forEach((option) => {
+      channels[option.id] = normalizeCrossHearingChannel(
+        option.id,
+        option.label,
+        rawChannels[option.id]
+      );
+    });
+
+    const fallbackChannel = channels.cohort_loo && channels.cohort_loo.available
+      ? "cohort_loo"
+      : channels.global_loo && channels.global_loo.available
+        ? "global_loo"
+        : "cohort_loo";
+    const defaultChannelRaw =
+      typeof raw.default_channel === "string" && raw.default_channel.trim()
+        ? raw.default_channel.trim()
+        : fallbackChannel;
+    const selectedChannelRaw =
+      typeof raw.selected_channel === "string" && raw.selected_channel.trim()
+        ? raw.selected_channel.trim()
+        : defaultChannelRaw;
+    const selectedChannel = Object.prototype.hasOwnProperty.call(channels, selectedChannelRaw)
+      ? selectedChannelRaw
+      : fallbackChannel;
+    const defaultChannel = Object.prototype.hasOwnProperty.call(channels, defaultChannelRaw)
+      ? defaultChannelRaw
+      : fallbackChannel;
+    const analysisMetricMap = raw.analysis_metric_map && typeof raw.analysis_metric_map === "object"
+      ? raw.analysis_metric_map
+      : {};
+
+    return {
+      schemaVersion: toNumber(raw.schema_version || 0),
+      available: !!raw.available,
+      reason:
+        typeof raw.reason === "string" && raw.reason.trim()
+          ? raw.reason.trim()
+          : "",
+      selectedChannel: selectedChannel,
+      defaultChannel: defaultChannel,
+      channelOptions: channelOptions,
+      channels: channels,
+      analysisMetricMap: analysisMetricMap,
+      sourcePath:
+        typeof raw.source_path === "string" && raw.source_path.trim()
+          ? raw.source_path.trim()
+          : "",
+    };
   }
 
   function activeThemeId() {
@@ -619,6 +741,13 @@
         width: 1,
         type: "dashed",
         opacity: offHoursDense ? 0.42 : 0.56,
+      };
+    }
+    if (key.includes("expected_pro_rate_global")) {
+      return {
+        width: 1,
+        type: "dotted",
+        opacity: offHoursDense ? 0.4 : 0.54,
       };
     }
     if (key.includes("control_low") || key.includes("control_high")) {
@@ -1694,45 +1823,6 @@
 
     container.appendChild(list);
     return { kind: "structured", data: dataset };
-  }
-
-  function renderMethodologyPanel() {
-    const definitionsHost = document.getElementById("methodology-definitions-host");
-    const testsHost = document.getElementById("methodology-tests-used-host");
-    const guardrailsHost = document.getElementById("methodology-guardrails-host");
-    const multipleTestingHost = document.getElementById("methodology-multiple-testing-list");
-    const caveatsHost = document.getElementById("methodology-caveats-list");
-    const guidanceHost = document.getElementById("methodology-guidance-list");
-
-    const definitions = Array.isArray(methodology.definitions) ? methodology.definitions : [];
-    const testsUsed = Array.isArray(methodology.tests_used) ? methodology.tests_used : [];
-    const guardrails = Array.isArray(methodology.ethical_guardrails)
-      ? methodology.ethical_guardrails
-      : [];
-    const multipleTesting = Array.isArray(methodology.multiple_testing_policy)
-      ? methodology.multiple_testing_policy
-      : [];
-    const caveats = Array.isArray(methodology.caveats) ? methodology.caveats : [];
-    const guidance = Array.isArray(methodology.interpretation_guidance)
-      ? methodology.interpretation_guidance
-      : [];
-
-    mountTextPairCards(definitionsHost, definitions, {
-      titleField: "term",
-      bodyField: "definition",
-    });
-    mountTable(testsHost, testsUsed, {
-      pagination: false,
-      maxHeight: "320px",
-      tableKey: "methodology.tests_used",
-    });
-    mountTextPairCards(guardrailsHost, guardrails, {
-      titleField: "standard",
-      bodyField: "requirement",
-    });
-    setListItems(multipleTestingHost, multipleTesting);
-    setListItems(caveatsHost, caveats);
-    setListItems(guidanceHost, guidance);
   }
 
   function getRawTriageView() {
@@ -3605,6 +3695,79 @@
     return String(chartId || "").replace(/_/g, " ");
   }
 
+  function offHoursTimelineTooltipLines(chartId, row) {
+    const normalizedChartId = String(chartId || "").trim().toLowerCase();
+    if (
+      (normalizedChartId !== "off_hours_control_timeline" &&
+        normalizedChartId !== "off_hours_primary_residual_timeline") ||
+      !row ||
+      typeof row !== "object"
+    ) {
+      return [];
+    }
+
+    const lines = [];
+    if (Object.prototype.hasOwnProperty.call(row, "is_off_hours_window")) {
+      const pureOffHours = toBool(row.is_pure_off_hours_window);
+      const windowClass = toBool(row.is_off_hours_window)
+        ? pureOffHours
+          ? "pure off-hours"
+          : "off-hours weighted"
+        : "on-hours/mixed";
+      lines.push("<strong>Window class:</strong> " + windowClass);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(row, "is_alert_off_hours_window")) {
+      const alertEligible = toBool(row.is_alert_off_hours_window);
+      lines.push("<strong>Alert-eligible:</strong> " + (alertEligible ? "yes" : "no"));
+      if (alertEligible) {
+        lines.push(
+          "<strong>Inferentially tested:</strong> " + (toBool(row.is_low_power) ? "no" : "yes")
+        );
+      }
+    }
+
+    if (toBool(row.is_low_power)) {
+      lines.push("<strong>Low-power:</strong> yes");
+    }
+
+    const zPrimary = toFiniteNumberOrNull(row.z_score_primary);
+    if (zPrimary !== null) {
+      lines.push("<strong>Primary z-score:</strong> " + toNumber(zPrimary).toFixed(2));
+    }
+    const deltaPrimary = toFiniteNumberOrNull(row.delta_pro_rate_primary);
+    if (deltaPrimary !== null) {
+      lines.push("<strong>Primary delta (obs-exp):</strong> " + formatPercent(deltaPrimary));
+    }
+    const qPrimaryTwoSided = toFiniteNumberOrNull(row.q_value_primary_two_sided);
+    if (qPrimaryTwoSided !== null) {
+      lines.push(
+        "<strong>Primary two-sided q:</strong> " + toNumber(qPrimaryTwoSided).toExponential(2)
+      );
+    }
+
+    if (toBool(row.is_primary_spc_998_two_sided)) {
+      lines.push("<strong>SPC 99.8% channel:</strong> yes");
+    }
+    if (toBool(row.is_primary_fdr_two_sided)) {
+      lines.push("<strong>FDR two-sided channel:</strong> yes");
+    }
+    if (toBool(row.is_primary_lower_alert_window)) {
+      lines.push("<strong>Robust lower-tail alert:</strong> yes");
+    }
+    if (toBool(row.is_primary_upper_alert_window)) {
+      lines.push("<strong>Robust upper-tail alert:</strong> yes");
+    }
+
+    const primarySource =
+      typeof row.primary_baseline_source === "string" ? row.primary_baseline_source.trim() : "";
+    if (primarySource) {
+      lines.push("<strong>Primary baseline source:</strong> " + primarySource.replace(/_/g, " "));
+    }
+
+    return lines;
+  }
+
   function renderTimeBarLine(mount, rows, config) {
     const theme = currentChartTheme();
     const timeField = config.timeField;
@@ -3613,6 +3776,11 @@
     const lineLow = config.lineLow;
     const lineHigh = config.lineHigh;
     const extraLines = Array.isArray(config.extraLines) ? config.extraLines : [];
+    const barAxisLines = Array.isArray(config.barAxisLines)
+      ? config.barAxisLines
+          .map((field) => (typeof field === "string" ? field.trim() : ""))
+          .filter((field) => !!field)
+      : [];
     const lowPowerField = config.lowPowerField;
     const flaggedField = config.flaggedField;
     const inferentialWindowField =
@@ -3641,6 +3809,7 @@
     const adaptiveLineRangeClampMax = toFiniteNumberOrNull(config.adaptiveLineRangeClampMax);
     const runOverlayField =
       typeof config.runOverlayField === "string" ? config.runOverlayField.trim() : "";
+    const shadeWilsonBand = toBool(config.shadeWilsonBand);
     const denseOffHoursMarkers =
       mount.chartId === "off_hours_control_timeline" ||
       mount.chartId === "off_hours_primary_residual_timeline";
@@ -3838,7 +4007,11 @@
       });
     }
     const bucketByTime = new Map();
+    const rowByTime = new Map();
     sorted.forEach((row) => {
+      if (!rowByTime.has(row.__time)) {
+        rowByTime.set(row.__time, row);
+      }
       if (bucketByTime.has(row.__time)) {
         return;
       }
@@ -3981,6 +4154,8 @@
             if (bucketLabel) {
               lines.push("<strong>Bucket:</strong> " + bucketLabel);
             }
+            const rowDetails = rowByTime.get(timestamp);
+            lines.push(...offHoursTimelineTooltipLines(mount.chartId, rowDetails));
           }
           entries.forEach((entry) => {
             const entryValue = Array.isArray(entry.value) ? entry.value[1] : entry.value;
@@ -4093,6 +4268,61 @@
         });
       }
     }
+    if (lineLow && lineHigh && !sparseMode && shadeWilsonBand) {
+      const stackId = "wilson-band-" + mount.chartId;
+      const bandBaseData = sorted.map((row) => {
+        if (!includeInPrimarySeries(row)) {
+          return [row.__time, null];
+        }
+        const low = toFiniteNumberOrNull(row[lineLow]);
+        const high = toFiniteNumberOrNull(row[lineHigh]);
+        if (low === null || high === null) {
+          return [row.__time, null];
+        }
+        return [row.__time, Math.min(low, high)];
+      });
+      const bandSpanData = sorted.map((row) => {
+        if (!includeInPrimarySeries(row)) {
+          return [row.__time, null];
+        }
+        const low = toFiniteNumberOrNull(row[lineLow]);
+        const high = toFiniteNumberOrNull(row[lineHigh]);
+        if (low === null || high === null) {
+          return [row.__time, null];
+        }
+        const floor = Math.min(low, high);
+        const ceil = Math.max(low, high);
+        return [row.__time, ceil - floor];
+      });
+      option.series.push({
+        type: "line",
+        yAxisIndex: barField ? 1 : 0,
+        data: bandBaseData,
+        stack: stackId,
+        showSymbol: false,
+        lineStyle: { opacity: 0 },
+        areaStyle: { opacity: 0 },
+        tooltip: { show: false },
+        silent: true,
+        z: 1,
+      });
+      option.series.push({
+        name: "Wilson interval area",
+        type: "line",
+        yAxisIndex: barField ? 1 : 0,
+        data: bandSpanData,
+        stack: stackId,
+        showSymbol: false,
+        lineStyle: { opacity: 0 },
+        areaStyle: {
+          color: theme.comparatorBandFill,
+          opacity: denseOffHoursMarkers ? 0.3 : 0.22,
+        },
+        tooltip: { show: false },
+        silent: true,
+        z: 1,
+      });
+    }
     if (lineLow && !sparseMode) {
       option.series.push({
         name: "Wilson low",
@@ -4135,6 +4365,22 @@
           width: extraLineStyle.width,
           type: extraLineStyle.type,
           opacity: extraLineStyle.opacity,
+        },
+      });
+    });
+    barAxisLines.forEach((field, index) => {
+      const barLineStyle = styleForExtraLine(field, index, mount.chartId);
+      option.series.push({
+        name: field.replace(/_/g, " "),
+        type: "line",
+        yAxisIndex: 0,
+        data: sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[field])]),
+        showSymbol: false,
+        lineStyle: {
+          color: colorForExtraLine(field, index),
+          width: barLineStyle.width,
+          type: barLineStyle.type,
+          opacity: Math.max(0.72, barLineStyle.opacity),
         },
       });
     });
@@ -5397,6 +5643,11 @@
         value: [point.bucketStart, point[field]],
         meta: point,
       }));
+    const proShareSeries = points.map((point) => [
+      point.bucketStart,
+      point.nTotal > 0 ? point.nPro / point.nTotal : null,
+    ]);
+    const proShareMidpointSeries = points.map((point) => [point.bucketStart, 0.5]);
 
     const option = {
       animation: false,
@@ -5463,11 +5714,19 @@
           formatter: (value) => formatEpochMillis(value),
         },
       },
-      yAxis: {
-        type: "value",
-        name: "Submission count",
-        min: 0,
-      },
+      yAxis: [
+        {
+          type: "value",
+          name: "Submission count",
+          min: 0,
+        },
+        {
+          type: "value",
+          name: "Pro share",
+          min: 0,
+          max: 1,
+        },
+      ],
       dataZoom: [
         {
           type: "inside",
@@ -5512,6 +5771,24 @@
           itemStyle: { color: theme.referenceLine },
           emphasis: { focus: "series" },
           barMaxWidth: 20,
+        },
+        {
+          name: "Pro share 50% reference",
+          type: "line",
+          yAxisIndex: 1,
+          data: proShareMidpointSeries,
+          showSymbol: false,
+          silent: true,
+          tooltip: { show: false },
+          lineStyle: { color: theme.axisLine, width: 1, type: "dashed", opacity: 0.7 },
+        },
+        {
+          name: "Pro share",
+          type: "line",
+          yAxisIndex: 1,
+          data: proShareSeries,
+          showSymbol: false,
+          lineStyle: { color: theme.primaryLine, width: 1.45, opacity: 0.9 },
         },
       ],
     };
@@ -5566,13 +5843,11 @@
     "composite_high_priority",
     "voter_registry_pairwise_tests",
     "periodicity_autocorr",
-    "procon_swings_time_of_day_profile",
     "sortedness_bucket_summary",
     "sortedness_kendall_tau_summary",
   ]);
   const simpleBarDirectionalReferenceChartIds = new Set([
     "periodicity_autocorr",
-    "procon_swings_time_of_day_profile",
     "sortedness_bucket_summary",
     "sortedness_kendall_tau_summary",
     "voter_registry_pairwise_tests",
@@ -5699,16 +5974,143 @@
     return true;
   }
 
-  function renderSimpleBar(mount, rows, xField, yField, title) {
+  function renderSimpleBar(mount, rows, xField, yField, title, options) {
     const theme = currentChartTheme();
-    const subset = rows
+    const chartOptions = options && typeof options === "object" ? options : {};
+    mount.customChartNote = null;
+    const expectedField =
+      typeof chartOptions.expectedField === "string" && chartOptions.expectedField.trim()
+        ? chartOptions.expectedField.trim()
+        : "";
+    const bandLowField =
+      typeof chartOptions.bandLowField === "string" && chartOptions.bandLowField.trim()
+        ? chartOptions.bandLowField.trim()
+        : "";
+    const bandHighField =
+      typeof chartOptions.bandHighField === "string" && chartOptions.bandHighField.trim()
+        ? chartOptions.bandHighField.trim()
+        : "";
+    const observedSeriesName =
+      typeof chartOptions.observedSeriesName === "string" && chartOptions.observedSeriesName.trim()
+        ? chartOptions.observedSeriesName.trim()
+        : title || "value";
+    const expectedSeriesName =
+      typeof chartOptions.expectedSeriesName === "string" && chartOptions.expectedSeriesName.trim()
+        ? chartOptions.expectedSeriesName.trim()
+        : "Expected";
+    const expectedValue = toFiniteNumberOrNull(chartOptions.expectedValue);
+    const expectedBandName =
+      typeof chartOptions.expectedBandName === "string" && chartOptions.expectedBandName.trim()
+        ? chartOptions.expectedBandName.trim()
+        : "Expected band";
+    const maxRows = Math.max(1, Math.round(toNumber(chartOptions.maxRows || 200)));
+    const pageSize = Math.max(0, Math.round(toNumber(chartOptions.pageSize || 0)));
+    const maxPages = Math.max(0, Math.round(toNumber(chartOptions.maxPages || 0)));
+    const pageStateKey =
+      typeof chartOptions.pageStateKey === "string" && chartOptions.pageStateKey.trim()
+        ? chartOptions.pageStateKey.trim()
+        : "simpleBarPage";
+    const pageLabel =
+      typeof chartOptions.pageLabel === "string" && chartOptions.pageLabel.trim()
+        ? chartOptions.pageLabel.trim()
+        : "Rows";
+
+    const fullSubset = rows
       .map((row) => ({
         raw: row,
         x: row[xField],
         y: toFiniteNumberOrNull(row[yField]),
+        expected: expectedField
+          ? toFiniteNumberOrNull(row[expectedField])
+          : expectedValue,
+        bandLow: bandLowField ? toFiniteNumberOrNull(row[bandLowField]) : null,
+        bandHigh: bandHighField ? toFiniteNumberOrNull(row[bandHighField]) : null,
       }))
-      .filter((row) => row.x !== undefined && row.x !== null && row.y !== null)
-      .slice(0, 200);
+      .filter((row) => row.x !== undefined && row.x !== null && row.y !== null);
+    if (!fullSubset.length) {
+      return false;
+    }
+    let subset = fullSubset.slice(0, maxRows);
+    if (!subset.length) {
+      return false;
+    }
+    if (pageSize > 0) {
+      const maxRowsForPages =
+        maxPages > 0 ? Math.min(subset.length, pageSize * maxPages) : subset.length;
+      const pagedSubset = subset.slice(0, maxRowsForPages);
+      const totalPages = Math.max(1, Math.ceil(pagedSubset.length / pageSize));
+      const currentPage = Math.max(0, Math.round(toNumber(mount[pageStateKey])));
+      const pageIndex = Math.min(totalPages - 1, currentPage);
+      mount[pageStateKey] = pageIndex;
+      const pageStart = pageIndex * pageSize;
+      const pageEndExclusive = Math.min(pagedSubset.length, pageStart + pageSize);
+      subset = pagedSubset.slice(pageStart, pageEndExclusive);
+      if (!subset.length) {
+        return false;
+      }
+      const pageLabelStart = pageStart + 1;
+      const pageLabelEnd = pageEndExclusive;
+      if (totalPages > 1) {
+        const controls = document.createElement("div");
+        controls.className = "chart-inline-controls-row";
+
+        const previousButton = document.createElement("button");
+        previousButton.type = "button";
+        previousButton.className = "control-button";
+        previousButton.textContent = "Prev " + pageSize;
+        previousButton.disabled = pageIndex <= 0;
+        previousButton.addEventListener("click", () => {
+          if (mount[pageStateKey] <= 0) {
+            return;
+          }
+          mount[pageStateKey] = Math.max(0, toNumber(mount[pageStateKey]) - 1);
+          void renderChartMount(mount);
+        });
+
+        const status = document.createElement("span");
+        status.className = "tiny-note chart-inline-controls-status";
+        status.textContent =
+          pageLabel +
+          " " +
+          pageLabelStart +
+          "-" +
+          pageLabelEnd +
+          " of " +
+          pagedSubset.length +
+          " (page " +
+          (pageIndex + 1) +
+          "/" +
+          totalPages +
+          ")";
+
+        const nextButton = document.createElement("button");
+        nextButton.type = "button";
+        nextButton.className = "control-button";
+        nextButton.textContent = "Next " + pageSize;
+        nextButton.disabled = pageIndex >= totalPages - 1;
+        nextButton.addEventListener("click", () => {
+          if (mount[pageStateKey] >= totalPages - 1) {
+            return;
+          }
+          mount[pageStateKey] = Math.min(totalPages - 1, toNumber(mount[pageStateKey]) + 1);
+          void renderChartMount(mount);
+        });
+
+        controls.appendChild(previousButton);
+        controls.appendChild(status);
+        controls.appendChild(nextButton);
+        setChartControls(mount.chartId, controls);
+      }
+      mount.customChartNote =
+        pageLabel +
+        " " +
+        pageLabelStart +
+        "-" +
+        pageLabelEnd +
+        " of " +
+        pagedSubset.length +
+        (maxPages > 0 ? " (capped to first " + maxPages + " pages)." : ".");
+    }
     if (!subset.length) {
       return false;
     }
@@ -5845,6 +6247,7 @@
     }
 
     const seriesEntry = {
+      name: observedSeriesName,
       type: "bar",
       data: barSeriesData,
     };
@@ -5853,6 +6256,59 @@
         symbol: ["none", "none"],
         data: markLineData,
       };
+    }
+    const hasExpectedSeries = subset.some((row) => row.expected !== null);
+    const hasExpectedBand =
+      bandLowField &&
+      bandHighField &&
+      subset.some((row) => row.bandLow !== null && row.bandHigh !== null && row.bandHigh >= row.bandLow);
+    const series = [seriesEntry];
+    if (hasExpectedBand) {
+      const baselineSeries = {
+        name: "__expected-band-floor",
+        type: "line",
+        data: subset.map((row) => (row.bandLow !== null ? row.bandLow : null)),
+        stack: "__expected-band",
+        showSymbol: false,
+        lineStyle: { opacity: 0 },
+        areaStyle: { opacity: 0 },
+        tooltip: { show: false },
+        emphasis: { disabled: true },
+      };
+      const bandSeries = {
+        name: expectedBandName,
+        type: "line",
+        data: subset.map((row) => {
+          if (row.bandLow === null || row.bandHigh === null) {
+            return null;
+          }
+          return Math.max(0, row.bandHigh - row.bandLow);
+        }),
+        stack: "__expected-band",
+        showSymbol: false,
+        lineStyle: { opacity: 0 },
+        areaStyle: {
+          color: theme.comparatorBandFill,
+          opacity: 0.38,
+        },
+        tooltip: { show: false },
+        emphasis: { disabled: true },
+      };
+      series.push(baselineSeries, bandSeries);
+    }
+    if (hasExpectedSeries) {
+      series.push({
+        name: expectedSeriesName,
+        type: "line",
+        data: subset.map((row) => row.expected),
+        showSymbol: false,
+        lineStyle: {
+          color: theme.referenceLine,
+          width: 1.5,
+          type: "dashed",
+          opacity: 0.92,
+        },
+      });
     }
 
     const option = {
@@ -5883,6 +6339,9 @@
               lines.push("<strong>Bucket:</strong> " + bucketLabel);
             }
             entries.forEach((entry) => {
+              if (String(entry.seriesName || "").startsWith("__expected-band-floor")) {
+                return;
+              }
               lines.push(
                 (entry.marker || "") +
                   "<strong>" +
@@ -5900,9 +6359,9 @@
           name: xAxisLabel,
           data: subset.map((row) => String(row.x)),
           axisLabel: { interval: 0, rotate: 34, color: theme.axisText },
-        },
+      },
       yAxis: { type: "value", name: yAxisLabel, axisLabel: { color: theme.axisText } },
-      series: [seriesEntry],
+      series: series,
     };
     mount.chart.setOption(ensureReadableAxes(option, mount), true);
     mount.isTimeSeries = false;
@@ -5917,11 +6376,12 @@
         const displayName = String(row.display_name || row.canonical_name || "").trim();
         const nPro = Math.max(0, Math.round(toNumber(row.n_pro)));
         const nCon = Math.max(0, Math.round(toNumber(row.n_con)));
-        const total = Math.max(0, Math.round(toNumber(row.n)));
+        const reportedTotal = Math.max(0, Math.round(toNumber(row.n)));
+        const total = Math.max(reportedTotal, nPro + nCon);
         if (!displayName) {
           return null;
         }
-        if ((nPro > 0 && nCon > 0) || (nPro <= 0 && nCon <= 0)) {
+        if (nPro <= 0 && nCon <= 0) {
           return null;
         }
         return {
@@ -5930,8 +6390,7 @@
           nPro: nPro,
           nCon: nCon,
           total: total,
-          positionSeries: nPro > 0 ? "Pro" : "Con",
-          positionCount: nPro > 0 ? nPro : nCon,
+          maxSideCount: Math.max(nPro, nCon),
         };
       })
       .filter((row) => !!row);
@@ -5940,19 +6399,100 @@
     }
 
     subset.sort((left, right) => {
-      const positionDelta = toNumber(right.positionCount) - toNumber(left.positionCount);
-      if (positionDelta !== 0) {
-        return positionDelta;
-      }
       const totalDelta = toNumber(right.total) - toNumber(left.total);
       if (totalDelta !== 0) {
         return totalDelta;
       }
+      const positionDelta = toNumber(right.maxSideCount) - toNumber(left.maxSideCount);
+      if (positionDelta !== 0) {
+        return positionDelta;
+      }
       return String(left.displayName || "").localeCompare(String(right.displayName || ""));
     });
-    const limited = subset.slice(0, 200);
+    const rankedNames = subset.slice(0, DUPLICATE_PER_NAME_CHART_MAX_NAMES);
+    const totalPages = Math.max(
+      1,
+      Math.ceil(rankedNames.length / DUPLICATE_PER_NAME_CHART_PAGE_SIZE)
+    );
+    const requestedPage = Number.isFinite(mount.duplicatePerNamePage)
+      ? Math.round(mount.duplicatePerNamePage)
+      : 0;
+    const pageIndex = Math.max(0, Math.min(totalPages - 1, requestedPage));
+    mount.duplicatePerNamePage = pageIndex;
+    const pageStart = pageIndex * DUPLICATE_PER_NAME_CHART_PAGE_SIZE;
+    const pageEndExclusive = Math.min(
+      rankedNames.length,
+      pageStart + DUPLICATE_PER_NAME_CHART_PAGE_SIZE
+    );
+    const limited = rankedNames.slice(pageStart, pageEndExclusive);
+    if (!limited.length) {
+      return false;
+    }
     const bucketLabel = bucketLabelFromValue(mount.activeBucket);
     const xValues = limited.map((row) => row.displayName);
+    const pageLabelStart = pageStart + 1;
+    const pageLabelEnd = pageEndExclusive;
+
+    if (totalPages > 1) {
+      const controls = document.createElement("div");
+      controls.className = "chart-inline-controls-row";
+
+      const previousButton = document.createElement("button");
+      previousButton.type = "button";
+      previousButton.className = "control-button";
+      previousButton.textContent = "Prev " + DUPLICATE_PER_NAME_CHART_PAGE_SIZE;
+      previousButton.disabled = pageIndex <= 0;
+      previousButton.addEventListener("click", () => {
+        if (mount.duplicatePerNamePage <= 0) {
+          return;
+        }
+        mount.duplicatePerNamePage = Math.max(0, mount.duplicatePerNamePage - 1);
+        void renderChartMount(mount);
+      });
+
+      const status = document.createElement("span");
+      status.className = "tiny-note chart-inline-controls-status";
+      status.textContent =
+        "Names " +
+        pageLabelStart +
+        "-" +
+        pageLabelEnd +
+        " of " +
+        rankedNames.length +
+        " (page " +
+        (pageIndex + 1) +
+        "/" +
+        totalPages +
+        ")";
+
+      const nextButton = document.createElement("button");
+      nextButton.type = "button";
+      nextButton.className = "control-button";
+      nextButton.textContent = "Next " + DUPLICATE_PER_NAME_CHART_PAGE_SIZE;
+      nextButton.disabled = pageIndex >= totalPages - 1;
+      nextButton.addEventListener("click", () => {
+        if (mount.duplicatePerNamePage >= totalPages - 1) {
+          return;
+        }
+        mount.duplicatePerNamePage = Math.min(totalPages - 1, mount.duplicatePerNamePage + 1);
+        void renderChartMount(mount);
+      });
+
+      controls.appendChild(previousButton);
+      controls.appendChild(status);
+      controls.appendChild(nextButton);
+      setChartControls(mount.chartId, controls);
+    }
+    mount.customChartNote =
+      "Names " +
+      pageLabelStart +
+      "-" +
+      pageLabelEnd +
+      " of " +
+      rankedNames.length +
+      " (capped to first " +
+      DUPLICATE_PER_NAME_CHART_MAX_PAGES +
+      " pages).";
 
     const option = {
       animation: false,
@@ -5974,7 +6514,6 @@
             lines.push("<strong>Bucket:</strong> " + bucketLabel);
           }
           if (row) {
-            lines.push("<strong>Series side:</strong> " + escapeHtml(String(row.positionSeries)));
             lines.push("<strong>Pro duplicates:</strong> " + Number(toNumber(row.nPro)).toLocaleString());
             lines.push("<strong>Con duplicates:</strong> " + Number(toNumber(row.nCon)).toLocaleString());
             if (row.total > 0) {
@@ -6016,6 +6555,7 @@
         {
           name: "Pro",
           type: "bar",
+          stack: "position-count",
           barMaxWidth: 22,
           data: limited.map((row) => ({
             value: row.nPro,
@@ -6028,6 +6568,7 @@
         {
           name: "Con",
           type: "bar",
+          stack: "position-count",
           barMaxWidth: 22,
           data: limited.map((row) => ({
             value: row.nCon,
@@ -6188,7 +6729,7 @@
     const normalizePositionLabel = (value) => {
       const raw = String(value || "").trim();
       if (!raw) {
-        return "Unknown";
+        return "";
       }
       const normalized = raw.toLowerCase();
       if (normalized === "pro") {
@@ -6201,7 +6742,7 @@
         return "Other";
       }
       if (normalized === "unknown") {
-        return "Unknown";
+        return "";
       }
       return raw;
     };
@@ -6220,16 +6761,12 @@
       if (normalized === "other") {
         return theme.primaryLine;
       }
-      if (normalized === "unknown") {
-        return theme.referenceLine;
-      }
       return theme.primaryLine;
     };
     const positionOrder = new Map([
       ["Pro", 0],
       ["Con", 1],
       ["Other", 2],
-      ["Unknown", 3],
     ]);
 
     const normalizedRows = rows
@@ -6264,6 +6801,7 @@
         };
       })
       .filter((row) => row !== null)
+      .filter((row) => !!String(row.positionLabel || "").trim())
       .sort((left, right) => left.__time - right.__time);
 
     if (!normalizedRows.length) {
@@ -6393,7 +6931,7 @@
       xAxis: { type: "time", name: "Time (" + reportTimezoneLabel + ")" },
       yAxis: [
         { type: "value", name: "Rows in position bucket" },
-        { type: "value", name: "Observed vs expected duplicates" },
+        { type: "value", name: "Duplicate count in position bucket" },
       ],
       dataZoom: [
         {
@@ -6430,8 +6968,7 @@
 
     const lineSpecs = [
       { field: "observed", suffix: "observed", width: 1.8, type: "solid", opacity: 0.94 },
-      { field: "expected", suffix: "expected", width: 1.35, type: "dashed", opacity: 0.9 },
-      { field: "excess", suffix: "excess", width: 1.2, type: "dotted", opacity: 0.84 },
+      { field: "expected", suffix: "baseline", width: 1.35, type: "dashed", opacity: 0.9 },
     ];
     groups.forEach((group) => {
       const groupLabelPrefix =
@@ -7108,6 +7645,7 @@
         lineField: "pro_rate",
         lineLow: "pro_rate_wilson_low",
         lineHigh: "pro_rate_wilson_high",
+        shadeWilsonBand: true,
         lowPowerField: "is_low_power",
         flaggedField: "is_primary_two_sided_alert_window",
         inferentialWindowField: "is_alert_off_hours_window",
@@ -7120,6 +7658,9 @@
           "control_low_95_primary",
           "control_high_95_primary",
           "expected_pro_rate_day",
+          "expected_pro_rate_global",
+          "control_low_95_global",
+          "control_high_95_global",
         ],
         lineAxisName: "Pro rate",
         lineMin: 0,
@@ -7212,7 +7753,7 @@
         timeField: "bucket_start",
         barField: "n_rows",
         lineField: "duplicate_rows",
-        extraLines: ["expected_duplicate_rows", "excess_duplicate_rows"],
+        extraLines: ["expected_duplicate_rows"],
         lineAxisName: "Duplicated count",
         barAxisName: "Total rows",
       },
@@ -7266,6 +7807,7 @@
         timeField: "start_minute",
         barField: "observed_count",
         lineField: "rate_ratio",
+        barAxisLines: ["expected_count"],
         lineAxisName: "Rate ratio",
         barAxisName: "Observed count",
       },
@@ -7301,10 +7843,18 @@
       return renderSimpleBar(mount, rows, "hour", "n_total", "submissions");
     }
     if (mount.chartId === "off_hours_summary_compare") {
-      return renderSimpleBar(mount, rows, "off_hours", "off_hours_pro_rate", "pro rate");
+      return renderSimpleBar(mount, rows, "off_hours", "off_hours_pro_rate", "pro rate", {
+        observedSeriesName: "Off-hours pro rate",
+        expectedField: "on_hours_pro_rate",
+        expectedSeriesName: "On-hours pro rate",
+      });
     }
     if (mount.chartId === "periodicity_clockface") {
-      return renderSimpleBar(mount, rows, "minute_of_hour", "n_events", "events");
+      return renderSimpleBar(mount, rows, "minute_of_hour", "n_events", "events", {
+        observedSeriesName: "Observed events",
+        expectedField: "expected_n_events_uniform",
+        expectedSeriesName: "Expected uniform events",
+      });
     }
     if (mount.chartId === "periodicity_autocorr") {
       return renderSimpleBar(mount, rows, "lag_minutes", "autocorr", "autocorr");
@@ -7357,13 +7907,22 @@
       );
     }
     if (mount.chartId === "duplicates_exact_metric_diagnostics") {
-      return renderSimpleBar(mount, rows, "metric", "observed", "observed");
+      return renderSimpleBar(mount, rows, "metric", "observed", "observed", {
+        observedSeriesName: "Observed",
+        expectedField: "expected",
+        expectedSeriesName: "Expected",
+        bandLowField: "expected_p05",
+        bandHighField: "expected_p95",
+        expectedBandName: "Expected p05-p95",
+      });
     }
     if (mount.chartId === "duplicates_exact_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "duplicate_rows", "duplicate rows");
     }
     if (mount.chartId === "duplicates_exact_swing_impact") {
-      return renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share");
+      return renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share", {
+        observedSeriesName: "Scenario pro share",
+      });
     }
     if (mount.chartId === "sortedness_bucket_summary") {
       return renderSimpleBar(mount, rows, "bucket_minutes", "alphabetical_ratio", "alphabetical ratio");
@@ -7390,13 +7949,56 @@
       return renderSimpleBar(mount, rows, "organization_clean", "n", "count");
     }
     if (mount.chartId === "voter_registry_match_by_position") {
-      return renderSimpleBar(mount, rows, "position_normalized", "match_rate", "match rate");
+      return renderSimpleBar(mount, rows, "position_normalized", "match_rate", "match rate", {
+        expectedField: "expected_match_rate_global",
+        expectedSeriesName: "Expected global match rate",
+      });
     }
     if (mount.chartId === "voter_registry_linkage_by_position_rows") {
-      return renderSimpleBar(mount, rows, "position_normalized", "unmatched_rate", "unmatched rate");
+      const normalizedRows = rows.map((row) => {
+        const position = String((row || {}).position_normalized || "").trim();
+        const normalized = position.toLowerCase();
+        return Object.assign({}, row, {
+          position_normalized:
+            !position || normalized === "unknown" || normalized === "other"
+              ? "Other"
+              : position,
+        });
+      });
+      return renderSimpleBar(
+        mount,
+        normalizedRows,
+        "position_normalized",
+        "unmatched_rate",
+        "unmatched rate",
+        {
+          expectedField: "expected_unmatched_rate_global",
+          expectedSeriesName: "Expected global unmatched rate",
+        }
+      );
     }
     if (mount.chartId === "voter_registry_linkage_by_position_unique") {
-      return renderSimpleBar(mount, rows, "position_normalized", "unmatched_rate", "unmatched rate");
+      const normalizedRows = rows.map((row) => {
+        const position = String((row || {}).position_normalized || "").trim();
+        const normalized = position.toLowerCase();
+        return Object.assign({}, row, {
+          position_normalized:
+            !position || normalized === "unknown" || normalized === "other"
+              ? "Other"
+              : position,
+        });
+      });
+      return renderSimpleBar(
+        mount,
+        normalizedRows,
+        "position_normalized",
+        "unmatched_rate",
+        "unmatched rate",
+        {
+          expectedField: "expected_unmatched_rate_global",
+          expectedSeriesName: "Expected global unmatched rate",
+        }
+      );
     }
     if (mount.chartId === "voter_registry_pairwise_tests") {
       return renderSimpleBar(mount, rows, "pair_label", "rate_difference", "rate difference");
@@ -7405,7 +8007,12 @@
       return renderSimpleBar(mount, rows, "mode", "unmatched_rate_rows", "unmatched rate");
     }
     if (mount.chartId === "voter_registry_unmatched_names") {
-      return renderSimpleBar(mount, rows, "display_name", "n_records", "count");
+      return renderSimpleBar(mount, rows, "display_name", "n_records", "count", {
+        pageStateKey: "voterUnmatchedNamesPage",
+        pageSize: 5,
+        maxPages: 10,
+        pageLabel: "Names",
+      });
     }
     if (mount.chartId === "voter_registry_position_bounds") {
       return renderSimpleBar(
@@ -7424,7 +8031,14 @@
       return renderSimpleBar(mount, rows, xField, yField, "record rate");
     }
     if (mount.chartId === "procon_swings_time_of_day_profile") {
-      return renderSimpleBar(mount, rows, "slot_start_minute", "pro_rate", "pro rate");
+      return renderSimpleBar(mount, rows, "slot_start_minute", "pro_rate", "pro rate", {
+        observedSeriesName: "Observed pro rate",
+        expectedField: "baseline_pro_rate",
+        expectedSeriesName: "Baseline pro rate",
+        bandLowField: "stable_lower",
+        bandHighField: "stable_upper",
+        expectedBandName: "Stable band",
+      });
     }
     if (mount.chartId === "composite_high_priority") {
       return renderSimpleBar(mount, rows, "minute_bucket", "composite_score", "score");
@@ -7799,6 +8413,24 @@
     const valueText = String(value === null || value === undefined ? "" : value)
       .trim()
       .toLowerCase();
+
+    if (key === "cross_hearing_baseline.metric_comparators") {
+      if (column === "support_tier") {
+        if (valueText === "supported") {
+          return "table-cell-semantic-context";
+        }
+        if (valueText === "descriptive_only") {
+          return "table-cell-semantic-warn";
+        }
+        return "table-cell-semantic-alert";
+      }
+      if (column === "descriptive_only" || column === "low_power") {
+        return truthy ? "table-cell-semantic-warn" : "";
+      }
+      if (column === "empirical_tail_p_two_sided" && numeric !== null && numeric <= 0.05) {
+        return "table-cell-semantic-context";
+      }
+    }
 
     if (key === "off_hours.off_hours_summary") {
       if (offHoursSummaryAlertColumns.has(column)) {
@@ -9014,6 +9646,236 @@
     };
   }
 
+  function activeCrossHearingChannelPayload() {
+    const fallback = crossHearingBaseline.channels[crossHearingBaseline.defaultChannel] || null;
+    if (!state.activeCrossHearingChannel) {
+      return fallback;
+    }
+    return crossHearingBaseline.channels[state.activeCrossHearingChannel] || fallback;
+  }
+
+  function supportTierLabel(value) {
+    const tier = String(value || "").trim().toLowerCase();
+    if (tier === "supported") {
+      return "Supported";
+    }
+    if (tier === "descriptive_only") {
+      return "Descriptive-only";
+    }
+    return "Unavailable";
+  }
+
+  function mapComparatorRowsForDisplay(rows) {
+    return (Array.isArray(rows) ? rows : [])
+      .map((row) => {
+        const metricId = String((row || {}).metric || "").trim();
+        if (!metricId) {
+          return null;
+        }
+        const observed = toFiniteNumberOrNull((row || {}).observed ?? (row || {}).value);
+        const expected = toFiniteNumberOrNull((row || {}).expected ?? (row || {}).band_p50);
+        const delta = toFiniteNumberOrNull((row || {}).delta);
+        const percentile = toFiniteNumberOrNull((row || {}).percentile);
+        const nReports = Math.max(0, Math.round(toNumber((row || {}).n_reports)));
+        const supportTier =
+          typeof row.support_tier === "string" && row.support_tier.trim()
+            ? row.support_tier.trim()
+            : nReports >= 20
+              ? "supported"
+              : nReports >= 10
+                ? "descriptive_only"
+                : "unavailable";
+        return {
+          metric_id: metricId,
+          metric:
+            (typeof row.label === "string" && row.label.trim() ? row.label.trim() : humanizeFieldName(metricId)),
+          observed: observed,
+          expected: expected,
+          delta: delta,
+          percentile: percentile,
+          n_reports: nReports,
+          support_tier: supportTier,
+          low_power: !!row.low_power || supportTier !== "supported",
+          descriptive_only: !!row.descriptive_only || supportTier === "descriptive_only",
+          robust_z: toFiniteNumberOrNull((row || {}).robust_z),
+          empirical_tail_p_two_sided: toFiniteNumberOrNull((row || {}).empirical_tail_p_two_sided),
+          band_p10: toFiniteNumberOrNull((row || {}).band_p10),
+          band_p90: toFiniteNumberOrNull((row || {}).band_p90),
+        };
+      })
+      .filter((row) => !!row);
+  }
+
+  function comparatorRowsToTable(rows) {
+    return (Array.isArray(rows) ? rows : []).map((row) => ({
+      metric: row.metric,
+      observed: row.observed,
+      expected: row.expected,
+      delta: row.delta,
+      percentile: row.percentile,
+      n_reports: row.n_reports,
+      support_tier: row.support_tier,
+      low_power: row.low_power,
+      descriptive_only: row.descriptive_only,
+      robust_z: row.robust_z,
+      empirical_tail_p_two_sided: row.empirical_tail_p_two_sided,
+      band_p10: row.band_p10,
+      band_p90: row.band_p90,
+    }));
+  }
+
+  function renderCrossHearingOverviewPanel() {
+    const select = document.getElementById("cross-hearing-channel-select");
+    const summaryHost = document.getElementById("cross-hearing-overview-summary");
+    const warningHost = document.getElementById("cross-hearing-overview-warning");
+    const tableHost = document.getElementById("cross-hearing-overview-table");
+    if (!select || !summaryHost || !warningHost || !tableHost) {
+      return;
+    }
+
+    const options = Array.isArray(crossHearingBaseline.channelOptions)
+      ? crossHearingBaseline.channelOptions
+      : [];
+    if (!options.length) {
+      summaryHost.textContent = "Cross-hearing comparators are unavailable for this run.";
+      warningHost.classList.add("hidden");
+      mountTable(tableHost, [], { pagination: false, tableKey: "cross_hearing_baseline.metric_comparators" });
+      return;
+    }
+
+    const selectedOption = options.find((option) => option.id === state.activeCrossHearingChannel) || options[0];
+    if (selectedOption && state.activeCrossHearingChannel !== selectedOption.id) {
+      state.activeCrossHearingChannel = selectedOption.id;
+    }
+
+    if (!select.options.length) {
+      select.innerHTML = "";
+      options.forEach((option) => {
+        const element = document.createElement("option");
+        element.value = option.id;
+        element.textContent = option.label;
+        select.appendChild(element);
+      });
+      select.addEventListener("change", () => {
+        state.activeCrossHearingChannel = select.value;
+        renderCrossHearingOverviewPanel();
+        renderAnalysisExpectedCallouts();
+      });
+    }
+    select.value = state.activeCrossHearingChannel;
+
+    const channel = activeCrossHearingChannelPayload();
+    const comparatorRows = mapComparatorRowsForDisplay(channel ? channel.metricComparators : []);
+    const supportText = supportTierLabel(channel ? channel.supportTier : "unavailable");
+    const reportCount = channel ? Math.max(0, Math.round(toNumber(channel.reportCount))) : 0;
+    const channelLabel = channel ? channel.label : "LOO";
+    if (!channel || !channel.available) {
+      const reason = channel && channel.reason ? channel.reason : "insufficient_support";
+      summaryHost.textContent =
+        channelLabel +
+        ": comparator unavailable (" +
+        reason.replace(/_/g, " ") +
+        "). At least 10 comparison reports are required.";
+      warningHost.classList.remove("hidden");
+      warningHost.classList.remove("ok");
+      warningHost.textContent =
+        "Cross-hearing comparator is unavailable for this channel due to insufficient support.";
+      mountTable(tableHost, [], { pagination: false, tableKey: "cross_hearing_baseline.metric_comparators" });
+      return;
+    }
+
+    summaryHost.textContent =
+      channelLabel +
+      ": " +
+      reportCount.toLocaleString() +
+      " comparison reports · support " +
+      supportText +
+      ".";
+    if (channel.descriptiveOnly) {
+      warningHost.classList.remove("hidden");
+      warningHost.classList.remove("ok");
+      warningHost.textContent =
+        "Descriptive-only comparator support (10–19 reports). Treat expected-vs-actual differences as context, not inferential severity.";
+    } else {
+      warningHost.classList.add("hidden");
+      warningHost.textContent = "";
+    }
+
+    mountTable(tableHost, comparatorRowsToTable(comparatorRows), {
+      pagination: false,
+      maxHeight: "300px",
+      tableKey: "cross_hearing_baseline.metric_comparators",
+    });
+  }
+
+  function renderAnalysisExpectedCallouts() {
+    const channel = activeCrossHearingChannelPayload();
+    const comparatorRows = mapComparatorRowsForDisplay(channel ? channel.metricComparators : []);
+    const byMetric = new Map(comparatorRows.map((row) => [String(row.metric_id || ""), row]));
+    const supportsChannel = !!(channel && channel.available);
+    const channelLabel = channel ? channel.label : "LOO";
+    const analysisMap =
+      crossHearingBaseline.analysisMetricMap && typeof crossHearingBaseline.analysisMetricMap === "object"
+        ? crossHearingBaseline.analysisMetricMap
+        : {};
+
+    const hosts = Array.from(document.querySelectorAll("[data-analysis-expected-for]"));
+    hosts.forEach((card) => {
+      const analysisId = String(card.getAttribute("data-analysis-expected-for") || "").trim();
+      const summaryHost = card.querySelector(
+        '[data-analysis-expected-summary-for="' + analysisId + '"]'
+      );
+      const warningHost = document.getElementById("analysis-expected-warning-" + analysisId);
+      const tableHost = document.getElementById("analysis-expected-host-" + analysisId);
+      if (!analysisId || !summaryHost || !warningHost || !tableHost) {
+        return;
+      }
+
+      const analysis = analysisById.get(analysisId) || {};
+      const keysRaw = Array.isArray(analysisMap[analysisId])
+        ? analysisMap[analysisId]
+        : Array.isArray(analysis.expected_metric_keys)
+          ? analysis.expected_metric_keys
+          : [];
+      const metricKeys = keysRaw
+        .map((key) => String(key || "").trim())
+        .filter((key) => !!key);
+      const rows = metricKeys
+        .map((metricKey) => byMetric.get(metricKey))
+        .filter((row) => !!row);
+
+      if (!supportsChannel || !rows.length) {
+        card.classList.add("hidden");
+        mountTable(tableHost, [], { pagination: false, tableKey: "cross_hearing_baseline.metric_comparators" });
+        return;
+      }
+
+      card.classList.remove("hidden");
+      summaryHost.textContent =
+        channelLabel +
+        " context for " +
+        (analysis && analysis.title ? String(analysis.title) : analysisId) +
+        ". Support: " +
+        supportTierLabel(channel.supportTier) +
+        ".";
+      if (channel.descriptiveOnly) {
+        warningHost.classList.remove("hidden");
+        warningHost.classList.remove("ok");
+        warningHost.textContent =
+          "Descriptive-only support: expected-vs-actual values are contextual and should not be severity-colored.";
+      } else {
+        warningHost.classList.add("hidden");
+        warningHost.textContent = "";
+      }
+
+      mountTable(tableHost, comparatorRowsToTable(rows), {
+        pagination: false,
+        maxHeight: "220px",
+        tableKey: "cross_hearing_baseline.metric_comparators",
+      });
+    });
+  }
+
   function renderTriageSummary() {
     const view = getRawTriageView();
     const summary = view.triage_summary || {};
@@ -9106,7 +9968,12 @@
     )
       .filter((row) => String((row || {}).unit || "rows").toLowerCase() === "rows")
       .map((row) => {
-        const label = String((row || {}).position_normalized || "Unknown");
+        const rawLabel = String((row || {}).position_normalized || "").trim();
+        const normalizedLabel = rawLabel.toLowerCase();
+        const label =
+          !rawLabel || normalizedLabel === "unknown" || normalizedLabel === "other"
+            ? "Other"
+            : rawLabel;
         return {
           label: label,
           value: Math.max(0, Math.min(1, toNumber((row || {}).matched_rate))),
@@ -9117,7 +9984,6 @@
       Pro: 0,
       Con: 1,
       Other: 2,
-      Unknown: 3,
     };
     voterPositionRows.sort(
       (left, right) =>
@@ -9167,13 +10033,11 @@
   function renderHearingContextPanel() {
     const summaryHost = document.getElementById("hearing-context-summary");
     const metadataHost = document.getElementById("hearing-context-metadata-host");
-    const rampHost = document.getElementById("hearing-deadline-ramp-host");
 
     const isAvailable = !!(hearingContextPanel && hearingContextPanel.available);
     const metadataRows = Array.isArray(hearingContextPanel.metadata_rows)
       ? hearingContextPanel.metadata_rows
       : [];
-    const ramp = hearingContextPanel.deadline_ramp_metrics || {};
 
     if (summaryHost) {
       if (!isAvailable) {
@@ -9200,24 +10064,6 @@
     if (metadataHost) {
       mountKeyValueList(metadataHost, metadataRows, {
         keyField: "field",
-        valueField: "value",
-        humanizeKeys: true,
-      });
-    }
-
-    const rampRows = [];
-    if (ramp && typeof ramp === "object") {
-      Object.keys(ramp)
-        .forEach((key) => {
-          rampRows.push({
-            metric: key,
-            value: ramp[key],
-          });
-        });
-    }
-    if (rampHost) {
-      mountKeyValueList(rampHost, rampRows, {
-        keyField: "metric",
         valueField: "value",
         humanizeKeys: true,
       });
@@ -9292,16 +10138,57 @@
       return String(left.name || "").localeCompare(String(right.name || ""));
     });
 
-    return rows.slice(0, 10).map((row) => ({
-      title: row.name + " (" + positionLabel + " " + row.positionCount.toLocaleString() + ")",
-      body:
-        "Total sign-ins " +
-        row.totalSignIns.toLocaleString() +
-        " \u00b7 " +
-        oppositeLabel +
-        " " +
-        row.oppositeCount.toLocaleString(),
-    }));
+    return rows.slice(0, 10);
+  }
+
+  function mountTopRepeatedNamesTableRows(tableBody, rows, options) {
+    if (!tableBody) {
+      return;
+    }
+    const primaryLabel =
+      options && typeof options.primaryLabel === "string" && options.primaryLabel.trim()
+        ? options.primaryLabel.trim()
+        : "Primary";
+    const secondaryLabel =
+      options && typeof options.secondaryLabel === "string" && options.secondaryLabel.trim()
+        ? options.secondaryLabel.trim()
+        : "Secondary";
+    tableBody.innerHTML = "";
+    const sourceRows = Array.isArray(rows) ? rows : [];
+    if (!sourceRows.length) {
+      const emptyRow = document.createElement("tr");
+      const emptyCell = document.createElement("td");
+      emptyCell.colSpan = 4;
+      emptyCell.className = "triage-simple-table-empty";
+      emptyCell.textContent = "No repeated names available.";
+      emptyRow.appendChild(emptyCell);
+      tableBody.appendChild(emptyRow);
+      return;
+    }
+    sourceRows.forEach((row) => {
+      const line = document.createElement("tr");
+      const nameCell = document.createElement("td");
+      nameCell.textContent = String(row.name || "");
+
+      const primaryCell = document.createElement("td");
+      primaryCell.textContent = Math.max(0, Math.round(toNumber(row.positionCount)))
+        .toLocaleString();
+      primaryCell.setAttribute("data-label", primaryLabel);
+
+      const secondaryCell = document.createElement("td");
+      secondaryCell.textContent = Math.max(0, Math.round(toNumber(row.oppositeCount)))
+        .toLocaleString();
+      secondaryCell.setAttribute("data-label", secondaryLabel);
+
+      const totalCell = document.createElement("td");
+      totalCell.textContent = Math.max(0, Math.round(toNumber(row.totalSignIns))).toLocaleString();
+
+      line.appendChild(nameCell);
+      line.appendChild(primaryCell);
+      line.appendChild(secondaryCell);
+      line.appendChild(totalCell);
+      tableBody.appendChild(line);
+    });
   }
 
   function renderInvestigationTables() {
@@ -9310,9 +10197,8 @@
     }
     const view = getRawTriageView();
     const summary = view.triage_summary || {};
-    const forensicsNamesProHost = document.getElementById("forensics-top-names-pro-host");
-    const forensicsNamesConHost = document.getElementById("forensics-top-names-con-host");
-    const taxonomyHost = document.getElementById("methodology-evidence-taxonomy-host");
+    const forensicsNamesProBody = document.getElementById("forensics-top-names-pro-table-body");
+    const forensicsNamesConBody = document.getElementById("forensics-top-names-con-table-body");
 
     const duplicateNames = resolveDuplicateRowsForTriage(summary);
     const topNames = duplicateNames.rows;
@@ -9330,27 +10216,15 @@
       "Con",
       "Pro"
     );
-    mountTextPairCards(forensicsNamesProHost, topNamesProRows, {
-      titleField: "title",
-      bodyField: "body",
+    mountTopRepeatedNamesTableRows(forensicsNamesProBody, topNamesProRows, {
+      primaryLabel: "Pro",
+      secondaryLabel: "Con",
     });
-    mountTextPairCards(forensicsNamesConHost, topNamesConRows, {
-      titleField: "title",
-      bodyField: "body",
-    });
-
-    const taxonomyRows = Array.isArray(methodology.evidence_taxonomy)
-      ? methodology.evidence_taxonomy
-      : Array.isArray(controls.evidence_taxonomy)
-        ? controls.evidence_taxonomy
-        : [];
-    mountTable(taxonomyHost, taxonomyRows, {
-      pagination: false,
-      maxHeight: "280px",
-      tableKey: "methodology.evidence_taxonomy",
+    mountTopRepeatedNamesTableRows(forensicsNamesConBody, topNamesConRows, {
+      primaryLabel: "Con",
+      secondaryLabel: "Pro",
     });
 
-    renderMethodologyPanel();
   }
 
   function renderTablesForAnalysis(section, analysis) {
@@ -9368,26 +10242,61 @@
     let tableNames = Object.keys(detectorTables).sort();
     if (analysis.id === "duplicates_exact") {
       const hiddenDuplicateSurfaceTables = new Set([
+        "collision_by_bucket",
+        "collision_by_bucket_position",
         "collision_methods",
+        "collision_overview",
+        "collision_stratification_sensitivity",
+        "duplicate_by_bucket",
+        "duplicate_metrics_overview",
+        "null_distribution",
+        "position_duplicate_metrics",
+        "position_switching_names",
         "position_concentration_tests",
+        "repeated_same_bucket",
+        "repeated_same_bucket_summary",
+        "repeated_same_minute",
         "per_name_anomalies",
         "per_name_display",
         "per_name_tests",
         "per_name_duplicates_by_mode",
         "per_name_submission_timing_by_mode",
+        "swing_impact_scenarios",
+        "temporal_burst_signals",
+        "top_name_timing_by_mode",
+        "top_repeated_names",
       ]);
       tableNames = tableNames.filter((name) => !hiddenDuplicateSurfaceTables.has(name));
     }
-    if (isOffHoursFocusOnly && analysis.id === "off_hours") {
-      const preferred = [
-        "off_hours_summary",
-        "model_fit_diagnostics",
-        "flag_channel_summary",
-        "flagged_window_diagnostics",
+    if (analysis.id === "off_hours") {
+      const hiddenOffHoursSurfaceTables = new Set([
         "window_control_profile",
+        "model_fit_diagnostics",
+        "hourly_distribution",
+        "hour_of_week_distribution",
+        "flagged_window_diagnostics",
+        "flag_channel_summary",
         "date_hour_primary_residual_distribution",
         "date_hour_distribution",
-      ];
+      ]);
+      tableNames = tableNames.filter((name) => !hiddenOffHoursSurfaceTables.has(name));
+    }
+    if (analysis.id === "voter_registry_match") {
+      const hiddenVoterSurfaceTables = new Set([
+        "linkage_by_position_rows",
+        "linkage_by_position_unique",
+        "linkage_overview",
+        "linkage_overview_bounds",
+        "match_assignments",
+        "match_by_bucket",
+        "match_by_bucket_position",
+        "position_pairwise_tests",
+        "sensitivity_modes",
+      ]);
+      tableNames = tableNames.filter((name) => !hiddenVoterSurfaceTables.has(name));
+    }
+    if (isOffHoursFocusOnly && analysis.id === "off_hours") {
+      const preferred = ["off_hours_summary"];
       tableNames = preferred.filter((name) =>
         Object.prototype.hasOwnProperty.call(detectorTables, name)
       );
@@ -9674,6 +10583,7 @@
       timeExtent: null,
       activeBucket: null,
       topNameTimingPage: 0,
+      duplicatePerNamePage: 0,
     };
     chartMounts.set(chartId, mount);
     if (mount.chart) {

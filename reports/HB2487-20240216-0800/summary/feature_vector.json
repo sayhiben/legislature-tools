@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2487-20240216-0800",
+  "generated_at_utc": "2026-02-28T01:06:46.208785+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-02-10T10:33:00-08:00",
+  "date_range_end": "2024-02-16T06:58:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 388,
+    "overall_pro_rate": 0.04381443298969072,
+    "overall_con_rate": 0.9561855670103093,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.06976744186046512,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.04381443298969072,
+    "dedup_drop_fraction": 0.007731958762886598
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "WHITE|ALICE||",
+      "display_name": "WHITE, ALICE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "CHACON|MARIAN||",
+      "display_name": "CHACON, MARIAN",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "CHURCHILL|NANCY||",
+      "display_name": "CHURCHILL, NANCY",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "HUGHES|VERNAL||",
+      "display_name": "HUGHES, VERNAL",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "MANNING|CHARLES||",
+      "display_name": "MANNING, CHARLES",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 388,
+  "overall_pro_rate": 0.04381443298969072,
+  "overall_con_rate": 0.9561855670103093,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

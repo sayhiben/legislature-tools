@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "report_id": "SHB1045-20240111-1600",
+  "generated_at_utc": "2026-02-28T01:09:07.702942+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-03T20:09:00-08:00",
+  "date_range_end": "2024-01-11T14:59:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 2911,
+    "overall_pro_rate": 0.4665063552043971,
+    "overall_con_rate": 0.5321195465475782,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.23578076525336092,
+    "window_min_q_value": null,
+    "top_name_max_records": 6,
+    "off_hours_ratio": 0.03091721058055651,
+    "dedup_drop_fraction": 0.0037787701820680177
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "JACOB|MEGAN||",
+      "display_name": "JACOB, MEGAN",
+      "n_records": 6,
+      "n_pro": 0,
+      "n_con": 6
+    },
+    {
+      "canonical_name": "SCHICK|DORIS||",
+      "display_name": "SCHICK, DORIS",
+      "n_records": 5,
+      "n_pro": 0,
+      "n_con": 5
+    },
+    {
+      "canonical_name": "ARRANTS|MICHELE||",
+      "display_name": "ARRANTS, MICHELE",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "KRABACH|AMBER||",
+      "display_name": "KRABACH, AMBER",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "RAND|NATALIE||",
+      "display_name": "RAND, NATALIE",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 2911,
+  "overall_pro_rate": 0.4665063552043971,
+  "overall_con_rate": 0.5321195465475782,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

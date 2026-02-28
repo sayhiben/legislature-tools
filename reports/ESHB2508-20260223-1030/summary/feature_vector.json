@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "report_id": "ESHB2508-20260223-1030",
+  "generated_at_utc": "2026-02-28T01:04:24.250682+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-18T19:47:00-08:00",
+  "date_range_end": "2026-02-23T09:18:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 87,
+    "overall_pro_rate": 0.10344827586206896,
+    "overall_con_rate": 0.896551724137931,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.19540229885057472,
+    "window_min_q_value": null,
+    "top_name_max_records": 5,
+    "off_hours_ratio": 0.05747126436781609,
+    "dedup_drop_fraction": 0.05747126436781609
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CHARLES|CHERYL||",
+      "display_name": "CHARLES, CHERYL",
+      "n_records": 5,
+      "n_pro": 0,
+      "n_con": 5
+    },
+    {
+      "canonical_name": "BROVOLD|KENT||",
+      "display_name": "BROVOLD, KENT",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "HILLS|LARRY||",
+      "display_name": "HILLS, LARRY",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "LESLIE|JOHN||",
+      "display_name": "LESLIE, JOHN",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "SWANGER|JIM||",
+      "display_name": "SWANGER, JIM",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 1,
+  "total_submissions": 87,
+  "overall_pro_rate": 0.10344827586206896,
+  "overall_con_rate": 0.896551724137931,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

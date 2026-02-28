@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "report_id": "E2SHB1102-20250405-1200",
+  "generated_at_utc": "2026-02-28T01:04:08.798597+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-04-01T21:43:00-07:00",
+  "date_range_end": "2025-04-05T10:28:00-07:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 76,
+    "overall_pro_rate": 1.0,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.07894736842105263,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.05263157894736842,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BANGER|ELIZABETH||",
+      "display_name": "BANGER, ELIZABETH",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BOEKENOOGEN|STEVE||",
+      "display_name": "BOEKENOOGEN, STEVE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "TRANSUE|MICHAEL||",
+      "display_name": "TRANSUE, MICHAEL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 76,
+  "overall_pro_rate": 1.0,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2099-20260116-0830",
+  "generated_at_utc": "2026-02-28T01:05:56.333613+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-08T09:54:00-08:00",
+  "date_range_end": "2026-01-16T07:11:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 194,
+    "overall_pro_rate": 0.979381443298969,
+    "overall_con_rate": 0.010309278350515464,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.031088082901554404,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.09278350515463918,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BAKER|MAURA||",
+      "display_name": "BAKER, MAURA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "CAIRATI|SOPHIA||",
+      "display_name": "CAIRATI, SOPHIA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "SHARPE|KATHRYN||",
+      "display_name": "SHARPE, KATHRYN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 194,
+  "overall_pro_rate": 0.979381443298969,
+  "overall_con_rate": 0.010309278350515464,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

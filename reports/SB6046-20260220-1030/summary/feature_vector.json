@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "report_id": "SB6046-20260220-1030",
+  "generated_at_utc": "2026-02-28T01:08:22.371458+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-13T09:29:00-08:00",
+  "date_range_end": "2026-02-20T09:11:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 119,
+    "overall_pro_rate": 1.0,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.12605042016806722,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.03361344537815126,
+    "dedup_drop_fraction": 0.008403361344537815
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MARTIN|DENNIS|K|",
+      "display_name": "MARTIN, DENNIS K",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "FUGICH|JERRY||",
+      "display_name": "FUGICH, JERRY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "NELSON|WALT||",
+      "display_name": "NELSON, WALT",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ROBERTS|VERONICA||",
+      "display_name": "ROBERTS, VERONICA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ROSE|LEAH||",
+      "display_name": "ROSE, LEAH",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 119,
+  "overall_pro_rate": 1.0,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

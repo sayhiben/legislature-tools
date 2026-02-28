@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5637-20250218-0800",
+  "generated_at_utc": "2026-02-28T01:07:34.916677+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-02-13T13:33:00-08:00",
+  "date_range_end": "2025-02-18T06:54:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 1872,
+    "overall_pro_rate": 0.5325854700854701,
+    "overall_con_rate": 0.46047008547008544,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.10492505353319058,
+    "window_min_q_value": null,
+    "top_name_max_records": 12,
+    "off_hours_ratio": 0.04487179487179487,
+    "dedup_drop_fraction": 0.006944444444444444
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MERRITT|BECKY||",
+      "display_name": "MERRITT, BECKY",
+      "n_records": 12,
+      "n_pro": 0,
+      "n_con": 12
+    },
+    {
+      "canonical_name": "FAIR|DOROTHY||",
+      "display_name": "FAIR, DOROTHY",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "GRANSTROM|JULIA||",
+      "display_name": "GRANSTROM, JULIA",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HUFNAGEL|EARL||",
+      "display_name": "HUFNAGEL, EARL",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "KNUTSON|ROZANA||",
+      "display_name": "KNUTSON, ROZANA",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 1872,
+  "overall_pro_rate": 0.5325854700854701,
+  "overall_con_rate": 0.46047008547008544,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

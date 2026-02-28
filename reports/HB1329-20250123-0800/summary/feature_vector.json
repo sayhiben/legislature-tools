@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "report_id": "HB1329-20250123-0800",
+  "generated_at_utc": "2026-02-28T01:05:11.984408+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-20T20:01:00-08:00",
+  "date_range_end": "2025-01-23T06:58:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 45,
+    "overall_pro_rate": 0.8888888888888888,
+    "overall_con_rate": 0.044444444444444446,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.044444444444444446,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.0,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "KASTAMA|ISAAC||",
+      "display_name": "KASTAMA, ISAAC",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 45,
+  "overall_pro_rate": 0.8888888888888888,
+  "overall_con_rate": 0.044444444444444446,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

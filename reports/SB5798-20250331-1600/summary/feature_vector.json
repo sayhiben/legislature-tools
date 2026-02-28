@@ -1,27 +1,32 @@
 {
   "schema_version": 2,
   "report_id": "SB5798-20250331-1600",
-  "generated_at_utc": "2026-02-24T00:13:37.208365+00:00",
+  "generated_at_utc": "2026-02-28T01:07:51.129542+00:00",
   "lens": "side_by_side",
   "date_range_start": "2025-03-26T16:23:00-07:00",
   "date_range_end": "2025-03-31T14:59:00-07:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Ways & Means"
+  },
+  "chamber": "Senate",
+  "committee_name": "Ways & Means",
   "metrics": {
     "total_submissions": 45482,
     "overall_pro_rate": 0.04766720900576052,
     "overall_con_rate": 0.9487929290708412,
     "window_queue_size": 0,
-    "record_queue_size": 250,
-    "cluster_queue_size": 250,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
     "window_high_count": 0,
     "window_medium_count": 0,
     "window_watch_count": 0,
-    "window_high_share": 0.0,
+    "window_high_share": null,
     "window_top_score": null,
     "window_top_abs_z": null,
-    "window_top_dup_fraction": null,
+    "window_top_dup_fraction": 0.2978850229600848,
     "window_min_q_value": null,
     "top_name_max_records": 40,
-    "top_cluster_max_records": 14,
     "off_hours_ratio": 0.04601820500417748,
     "dedup_drop_fraction": 0.005254826085044633
   },
@@ -62,40 +67,13 @@
       "n_con": 13
     }
   ],
-  "top_near_dup_clusters": [
-    {
-      "cluster_id": "cluster_0001",
-      "cluster_size": 7,
-      "n_records": 14
-    },
-    {
-      "cluster_id": "cluster_0002",
-      "cluster_size": 6,
-      "n_records": 10
-    },
-    {
-      "cluster_id": "cluster_0003",
-      "cluster_size": 5,
-      "n_records": 8
-    },
-    {
-      "cluster_id": "cluster_0005",
-      "cluster_size": 5,
-      "n_records": 7
-    },
-    {
-      "cluster_id": "cluster_0004",
-      "cluster_size": 5,
-      "n_records": 5
-    }
-  ],
   "material_quality_metric_count": 0,
   "total_submissions": 45482,
   "overall_pro_rate": 0.04766720900576052,
   "overall_con_rate": 0.9487929290708412,
   "window_queue_size": 0,
-  "record_queue_size": 250,
-  "cluster_queue_size": 250,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
   "window_high_count": 0,
   "window_medium_count": 0,
   "window_watch_count": 0

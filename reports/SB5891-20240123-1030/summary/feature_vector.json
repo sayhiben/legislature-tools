@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5891-20240123-1030",
+  "generated_at_utc": "2026-02-28T01:08:04.077407+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-18T15:55:00-08:00",
+  "date_range_end": "2024-01-23T09:20:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 67,
+    "overall_pro_rate": 0.7761194029850746,
+    "overall_con_rate": 0.22388059701492538,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.09090909090909091,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.014925373134328358,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "JOCHIM|TIMOTHY||",
+      "display_name": "JOCHIM, TIMOTHY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "PETERSON|ANDREW||",
+      "display_name": "PETERSON, ANDREW",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "STOFFER|JIM||",
+      "display_name": "STOFFER, JIM",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 67,
+  "overall_pro_rate": 0.7761194029850746,
+  "overall_con_rate": 0.22388059701492538,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

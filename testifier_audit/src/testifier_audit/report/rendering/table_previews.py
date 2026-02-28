@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -286,6 +287,8 @@ def _preview_row_limit_for_detector_table(
     *,
     default_max_rows: int,
 ) -> int | None:
+    if detector_name == "voter_registry_match" and table_name == "unmatched_names":
+        return 50
     if (
         detector_name == "duplicates_exact"
         and table_name in _DUPLICATES_EXACT_FULL_PREVIEW_TABLES
@@ -376,6 +379,19 @@ def _prepare_table_for_preview(
     if detector_name != "voter_registry_match":
         return table
 
+    def _normalize_voter_position_label(value: Any) -> str:
+        raw = str(value or "").strip()
+        if not raw:
+            return "Other"
+        normalized = raw.lower()
+        if normalized == "pro":
+            return "Pro"
+        if normalized == "con":
+            return "Con"
+        if normalized in {"unknown", "other"}:
+            return "Other"
+        return raw
+
     prepared = table.copy()
     if table_name in {"linkage_by_position_rows", "linkage_by_position_unique"}:
         if "matched_rate" not in prepared.columns and "match_rate" in prepared.columns:
@@ -394,9 +410,8 @@ def _prepare_table_for_preview(
         prepared["match_mode"] = prepared["match_mode"].fillna("").astype(str).replace("", "loose")
         default_unit = "rows" if table_name == "linkage_by_position_rows" else "unique_names"
         prepared["unit"] = prepared["unit"].fillna("").astype(str).replace("", default_unit)
-        prepared["position_normalized"] = prepared["position_normalized"].fillna("").astype(str).replace(
-            "",
-            "Unknown",
+        prepared["position_normalized"] = prepared["position_normalized"].map(
+            _normalize_voter_position_label
         )
         sort_columns = [column for column in ("match_mode", "position_normalized") if column in prepared.columns]
         if sort_columns:

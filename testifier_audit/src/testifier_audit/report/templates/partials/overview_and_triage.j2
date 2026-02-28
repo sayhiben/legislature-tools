@@ -3,22 +3,16 @@
 
           <section id="section-overview" class="report-section panel">
             <h2 id="overview" class="toc-heading">Overview</h2>
-            <h3>How to use this report</h3>
             {% if off_hours_focus_only %}
               <p>
                 This temporary focused view shows only the off-hours shift anomaly analysis so methodology and chart behavior can be refined in isolation.
               </p>
             {% endif %}
-            <p class="tiny-note" id="report-timezone-summary"></p>
             {% if off_hours_focus_only %}
               <div id="off-hours-evidence-tier" class="offhours-evidence-tier hidden"></div>
               <div id="off-hours-inference-banner" class="warning-banner hidden"></div>
             {% endif %}
             {% if not off_hours_focus_only %}
-            <h3>Triage</h3>
-            <p class="tiny-note">
-              Use this section for hearing context and quick repeated-name summaries.
-            </p>
             <section class="kpi-grid">
               <article class="kpi-card">
                 <div class="kpi-label">Total submissions</div>
@@ -50,21 +44,6 @@
                 ></div>
               </article>
             </section>
-            <article class="detail-card detail-card-compact">
-              <h3 class="detail-title">Cross-Hearing Expected vs Actual</h3>
-              <p class="tiny-note">
-                Context-only leave-one-out comparators. Detector inferential scoring channels remain unchanged.
-              </p>
-              <div class="cross-hearing-controls">
-                <label for="cross-hearing-channel-select">Comparator Channel</label>
-                <select id="cross-hearing-channel-select"></select>
-              </div>
-              <p id="cross-hearing-overview-summary" class="tiny-note"></p>
-              <div id="cross-hearing-overview-warning" class="warning-banner hidden"></div>
-              <div class="table-wrap">
-                <div id="cross-hearing-overview-table" class="table-host"></div>
-              </div>
-            </article>
             <div class="analysis-detail-grid analysis-detail-grid-compact">
               <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Hearing Context Metadata</h3>
@@ -74,21 +53,35 @@
                 </div>
               </article>
               <article class="detail-card detail-card-compact">
-                <h3 class="detail-title">Deadline Ramp Metrics</h3>
-                <div class="table-wrap">
-                  <div id="hearing-deadline-ramp-host" class="structured-host structured-host-compact"></div>
-                </div>
-              </article>
-              <article class="detail-card detail-card-compact">
                 <h3 class="detail-title">Top Repeated Names</h3>
                 <div class="table-wrap triage-top-names-columns">
                   <section class="triage-top-names-column">
                     <div class="triage-top-names-heading">Pro</div>
-                    <div id="forensics-top-names-pro-host" class="structured-host structured-host-compact"></div>
+                    <table class="triage-simple-table" aria-label="Top repeated names for pro position">
+                      <thead>
+                        <tr>
+                          <th scope="col">Name</th>
+                          <th scope="col">Pro</th>
+                          <th scope="col">Con</th>
+                          <th scope="col">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody id="forensics-top-names-pro-table-body"></tbody>
+                    </table>
                   </section>
                   <section class="triage-top-names-column">
                     <div class="triage-top-names-heading">Con</div>
-                    <div id="forensics-top-names-con-host" class="structured-host structured-host-compact"></div>
+                    <table class="triage-simple-table" aria-label="Top repeated names for con position">
+                      <thead>
+                        <tr>
+                          <th scope="col">Name</th>
+                          <th scope="col">Con</th>
+                          <th scope="col">Pro</th>
+                          <th scope="col">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody id="forensics-top-names-con-table-body"></tbody>
+                    </table>
                   </section>
                 </div>
               </article>

@@ -535,7 +535,7 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
         .drop_duplicates()
         .sort_values(["rank", "name_key"])
     )
-    assert len(mode_ranked) <= 100
+    assert len(mode_ranked) <= 200
     expected_ranks = list(range(1, len(mode_ranked) + 1))
     assert mode_ranked["rank"].astype(int).tolist() == expected_ranks
     totals = mode_ranked["total_repeated_rows"].astype(int).tolist()

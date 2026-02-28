@@ -443,6 +443,60 @@ def test_table_previews_align_voter_linkage_position_columns_and_order() -> None
     assert unique_preview[0]["match_mode"] == "loose"
 
 
+def test_table_previews_voter_unmatched_names_row_limit_and_unknown_position_normalization() -> None:
+    results = {
+        "voter_registry_match": DetectorResult(
+            detector="voter_registry_match",
+            summary={},
+            tables={
+                "linkage_by_position_rows": pd.DataFrame(
+                    [
+                        {
+                            "match_mode": "loose",
+                            "position_normalized": "Unknown",
+                            "n_total": 7,
+                            "n_matched_unique": 4,
+                            "n_matched_ambiguous": 1,
+                            "n_unmatched": 2,
+                            "matched_rate": 5 / 7,
+                            "unmatched_rate": 2 / 7,
+                            "matched_rate_wilson_low": 0.3,
+                            "matched_rate_wilson_high": 0.95,
+                            "unmatched_rate_wilson_low": 0.05,
+                            "unmatched_rate_wilson_high": 0.7,
+                            "is_low_power": False,
+                        }
+                    ]
+                ),
+                "unmatched_names": pd.DataFrame(
+                    [
+                        {
+                            "canonical_name": f"NAME|{index:03d}",
+                            "match_mode": "loose",
+                            "n_rows": 120 - index,
+                            "n_pro": 50,
+                            "n_con": 70,
+                            "top_caveat": "no_match",
+                            "best_similarity_score": 0.5,
+                            "candidate_pool_size": 2,
+                        }
+                        for index in range(80)
+                    ]
+                ),
+            },
+        )
+    }
+
+    previews = _table_previews_from_results(results, max_rows=12)
+    rows_preview = previews["voter_registry_match"]["linkage_by_position_rows"]
+    unmatched_preview = previews["voter_registry_match"]["unmatched_names"]
+
+    assert rows_preview[0]["position_normalized"] == "Other"
+    assert len(unmatched_preview) == 50
+    assert unmatched_preview[0]["display_name"] == "NAME, 000"
+    assert unmatched_preview[-1]["display_name"] == "NAME, 049"
+
+
 def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     (out_dir / "summary").mkdir(parents=True)
@@ -578,7 +632,7 @@ def test_render_report_loads_cross_hearing_baseline_payload(tmp_path: Path) -> N
     assert "global_loo" in cross_hearing["channels"]
     assert cross_hearing["selected_channel"] == "global_loo"
     assert cross_hearing["channels"]["global_loo"]["metric_comparators"]
-    assert "Cross-Hearing Expected vs Actual" in rendered
+    assert "Cross-Hearing Expected vs Actual" not in rendered
 
 
 def test_render_report_includes_external_assets_and_runtime_contracts(
@@ -642,14 +696,14 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert 'id="duplicate-scope-select"' in rendered
     assert 'id="duplicate-metric-select"' in rendered
     assert 'for="duplicate-metric-select">Unit</label>' in rendered
-    assert 'id="cross-hearing-channel-select"' in rendered
-    assert 'id="cross-hearing-overview-table"' in rendered
+    assert 'id="cross-hearing-channel-select"' not in rendered
+    assert 'id="cross-hearing-overview-table"' not in rendered
     assert 'id="voter-match-mode-panel"' in rendered
     assert 'id="voter-match-mode-select"' in rendered
     assert 'id="sidebar-bill-meta"' not in rendered
     assert 'id="sidebar-report-title"' in rendered
     assert 'id="sidebar-meeting-meta"' in rendered
-    assert 'id="report-timezone-summary"' in rendered
+    assert 'id="report-timezone-summary"' not in rendered
     assert "All times in this report are shown in " in js_text
     assert "updateZoomRangeLabel" in js_text
     assert "await ensureHeaderDataLoaded();" in js_text
@@ -760,13 +814,13 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert 'id="cross-hearing-comparator-host"' not in rendered
         assert 'id="cross-hearing-comparator-summary"' not in rendered
         assert 'id="hearing-context-metadata-host"' in rendered
-        assert 'id="hearing-deadline-ramp-host"' in rendered
+        assert 'id="hearing-deadline-ramp-host"' not in rendered
         assert 'id="hearing-stance-by-deadline-host"' not in rendered
         assert 'id="methodology-artifact-rows-host"' not in rendered
-        assert 'id="methodology-definitions-host"' in rendered
-        assert 'id="methodology-tests-used-host"' in rendered
-        assert 'id="methodology-guardrails-host"' in rendered
-        assert 'id="methodology-multiple-testing-list"' in rendered
+        assert 'id="methodology-definitions-host"' not in rendered
+        assert 'id="methodology-tests-used-host"' not in rendered
+        assert 'id="methodology-guardrails-host"' not in rendered
+        assert 'id="methodology-multiple-testing-list"' not in rendered
         assert 'id="triage-total-procon-meta"' in rendered
         assert 'id="triage-procon-pie"' in rendered
         assert 'id="triage-date-range-meta"' in rendered
@@ -776,16 +830,16 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
         assert 'id="triage-voter-match-position-bars"' in rendered
         assert 'id="triage-overall-procon"' not in rendered
         assert 'id="triage-top-tier-count"' not in rendered
-        assert 'id="forensics-top-names-pro-host" class="structured-host structured-host-compact"' in rendered
-        assert 'id="forensics-top-names-con-host" class="structured-host structured-host-compact"' in rendered
+        assert 'id="forensics-top-names-pro-table-body"' in rendered
+        assert 'id="forensics-top-names-con-table-body"' in rendered
+        assert 'class="triage-simple-table"' in rendered
         assert '<div class="triage-top-names-heading">Pro</div>' in rendered
         assert '<div class="triage-top-names-heading">Con</div>' in rendered
         assert '<h4 class="triage-top-names-heading">' not in rendered
         assert 'id="hearing-context-metadata-host" class="structured-host structured-host-compact"' in rendered
-        assert 'id="hearing-deadline-ramp-host" class="structured-host structured-host-compact"' in rendered
-        assert 'id="methodology-definitions-host" class="structured-host structured-host-compact"' in rendered
-        assert 'id="methodology-guardrails-host" class="structured-host structured-host-compact"' in rendered
-    assert "renderMethodologyPanel()" in js_text
+        assert 'id="methodology-definitions-host" class="structured-host structured-host-compact"' not in rendered
+        assert 'id="methodology-guardrails-host" class="structured-host structured-host-compact"' not in rendered
+    assert "renderMethodologyPanel()" not in js_text
     assert "initDedupModeControl()" not in js_text
     assert "renderDataQualityPanel()" in js_text
     assert "renderCrossHearingComparator()" not in js_text
@@ -806,12 +860,19 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     voter_rates_block = js_text[voter_rates_block_start:voter_rates_block_end]
     assert "adaptiveLineRange: true" in voter_rates_block
     assert '"unmatched_rate",' not in voter_rates_block
+    assert '"control_low_998_match_global"' not in voter_rates_block
+    assert '"control_high_998_match_global"' not in voter_rates_block
+    assert 'pageStateKey: "voterUnmatchedNamesPage"' in js_text
+    assert "pageSize: 5" in js_text
+    assert "maxPages: 10" in js_text
+    assert "linkage_overview_bounds" in js_text
+    assert "position_pairwise_tests" in js_text
     assert "statistical irregularity requiring review" in payload_text
     assert 'summary.textContent = "artifact_rows"' not in js_text
     assert "mountKeyValueList(metadataHost, metadataRows" in js_text
-    assert "mountKeyValueList(rampHost, rampRows" in js_text
-    assert "mountTextPairCards(definitionsHost, definitions" in js_text
-    assert "mountTextPairCards(guardrailsHost, guardrails" in js_text
+    assert "mountKeyValueList(rampHost, rampRows" not in js_text
+    assert "mountTextPairCards(definitionsHost, definitions" not in js_text
+    assert "mountTextPairCards(guardrailsHost, guardrails" not in js_text
     assert "mountTable(metadataHost, metadataRows" not in js_text
     assert "mountTable(guardrailsHost, guardrails" not in js_text
     assert "formatDateRangeHumanized(" in js_text
@@ -835,8 +896,9 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "const duplicateNames = resolveDuplicateRowsForTriage(summary);" in js_text
     assert "const topNames = duplicateNames.rows;" in js_text
     assert "buildTopRepeatedNamesByPosition(" in js_text
-    assert "mountTextPairCards(forensicsNamesProHost, topNamesProRows" in js_text
-    assert "mountTextPairCards(forensicsNamesConHost, topNamesConRows" in js_text
+    assert "function mountTopRepeatedNamesTableRows(tableBody, rows, options)" in js_text
+    assert "mountTopRepeatedNamesTableRows(forensicsNamesProBody, topNamesProRows" in js_text
+    assert "mountTopRepeatedNamesTableRows(forensicsNamesConBody, topNamesConRows" in js_text
     assert 'const title = document.createElement("div");' in js_text
     assert 'document.createElement("h4")' not in js_text
     assert 'tableKey: "triage.top_repeated_names"' not in js_text

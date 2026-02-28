@@ -36,21 +36,6 @@
 
       {{ analysis_help.render_analysis_help(analysis) }}
 
-      <article
-        class="detail-card detail-card-half analysis-expected-callout hidden"
-        data-analysis-expected-for="{{ analysis.id }}"
-      >
-        <h3 class="detail-title">Expected vs Actual (Cross-Hearing)</h3>
-        <p class="tiny-note" data-analysis-expected-summary-for="{{ analysis.id }}"></p>
-        <div
-          id="analysis-expected-warning-{{ analysis.id }}"
-          class="warning-banner hidden"
-        ></div>
-        <div class="table-wrap">
-          <div id="analysis-expected-host-{{ analysis.id }}" class="table-host"></div>
-        </div>
-      </article>
-
       {% if analysis.detail_chart_ids %}
         <div class="analysis-detail-grid">
           {% set chart_title_overrides = {
@@ -58,9 +43,10 @@
             "duplicates_exact_top_name_timing_exact": "Duplicate Names Top Timing"
           } %}
           {% set chart_card_class_overrides = {
+            "duplicates_exact_metric_diagnostics": "detail-card detail-card-half",
             "duplicates_exact_swing_impact": "detail-card detail-card-half",
-            "voter_registry_sensitivity_modes": "detail-card detail-card-half",
-            "off_hours_primary_flag_channels": "detail-card detail-card-half"
+            "voter_registry_linkage_by_position_rows": "detail-card detail-card-half",
+            "voter_registry_linkage_by_position_unique": "detail-card detail-card-half"
           } %}
           {% for chart_id in analysis.detail_chart_ids %}
             <article class="{{ chart_card_class_overrides.get(chart_id, "detail-card") }}">

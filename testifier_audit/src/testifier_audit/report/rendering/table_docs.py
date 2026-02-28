@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from testifier_audit.report.rendering.constants import _COLUMN_DESCRIPTION_OVERRIDES
 from testifier_audit.report.rendering.payload.common import _table_key
 

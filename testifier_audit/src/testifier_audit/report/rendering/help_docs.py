@@ -174,12 +174,12 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
             ),
             (
                 "Compare unmatched-rate differences at both row and unique-name units; "
-                "pairwise tests are strongest when support is adequate and adjacent "
-                "windows corroborate the pattern."
+                "focus on persistent differences that also remain visible in the "
+                "position-bounds span panel."
             ),
             (
-                "Use balanced and broad sensitivity panels to assess how strong/weak "
-                "fuzzy assumptions move outcomes before interpreting directional claims."
+                "Use the rows-vs-unique position-bounds span panel to assess linkage "
+                "assumption sensitivity; wide spans indicate directionality is fragile."
             ),
         ],
         "periodicity": [
@@ -968,12 +968,56 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             include_low_power=True,
             volume_label="Submission count",
             volume_desc="Total records per bucket for support context.",
-            flagged_label="Robust primary alert",
+            flagged_label="Robust lower-tail alert / Robust upper-tail alert",
             flagged_desc=(
                 "Alert-eligible windows beyond the primary 99.8% control limits "
                 "with tail-consistent FDR support and material effect size. Shaded spans "
                 "mark contiguous robust-alert runs (lower or upper tail)."
             ),
+            extra=[
+                {
+                    "label": "Wilson interval area",
+                    "description": "Shaded region between Wilson low and Wilson high.",
+                },
+                {
+                    "label": "expected pro rate primary",
+                    "description": (
+                        "Primary expected pro share (model when available, day-adjusted fallback otherwise)."
+                    ),
+                },
+                {
+                    "label": "control low 95 primary / control high 95 primary",
+                    "description": "Primary 95% control limits around the primary baseline.",
+                },
+                {
+                    "label": "expected pro rate day",
+                    "description": "Day-adjusted expected pro share comparator.",
+                },
+                {
+                    "label": "expected pro rate global",
+                    "description": "Hearing-level expected pro share comparator.",
+                },
+                {
+                    "label": "control low 95 global / control high 95 global",
+                    "description": "Global 95% control limits for contextual comparison.",
+                },
+                {
+                    "label": "SPC-only flag",
+                    "description": (
+                        "Window passed the SPC 99.8% control-limit channel but not the FDR channel."
+                    ),
+                },
+                {
+                    "label": "FDR-only flag",
+                    "description": (
+                        "Window passed the two-sided FDR channel but not the SPC 99.8% channel."
+                    ),
+                },
+                {
+                    "label": "Robust alert run span",
+                    "description": "Shaded x-range for contiguous robust-alert runs.",
+                },
+            ],
         ),
         "off_hours_funnel_plot": {
             "summary": (
@@ -982,28 +1026,58 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ),
             "items": [
                 {
-                    "label": "Point",
+                    "label": "On-hours/mixed windows",
                     "description": (
-                        "Each point is one time bucket (x = known pro/con count, y = pro share). "
-                        "Inference is strongest when windows are alert-eligible and not low-power."
+                        "Reference windows outside off-hours dominance (or mixed windows)."
                     ),
                 },
                 {
-                    "label": "Control curves",
+                    "label": "Off-hours windows",
                     "description": (
-                        "Curves show global-baseline expected range (95% and 99.8%). "
-                        "Primary baseline is row-specific (model/day-adjusted) and is used "
-                        "for robust-alert scoring and tooltip diagnostics."
+                        "All off-hours-dominant windows regardless of inferential support."
                     ),
                 },
                 {
-                    "label": "Color",
+                    "label": "Inferentially tested off-hours",
                     "description": (
-                        "Off-hours-dominant windows are highlighted; red points mark "
-                        "robust lower-tail alerts and pink triangles mark robust upper-tail "
-                        "alerts (99.8% control-limit breach + tail-consistent FDR + material "
-                        "effect size)."
+                        "Off-hours windows that are alert-eligible and not low-power."
                     ),
+                },
+                {
+                    "label": "SPC-only flag",
+                    "description": "SPC 99.8% channel hit without two-sided FDR channel support.",
+                },
+                {
+                    "label": "FDR-only flag",
+                    "description": "Two-sided FDR channel hit without SPC 99.8% channel support.",
+                },
+                {
+                    "label": "Robust lower-tail alert",
+                    "description": (
+                        "Robust lower-tail primary alert (99.8% lower breach + FDR support + material effect)."
+                    ),
+                },
+                {
+                    "label": "Robust upper-tail alert",
+                    "description": (
+                        "Robust upper-tail primary alert (99.8% upper breach + FDR support + material effect)."
+                    ),
+                },
+                {
+                    "label": "Low-power windows",
+                    "description": "Alert-eligible windows excluded from inferential claims by low support.",
+                },
+                {
+                    "label": "Global expected rate",
+                    "description": "Global expected pro share as a function of support.",
+                },
+                {
+                    "label": "Global 95% lower / Global 95% upper",
+                    "description": "Global 95% control envelope.",
+                },
+                {
+                    "label": "Global 99.8% lower / Global 99.8% upper",
+                    "description": "Global 99.8% extreme-tail control envelope.",
                 },
                 {
                     "label": "Y-axis scaling",
@@ -1028,21 +1102,41 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             include_low_power=True,
             volume_label="Known Pro+Con count",
             volume_desc="Known pro/con records supporting each bucket.",
-            flagged_label="Robust primary alert",
+            flagged_label="Robust lower-tail alert / Robust upper-tail alert",
             flagged_desc=(
                 "Alert-eligible windows meeting robust-primary criteria "
                 "(99.8% control-limit breach + tail-consistent FDR + material effect size)."
             ),
             extra=[
                 {
-                    "label": "Day z-score",
+                    "label": "z score day",
                     "description": (
                         "Day-adjusted standardized residual shown as comparator context."
                     ),
                 },
                 {
-                    "label": "Z references",
-                    "description": "Reference lines at 0 and +/-3 sigma for residual context.",
+                    "label": "z ref zero",
+                    "description": "Zero-residual reference line.",
+                },
+                {
+                    "label": "z ref pos3 / z ref neg3",
+                    "description": "Reference lines at +/-3 sigma.",
+                },
+                {
+                    "label": "SPC-only flag",
+                    "description": (
+                        "Window passed the SPC 99.8% control-limit channel but not the FDR channel."
+                    ),
+                },
+                {
+                    "label": "FDR-only flag",
+                    "description": (
+                        "Window passed the two-sided FDR channel but not the SPC 99.8% channel."
+                    ),
+                },
+                {
+                    "label": "Robust alert run span",
+                    "description": "Shaded x-range for contiguous robust-alert runs.",
                 },
             ],
         ),
@@ -1082,6 +1176,14 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": (
                         "Each bucket stacks Pro, Con, and Other testimony counts so composition "
                         "and total support are visible at once."
+                    ),
+                },
+                {
+                    "label": "Pro-share lines",
+                    "description": (
+                        "Solid line is observed Pro share in each bucket; dashed line at 50% "
+                        "is the neutral split reference to highlight when sentiment is majority "
+                        "Pro versus majority Con."
                     ),
                 },
                 {
@@ -1181,10 +1283,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                         "(bucket rows * global duplicated-anywhere share)."
                     ),
                 },
-                {
-                    "label": "Deviation from expected",
-                    "description": "Signed observed-minus-expected difference for the selected unit.",
-                },
             ],
         ),
         "duplicates_exact_metric_diagnostics": {
@@ -1220,20 +1318,19 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "duplicates_exact_per_name_anomalies": {
-            "summary": "Per-name duplicate counts split into Pro/Con-only series.",
+            "summary": "Per-name duplicate counts with stacked Pro/Con bars.",
             "items": [
                 {
                     "label": "Series",
                     "description": (
-                        "Bars are split by position (Pro vs Con) and include only names that are "
-                        "duplicate-active on a single position side."
+                        "Each name has stacked Pro and Con duplicate counts in one bar."
                     ),
                 },
                 {
-                    "label": "Mixed names excluded",
+                    "label": "Pagination",
                     "description": (
-                        "Names with both Pro and Con duplicate counts are excluded from this chart "
-                        "to preserve side-specific comparability."
+                        "Names are paginated 10 at a time up to 10 pages (top 100 names by "
+                        "duplicate sign-ins)."
                     ),
                 },
                 {
@@ -1268,7 +1365,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": (
                         "Names are ranked by total sign-ins among duplicate-eligible names "
                         "(rank 1 = highest) and "
-                        "paginated 10 at a time up to the top 100 names."
+                        "paginated 10 at a time up to the top 200 names."
                     ),
                 },
                 {
@@ -1434,11 +1531,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             primary_label="Matched rate",
             primary_desc=("Share of rows classified as matched under conservative primary linkage."),
             include_wilson=True,
-            flagged_label="Extreme match-rate anomaly",
-            flagged_desc=(
-                "Buckets outside global 99.8% matched-rate control limits "
-                "(after low-power filtering), directionally marked as lower or upper."
-            ),
             extra=[
                 {
                     "label": "Pro match rate",
@@ -1449,10 +1541,29 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Matched-rate trajectory for Con rows in each bucket.",
                 },
                 {
-                    "label": "Global control references",
+                    "label": "Expected global match rate",
                     "description": (
-                        "Expected matched rate and 95% control bounds under the hearing-wide "
-                        "global linkage baseline."
+                        "Hearing-wide expected matched rate under the global linkage baseline."
+                    ),
+                },
+                {
+                    "label": "Global control low 95",
+                    "description": "Lower 95% global control reference for matched rate.",
+                },
+                {
+                    "label": "Global control high 95",
+                    "description": "Upper 95% global control reference for matched rate.",
+                },
+                {
+                    "label": "Robust lower-tail alert",
+                    "description": (
+                        "Buckets with materially low matched rate after low-power filtering."
+                    ),
+                },
+                {
+                    "label": "Robust upper-tail alert",
+                    "description": (
+                        "Buckets with materially high matched rate after low-power filtering."
                     ),
                 },
             ],
@@ -1478,7 +1589,10 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "voter_registry_unmatched_names": {
-            "summary": "Top unmatched names by row count (chart shows top 10; table retains full tail).",
+            "summary": (
+                "Top unmatched names by row count (chart keeps top 50 and pages through up to 10 pages; "
+                "table preview shows first 50 rows)."
+            ),
             "items": [
                 {
                     "label": "Bar height",

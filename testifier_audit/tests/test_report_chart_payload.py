@@ -234,7 +234,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert "Unmatched rate" not in voter_legend_labels
     assert "Pro match rate" in voter_legend_labels
     assert "Con match rate" in voter_legend_labels
-    assert payload["charts"]["voter_registry_sensitivity_modes"]
+    assert "voter_registry_sensitivity_modes" not in payload["charts"]
     linkage_rows_chart = payload["charts"]["voter_registry_linkage_by_position_rows"]
     linkage_unique_chart = payload["charts"]["voter_registry_linkage_by_position_unique"]
     assert linkage_rows_chart
@@ -1346,8 +1346,8 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
     )
 
     per_name_chart = payload["charts"]["duplicates_exact_per_name_anomalies"]
-    assert len(per_name_chart) == 15
-    assert all((row["n_pro"] > 0) ^ (row["n_con"] > 0) for row in per_name_chart)
+    assert len(per_name_chart) == 18
+    assert any((row["n_pro"] > 0) and (row["n_con"] > 0) for row in per_name_chart)
     assert all(str(row.get("first_seen", "")).strip() for row in per_name_chart)
     assert all(str(row.get("last_seen", "")).strip() for row in per_name_chart)
 
@@ -1365,13 +1365,13 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
     assert payload["charts"]["duplicates_exact_null_distribution"]
 
 
-def test_voter_registry_unmatched_names_chart_is_capped_to_top_10() -> None:
+def test_voter_registry_unmatched_names_chart_is_capped_to_top_50() -> None:
     unmatched_rows = pd.DataFrame(
         [
             {
                 "canonical_name": f"NAME|{index:02d}",
                 "match_mode": "loose",
-                "n_rows": 30 - index,
+                "n_rows": 200 - index,
                 "n_pro": 10,
                 "n_con": 20,
                 "first_seen": pd.Timestamp("2026-02-01T00:00:00Z") + pd.Timedelta(minutes=index),
@@ -1380,7 +1380,7 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_10() -> None:
                 "best_similarity_score": 0.5,
                 "candidate_pool_size": 3,
             }
-            for index in range(15)
+            for index in range(75)
         ]
     )
     payload = _build_interactive_chart_payload_v2(
@@ -1424,7 +1424,7 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_10() -> None:
     )
 
     chart_rows = payload["charts"]["voter_registry_unmatched_names"]
-    assert len(chart_rows) == 10
+    assert len(chart_rows) == 50
     assert [row["n_records"] for row in chart_rows] == sorted(
         [row["n_records"] for row in chart_rows],
         reverse=True,
@@ -1910,3 +1910,87 @@ def test_payload_emits_position_baseline_and_dual_bounds_charts() -> None:
 
     assert payload["charts"]["duplicates_exact_position_bucket_deviance"]
     assert payload["charts"]["voter_registry_position_bounds"]
+
+
+def test_voter_position_bounds_chart_falls_back_to_rows_unique_span_when_bounds_missing() -> None:
+    table_map = {
+        "artifacts.counts_per_minute": pd.DataFrame(
+            {
+                "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                "n_total": [20],
+                "n_pro": [12],
+                "n_con": [8],
+                "pro_rate": [0.6],
+                "pro_rate_wilson_low": [0.4],
+                "pro_rate_wilson_high": [0.8],
+                "is_low_power": [False],
+                "n_unique_names": [15],
+                "unique_ratio": [0.75],
+            }
+        ),
+        "voter_registry_match.match_by_bucket": pd.DataFrame(
+            {
+                "match_mode": ["loose"],
+                "bucket_start": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                "bucket_minutes": [30],
+                "n_total": [20],
+                "n_matched_unique": [11],
+                "n_matched_ambiguous": [3],
+                "n_unmatched": [6],
+                "matched_rate": [0.7],
+                "unmatched_rate": [0.3],
+                "matched_rate_wilson_low": [0.5],
+                "matched_rate_wilson_high": [0.85],
+                "unmatched_rate_wilson_low": [0.15],
+                "unmatched_rate_wilson_high": [0.5],
+                "is_low_power": [False],
+                "n_pro": [12],
+                "n_con": [8],
+            }
+        ),
+        "voter_registry_match.linkage_by_position_rows": pd.DataFrame(
+            {
+                "match_mode": ["loose", "loose"],
+                "position_normalized": ["Pro", "Unknown"],
+                "n_total": [10, 5],
+                "n_matched_unique": [8, 2],
+                "n_matched_ambiguous": [1, 1],
+                "n_unmatched": [1, 2],
+                "matched_rate": [0.9, 0.6],
+                "unmatched_rate": [0.1, 0.4],
+                "matched_rate_wilson_low": [0.7, 0.2],
+                "matched_rate_wilson_high": [1.0, 0.9],
+                "unmatched_rate_wilson_low": [0.0, 0.1],
+                "unmatched_rate_wilson_high": [0.3, 0.8],
+                "is_low_power": [False, False],
+            }
+        ),
+        "voter_registry_match.linkage_by_position_unique": pd.DataFrame(
+            {
+                "match_mode": ["loose", "loose"],
+                "position_normalized": ["Pro", "Other"],
+                "n_total": [9, 4],
+                "n_matched_unique": [7, 1],
+                "n_matched_ambiguous": [1, 1],
+                "n_unmatched": [1, 2],
+                "matched_rate": [8 / 9, 0.5],
+                "unmatched_rate": [1 / 9, 0.5],
+                "matched_rate_wilson_low": [0.6, 0.1],
+                "matched_rate_wilson_high": [1.0, 0.9],
+                "unmatched_rate_wilson_low": [0.0, 0.1],
+                "unmatched_rate_wilson_high": [0.4, 0.9],
+                "is_low_power": [False, False],
+            }
+        ),
+    }
+    payload = _build_interactive_chart_payload_v2(
+        table_map=table_map,
+        detector_summaries={},
+        hearing_metadata=None,
+    )
+
+    bounds_rows = payload["charts"]["voter_registry_position_bounds"]
+    assert bounds_rows
+    assert {row["position_normalized"] for row in bounds_rows} == {"Pro", "Other"}
+    assert all(row["unit"] == "rows_vs_unique" for row in bounds_rows)
+    assert all(row["inference_status"] == "derived_from_rows_and_unique" for row in bounds_rows)

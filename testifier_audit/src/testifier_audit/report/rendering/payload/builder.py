@@ -230,6 +230,86 @@ def _load_cross_hearing_baseline_payload(out_dir: Path | None) -> dict[str, Any]
     return normalized
 
 
+def _normalize_voter_position_label(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return "Other"
+    normalized = raw.lower()
+    if normalized == "unknown":
+        return "Other"
+    if normalized == "other":
+        return "Other"
+    if normalized == "pro":
+        return "Pro"
+    if normalized == "con":
+        return "Con"
+    return raw
+
+
+def _build_voter_position_bounds_fallback(
+    voter_position_rows: pd.DataFrame,
+    voter_position_unique: pd.DataFrame,
+) -> pd.DataFrame:
+    expected_columns = [
+        "match_mode",
+        "unit",
+        "position_normalized",
+        "n_total_lower",
+        "n_total_upper",
+        "matched_rate_lower",
+        "matched_rate_upper",
+        "matched_rate_span",
+        "unmatched_rate_lower",
+        "unmatched_rate_upper",
+        "unmatched_rate_span",
+        "inference_status",
+    ]
+    source_frames: list[pd.DataFrame] = []
+    if not voter_position_rows.empty:
+        source_frames.append(
+            voter_position_rows.assign(unit="rows")[
+                ["match_mode", "unit", "position_normalized", "n_total", "matched_rate", "unmatched_rate"]
+            ]
+        )
+    if not voter_position_unique.empty:
+        source_frames.append(
+            voter_position_unique.assign(unit="unique_names")[
+                ["match_mode", "unit", "position_normalized", "n_total", "matched_rate", "unmatched_rate"]
+            ]
+        )
+    if not source_frames:
+        return _with_expected_columns(pd.DataFrame(), expected_columns)
+
+    combined = pd.concat(source_frames, ignore_index=True)
+    combined["n_total"] = pd.to_numeric(combined["n_total"], errors="coerce")
+    combined["matched_rate"] = pd.to_numeric(combined["matched_rate"], errors="coerce")
+    combined["unmatched_rate"] = pd.to_numeric(combined["unmatched_rate"], errors="coerce")
+
+    aggregated = (
+        combined.groupby(["match_mode", "position_normalized"], dropna=False)
+        .agg(
+            n_total_lower=("n_total", "min"),
+            n_total_upper=("n_total", "max"),
+            matched_rate_lower=("matched_rate", "min"),
+            matched_rate_upper=("matched_rate", "max"),
+            unmatched_rate_lower=("unmatched_rate", "min"),
+            unmatched_rate_upper=("unmatched_rate", "max"),
+        )
+        .reset_index()
+    )
+    aggregated["unit"] = "rows_vs_unique"
+    aggregated["matched_rate_span"] = (
+        pd.to_numeric(aggregated["matched_rate_upper"], errors="coerce")
+        - pd.to_numeric(aggregated["matched_rate_lower"], errors="coerce")
+    ).clip(lower=0.0)
+    aggregated["unmatched_rate_span"] = (
+        pd.to_numeric(aggregated["unmatched_rate_upper"], errors="coerce")
+        - pd.to_numeric(aggregated["unmatched_rate_lower"], errors="coerce")
+    ).clip(lower=0.0)
+    aggregated["inference_status"] = "derived_from_rows_and_unique"
+    return _with_expected_columns(aggregated, expected_columns)
+
+
 def _build_interactive_chart_payload_v2(
     table_map: dict[str, pd.DataFrame],
     detector_summaries: dict[str, dict[str, Any]],
@@ -1895,6 +1975,7 @@ def _build_interactive_chart_payload_v2(
         voter_pairwise,
         voter_unmatched,
         voter_bucket_position,
+        voter_position_bounds,
     ):
         if frame.empty:
             continue
@@ -1902,6 +1983,21 @@ def _build_interactive_chart_payload_v2(
             frame["match_mode"] = "loose"
         frame["match_mode"] = frame["match_mode"].map(
             lambda value: _normalize_report_match_mode(value, default="loose")
+        )
+    for frame in (
+        voter_position_rows,
+        voter_position_unique,
+        voter_bucket_position,
+        voter_position_bounds,
+    ):
+        if frame.empty or "position_normalized" not in frame.columns:
+            continue
+        frame["position_normalized"] = frame["position_normalized"].map(_normalize_voter_position_label)
+
+    if voter_position_bounds.empty:
+        voter_position_bounds = _build_voter_position_bounds_fallback(
+            voter_position_rows=voter_position_rows,
+            voter_position_unique=voter_position_unique,
         )
 
     voter_match_mode_options = sorted(
@@ -1914,6 +2010,7 @@ def _build_interactive_chart_payload_v2(
                 *voter_pairwise.get("match_mode", pd.Series(dtype=str)).tolist(),
                 *voter_unmatched.get("match_mode", pd.Series(dtype=str)).tolist(),
                 *voter_bucket_position.get("match_mode", pd.Series(dtype=str)).tolist(),
+                *voter_position_bounds.get("match_mode", pd.Series(dtype=str)).tolist(),
                 *voter_sensitivity_modes.get("match_mode", pd.Series(dtype=str)).tolist(),
             ]
             if str(value).strip()
@@ -3084,22 +3181,19 @@ def _build_interactive_chart_payload_v2(
         errors="coerce",
     ).fillna(0)
 
-    # Keep single-position duplicate-name rows for position-series rendering.
-    pro_only_mask = (dup_exact_per_name_chart["n_pro"] > 0) & (dup_exact_per_name_chart["n_con"] <= 0)
-    con_only_mask = (dup_exact_per_name_chart["n_con"] > 0) & (dup_exact_per_name_chart["n_pro"] <= 0)
-    dup_exact_per_name_chart = dup_exact_per_name_chart[pro_only_mask | con_only_mask].copy()
     if not dup_exact_per_name_chart.empty:
         dup_exact_per_name_chart["position_series"] = np.where(
-            dup_exact_per_name_chart["n_pro"] > 0, "Pro", "Con"
+            (dup_exact_per_name_chart["n_pro"] > 0) & (dup_exact_per_name_chart["n_con"] > 0),
+            "Mixed",
+            np.where(dup_exact_per_name_chart["n_pro"] > 0, "Pro", "Con"),
         )
-        dup_exact_per_name_chart["position_count"] = np.where(
-            dup_exact_per_name_chart["n_pro"] > 0,
-            dup_exact_per_name_chart["n_pro"],
-            dup_exact_per_name_chart["n_con"],
+        dup_exact_per_name_chart["position_count"] = (
+            pd.to_numeric(dup_exact_per_name_chart["n_pro"], errors="coerce").fillna(0)
+            + pd.to_numeric(dup_exact_per_name_chart["n_con"], errors="coerce").fillna(0)
         )
         dup_exact_per_name_chart = dup_exact_per_name_chart.sort_values(
-            ["scope", "match_mode", "q_value", "p_value", "position_count", "n"],
-            ascending=[True, True, True, True, False, False],
+            ["scope", "match_mode", "position_count", "q_value", "p_value", "n"],
+            ascending=[True, True, False, True, True, False],
         )
     if not dup_exact_per_name_chart.empty:
         group_fields = [
@@ -3108,9 +3202,9 @@ def _build_interactive_chart_payload_v2(
         if group_fields:
             dup_exact_per_name_chart = dup_exact_per_name_chart.groupby(
                 group_fields, dropna=False, group_keys=False
-            ).head(15)
+            ).head(100)
         else:
-            dup_exact_per_name_chart = dup_exact_per_name_chart.head(15)
+            dup_exact_per_name_chart = dup_exact_per_name_chart.head(100)
     charts["duplicates_exact_per_name_anomalies"] = _records_from_frame(
         dup_exact_per_name_chart,
         columns=[
@@ -3440,7 +3534,7 @@ def _build_interactive_chart_payload_v2(
     if not voter_unmatched_top.empty and "match_mode" in voter_unmatched_top.columns:
         voter_unmatched_top = voter_unmatched_top.groupby(
             "match_mode", dropna=False, group_keys=False
-        ).head(10)
+        ).head(50)
     charts["voter_registry_unmatched_names"] = _records_from_frame(
         voter_unmatched_top,
         columns=[

@@ -62,7 +62,7 @@ _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
         ),
     },
 )
-_TOP_NAME_TIMING_TOP_N = 100
+_TOP_NAME_TIMING_TOP_N = 200
 
 
 def _safe_str_series(series: pd.Series) -> pd.Series:

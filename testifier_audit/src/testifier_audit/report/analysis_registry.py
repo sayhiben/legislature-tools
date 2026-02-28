@@ -127,7 +127,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         detail_chart_ids=(
             "off_hours_funnel_plot",
             "off_hours_primary_residual_timeline",
-            "off_hours_primary_flag_channels",
         ),
         how_to_read=(
             "Use the off-hours control timeline to compare observed pro share with "
@@ -153,10 +152,10 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         hero_chart_id="duplicates_exact_bucket_concentration",
         detail_chart_ids=(
             "duplicates_exact_metric_diagnostics",
+            "duplicates_exact_swing_impact",
             "duplicates_exact_per_name_anomalies",
             "duplicates_exact_top_name_timing_exact",
             "duplicates_exact_position_bucket_deviance",
-            "duplicates_exact_swing_impact",
         ),
         how_to_read=(
             "Interpret bucket values as duplicated-anywhere presence: rows (or distinct names) "
@@ -203,8 +202,6 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         detail_chart_ids=(
             "voter_registry_linkage_by_position_rows",
             "voter_registry_linkage_by_position_unique",
-            "voter_registry_pairwise_tests",
-            "voter_registry_sensitivity_modes",
             "voter_registry_position_bounds",
             "voter_registry_unmatched_names",
         ),
@@ -215,7 +212,8 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         ),
         what_to_look_for=(
             "Sustained unmatched-rate differences across positions at both row and unique-name "
-            "units, then compare balanced and broad sensitivity modes."
+            "units, then verify whether those differences remain stable in the rows-vs-unique "
+            "position-bounds span panel."
         ),
         common_benign_causes=(
             "Name normalization gaps, registration recency, and non-registered participants can "

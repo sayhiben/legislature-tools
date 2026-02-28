@@ -1252,6 +1252,45 @@ code {
   color: var(--ink-muted);
 }
 
+.triage-simple-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.triage-simple-table th,
+.triage-simple-table td {
+  padding: 0.32rem 0.44rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.78rem;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.triage-simple-table thead th {
+  background: var(--surface-alt);
+  font-weight: 600;
+}
+
+.triage-simple-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.triage-simple-table th:nth-child(n + 2),
+.triage-simple-table td:nth-child(n + 2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.triage-simple-table-empty {
+  text-align: center !important;
+  color: var(--ink-muted) !important;
+}
+
 .detail-title {
   margin-bottom: 0.5rem;
 }

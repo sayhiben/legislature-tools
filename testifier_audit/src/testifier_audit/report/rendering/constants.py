@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 BASELINE_PROFILE_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
 
 PACIFIC_TIMEZONE_NAME = "America/Los_Angeles"

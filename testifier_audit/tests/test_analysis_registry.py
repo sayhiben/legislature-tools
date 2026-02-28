@@ -37,6 +37,8 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     assert "off_hours_model_fit_diagnostics" not in off_hours["detail_chart_ids"]
     voter = next(entry for entry in definitions if entry["id"] == "voter_registry_match")
     assert "voter_registry_position_bounds" in voter["detail_chart_ids"]
+    assert "voter_registry_pairwise_tests" not in voter["detail_chart_ids"]
+    assert "voter_registry_sensitivity_modes" not in voter["detail_chart_ids"]
 
 
 def test_analysis_status_reports_ready_when_any_chart_has_rows() -> None:

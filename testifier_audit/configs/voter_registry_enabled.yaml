@@ -14,8 +14,8 @@ time:
 windows:
   minute_series_smooth: 15
   swing_window_minutes: 60
-  scan_window_minutes: [5, 15, 60, 240]
-  analysis_bucket_minutes: [1, 5, 15, 30, 60, 120]
+  scan_window_minutes: [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
+  analysis_bucket_minutes: [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
 
 thresholds:
   top_duplicate_names: 200

@@ -50,7 +50,16 @@ def _remove_stale_detector_outputs(paths: OutputPaths, detector_names: set[str])
                 artifact_path.unlink(missing_ok=True)
 
 
-def _remove_stale_overlay_figures(paths: OutputPaths, figure_suffix: str) -> None:
+def _resolved_heatmap_bucket_minutes(config: AppConfig) -> list[int]:
+    resolved = sorted({int(value) for value in config.windows.analysis_bucket_minutes if int(value) > 0})
+    return resolved or [1]
+
+
+def _remove_stale_overlay_figures(
+    paths: OutputPaths,
+    figure_suffix: str,
+    bucket_minutes: list[int],
+) -> None:
     suffix = str(figure_suffix or "").strip().lstrip(".") or "png"
     figure_names = {
         "counts_with_anomalies",
@@ -60,8 +69,8 @@ def _remove_stale_overlay_figures(paths: OutputPaths, figure_suffix: str) -> Non
         "organization_blank_rates",
         "voter_registry_match_rates",
     }
-    for bucket_minutes in (1, 5, 15, 30, 60, 120, 240):
-        figure_names.add(f"pro_rate_heatmap_day_hour_{int(bucket_minutes)}m")
+    for bucket in bucket_minutes:
+        figure_names.add(f"pro_rate_heatmap_day_hour_{int(bucket)}m")
     for figure_name in sorted(figure_names):
         (paths.figures / f"{figure_name}.{suffix}").unlink(missing_ok=True)
 
@@ -88,6 +97,7 @@ def _render_detector_figures(
     voter_match_by_bucket = feature_context.get(
         "voter_registry_match.match_by_bucket", pd.DataFrame()
     )
+    heatmap_bucket_minutes = _resolved_heatmap_bucket_minutes(config)
 
     try:
         plot_counts_with_annotations(
@@ -109,7 +119,7 @@ def _render_detector_figures(
             counts_per_minute=counts,
             output_path=paths.figures / f"pro_rate_heatmap_day_hour.{figure_suffix}",
         )
-        for bucket_minutes in (1, 5, 15, 30, 60, 120, 240):
+        for bucket_minutes in heatmap_bucket_minutes:
             plot_pro_rate_day_hour_heatmap(
                 counts_per_minute=counts,
                 output_path=paths.figures
@@ -158,7 +168,11 @@ def run_detectors(
             ", ".join(analysis_scope_ids),
             ", ".join(sorted({detector.name for detector in detector_instances})),
         )
-        _remove_stale_overlay_figures(paths=paths, figure_suffix=config.outputs.figures_format)
+        _remove_stale_overlay_figures(
+            paths=paths,
+            figure_suffix=config.outputs.figures_format,
+            bucket_minutes=_resolved_heatmap_bucket_minutes(config),
+        )
 
     results: dict[str, DetectorResult] = {}
     for detector in detector_instances:

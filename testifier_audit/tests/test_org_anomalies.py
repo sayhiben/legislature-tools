@@ -45,7 +45,18 @@ def test_org_anomalies_emits_blank_org_rate_tables_for_standard_buckets() -> Non
     assert not by_bucket.empty
     assert not by_bucket_position.empty
     assert not by_bucket_summary.empty
-    assert set(by_bucket["bucket_minutes"].astype(int).unique()) == {1, 5, 15, 30, 60, 120, 240}
+    assert set(by_bucket["bucket_minutes"].astype(int).unique()) == {
+        1,
+        5,
+        15,
+        30,
+        60,
+        120,
+        240,
+        480,
+        720,
+        1440,
+    }
     assert set(by_bucket_summary["bucket_minutes"].astype(int).unique()) == {
         1,
         5,
@@ -54,6 +65,9 @@ def test_org_anomalies_emits_blank_org_rate_tables_for_standard_buckets() -> Non
         60,
         120,
         240,
+        480,
+        720,
+        1440,
     }
     assert "blank_org_rate_wilson_low" in by_bucket.columns
     assert "blank_org_rate_wilson_high" in by_bucket.columns

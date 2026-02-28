@@ -14,7 +14,7 @@ from testifier_audit.names.canonicalize import canonicalize_name
 from testifier_audit.names.collision_baseline import collision_metrics_from_counts
 from testifier_audit.names.nickname_map import load_nickname_map
 
-DEFAULT_BUCKET_MINUTES = (1, 5, 15, 30, 60, 120, 240)
+DEFAULT_BUCKET_MINUTES = (1, 5, 15, 30, 60, 120, 240, 480, 720, 1440)
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:

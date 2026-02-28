@@ -10,7 +10,7 @@ from testifier_audit.proportion_stats import (
     wilson_interval,
 )
 
-BUCKET_MINUTES = (1, 5, 15, 30, 60, 120, 240)
+BUCKET_MINUTES = (1, 5, 15, 30, 60, 120, 240, 480, 720, 1440)
 
 
 def _organization_blank_rate_tables(

@@ -268,6 +268,7 @@
     DUPLICATE_PER_NAME_CHART_PAGE_SIZE * DUPLICATE_PER_NAME_CHART_MAX_PAGES;
   const DUPLICATE_PER_NAME_TABLE_MAX_NAMES = 100;
   const DUPLICATE_INLINE_TIMING_CHART_HEIGHT_PX = 136;
+  const BUCKET_PREFERENCE_STORAGE_KEY = "testifier_audit_bucket_minutes";
   const zonedDateTimeEpochCache = new Map();
   const semanticTokenCache = new Map();
   let sidebarFloatingControlsObserver = null;
@@ -3387,6 +3388,30 @@
       "bucket_minutes",
       "linked_bucket_minutes",
     ]);
+    const parsed = toFiniteNumberOrNull(raw);
+    if (parsed === null) {
+      return null;
+    }
+    const rounded = Math.max(1, Math.round(parsed));
+    if (!Array.isArray(availableOptions) || !availableOptions.length) {
+      return rounded;
+    }
+    if (availableOptions.includes(rounded)) {
+      return rounded;
+    }
+    return null;
+  }
+
+  function parseBucketFromLocalStorage(availableOptions) {
+    let raw = "";
+    try {
+      raw = String(window.localStorage.getItem(BUCKET_PREFERENCE_STORAGE_KEY) || "").trim();
+    } catch (_error) {
+      return null;
+    }
+    if (!raw) {
+      return null;
+    }
     const parsed = toFiniteNumberOrNull(raw);
     if (parsed === null) {
       return null;
@@ -11013,10 +11038,13 @@
           ? 30
           : options[0];
     const queryBucket = parseBucketFromQueryParams(options);
+    const savedBucket = parseBucketFromLocalStorage(options);
     state.activeBucket =
       queryBucket !== null && options.includes(queryBucket)
         ? queryBucket
-        : state.defaultBucket;
+        : savedBucket !== null && options.includes(savedBucket)
+          ? savedBucket
+          : state.defaultBucket;
 
     root.innerHTML = "";
     options.forEach((bucket) => {
@@ -11030,6 +11058,12 @@
       tab.title = String(Math.round(bucket)) + "m";
       tab.addEventListener("click", () => {
         state.activeBucket = bucket;
+        try {
+          window.localStorage.setItem(
+            BUCKET_PREFERENCE_STORAGE_KEY,
+            String(Math.max(1, Math.round(bucket)))
+          );
+        } catch (_error) {}
         Array.from(root.querySelectorAll(".bucket-tab")).forEach((node) => {
           const value = toFiniteNumberOrNull(node.getAttribute("data-bucket-minutes"));
           node.setAttribute("aria-selected", value === bucket ? "true" : "false");

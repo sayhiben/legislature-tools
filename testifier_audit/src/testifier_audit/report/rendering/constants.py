@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-BASELINE_PROFILE_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
+BASELINE_PROFILE_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
 
 PACIFIC_TIMEZONE_NAME = "America/Los_Angeles"
 

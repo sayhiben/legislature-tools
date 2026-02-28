@@ -14,7 +14,7 @@ from .off_hours_tables import build_off_hours_tables_and_summary
 
 class OffHoursDetector(Detector):
     name = "off_hours"
-    DEFAULT_BUCKET_MINUTES = (1, 5, 15, 30, 60, 120, 240)
+    DEFAULT_BUCKET_MINUTES = (1, 5, 15, 30, 60, 120, 240, 480, 720, 1440)
 
     def __init__(
         self,

@@ -16,7 +16,7 @@ EXPECTED_ANALYSES = {
     for entry in default_analysis_definitions()
     if str(entry.get("id") or "")
 }
-EXPECTED_BASELINE_BUCKETS = [1, 5, 15, 30, 60, 120, 240]
+EXPECTED_BASELINE_BUCKETS = [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
 EXPECTED_FOCUS_ANALYSIS_IDS = [
     analysis_id
     for analysis_id in ANALYSES_TO_PERFORM
@@ -26,6 +26,24 @@ EXPECTED_VISIBLE_ANALYSES = (
     set(EXPECTED_FOCUS_ANALYSIS_IDS) if EXPECTED_FOCUS_ANALYSIS_IDS else EXPECTED_ANALYSES
 )
 IS_OFF_HOURS_ONLY_VIEW = EXPECTED_FOCUS_ANALYSIS_IDS == ["off_hours"]
+
+
+def _build_payload_for_total_submissions(total_submissions: int | None) -> dict[str, Any]:
+    table_map: dict[str, pd.DataFrame] = {}
+    if total_submissions is not None:
+        table_map["artifacts.counts_per_minute"] = pd.DataFrame(
+            {
+                "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                "n_total": [int(total_submissions)],
+                "n_pro": [int(max(0, round(total_submissions * 0.45)))],
+                "n_con": [int(max(0, total_submissions - round(total_submissions * 0.45)))],
+                "pro_rate": [0.45],
+                "pro_rate_wilson_low": [0.35],
+                "pro_rate_wilson_high": [0.55],
+                "is_low_power": [False],
+            }
+        )
+    return _build_interactive_chart_payload_v2(table_map=table_map, detector_summaries={})
 
 
 def _walk_scalars(value: Any) -> list[Any]:
@@ -40,6 +58,28 @@ def _walk_scalars(value: Any) -> list[Any]:
             items.extend(_walk_scalars(nested))
         return items
     return [value]
+
+
+def test_default_bucket_minutes_scales_with_report_volume() -> None:
+    expected_defaults = [
+        (10, 1440),
+        (70, 720),
+        (180, 480),
+        (400, 240),
+        (900, 120),
+        (1600, 60),
+        (3000, 30),
+    ]
+    for total_submissions, expected_bucket in expected_defaults:
+        payload = _build_payload_for_total_submissions(total_submissions)
+        controls = payload.get("controls", {})
+        assert controls.get("default_bucket_minutes") == expected_bucket
+
+
+def test_default_bucket_minutes_falls_back_to_thirty_when_volume_unknown() -> None:
+    payload = _build_payload_for_total_submissions(total_submissions=None)
+    controls = payload.get("controls", {})
+    assert controls.get("default_bucket_minutes") == 30
 
 
 def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
@@ -277,6 +317,7 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(controls["zoom_sync_groups"]["absolute_time"], list)
     assert 30 in controls["global_bucket_options"]
     assert 240 in controls["global_bucket_options"]
+    assert 1440 in controls["global_bucket_options"]
     if IS_OFF_HOURS_ONLY_VIEW:
         assert controls.get("focus_mode") == "off_hours_only"
         assert controls.get("focus_analysis_ids") == ["off_hours"]

@@ -170,6 +170,9 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_60m.png").exists()
         assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_120m.png").exists()
         assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_240m.png").exists()
+        assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_480m.png").exists()
+        assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_720m.png").exists()
+        assert (out_dir / "figures" / "pro_rate_heatmap_day_hour_1440m.png").exists()
         assert (out_dir / "figures" / "organization_blank_rates.png").exists()
         assert (out_dir / "figures" / "bursts_null_distribution.png").exists()
 

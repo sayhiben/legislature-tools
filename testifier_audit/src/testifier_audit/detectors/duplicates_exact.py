@@ -85,7 +85,7 @@ def _uses_default_hypergeometric_tail() -> bool:
 
 class DuplicatesExactDetector(Detector):
     name = "duplicates_exact"
-    DEFAULT_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
+    DEFAULT_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
     POSITION_CLAIM_REASON_ELIGIBLE = "eligible"
     POSITION_CLAIM_REASON_UNSUPPORTED_MODEL = "unsupported_collision_baseline_model"

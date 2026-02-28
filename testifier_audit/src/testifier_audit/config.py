@@ -7,7 +7,7 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-STANDARD_ANALYSIS_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240]
+STANDARD_ANALYSIS_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
 
 
 class ColumnsConfig(BaseModel):

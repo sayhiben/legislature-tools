@@ -754,6 +754,8 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "scheduleZoomSync(" in js_text
     assert "parseLinkedZoomFromQueryParams" in js_text
     assert "parseDuplicateOptionFromQueryParams" in js_text
+    assert "parseBucketFromLocalStorage" in js_text
+    assert "testifier_audit_bucket_minutes" in js_text
     assert "normalizeReportMatchMode(rawValue, fallbackValue)" in js_text
     assert "buildTableSummaryAnchorId(" in js_text
     assert 'setAttribute("data-toc-entry", "table")' in js_text

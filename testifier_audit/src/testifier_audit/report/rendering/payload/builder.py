@@ -67,6 +67,63 @@ from testifier_audit.report.triage_builder import build_investigation_views
 
 LOGGER = logging.getLogger(__name__)
 
+_VOLUME_ADAPTIVE_BUCKET_THRESHOLDS: tuple[tuple[int, int], ...] = (
+    (25, 1440),
+    (80, 720),
+    (200, 480),
+    (500, 240),
+    (1000, 120),
+    (2500, 60),
+)
+_MIN_DEFAULT_BUCKET_MINUTES = 30
+
+
+def _total_submissions_from_counts_per_minute(counts_per_minute: pd.DataFrame) -> int | None:
+    if counts_per_minute.empty:
+        return None
+    totals = pd.to_numeric(
+        counts_per_minute.get("n_total", pd.Series(dtype=float)),
+        errors="coerce",
+    ).fillna(0.0)
+    total_submissions = int(round(float(totals.sum())))
+    return total_submissions if total_submissions > 0 else None
+
+
+def _bucket_at_or_above_target(options: list[int], *, target_minutes: int) -> int | None:
+    if not options:
+        return None
+    above = [value for value in options if value >= target_minutes]
+    if above:
+        return above[0]
+    return options[-1]
+
+
+def _select_default_bucket_minutes(
+    options: list[int],
+    *,
+    total_submissions: int | None,
+) -> int | None:
+    if not options:
+        return None
+    normalized = sorted({int(value) for value in options if int(value) > 0})
+    if not normalized:
+        return None
+    if total_submissions is None:
+        return (
+            _MIN_DEFAULT_BUCKET_MINUTES
+            if _MIN_DEFAULT_BUCKET_MINUTES in normalized
+            else normalized[0]
+        )
+    target_minutes = _MIN_DEFAULT_BUCKET_MINUTES
+    for submission_upper_bound, candidate_minutes in _VOLUME_ADAPTIVE_BUCKET_THRESHOLDS:
+        if total_submissions <= submission_upper_bound:
+            target_minutes = candidate_minutes
+            break
+    resolved = _bucket_at_or_above_target(normalized, target_minutes=target_minutes)
+    if resolved is not None:
+        return resolved
+    return normalized[0]
+
 
 def _load_cross_hearing_baseline_payload(out_dir: Path | None) -> dict[str, Any]:
     if out_dir is None:
@@ -3290,10 +3347,15 @@ def _build_interactive_chart_payload_v2(
         }
     )
     preferred_global = [
-        value for value in (1, 5, 15, 30, 60, 120, 240) if value in global_bucket_options
+        value for value in BASELINE_PROFILE_BUCKET_MINUTES if value in global_bucket_options
     ]
     if preferred_global:
         global_bucket_options = preferred_global
+    total_submissions = _total_submissions_from_counts_per_minute(counts_per_minute)
+    default_bucket_minutes = _select_default_bucket_minutes(
+        global_bucket_options,
+        total_submissions=total_submissions,
+    )
 
     absolute_time_chart_ids = [
         "bursts_hero_timeline",
@@ -3406,9 +3468,7 @@ def _build_interactive_chart_payload_v2(
         "data_quality_panel": data_quality_panel,
         "hearing_context_panel": hearing_context_panel,
         "controls": {
-            "default_bucket_minutes": 30
-            if 30 in global_bucket_options
-            else (global_bucket_options[0] if global_bucket_options else None),
+            "default_bucket_minutes": default_bucket_minutes,
             "global_bucket_options": global_bucket_options,
             "zoom_sync_groups": {"absolute_time": absolute_time_chart_ids},
             "evidence_taxonomy": evidence_taxonomy,

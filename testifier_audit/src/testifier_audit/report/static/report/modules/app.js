@@ -65,6 +65,9 @@ export async function runReportApp() {
   if (!reportData) {
     return;
   }
+  const toNumber = toNumberShared;
+  const toFiniteNumberOrNull = toFiniteNumberOrNullShared;
+  const toBool = toBoolShared;
   const interactive = reportData.interactive_charts || {};
   const analysisCatalog = Array.isArray(interactive.analysis_catalog) ? interactive.analysis_catalog : [];
   const analysisById = new Map(analysisCatalog.map((analysis) => [String(analysis.id || ""), analysis]));
@@ -373,10 +376,6 @@ export async function runReportApp() {
       ],
     },
   };
-
-  const toNumber = toNumberShared;
-  const toFiniteNumberOrNull = toFiniteNumberOrNullShared;
-  const toBool = toBoolShared;
 
   function normalizeCrossHearingChannel(channelId, label, value) {
     const payload = value && typeof value === "object" ? value : {};

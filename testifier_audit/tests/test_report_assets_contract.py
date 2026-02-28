@@ -77,3 +77,24 @@ def test_report_js_boot_sequence_is_ordered(tmp_path: Path) -> None:
     positions = [js_text.rfind(marker) for marker in ordered_markers]
     assert all(position >= 0 for position in positions)
     assert positions == sorted(positions)
+
+
+def test_report_js_initializes_coercion_aliases_before_cross_hearing_baseline(tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    render_report(results={}, artifacts={}, out_dir=out_dir)
+
+    app_js = out_dir / "assets" / "report" / "modules" / "app.js"
+    js_text = app_js.read_text(encoding="utf-8")
+
+    baseline_marker = "const crossHearingBaseline = normalizeCrossHearingBaseline("
+    alias_markers = [
+        "const toNumber = toNumberShared;",
+        "const toFiniteNumberOrNull = toFiniteNumberOrNullShared;",
+        "const toBool = toBoolShared;",
+    ]
+    baseline_pos = js_text.find(baseline_marker)
+    alias_positions = [js_text.find(marker) for marker in alias_markers]
+
+    assert baseline_pos >= 0
+    assert all(position >= 0 for position in alias_positions)
+    assert all(position < baseline_pos for position in alias_positions)

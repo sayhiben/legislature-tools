@@ -9,8 +9,6 @@ from testifier_audit.config import load_config
 
 def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
     (tmp_path / "nicknames.csv").write_text("alias,canonical\nBOB,ROBERT\n", encoding="utf-8")
-    (tmp_path / "first.csv").write_text("name,count\nJANE,10\n", encoding="utf-8")
-    (tmp_path / "last.csv").write_text("name,count\nDOE,10\n", encoding="utf-8")
     (tmp_path / "hearing.yaml").write_text(
         "schema_version: 1\nhearing_id: TEST\ntimezone: UTC\nmeeting_start: 2026-02-06T13:30:00Z\n",
         encoding="utf-8",
@@ -30,11 +28,6 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
         "name_analysis": {
             "contextual_baseline_path": "contextual_baseline.csv",
         },
-        "rarity": {
-            "enabled": True,
-            "first_name_frequency_path": "first.csv",
-            "last_name_frequency_path": "last.csv",
-        },
         "input": {
             "hearing_metadata_path": "hearing.yaml",
         },
@@ -49,8 +42,6 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
     cfg = load_config(config_path)
 
     assert Path(cfg.names.nickname_map_path).is_absolute()
-    assert Path(cfg.rarity.first_name_frequency_path or "").is_absolute()
-    assert Path(cfg.rarity.last_name_frequency_path or "").is_absolute()
     assert Path(cfg.input.hearing_metadata_path or "").is_absolute()
     assert Path(cfg.name_analysis.contextual_baseline_path or "").is_absolute()
 

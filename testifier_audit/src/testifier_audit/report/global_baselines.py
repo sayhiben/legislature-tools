@@ -25,6 +25,8 @@ _COMPARATOR_METRIC_SPECS: tuple[tuple[str, str], ...] = (
     ("window_top_dup_fraction", "Top window duplicate fraction"),
     ("top_name_max_records", "Top repeated-name records"),
     ("off_hours_ratio", "Off-hours submission ratio"),
+    ("blank_org_ratio", "Blank organization rate"),
+    ("blank_org_gap_pro_minus_con", "Blank organization gap (Pro minus Con)"),
     ("dedup_drop_fraction", "Dedup drop fraction"),
 )
 
@@ -325,6 +327,7 @@ def build_feature_vector(
 
     off_hours_summary = _as_dict(summary.get("off_hours_summary"))
     off_hours_detector_summary = _as_dict(detector_summary_map.get("off_hours"))
+    org_anomalies_summary = _as_dict(detector_summary_map.get("org_anomalies"))
     duplicates_exact_summary = _as_dict(detector_summary_map.get("duplicates_exact"))
     off_hours_ratio = _first_non_null_float(
         off_hours_summary.get("off_hours_ratio"),
@@ -345,6 +348,13 @@ def build_feature_vector(
         dedup_drop_fraction = max((raw_total - dedup_total) / raw_total, 0.0)
     if dedup_drop_fraction is None:
         dedup_drop_fraction = _safe_float(duplicates_exact_summary.get("dedup_drop_fraction"))
+
+    blank_org_ratio = _first_non_null_float(
+        org_anomalies_summary.get("blank_org_ratio"),
+    )
+    blank_org_gap_pro_minus_con = _first_non_null_float(
+        org_anomalies_summary.get("blank_org_gap_pro_minus_con"),
+    )
 
     window_high_count = _safe_optional_int(
         sum(1 for row in window_rows if str(row.get("evidence_tier") or "") == "high")
@@ -407,6 +417,8 @@ def build_feature_vector(
         "window_min_q_value": min(window_q_values) if window_q_values else None,
         "top_name_max_records": top_name_max_records,
         "off_hours_ratio": off_hours_ratio,
+        "blank_org_ratio": blank_org_ratio,
+        "blank_org_gap_pro_minus_con": blank_org_gap_pro_minus_con,
         "dedup_drop_fraction": dedup_drop_fraction,
     }
 

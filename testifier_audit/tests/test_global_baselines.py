@@ -39,6 +39,8 @@ def _feature_payload(
             "window_top_dup_fraction": 0.02 + (total_submissions % 5) * 0.02,
             "top_name_max_records": top_name_count,
             "off_hours_ratio": off_hours_ratio,
+            "blank_org_ratio": 0.10 + (total_submissions % 5) * 0.02,
+            "blank_org_gap_pro_minus_con": -0.03 + (total_submissions % 7) * 0.01,
             "dedup_drop_fraction": dedup_drop_fraction,
         },
         "top_repeated_names": [
@@ -113,7 +115,12 @@ def test_build_feature_vector_emits_expected_metrics_and_cohort_fields() -> None
         record_evidence_queue=[],
         cluster_evidence_queue=[],
         data_quality_panel=data_quality_panel,
-        detector_summaries={},
+        detector_summaries={
+            "org_anomalies": {
+                "blank_org_ratio": 0.28,
+                "blank_org_gap_pro_minus_con": -0.04,
+            }
+        },
         hearing_context_panel=hearing_context_panel,
     )
 
@@ -128,6 +135,8 @@ def test_build_feature_vector_emits_expected_metrics_and_cohort_fields() -> None
     assert vector["metrics"]["window_top_abs_z"] == 4.2
     assert vector["metrics"]["window_top_dup_fraction"] == 0.4
     assert vector["metrics"]["off_hours_ratio"] == 0.2
+    assert vector["metrics"]["blank_org_ratio"] == 0.28
+    assert vector["metrics"]["blank_org_gap_pro_minus_con"] == -0.04
     assert round(vector["metrics"]["dedup_drop_fraction"], 6) == round((120 - 110) / 120, 6)
     assert vector["material_quality_metric_count"] == 1
     assert vector["total_submissions"] == 120
@@ -174,6 +183,8 @@ def test_global_baselines_build_and_load_round_trip(tmp_path: Path) -> None:
     metric_keys = {row["metric"] for row in report_a_payload["metric_comparators"]}
     assert "total_submissions" in metric_keys
     assert "window_top_score" in metric_keys
+    assert "blank_org_ratio" in metric_keys
+    assert "blank_org_gap_pro_minus_con" in metric_keys
 
     output_path = write_global_baselines(reports_dir=reports_dir, payload=payload)
     assert output_path.exists()

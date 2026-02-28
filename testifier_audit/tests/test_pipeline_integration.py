@@ -51,33 +51,6 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    first_freq_path = tmp_path / "first_freq.csv"
-    first_freq_path.write_text(
-        "\n".join(
-            [
-                "name,count",
-                "JANE,1000",
-                "JOHN,1200",
-                "AVA,500",
-                "JON,300",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    last_freq_path = tmp_path / "last_freq.csv"
-    last_freq_path.write_text(
-        "\n".join(
-            [
-                "name,count",
-                "DOE,1500",
-                "SMITH,2200",
-                "SMYTH,250",
-                "BROWN,1800",
-            ]
-        ),
-        encoding="utf-8",
-    )
-
     config = {
         "columns": {
             "id": "Group",
@@ -113,22 +86,11 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
             "random_seed": 7,
             "support_alpha": 0.2,
         },
-        "changepoints": {
-            "enabled": True,
-            "min_segment_minutes": 2,
-            "penalty_scale": 1.5,
-        },
         "names": {
             "strip_punctuation": True,
             "normalize_unicode": True,
             "nickname_map_path": str(workspace / "configs" / "nicknames.csv"),
             "phonetic": "double_metaphone",
-        },
-        "rarity": {
-            "enabled": True,
-            "first_name_frequency_path": first_freq_path.name,
-            "last_name_frequency_path": last_freq_path.name,
-            "epsilon": 1e-9,
         },
         "outputs": {
             "tables_format": "csv",
@@ -162,6 +124,7 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
     assert (out_dir / "summary" / "investigation_summary.json").exists()
     assert (out_dir / "summary" / "feature_vector.json").exists()
     enabled_detector_names = configured_detector_names()
+    focus_analysis_ids = _configured_focus_analysis_ids()
     if _configured_focus_analysis_ids():
         assert enabled_detector_names
         for detector_name in enabled_detector_names:
@@ -174,20 +137,21 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         for detector_name in (
             "bursts",
             "procon_swings",
-            "changepoints",
             "duplicates_exact",
-            "sortedness",
-            "rare_names",
             "org_anomalies",
             "voter_registry_match",
-            "periodicity",
-            "multivariate_anomalies",
-            "composite_score",
+            "off_hours",
         ):
             if detector_name in enabled_detector_names:
                 continue
             assert not (out_dir / "summary" / f"{detector_name}.json").exists()
-        assert not any((out_dir / "figures").glob("*.png"))
+        if "baseline_profile" in focus_analysis_ids:
+            assert (out_dir / "figures" / "counts_per_minute.png").exists()
+            assert (out_dir / "figures" / "counts_heatmap_day_hour.png").exists()
+            assert (out_dir / "figures" / "top_duplicate_names.png").exists()
+            assert (out_dir / "figures" / "name_length_distribution.png").exists()
+        else:
+            assert not any((out_dir / "figures").glob("*.png"))
     else:
         assert (out_dir / "summary" / "bursts.json").exists()
         assert (out_dir / "summary" / "procon_swings.json").exists()

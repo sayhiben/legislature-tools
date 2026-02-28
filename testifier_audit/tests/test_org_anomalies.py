@@ -73,4 +73,7 @@ def test_org_anomalies_emits_blank_org_rate_tables_for_standard_buckets() -> Non
     assert bool(one_minute["is_low_power"].all())
 
     assert result.summary["blank_org_ratio"] == pytest.approx(4 / 6)
+    assert result.summary["pro_blank_org_rate"] == pytest.approx(2 / 3)
+    assert result.summary["con_blank_org_rate"] == pytest.approx(2 / 3)
+    assert result.summary["blank_org_gap_pro_minus_con"] == pytest.approx(0.0)
     assert result.summary["n_low_power_blank_org_buckets"] > 0

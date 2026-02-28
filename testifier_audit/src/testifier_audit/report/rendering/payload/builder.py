@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import defaultdict
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -67,7 +66,6 @@ from testifier_audit.report.rendering.payload.common import (
     _with_expected_columns,
 )
 from testifier_audit.report.rendering.serialization import _json_safe
-from testifier_audit.report.rendering.serialization import _serialize_value
 from testifier_audit.report.rendering.table_previews import _load_summaries_from_disk
 from testifier_audit.report.triage_builder import build_investigation_views
 
@@ -479,27 +477,6 @@ def _build_interactive_chart_payload_v2(
     swing_null = _with_expected_columns(
         table_map.get(_table_key("procon_swings", "swing_null_distribution"), pd.DataFrame()),
         ["window_minutes", "iteration", "max_abs_delta_pro_rate"],
-    )
-
-    all_changepoints = _with_expected_columns(
-        table_map.get(_table_key("changepoints", "all_changepoints"), pd.DataFrame()),
-        [
-            "metric",
-            "change_index",
-            "change_minute",
-            "mean_before",
-            "mean_after",
-            "delta",
-            "abs_delta",
-        ],
-    )
-    volume_changepoints = _with_expected_columns(
-        table_map.get(_table_key("changepoints", "volume_changepoints"), pd.DataFrame()),
-        ["change_minute"],
-    )
-    pro_rate_changepoints = _with_expected_columns(
-        table_map.get(_table_key("changepoints", "pro_rate_changepoints"), pd.DataFrame()),
-        ["change_minute"],
     )
 
     off_hours_hourly = _with_expected_columns(
@@ -1672,93 +1649,6 @@ def _build_interactive_chart_payload_v2(
         ],
     )
 
-    sorted_bucket = _with_expected_columns(
-        table_map.get(_table_key("sortedness", "bucket_ordering"), pd.DataFrame()),
-        [
-            "bucket_start",
-            "bucket_minutes",
-            "n_records",
-            "is_alphabetical",
-            "kendall_tau",
-            "kendall_p_value",
-            "abs_kendall_tau",
-        ],
-    )
-    sorted_summary = _with_expected_columns(
-        table_map.get(_table_key("sortedness", "bucket_ordering_summary"), pd.DataFrame()),
-        [
-            "bucket_minutes",
-            "n_buckets",
-            "avg_records_per_bucket",
-            "alphabetical_ratio",
-            "mean_kendall_tau",
-            "mean_abs_kendall_tau",
-            "max_abs_kendall_tau",
-            "strong_ordering_ratio",
-        ],
-    )
-    sorted_minute = _with_expected_columns(
-        table_map.get(_table_key("sortedness", "minute_ordering"), pd.DataFrame()),
-        [
-            "minute_bucket",
-            "n_records",
-            "is_alphabetical",
-            "kendall_tau",
-            "kendall_p_value",
-            "abs_kendall_tau",
-        ],
-    )
-
-    rare_unique_ratio = _with_expected_columns(
-        table_map.get(_table_key("rare_names", "unique_ratio_windows"), pd.DataFrame()),
-        [
-            "minute_bucket",
-            "n_total",
-            "n_unique_names",
-            "unique_ratio",
-            "threshold_unique_ratio",
-            "is_low_power",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "bucket_minutes",
-        ],
-    )
-    rare_weird = _with_expected_columns(
-        table_map.get(_table_key("rare_names", "weird_names"), pd.DataFrame()),
-        [
-            "canonical_name",
-            "sample_name",
-            "weirdness_score",
-            "name_length",
-            "non_alpha_fraction",
-            "name_entropy",
-        ],
-    )
-    rare_singletons = _with_expected_columns(
-        table_map.get(_table_key("rare_names", "singleton_names"), pd.DataFrame()),
-        [
-            "display_name",
-            "canonical_name",
-            "first_seen",
-            "last_seen",
-            "n_pro",
-            "n_con",
-            "time_span_minutes",
-        ],
-    )
-    rare_rarity = _with_expected_columns(
-        table_map.get(_table_key("rare_names", "rarity_by_minute"), pd.DataFrame()),
-        [
-            "minute_bucket",
-            "n_total",
-            "rarity_median",
-            "rarity_p95",
-            "is_low_power",
-            "bucket_minutes",
-        ],
-    )
-
     org_blank_rates = _with_expected_columns(
         table_map.get(
             _table_key("org_anomalies", "organization_blank_rate_by_bucket"), pd.DataFrame()
@@ -1792,14 +1682,6 @@ def _build_interactive_chart_payload_v2(
             "blank_org_rate_wilson_high",
             "is_low_power",
         ],
-    )
-    org_bursts = _with_expected_columns(
-        table_map.get(_table_key("org_anomalies", "organization_minute_bursts"), pd.DataFrame()),
-        ["minute_bucket", "organization_clean", "n", "threshold"],
-    )
-    org_counts = _with_expected_columns(
-        table_map.get(_table_key("org_anomalies", "organization_counts"), pd.DataFrame()),
-        ["organization_clean", "n", "n_pro", "n_con", "first_seen", "last_seen"],
     )
 
     voter_bucket = _with_expected_columns(
@@ -2043,112 +1925,6 @@ def _build_interactive_chart_payload_v2(
             canonical_display_names,
         )
 
-    periodic_clockface = _with_expected_columns(
-        table_map.get(_table_key("periodicity", "clockface_distribution"), pd.DataFrame()),
-        [
-            "minute_of_hour",
-            "n_events",
-            "expected_n_events_uniform",
-            "deviation_from_uniform",
-            "share",
-            "z_score_uniform",
-        ],
-    )
-    periodic_autocorr = _with_expected_columns(
-        table_map.get(_table_key("periodicity", "autocorr"), pd.DataFrame()),
-        ["lag_minutes", "autocorr", "abs_autocorr", "q_value", "is_significant"],
-    )
-    periodic_spectrum = _with_expected_columns(
-        table_map.get(_table_key("periodicity", "spectrum_top"), pd.DataFrame()),
-        ["period_minutes", "frequency_per_minute", "power", "q_value", "is_significant"],
-    )
-    periodic_fano_summary = _with_expected_columns(
-        table_map.get(_table_key("periodicity", "rolling_fano_summary"), pd.DataFrame()),
-        [
-            "window_minutes",
-            "n_windows",
-            "median_fano_factor",
-            "p95_fano_factor",
-            "max_fano_factor",
-            "high_fano_ratio",
-        ],
-    )
-
-    multivariate_scores = _with_expected_columns(
-        table_map.get(
-            _table_key("multivariate_anomalies", "bucket_anomaly_scores"), pd.DataFrame()
-        ),
-        [
-            "bucket_start",
-            "bucket_minutes",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "dup_name_fraction_weighted",
-            "blank_org_rate",
-            "anomaly_score",
-            "anomaly_score_percentile",
-            "is_anomaly",
-            "is_low_power",
-            "is_model_eligible",
-            "log_n_total",
-        ],
-    )
-    multivariate_top = _with_expected_columns(
-        table_map.get(_table_key("multivariate_anomalies", "top_bucket_anomalies"), pd.DataFrame()),
-        [
-            "bucket_start",
-            "bucket_minutes",
-            "n_total",
-            "pro_rate",
-            "anomaly_score",
-            "anomaly_score_percentile",
-            "is_anomaly",
-            "is_low_power",
-        ],
-    )
-
-    composite_ranked = _with_expected_columns(
-        table_map.get(_table_key("composite_score", "ranked_windows"), pd.DataFrame()),
-        [
-            "minute_bucket",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-            "composite_score",
-            "evidence_count",
-            "burst_signal",
-            "swing_signal",
-            "changepoint_signal",
-            "ml_anomaly_signal",
-        ],
-    )
-    composite_evidence = _with_expected_columns(
-        table_map.get(_table_key("composite_score", "evidence_bundle_windows"), pd.DataFrame()),
-        ["minute_bucket", "evidence_flags"],
-    )
-    composite_high = _with_expected_columns(
-        table_map.get(_table_key("composite_score", "high_priority_windows"), pd.DataFrame()),
-        [
-            "minute_bucket",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-            "composite_score",
-            "burst_signal",
-            "swing_signal",
-            "changepoint_signal",
-            "ml_anomaly_signal",
-            "rarity_signal",
-            "unique_signal",
-        ],
-    )
-
     for frame, column in [
         (counts_per_minute, "minute_bucket"),
         (bursts_significant, "start_minute"),
@@ -2157,31 +1933,17 @@ def _build_interactive_chart_payload_v2(
         (procon_direction_runs, "start_bucket"),
         (procon_direction_runs, "end_bucket"),
         (day_bucket_profiles, "date"),
-        (all_changepoints, "change_minute"),
-        (volume_changepoints, "change_minute"),
-        (pro_rate_changepoints, "change_minute"),
         (off_hours_window_control, "bucket_start"),
         (dup_exact_bucket, "bucket_start"),
-        (sorted_bucket, "bucket_start"),
-        (sorted_minute, "minute_bucket"),
         (dup_exact_per_name, "first_seen"),
-        (dup_exact_per_name, "last_seen"),
-        (rare_unique_ratio, "minute_bucket"),
-        (rare_singletons, "first_seen"),
-        (rare_rarity, "minute_bucket"),
-        (org_blank_rates, "bucket_start"),
-        (org_position_rates, "bucket_start"),
-        (org_bursts, "minute_bucket"),
-        (voter_bucket, "bucket_start"),
-        (voter_bucket_position, "bucket_start"),
-        (voter_unmatched, "first_seen"),
-        (voter_unmatched, "last_seen"),
-        (multivariate_scores, "bucket_start"),
-        (multivariate_top, "bucket_start"),
-        (composite_ranked, "minute_bucket"),
-        (composite_evidence, "minute_bucket"),
-        (composite_high, "minute_bucket"),
-    ]:
+            (dup_exact_per_name, "last_seen"),
+            (org_blank_rates, "bucket_start"),
+            (org_position_rates, "bucket_start"),
+            (voter_bucket, "bucket_start"),
+            (voter_bucket_position, "bucket_start"),
+            (voter_unmatched, "first_seen"),
+            (voter_unmatched, "last_seen"),
+        ]:
         if not frame.empty and column in frame.columns:
             frame[column] = pd.to_datetime(frame[column], errors="coerce")
 
@@ -2363,6 +2125,230 @@ def _build_interactive_chart_payload_v2(
         position_frame["expected_match_rate_global"] = global_match_rate
         position_frame["expected_unmatched_rate_global"] = expected_unmatched_rate_global
 
+    burst_events = pd.DataFrame()
+    if not bursts_significant.empty:
+        burst_windows = bursts_significant.copy()
+        burst_windows["start_minute"] = pd.to_datetime(
+            burst_windows.get("start_minute"), errors="coerce"
+        )
+        burst_windows["end_minute"] = pd.to_datetime(
+            burst_windows.get("end_minute"), errors="coerce"
+        )
+        burst_windows = burst_windows.dropna(subset=["start_minute", "end_minute"]).copy()
+        for column in (
+            "window_minutes",
+            "bucket_minutes",
+            "observed_count",
+            "expected_count",
+            "rate_ratio",
+            "n_pro",
+            "n_con",
+            "baseline_pro_rate",
+            "q_value",
+        ):
+            burst_windows[column] = pd.to_numeric(
+                burst_windows.get(column),
+                errors="coerce",
+            )
+        burst_windows["bucket_minutes"] = burst_windows["bucket_minutes"].where(
+            burst_windows["bucket_minutes"].notna(),
+            burst_windows["window_minutes"],
+        )
+        burst_windows["duration_minutes"] = (
+            (
+                (burst_windows["end_minute"] - burst_windows["start_minute"])
+                / pd.Timedelta(minutes=1)
+            )
+            .fillna(0.0)
+            .clip(lower=0.0)
+            + 1.0
+        )
+        burst_windows["excess_count"] = (
+            burst_windows["observed_count"] - burst_windows["expected_count"]
+        )
+        burst_windows["expected_pro_count"] = (
+            burst_windows["expected_count"] * burst_windows["baseline_pro_rate"].fillna(0.0)
+        )
+        burst_windows["expected_con_count"] = (
+            burst_windows["expected_count"]
+            * (1.0 - burst_windows["baseline_pro_rate"].fillna(0.0))
+        )
+        burst_windows["pro_impact_count"] = (
+            burst_windows["n_pro"] - burst_windows["expected_pro_count"]
+        )
+        burst_windows["con_impact_count"] = (
+            burst_windows["n_con"] - burst_windows["expected_con_count"]
+        )
+        burst_windows["net_position_impact"] = (
+            burst_windows["pro_impact_count"] - burst_windows["con_impact_count"]
+        )
+        burst_windows["dominant_impact_count"] = np.maximum(
+            burst_windows["pro_impact_count"].abs(),
+            burst_windows["con_impact_count"].abs(),
+        )
+
+        def _burst_impacted_positions(row: pd.Series) -> str:
+            pro_impact = float(pd.to_numeric(row.get("pro_impact_count"), errors="coerce") or 0.0)
+            con_impact = float(pd.to_numeric(row.get("con_impact_count"), errors="coerce") or 0.0)
+            pro_material = abs(pro_impact) >= 0.5
+            con_material = abs(con_impact) >= 0.5
+            if pro_material and con_material:
+                return "Pro & Con"
+            if pro_material:
+                return "Pro"
+            if con_material:
+                return "Con"
+            return "Mixed"
+
+        def _burst_dominant_position(row: pd.Series) -> str:
+            pro_impact = abs(float(pd.to_numeric(row.get("pro_impact_count"), errors="coerce") or 0.0))
+            con_impact = abs(float(pd.to_numeric(row.get("con_impact_count"), errors="coerce") or 0.0))
+            if pro_impact > con_impact:
+                return "Pro"
+            if con_impact > pro_impact:
+                return "Con"
+            return "Mixed"
+
+        burst_windows["impacted_positions"] = burst_windows.apply(
+            _burst_impacted_positions,
+            axis=1,
+        )
+        burst_windows["dominant_position"] = burst_windows.apply(
+            _burst_dominant_position,
+            axis=1,
+        )
+
+        if not burst_windows.empty:
+            burst_windows = burst_windows.sort_values(
+                ["start_minute", "end_minute", "rate_ratio"],
+                ascending=[True, True, False],
+                na_position="last",
+            ).reset_index(drop=True)
+
+            merged_events: list[dict[str, Any]] = []
+            current_rows: list[pd.Series] = []
+            current_start: pd.Timestamp | None = None
+            current_end: pd.Timestamp | None = None
+
+            def _flush_burst_event() -> None:
+                nonlocal current_rows, current_start, current_end
+                if not current_rows or current_start is None or current_end is None:
+                    current_rows = []
+                    current_start = None
+                    current_end = None
+                    return
+                cluster = pd.DataFrame(current_rows)
+                if cluster.empty:
+                    current_rows = []
+                    current_start = None
+                    current_end = None
+                    return
+                representative_idx = pd.to_numeric(
+                    cluster.get("excess_count"),
+                    errors="coerce",
+                ).fillna(-np.inf).idxmax()
+                representative = cluster.loc[representative_idx]
+                duration_minutes = (
+                    ((current_end - current_start) / pd.Timedelta(minutes=1)) + 1.0
+                )
+                q_values = pd.to_numeric(cluster.get("q_value"), errors="coerce")
+                merged_events.append(
+                    {
+                        "start_minute": current_start,
+                        "end_minute": current_end,
+                        "duration_minutes": max(float(duration_minutes), 1.0),
+                        "windows_merged": int(len(cluster)),
+                        "window_minutes": pd.to_numeric(
+                            representative.get("window_minutes"),
+                            errors="coerce",
+                        ),
+                        "bucket_minutes": pd.to_numeric(
+                            representative.get("bucket_minutes"),
+                            errors="coerce",
+                        ),
+                        "observed_count": pd.to_numeric(
+                            representative.get("observed_count"),
+                            errors="coerce",
+                        ),
+                        "expected_count": pd.to_numeric(
+                            representative.get("expected_count"),
+                            errors="coerce",
+                        ),
+                        "excess_count": pd.to_numeric(
+                            representative.get("excess_count"),
+                            errors="coerce",
+                        ),
+                        "rate_ratio": pd.to_numeric(
+                            representative.get("rate_ratio"),
+                            errors="coerce",
+                        ),
+                        "n_pro": pd.to_numeric(representative.get("n_pro"), errors="coerce"),
+                        "n_con": pd.to_numeric(representative.get("n_con"), errors="coerce"),
+                        "pro_impact_count": pd.to_numeric(
+                            representative.get("pro_impact_count"),
+                            errors="coerce",
+                        ),
+                        "con_impact_count": pd.to_numeric(
+                            representative.get("con_impact_count"),
+                            errors="coerce",
+                        ),
+                        "net_position_impact": pd.to_numeric(
+                            representative.get("net_position_impact"),
+                            errors="coerce",
+                        ),
+                        "impacted_positions": str(
+                            representative.get("impacted_positions") or "Mixed"
+                        ),
+                        "dominant_position": str(
+                            representative.get("dominant_position") or "Mixed"
+                        ),
+                        "dominant_impact_count": pd.to_numeric(
+                            representative.get("dominant_impact_count"),
+                            errors="coerce",
+                        ),
+                        "is_low_power": bool(
+                            pd.to_numeric(cluster.get("is_low_power"), errors="coerce")
+                            .fillna(0)
+                            .astype(int)
+                            .astype(bool)
+                            .any()
+                        ),
+                        "q_value": float(q_values.min())
+                        if q_values.notna().any()
+                        else np.nan,
+                    }
+                )
+                current_rows = []
+                current_start = None
+                current_end = None
+
+            for row in burst_windows.to_dict(orient="records"):
+                row_start = pd.to_datetime(row.get("start_minute"), errors="coerce")
+                row_end = pd.to_datetime(row.get("end_minute"), errors="coerce")
+                if pd.isna(row_start) or pd.isna(row_end):
+                    continue
+                row_start_ts = pd.Timestamp(row_start)
+                row_end_ts = pd.Timestamp(row_end)
+                if current_start is None or current_end is None:
+                    current_start = row_start_ts
+                    current_end = row_end_ts
+                    current_rows = [pd.Series(row)]
+                    continue
+                if row_start_ts <= (current_end + pd.Timedelta(minutes=1)):
+                    current_end = max(current_end, row_end_ts)
+                    current_rows.append(pd.Series(row))
+                    continue
+                _flush_burst_event()
+                current_start = row_start_ts
+                current_end = row_end_ts
+                current_rows = [pd.Series(row)]
+            _flush_burst_event()
+
+            if merged_events:
+                burst_events = pd.DataFrame(merged_events)
+            else:
+                burst_events = burst_windows.copy()
+
     baseline_bucket_profiles = _build_bucketed_baseline_profiles(
         counts_per_minute=counts_per_minute,
         bucket_minutes=BASELINE_PROFILE_BUCKET_MINUTES,
@@ -2426,66 +2412,100 @@ def _build_interactive_chart_payload_v2(
         max_rows=200,
     )
 
-    charts["bursts_hero_timeline"] = _records_from_frame(
-        bursts_significant.sort_values(["start_minute", "window_minutes"]),
-        columns=[
+    bursts_chart_source = (
+        burst_events.copy() if not burst_events.empty else bursts_significant.copy()
+    )
+    bursts_chart_source = _with_expected_columns(
+        bursts_chart_source,
+        [
             "start_minute",
             "end_minute",
+            "duration_minutes",
+            "windows_merged",
             "window_minutes",
             "bucket_minutes",
             "observed_count",
             "expected_count",
+            "excess_count",
             "rate_ratio",
+            "n_pro",
+            "n_con",
+            "pro_impact_count",
+            "con_impact_count",
+            "net_position_impact",
+            "impacted_positions",
+            "dominant_position",
+            "dominant_impact_count",
             "q_value",
             "is_significant",
+            "is_low_power",
         ],
-        max_rows=25_000,
     )
-    if not bursts_tests.empty and "window_minutes" in bursts_tests.columns:
-        burst_sig_summary = (
-            bursts_tests.assign(
-                is_significant_bool=bursts_tests.get("is_significant", False).astype(bool),
-            )
-            .groupby("window_minutes", dropna=False)
-            .agg(
-                n_windows=("window_minutes", "size"),
-                n_significant=("is_significant_bool", "sum"),
-                median_rate_ratio=("rate_ratio", "median"),
-            )
-            .reset_index()
-            .sort_values("window_minutes")
-        )
-        burst_sig_summary["bucket_minutes"] = pd.to_numeric(
-            burst_sig_summary["window_minutes"],
-            errors="coerce",
-        )
-    else:
-        burst_sig_summary = pd.DataFrame()
-    charts["bursts_significance_by_window"] = _records_from_frame(
-        burst_sig_summary,
-        columns=[
-            "window_minutes",
-            "bucket_minutes",
-            "n_windows",
-            "n_significant",
-            "median_rate_ratio",
-        ],
-        max_rows=100,
+    bursts_chart_source = bursts_chart_source.sort_values(
+        ["start_minute", "duration_minutes"],
+        ascending=[True, False],
+        na_position="last",
     )
-    charts["bursts_composition_shift"] = _records_from_frame(
-        bursts_significant.sort_values(["start_minute", "window_minutes"]),
+    charts["bursts_hero_timeline"] = _records_from_frame(
+        bursts_chart_source,
         columns=[
             "start_minute",
             "end_minute",
+            "duration_minutes",
+            "windows_merged",
             "window_minutes",
             "bucket_minutes",
             "observed_count",
-            "pro_rate",
-            "baseline_pro_rate",
-            "delta_pro_rate",
-            "abs_delta_pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
+            "expected_count",
+            "excess_count",
+            "rate_ratio",
+            "dominant_position",
+            "dominant_impact_count",
+            "impacted_positions",
+            "q_value",
+            "is_significant",
+            "is_low_power",
+        ],
+        max_rows=25_000,
+    )
+    burst_duration_timeline = bursts_chart_source.copy()
+    charts["bursts_significance_by_window"] = _records_from_frame(
+        burst_duration_timeline,
+        columns=[
+            "start_minute",
+            "end_minute",
+            "duration_minutes",
+            "windows_merged",
+            "window_minutes",
+            "bucket_minutes",
+            "observed_count",
+            "expected_count",
+            "excess_count",
+            "rate_ratio",
+            "dominant_position",
+            "dominant_impact_count",
+            "is_low_power",
+        ],
+        max_rows=25_000,
+    )
+    charts["bursts_composition_shift"] = _records_from_frame(
+        bursts_chart_source,
+        columns=[
+            "start_minute",
+            "end_minute",
+            "duration_minutes",
+            "windows_merged",
+            "window_minutes",
+            "bucket_minutes",
+            "observed_count",
+            "expected_count",
+            "excess_count",
+            "pro_impact_count",
+            "con_impact_count",
+            "net_position_impact",
+            "dominant_position",
+            "dominant_impact_count",
+            "impacted_positions",
             "is_low_power",
             "q_value",
         ],
@@ -2579,80 +2599,6 @@ def _build_interactive_chart_payload_v2(
         swing_null.sort_values(["window_minutes", "iteration"]),
         columns=["window_minutes", "iteration", "max_abs_delta_pro_rate"],
         max_rows=25_000,
-    )
-
-    if not counts_per_minute.empty:
-        change_minutes = set(
-            pd.to_datetime(
-                all_changepoints.get("change_minute", pd.Series(dtype="datetime64[ns]")),
-                errors="coerce",
-            )
-            .dropna()
-            .map(_serialize_value)
-            .tolist()
-        )
-        changepoint_timeline = counts_per_minute.copy()
-        changepoint_timeline["minute_bucket_serialized"] = changepoint_timeline[
-            "minute_bucket"
-        ].map(_serialize_value)
-        changepoint_timeline["is_changepoint"] = changepoint_timeline[
-            "minute_bucket_serialized"
-        ].isin(change_minutes)
-    else:
-        changepoint_timeline = _with_expected_columns(
-            pd.DataFrame(),
-            [
-                "minute_bucket",
-                "n_total",
-                "pro_rate",
-                "pro_rate_wilson_low",
-                "pro_rate_wilson_high",
-                "is_low_power",
-                "is_changepoint",
-            ],
-        )
-    charts["changepoints_hero_timeline"] = _records_from_frame(
-        changepoint_timeline.sort_values("minute_bucket"),
-        columns=[
-            "minute_bucket",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-            "is_changepoint",
-        ],
-        max_rows=25_000,
-    )
-    charts["changepoints_magnitude"] = _records_from_frame(
-        all_changepoints.sort_values("abs_delta", ascending=False),
-        columns=[
-            "metric",
-            "change_index",
-            "change_minute",
-            "mean_before",
-            "mean_after",
-            "delta",
-            "abs_delta",
-        ],
-        max_rows=5_000,
-    )
-    if not all_changepoints.empty and "change_minute" in all_changepoints.columns:
-        change_hour_hist = (
-            all_changepoints.assign(change_hour=all_changepoints["change_minute"].dt.hour)
-            .dropna(subset=["change_hour"])
-            .groupby("change_hour", dropna=False)
-            .size()
-            .rename("n_changes")
-            .reset_index()
-            .sort_values("change_hour")
-        )
-    else:
-        change_hour_hist = pd.DataFrame()
-    charts["changepoints_hour_hist"] = _records_from_frame(
-        change_hour_hist,
-        columns=["change_hour", "n_changes"],
-        max_rows=500,
     )
 
     charts["off_hours_hourly_profile"] = _records_from_frame(
@@ -3331,111 +3277,6 @@ def _build_interactive_chart_payload_v2(
     charts["duplicates_exact_top_names"] = charts["duplicates_exact_per_name_anomalies"]
     charts["duplicates_exact_position_switch"] = charts["duplicates_exact_per_name_anomalies"]
 
-    charts["sortedness_bucket_ratio"] = _records_from_frame(
-        sorted_bucket.sort_values(["bucket_minutes", "bucket_start"]),
-        columns=[
-            "bucket_start",
-            "bucket_minutes",
-            "n_records",
-            "is_alphabetical",
-            "kendall_tau",
-            "kendall_p_value",
-            "abs_kendall_tau",
-        ],
-        max_rows=25_000,
-    )
-    charts["sortedness_bucket_summary"] = _records_from_frame(
-        sorted_summary.sort_values("bucket_minutes"),
-        columns=[
-            "bucket_minutes",
-            "n_buckets",
-            "avg_records_per_bucket",
-            "alphabetical_ratio",
-            "mean_kendall_tau",
-            "mean_abs_kendall_tau",
-            "max_abs_kendall_tau",
-            "strong_ordering_ratio",
-        ],
-        max_rows=500,
-    )
-    charts["sortedness_kendall_tau_summary"] = _records_from_frame(
-        sorted_summary.sort_values("bucket_minutes"),
-        columns=[
-            "bucket_minutes",
-            "mean_kendall_tau",
-            "mean_abs_kendall_tau",
-            "max_abs_kendall_tau",
-            "strong_ordering_ratio",
-        ],
-        max_rows=500,
-    )
-    charts["sortedness_minute_spikes"] = _records_from_frame(
-        sorted_minute.sort_values("minute_bucket"),
-        columns=[
-            "minute_bucket",
-            "n_records",
-            "is_alphabetical",
-            "kendall_tau",
-            "kendall_p_value",
-            "abs_kendall_tau",
-        ],
-        max_rows=25_000,
-    )
-
-    charts["rare_names_unique_ratio"] = _records_from_frame(
-        rare_unique_ratio.sort_values("minute_bucket"),
-        columns=[
-            "minute_bucket",
-            "bucket_minutes",
-            "n_total",
-            "n_unique_names",
-            "unique_ratio",
-            "threshold_unique_ratio",
-            "is_low_power",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-        ],
-        max_rows=25_000,
-    )
-    charts["rare_names_weird_scores"] = _records_from_frame(
-        rare_weird.sort_values("weirdness_score", ascending=False),
-        columns=[
-            "canonical_name",
-            "sample_name",
-            "weirdness_score",
-            "name_length",
-            "non_alpha_fraction",
-            "name_entropy",
-        ],
-        max_rows=1_000,
-    )
-    charts["rare_names_singletons"] = _records_from_frame(
-        rare_singletons.sort_values("first_seen"),
-        columns=[
-            "display_name",
-            "canonical_name",
-            "first_seen",
-            "last_seen",
-            "n_pro",
-            "n_con",
-            "time_span_minutes",
-        ],
-        max_rows=25_000,
-    )
-    charts["rare_names_rarity_timeline"] = _records_from_frame(
-        rare_rarity.sort_values("minute_bucket"),
-        columns=[
-            "minute_bucket",
-            "bucket_minutes",
-            "n_total",
-            "rarity_median",
-            "rarity_p95",
-            "is_low_power",
-        ],
-        max_rows=25_000,
-    )
-
     charts["org_anomalies_blank_rate"] = _records_from_frame(
         org_blank_rates.sort_values(["bucket_minutes", "bucket_start"]),
         columns=[
@@ -3466,16 +3307,6 @@ def _build_interactive_chart_payload_v2(
             "is_low_power",
         ],
         max_rows=25_000,
-    )
-    charts["org_anomalies_bursts"] = _records_from_frame(
-        org_bursts.sort_values("minute_bucket"),
-        columns=["minute_bucket", "organization_clean", "n", "threshold"],
-        max_rows=5_000,
-    )
-    charts["org_anomalies_top_orgs"] = _records_from_frame(
-        org_counts.sort_values("n", ascending=False),
-        columns=["organization_clean", "n", "n_pro", "n_con", "first_seen", "last_seen"],
-        max_rows=1_000,
     )
 
     charts["voter_registry_match_rates"] = _records_from_frame(
@@ -3642,148 +3473,6 @@ def _build_interactive_chart_payload_v2(
     charts["voter_registry_match_by_position"] = charts["voter_registry_linkage_by_position_rows"]
     charts["voter_registry_match_tiers"] = charts["voter_registry_sensitivity_modes"]
 
-    charts["periodicity_clockface"] = _records_from_frame(
-        periodic_clockface.sort_values("minute_of_hour"),
-        columns=[
-            "minute_of_hour",
-            "n_events",
-            "expected_n_events_uniform",
-            "deviation_from_uniform",
-            "share",
-            "z_score_uniform",
-        ],
-        max_rows=500,
-    )
-    charts["periodicity_autocorr"] = _records_from_frame(
-        periodic_autocorr.sort_values("lag_minutes"),
-        columns=["lag_minutes", "autocorr", "abs_autocorr", "q_value", "is_significant"],
-        max_rows=5_000,
-    )
-    charts["periodicity_spectrum"] = _records_from_frame(
-        periodic_spectrum.sort_values("power", ascending=False),
-        columns=["period_minutes", "frequency_per_minute", "power", "q_value", "is_significant"],
-        max_rows=5_000,
-    )
-    charts["periodicity_rolling_fano"] = _records_from_frame(
-        periodic_fano_summary.sort_values("window_minutes"),
-        columns=[
-            "window_minutes",
-            "n_windows",
-            "median_fano_factor",
-            "p95_fano_factor",
-            "max_fano_factor",
-            "high_fano_ratio",
-        ],
-        max_rows=500,
-    )
-
-    charts["multivariate_score_timeline"] = _records_from_frame(
-        multivariate_scores.sort_values("bucket_start"),
-        columns=[
-            "bucket_start",
-            "bucket_minutes",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "dup_name_fraction_weighted",
-            "blank_org_rate",
-            "anomaly_score",
-            "anomaly_score_percentile",
-            "is_anomaly",
-            "is_low_power",
-            "is_model_eligible",
-        ],
-        max_rows=25_000,
-    )
-    charts["multivariate_top_buckets"] = _records_from_frame(
-        multivariate_top.sort_values("anomaly_score", ascending=False),
-        columns=[
-            "bucket_start",
-            "bucket_minutes",
-            "n_total",
-            "pro_rate",
-            "anomaly_score",
-            "anomaly_score_percentile",
-            "is_anomaly",
-            "is_low_power",
-        ],
-        max_rows=1_000,
-    )
-    charts["multivariate_feature_projection"] = _records_from_frame(
-        multivariate_scores.sort_values("anomaly_score", ascending=False),
-        columns=[
-            "bucket_start",
-            "bucket_minutes",
-            "log_n_total",
-            "pro_rate",
-            "dup_name_fraction_weighted",
-            "blank_org_rate",
-            "anomaly_score",
-            "anomaly_score_percentile",
-            "is_anomaly",
-        ],
-        max_rows=25_000,
-    )
-
-    charts["composite_score_timeline"] = _records_from_frame(
-        composite_ranked.sort_values("minute_bucket"),
-        columns=[
-            "minute_bucket",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-            "composite_score",
-            "evidence_count",
-            "burst_signal",
-            "swing_signal",
-            "changepoint_signal",
-            "ml_anomaly_signal",
-        ],
-        max_rows=25_000,
-    )
-    if not composite_evidence.empty and "evidence_flags" in composite_evidence.columns:
-        flag_counts: dict[str, int] = defaultdict(int)
-        for raw in composite_evidence["evidence_flags"].fillna("").astype(str).tolist():
-            for token in [item.strip() for item in raw.split(",") if item.strip()]:
-                flag_counts[token] += 1
-        evidence_flag_table = pd.DataFrame(
-            [
-                {"flag": name, "count": count}
-                for name, count in sorted(
-                    flag_counts.items(), key=lambda item: item[1], reverse=True
-                )
-            ]
-        )
-    else:
-        evidence_flag_table = pd.DataFrame()
-    charts["composite_evidence_flags"] = _records_from_frame(
-        evidence_flag_table,
-        columns=["flag", "count"],
-        max_rows=1_000,
-    )
-    charts["composite_high_priority"] = _records_from_frame(
-        composite_high.sort_values("composite_score", ascending=False),
-        columns=[
-            "minute_bucket",
-            "n_total",
-            "pro_rate",
-            "pro_rate_wilson_low",
-            "pro_rate_wilson_high",
-            "is_low_power",
-            "composite_score",
-            "burst_signal",
-            "swing_signal",
-            "changepoint_signal",
-            "ml_anomaly_signal",
-            "rarity_signal",
-            "unique_signal",
-        ],
-        max_rows=5_000,
-    )
-
     analysis_definitions = registry_analysis_definitions()
     cross_hearing_payload = normalize_leave_one_out_baseline_payload(
         cross_hearing_baseline if isinstance(cross_hearing_baseline, dict) else None
@@ -3809,16 +3498,10 @@ def _build_interactive_chart_payload_v2(
         "procon_swings": _extract_bucket_options(
             time_bucket_profiles, day_bucket_profiles, time_of_day_profiles, procon_direction_runs
         ),
-        "changepoints": [],
         "off_hours": _extract_bucket_options(off_hours_window_control),
         "duplicates_exact": _extract_bucket_options(dup_exact_bucket),
-        "sortedness": _extract_bucket_options(sorted_bucket, sorted_summary),
-        "rare_names": _extract_bucket_options(rare_unique_ratio, rare_rarity),
         "org_anomalies": _extract_bucket_options(org_blank_rates, org_position_rates),
         "voter_registry_match": _extract_bucket_options(voter_bucket, voter_bucket_position),
-        "periodicity": [],
-        "multivariate_anomalies": _extract_bucket_options(multivariate_scores),
-        "composite_score": [],
     }
     standard_buckets = [int(value) for value in BASELINE_PROFILE_BUCKET_MINUTES]
     for definition in registry_analysis_definitions():
@@ -3937,21 +3620,18 @@ def _build_interactive_chart_payload_v2(
     absolute_time_chart_ids = [
         "baseline_volume_pro_rate",
         "bursts_hero_timeline",
+        "bursts_significance_by_window",
+        "bursts_composition_shift",
         "procon_swings_hero_bucket_trend",
-        "changepoints_hero_timeline",
         "overview_position_volume_by_bucket",
         "off_hours_control_timeline",
         "off_hours_primary_residual_timeline",
         "duplicates_exact_bucket_concentration",
         "duplicates_exact_position_bucket_deviance",
-        "sortedness_bucket_ratio",
-        "rare_names_unique_ratio",
         "org_anomalies_blank_rate",
         "org_anomalies_position_rates",
         "voter_registry_match_rates",
         "voter_registry_position_buckets",
-        "multivariate_score_timeline",
-        "composite_score_timeline",
     ]
     absolute_time_chart_ids = [
         chart_id for chart_id in absolute_time_chart_ids if charts.get(chart_id)
@@ -4098,8 +3778,6 @@ def _build_interactive_chart_payload_v2(
 
 def _build_interactive_chart_payload(
     counts_per_minute: pd.DataFrame,
-    volume_changepoints: pd.DataFrame,
-    pro_rate_changepoints: pd.DataFrame,
     time_bucket_profiles: pd.DataFrame,
     day_bucket_profiles: pd.DataFrame,
     org_blank_rates: pd.DataFrame,
@@ -4107,8 +3785,6 @@ def _build_interactive_chart_payload(
 ) -> dict[str, Any]:
     placeholder_table_map = {
         "artifacts.counts_per_minute": counts_per_minute,
-        _table_key("changepoints", "volume_changepoints"): volume_changepoints,
-        _table_key("changepoints", "pro_rate_changepoints"): pro_rate_changepoints,
         _table_key("procon_swings", "time_bucket_profiles"): time_bucket_profiles,
         _table_key("procon_swings", "day_bucket_profiles"): day_bucket_profiles,
         _table_key("org_anomalies", "organization_blank_rate_by_bucket"): org_blank_rates,

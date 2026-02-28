@@ -23,7 +23,6 @@ def test_cli_help() -> None:
     assert "import-submissions" in result.stdout
     assert "import-vrdb" in result.stdout
     assert "run-all" in result.stdout
-    assert "prepare-rarity-baselines" in result.stdout
 
 
 def test_download_csi_testifiers_command_runs(monkeypatch, tmp_path: Path) -> None:

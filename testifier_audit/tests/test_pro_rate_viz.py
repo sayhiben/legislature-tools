@@ -26,13 +26,11 @@ def test_plot_pro_rate_with_annotations_writes_file(tmp_path: Path) -> None:
             "end_minute": [pd.Timestamp("2026-02-01 00:03:00")],
         }
     )
-    changepoints = pd.DataFrame({"change_minute": [pd.Timestamp("2026-02-01 00:04:00")]})
     output_path = tmp_path / "pro_rate_with_anomalies.png"
 
     result = plot_pro_rate_with_annotations(
         counts_per_minute=counts,
         swing_windows=swings,
-        pro_rate_changepoints=changepoints,
         output_path=output_path,
     )
 

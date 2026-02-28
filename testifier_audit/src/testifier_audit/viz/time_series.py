@@ -73,7 +73,6 @@ def _resolve_low_power_flags(
 def plot_counts_with_annotations(
     counts_per_minute: pd.DataFrame,
     burst_windows: pd.DataFrame,
-    volume_changepoints: pd.DataFrame,
     output_path: Path,
 ) -> Path:
     fig, ax = plt.subplots(figsize=(14, 4))
@@ -87,11 +86,7 @@ def plot_counts_with_annotations(
     for row in _window_subset(burst_windows, limit=25).itertuples(index=False):
         ax.axvspan(row.start_minute, row.end_minute, color="#f97316", alpha=0.10)
 
-    if not volume_changepoints.empty and "change_minute" in volume_changepoints.columns:
-        for point in pd.to_datetime(volume_changepoints["change_minute"], errors="coerce").dropna():
-            ax.axvline(point, color="#dc2626", linewidth=1.0, alpha=0.7)
-
-    ax.set_title("Submissions per minute with burst windows and changepoints")
+    ax.set_title("Submissions per minute with burst windows")
     ax.set_xlabel("Minute")
     ax.set_ylabel("Count")
     return save_figure(output_path)
@@ -100,7 +95,6 @@ def plot_counts_with_annotations(
 def plot_pro_rate_with_annotations(
     counts_per_minute: pd.DataFrame,
     swing_windows: pd.DataFrame,
-    pro_rate_changepoints: pd.DataFrame,
     output_path: Path,
 ) -> Path:
     fig, ax = plt.subplots(figsize=(14, 4))
@@ -143,14 +137,8 @@ def plot_pro_rate_with_annotations(
     for row in _window_subset(swing_windows, limit=25).itertuples(index=False):
         ax.axvspan(row.start_minute, row.end_minute, color="#2563eb", alpha=0.10)
 
-    if not pro_rate_changepoints.empty and "change_minute" in pro_rate_changepoints.columns:
-        for point in pd.to_datetime(
-            pro_rate_changepoints["change_minute"], errors="coerce"
-        ).dropna():
-            ax.axvline(point, color="#7c3aed", linewidth=1.0, alpha=0.7)
-
     ax.set_ylim(0.0, 1.0)
-    ax.set_title("Pro rate over time with swing windows and changepoints")
+    ax.set_title("Pro rate over time with swing windows")
     ax.set_xlabel("Minute")
     ax.set_ylabel("Pro rate")
     ax.legend(loc="upper right", fontsize=8)
@@ -786,127 +774,3 @@ def plot_organization_blank_rates(
     fig.tight_layout()
     return save_figure(output_path)
 
-
-def plot_multivariate_anomaly_scores(
-    bucket_anomaly_scores: pd.DataFrame,
-    output_path: Path,
-) -> Path | None:
-    required = {"bucket_start", "n_total", "anomaly_score"}
-    if bucket_anomaly_scores.empty or not required.issubset(set(bucket_anomaly_scores.columns)):
-        return None
-
-    subset = bucket_anomaly_scores.copy()
-    subset["bucket_start"] = pd.to_datetime(subset["bucket_start"], errors="coerce")
-    if "bucket_minutes" in subset.columns:
-        available = sorted(
-            pd.to_numeric(subset["bucket_minutes"], errors="coerce")
-            .dropna()
-            .astype(int)
-            .unique()
-            .tolist()
-        )
-        if available:
-            selected_bucket = 30 if 30 in available else available[0]
-            subset = subset[
-                pd.to_numeric(subset["bucket_minutes"], errors="coerce") == float(selected_bucket)
-            ]
-    subset["n_total"] = pd.to_numeric(subset["n_total"], errors="coerce")
-    subset["anomaly_score"] = pd.to_numeric(subset["anomaly_score"], errors="coerce")
-    subset = subset.dropna(subset=["bucket_start", "n_total"]).sort_values("bucket_start")
-    if subset.empty:
-        return None
-    if not subset["anomaly_score"].notna().any():
-        subset["anomaly_score"] = 0.0
-
-    bucket_minutes = (
-        int(subset["bucket_minutes"].dropna().iloc[0])
-        if "bucket_minutes" in subset.columns
-        else None
-    )
-    anomaly_scores = subset["anomaly_score"].astype(float)
-    threshold = float(anomaly_scores.quantile(0.95))
-
-    fig, (ax_score, ax_volume) = plt.subplots(
-        2,
-        1,
-        figsize=(14, 7),
-        sharex=True,
-        gridspec_kw={"height_ratios": [3, 1]},
-    )
-
-    ax_score.plot(
-        subset["bucket_start"],
-        anomaly_scores,
-        color="#5b21b6",
-        linewidth=1.4,
-        label="IsolationForest anomaly score",
-    )
-    ax_score.axhline(
-        threshold,
-        color="#7c3aed",
-        linewidth=1.0,
-        linestyle="--",
-        alpha=0.9,
-        label="95th-percentile score",
-    )
-
-    if "is_anomaly" in subset.columns:
-        anomaly_mask = subset["is_anomaly"].fillna(False).astype(bool)
-        if np.any(anomaly_mask):
-            ax_score.scatter(
-                subset.loc[anomaly_mask, "bucket_start"],
-                anomaly_scores.loc[anomaly_mask],
-                color="#dc2626",
-                s=22,
-                zorder=4,
-                label="Model anomaly",
-            )
-
-    low_power_mask = _resolve_low_power_flags(
-        subset,
-        low_power_col="is_low_power",
-        totals_col="n_total",
-    )
-    if np.any(low_power_mask):
-        ax_score.scatter(
-            subset.loc[low_power_mask, "bucket_start"],
-            anomaly_scores.loc[low_power_mask],
-            color="#f59e0b",
-            marker="x",
-            s=30,
-            zorder=5,
-            label="Low-power",
-        )
-
-    ax_score.set_ylabel("Anomaly score")
-    ax_score.set_title("Multivariate bucket anomaly scores (IsolationForest)")
-    ax_score.grid(axis="y", alpha=0.25)
-    ax_score.legend(loc="upper right", fontsize=8)
-
-    bar_width_days = (
-        (float(bucket_minutes) * 0.85) / (24.0 * 60.0)
-        if bucket_minutes is not None
-        else 1 / (24.0 * 60.0)
-    )
-    ax_volume.bar(
-        subset["bucket_start"],
-        subset["n_total"].astype(float),
-        width=bar_width_days,
-        color="#475569",
-        alpha=0.45,
-        label="Bucket volume",
-    )
-    ax_volume.plot(
-        subset["bucket_start"],
-        subset["n_total"].astype(float),
-        color="#0f172a",
-        linewidth=1.1,
-    )
-    ax_volume.set_ylabel("n submissions")
-    if bucket_minutes is not None:
-        ax_volume.set_xlabel(f"Time ({bucket_minutes}-minute buckets)")
-    else:
-        ax_volume.set_xlabel("Time")
-    ax_volume.grid(axis="y", alpha=0.2)
-    ax_volume.legend(loc="upper right", fontsize=8)
-    return save_figure(output_path)

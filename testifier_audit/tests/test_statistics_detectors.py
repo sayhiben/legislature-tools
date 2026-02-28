@@ -3,8 +3,6 @@ from __future__ import annotations
 import pandas as pd
 
 from testifier_audit.detectors.bursts import BurstsDetector
-from testifier_audit.detectors.changepoints import ChangePointsDetector
-from testifier_audit.detectors.periodicity import PeriodicityDetector
 from testifier_audit.detectors.procon_swings import ProConSwingsDetector
 
 
@@ -412,87 +410,3 @@ def test_procon_swings_permutation_policy_uses_permutation_column() -> None:
     tests = result.tables["swing_window_tests"]
     assert result.summary["significance_policy_effective"] == "permutation_fdr"
     assert tests["is_significant"].equals(tests["is_significant_permutation_fdr"])
-
-
-def test_changepoints_detector_finds_shift() -> None:
-    minute_bucket = pd.date_range("2026-02-01 00:00:00", periods=200, freq="min")
-    n_total = [5] * 100 + [20] * 100
-    n_pro = [2] * 100 + [16] * 100
-
-    counts = pd.DataFrame(
-        {
-            "minute_bucket": minute_bucket,
-            "n_total": n_total,
-            "n_unique_names": [5] * 200,
-            "n_pro": n_pro,
-            "n_con": [total - pro for total, pro in zip(n_total, n_pro)],
-            "n_unknown": [0] * 200,
-            "dup_name_fraction": [0.0] * 200,
-            "pro_rate": [pro / total for total, pro in zip(n_total, n_pro)],
-            "con_rate": [1.0 - (pro / total) for total, pro in zip(n_total, n_pro)],
-            "unique_ratio": [1.0] * 200,
-        }
-    )
-
-    detector = ChangePointsDetector(min_segment_minutes=20, penalty_scale=2.0)
-    result = detector.run(df=pd.DataFrame(), features={"counts_per_minute": counts})
-
-    assert result.summary["n_volume_changepoints"] >= 1
-    assert not result.tables["volume_changepoints"].empty
-
-
-def test_periodicity_detector_calibration_outputs_significance_tables() -> None:
-    minute_bucket = pd.date_range("2026-02-01 00:00:00", periods=300, freq="min")
-    n_total = [2 + (8 if (idx % 10 == 0) else 0) for idx in range(300)]
-
-    counts = pd.DataFrame(
-        {
-            "minute_bucket": minute_bucket,
-            "n_total": n_total,
-            "n_unique_names": n_total,
-            "n_pro": n_total,
-            "n_con": [0] * 300,
-            "n_unknown": [0] * 300,
-            "dup_name_fraction": [0.0] * 300,
-            "pro_rate": [1.0] * 300,
-            "con_rate": [0.0] * 300,
-            "unique_ratio": [1.0] * 300,
-        }
-    )
-
-    detector = PeriodicityDetector(
-        max_lag_minutes=60,
-        min_period_minutes=2.0,
-        max_period_minutes=120.0,
-        top_n_periods=12,
-        calibration_iterations=40,
-        calibration_seed=11,
-        fdr_alpha=0.1,
-    )
-    result = detector.run(df=pd.DataFrame(), features={"counts_per_minute": counts})
-
-    assert not result.tables["autocorr"].empty
-    assert not result.tables["spectrum_top"].empty
-    assert not result.tables["periodicity_null_distribution"].empty
-    assert not result.tables["clockface_distribution"].empty
-    assert not result.tables["clockface_top_minutes"].empty
-    assert not result.tables["clockface_null_distribution"].empty
-    assert not result.tables["rolling_fano"].empty
-    assert not result.tables["rolling_fano_summary"].empty
-    assert len(result.tables["clockface_distribution"]) == 60
-    assert "p_value" in result.tables["autocorr"].columns
-    assert "q_value" in result.tables["autocorr"].columns
-    assert "is_significant" in result.tables["spectrum_top"].columns
-    assert "fano_factor" in result.tables["rolling_fano"].columns
-    assert "is_high_fano" in result.tables["rolling_fano"].columns
-    assert "median_fano_factor" in result.tables["rolling_fano_summary"].columns
-    assert "max_fano_factor" in result.tables["rolling_fano_summary"].columns
-    assert result.summary["strongest_period_minutes"] is not None
-    assert result.summary["max_rolling_fano_factor"] >= 0.0
-    assert result.summary["median_rolling_fano_factor"] >= 0.0
-    assert result.summary["n_high_fano_windows"] >= 0
-    assert result.summary["high_fano_threshold"] >= 0.0
-    assert result.summary["clockface_chi_square"] >= 0.0
-    assert 0.0 <= result.summary["clockface_chi_square_p_value"] <= 1.0
-    assert result.summary["clockface_chi_square_empirical_p_value"] is not None
-    assert 0.0 <= result.summary["clockface_max_share"] <= 1.0

@@ -15,8 +15,8 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
             (
                 "Extended level shifts (for example, 60-240 minutes) in both volume "
                 "and composition, especially when Wilson bands tighten, suggest a "
-                "meaningful regime change worth cross-checking against changepoints "
-                "and composite evidence."
+                "meaningful regime change worth cross-checking against corroborating "
+                "detector evidence."
             ),
             (
                 "Very low overnight volume can create dramatic percentage swings; "
@@ -26,19 +26,16 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
         ],
         "bursts": [
             (
-                "Single-window rate-ratio peaks can be benign; stronger signals are "
-                "contiguous runs of elevated rate ratios that recur at multiple window "
-                "sizes (for example 5m and 30m both elevated)."
+                "Prioritize merged burst windows that last multiple minutes; "
+                "single-minute spikes can be routine campaign timing noise."
             ),
             (
-                "High observed counts with low q-values in sustained windows imply "
-                "concentration beyond baseline expectation, especially when these "
-                "bursts overlap with duplicate-name or swing anomalies."
+                "Use excess-count and position-impact rows to see whether Pro, Con, "
+                "or both sides drive the burst and by how many submissions."
             ),
             (
-                "Suppressed or unusually flat burst activity can also be informative "
-                "if baseline volume is high; a lack of natural variability may "
-                "indicate synchronized intake behavior or batching."
+                "When duration and excess remain elevated across adjacent windows, "
+                "treat the burst as sustained and correlate with other analyses."
             ),
         ],
         "procon_swings": [
@@ -59,23 +56,6 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
                 "including potential strategic timing by one side."
             ),
         ],
-        "changepoints": [
-            (
-                "Look for clustered breakpoints across both volume and pro rate; "
-                "multi-metric co-occurrence is usually more meaningful than a "
-                "solitary break in one metric."
-            ),
-            (
-                "Large absolute deltas with sustained post-break behavior "
-                "(not immediate reversion) indicate structural transitions rather "
-                "than transient spikes."
-            ),
-            (
-                "Repeated changes at similar hours across days can reflect "
-                "operational schedules; treat as lower risk unless change magnitudes "
-                "are extreme and detector corroboration is strong."
-            ),
-        ],
         "off_hours": [
             (
                 "Prioritize robust primary alerts (below primary 99.8% lower limit, "
@@ -94,8 +74,8 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
             ),
             (
                 "In date-hour heatmaps, repeated overnight blocks across multiple "
-                "dates are stronger than a single-night dip; corroborate with burst, "
-                "periodicity, and duplicate detectors before escalation."
+                "dates are stronger than a single-night dip; corroborate with burst "
+                "and duplicate detectors before escalation."
             ),
         ],
         "duplicates_exact": [
@@ -115,55 +95,18 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
                 "rather than organic participation."
             ),
         ],
-        "sortedness": [
-            (
-                "Single alphabetical spikes in small buckets can be accidental; "
-                "repeated elevated alphabetical ratios across 15m-120m buckets "
-                "suggest process-level ordering behavior."
-            ),
-            (
-                "Sustained ordered streaks during high-volume windows are unusual "
-                "for organic arrivals and may imply batch uploads, sorted lists, or "
-                "deterministic queue processing."
-            ),
-            (
-                "Low sortedness is expected for organic traffic, so abrupt "
-                "transitions from unsorted to highly sorted and back are more "
-                "informative than consistently modest ratios."
-            ),
-        ],
-        "rare_names": [
-            (
-                "Short-lived unique-ratio increases during low volume can be "
-                "misleading; investigate when unique-ratio elevation persists into "
-                "higher-support windows."
-            ),
-            (
-                "Concurrent rises in weirdness scores, singleton concentration, and "
-                "rarity quantiles indicate novelty concentration beyond normal "
-                "lexical drift."
-            ),
-            (
-                "Extended rarity suppression (unusually low novelty) can also be "
-                "noteworthy in broad public hearings and may suggest repeated "
-                "template populations."
-            ),
-        ],
         "org_anomalies": [
             (
-                "Blank-organization spikes in low-support windows are weak evidence; "
-                "prioritize wide windows where blank rate rises and Wilson bands "
-                "remain narrow."
+                "Start with sustained changes in overall blank-organization rate "
+                "across adjacent windows instead of isolated single-bucket spikes."
             ),
             (
-                "Divergence between pro and con blank-org rates over sustained "
-                "periods can indicate side-specific form behavior, campaign guidance, "
-                "or data-entry heterogeneity."
+                "Compare Pro and Con blank-organization rates and prioritize gaps "
+                "that persist across multiple neighboring buckets."
             ),
             (
-                "Sharp blank-rate reversals around specific times may indicate UX "
-                "changes, batch imports, or conditional form paths and should be "
-                "checked against operational logs."
+                "Treat low-support windows as descriptive context; use higher-support "
+                "periods for stronger conclusions about rate differences."
             ),
         ],
         "voter_registry_match": [
@@ -180,56 +123,6 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
             (
                 "Use the rows-vs-unique position-bounds span panel to assess linkage "
                 "assumption sensitivity; wide spans indicate directionality is fragile."
-            ),
-        ],
-        "periodicity": [
-            (
-                "Minor periodic peaks are normal in outreach-driven datasets; "
-                "stronger signals appear when clock-face concentration, "
-                "autocorrelation peaks, and spectrum peaks align."
-            ),
-            (
-                "Narrow high-power peaks at specific periods (for example near exact "
-                "campaign cadence intervals) can indicate automation or tightly "
-                "scheduled reminders."
-            ),
-            (
-                "Extended suppression of expected periodic structure in otherwise "
-                "campaign-heavy contexts may imply missing intervals or "
-                "preprocessing artifacts."
-            ),
-        ],
-        "multivariate_anomalies": [
-            (
-                "Single high anomaly buckets with low support can be model-noise; "
-                "prioritize consecutive high-score windows with model eligibility and "
-                "corroborating detector evidence."
-            ),
-            (
-                "Joint excursions in volume, duplicate fraction, blank-org rate, and "
-                "pro-rate shape are stronger than any one feature spike in isolation."
-            ),
-            (
-                "Extended high-percentile stretches can indicate sustained "
-                "behavioral mode changes; inspect top buckets and feature projection "
-                "for which dimensions drive score elevation."
-            ),
-        ],
-        "composite_score": [
-            (
-                "High composite windows are most useful when evidence-count is high "
-                "and signals come from independent detectors rather than one "
-                "detector repeated across scales."
-            ),
-            (
-                "Short isolated composite spikes can still be benign; extended "
-                "elevated runs with overlapping burst/swing/changepoint/ML evidence "
-                "are higher-priority review candidates."
-            ),
-            (
-                "Very low composite scores during known high-activity periods can "
-                "reveal under-sensitive detector settings or data-quality gaps and "
-                "should trigger configuration review."
             ),
         ],
     }
@@ -255,19 +148,19 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             ),
         },
         "bursts": {
-            "primary_metric": "observed-vs-expected burst intensity",
+            "primary_metric": "burst duration, excess volume, and position impact counts",
             "momentary_high": (
                 "legitimate synchronized outreach or one-off reminder cascades"
             ),
             "momentary_low": (
-                "normal random fluctuation when expected baseline is already elevated"
+                "short-lived spikes with little excess and no clear position dominance"
             ),
             "extended_high": (
-                "repeated concentration windows that deserve correlation with duplicate "
-                "and swing signals"
+                "multi-window burst periods with persistent excess and stable position "
+                "impact direction"
             ),
             "extended_low": (
-                "suppressed variance that can indicate workflow smoothing or batching"
+                "baseline activity without concentrated burst windows"
             ),
         },
         "procon_swings": {
@@ -286,20 +179,6 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
                 "prolonged suppression of one side that may indicate queueing or "
                 "campaign fatigue"
             ),
-        },
-        "changepoints": {
-            "primary_metric": "structural breaks in level or composition",
-            "momentary_high": (
-                "single regime boundaries caused by predictable hearing state "
-                "transitions"
-            ),
-            "momentary_low": (
-                "noisy micro-fluctuations that do not persist across adjacent windows"
-            ),
-            "extended_high": (
-                "multi-break episodes indicating stable before/after behavioral regimes"
-            ),
-            "extended_low": "a relatively stationary process with fewer systemic shifts",
         },
         "off_hours": {
             "primary_metric": "model-aware off-hours composition shift with volume context",
@@ -331,38 +210,14 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             ),
             "extended_low": "healthy name diversity with limited exact repetition pressure",
         },
-        "sortedness": {
-            "primary_metric": "alphabetical/ordered submission behavior",
-            "momentary_high": (
-                "small sorted snippets caused by chance or local administrative handling"
-            ),
-            "momentary_low": "expected unsorted arrivals from organic user behavior",
-            "extended_high": "batch-oriented or deterministic ordering processes across windows",
-            "extended_low": (
-                "persistent organic ordering noise without process-level sorting artifacts"
-            ),
-        },
-        "rare_names": {
-            "primary_metric": "novelty, uniqueness, and rarity concentration",
-            "momentary_high": (
-                "brief novelty spikes from campaign expansion to new participants"
-            ),
-            "momentary_low": (
-                "common-name clustering or temporary shrinkage in participant diversity"
-            ),
-            "extended_high": (
-                "sustained lexical novelty requiring cross-check against lookup coverage"
-            ),
-            "extended_low": "repeated-name dominance or limited participant turnover",
-        },
         "org_anomalies": {
-            "primary_metric": "blank/null organization usage and split behavior",
-            "momentary_high": "form UX friction or temporary omission guidance in outreach",
-            "momentary_low": "short windows where organization prompts were more salient",
+            "primary_metric": "blank organization rate overall and by position",
+            "momentary_high": "a short-lived blank-rate bump in a sparse window",
+            "momentary_low": "a temporary completeness improvement in a small bucket",
             "extended_high": (
-                "systemic metadata sparsity that can bias affiliation interpretation"
+                "persistent blank-rate elevation that can reduce organization attribution quality"
             ),
-            "extended_low": "more complete organization capture across participation streams",
+            "extended_low": "sustained lower blank rates with more complete organization capture",
         },
         "voter_registry_match": {
             "primary_metric": "conservative matched/unmatched composition with uncertainty accounting",
@@ -372,38 +227,6 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             "extended_low": (
                 "persistent unmatched dominance requiring normalization and source review"
             ),
-        },
-        "periodicity": {
-            "primary_metric": "recurring timing structure across minute and lag spaces",
-            "momentary_high": "single reminder cycles or one-time timed campaign sends",
-            "momentary_low": "flat/noisy slots where periodic patterns are not dominant",
-            "extended_high": (
-                "repeated cadence signatures that may indicate automation or strict "
-                "scheduling"
-            ),
-            "extended_low": "weak periodic structure consistent with more organic arrival timing",
-        },
-        "multivariate_anomalies": {
-            "primary_metric": "joint anomaly score across multiple behavioral features",
-            "momentary_high": (
-                "single-bucket feature coincidence without sustained corroboration"
-            ),
-            "momentary_low": "brief reversion to feature-space baseline",
-            "extended_high": (
-                "multi-feature regime changes needing manual validation and context "
-                "checks"
-            ),
-            "extended_low": "feature combinations staying near historically typical mixtures",
-        },
-        "composite_score": {
-            "primary_metric": "cross-detector evidence overlap and prioritization",
-            "momentary_high": "short-lived detector agreement around a local event",
-            "momentary_low": "isolated detector activity without consensus evidence",
-            "extended_high": (
-                "durable multi-detector agreement that should drive investigation "
-                "priority"
-            ),
-            "extended_low": "broad detector disagreement suggesting mostly baseline behavior",
         },
     }
 
@@ -794,40 +617,46 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         },
         "bursts_hero_timeline": timebar(
-            summary="Observed burst counts with burst intensity overlay.",
+            summary="Detected burst windows with timing, intensity, and dominant position impact.",
             primary_label="Rate ratio",
             primary_desc="Observed-to-expected count ratio per tested window.",
             include_wilson=False,
-            include_low_power=False,
+            include_low_power=True,
             volume_label="Observed count",
             volume_desc="Bars show observed submissions in each burst window.",
         ),
         "bursts_significance_by_window": {
-            "summary": "Burst significance by window size.",
+            "summary": "Burst duration and excess volume over time.",
             "items": [
                 {
-                    "label": "Bar height",
-                    "description": "Number of significant windows for each tested window size.",
+                    "label": "Duration",
+                    "description": (
+                        "Bar height shows merged burst duration in minutes for each burst period."
+                    ),
                 },
-                {"label": "X-axis", "description": "Window size in minutes."},
+                {
+                    "label": "Excess submissions",
+                    "description": "Line values show observed minus expected submissions.",
+                },
+                {"label": "X-axis", "description": "Burst start time."},
             ],
         },
         "bursts_composition_shift": timebar(
-            summary="Burst composition shift over time.",
-            primary_label="Absolute pro-rate shift",
-            primary_desc="Absolute deviation of burst-window pro rate from run baseline.",
+            summary="Position-specific burst impact over time.",
+            primary_label="Net position impact",
+            primary_desc="Pro impact minus Con impact count in each burst window.",
             include_wilson=False,
             include_low_power=True,
-            volume_label="Observed count",
-            volume_desc="Observed submissions in each burst window.",
+            volume_label="Dominant position impact",
+            volume_desc="Absolute count impact for the dominant affected position.",
             extra=[
                 {
-                    "label": "Baseline pro rate",
-                    "description": "Run-level baseline pro share for composition comparison.",
+                    "label": "Pro impact count",
+                    "description": "Observed Pro count minus expected Pro count in the burst window.",
                 },
                 {
-                    "label": "Delta pro rate",
-                    "description": "Signed burst-window pro-rate shift from baseline.",
+                    "label": "Con impact count",
+                    "description": "Observed Con count minus expected Con count in the burst window.",
                 },
             ],
         ),
@@ -924,34 +753,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Maximum absolute pro-rate delta per null iteration.",
                 },
                 {"label": "X-axis", "description": "Simulation iteration index."},
-            ],
-        },
-        "changepoints_hero_timeline": timebar(
-            summary="Volume/pro-rate timeline with structural break markers.",
-            primary_label="Pro rate",
-            primary_desc="Observed pro share over time.",
-            include_wilson=True,
-            flagged_label="Flagged",
-            flagged_desc="Detected changepoint locations.",
-        ),
-        "changepoints_magnitude": {
-            "summary": "Changepoint magnitude ranking.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Absolute change magnitude at each detected break.",
-                },
-                {"label": "X-axis", "description": "Changepoint index/order."},
-            ],
-        },
-        "changepoints_hour_hist": {
-            "summary": "Changepoint timing histogram.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Number of changepoints occurring in each hour-of-day bin.",
-                },
-                {"label": "X-axis", "description": "Hour of day (0-23)."},
             ],
         },
         "off_hours_control_timeline": timebar(
@@ -1428,93 +1229,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {"label": "X-axis", "description": "Scenario (raw, strict dedupe, excess-adjusted)."},
             ],
         },
-        "sortedness_bucket_ratio": timebar(
-            summary="Ordering behavior across time buckets.",
-            primary_label="Alphabetical indicator",
-            primary_desc="Line values near 1 indicate alphabetical ordering for bucket windows.",
-            include_low_power=False,
-            include_wilson=False,
-            volume_label="Records",
-            volume_desc="Bar height is record count in each bucket.",
-        ),
-        "sortedness_bucket_summary": {
-            "summary": "Sortedness summary by bucket size.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Alphabetical ordering ratio for each bucket size.",
-                },
-                {"label": "X-axis", "description": "Bucket size in minutes."},
-            ],
-        },
-        "sortedness_kendall_tau_summary": {
-            "summary": "Kendall tau ordering strength by bucket size.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Average absolute Kendall tau for each bucket size.",
-                },
-                {"label": "X-axis", "description": "Bucket size in minutes."},
-            ],
-        },
-        "sortedness_minute_spikes": {
-            "summary": "Minute-level ordering spikes.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Records seen in each minute-level ordering sample.",
-                },
-                {"label": "X-axis", "description": "Minute bucket timestamp."},
-            ],
-        },
-        "rare_names_unique_ratio": timebar(
-            summary="Name uniqueness over time.",
-            primary_label="Unique ratio",
-            primary_desc="Share of submissions with distinct canonical names per bucket.",
-            include_low_power=True,
-            include_wilson=False,
-            extra=[
-                {
-                    "label": "Threshold unique ratio",
-                    "description": "Reference threshold used for unique-ratio anomaly signaling.",
-                }
-            ],
-        ),
-        "rare_names_weird_scores": {
-            "summary": "Highest weirdness-score names.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": (
-                        "Weirdness score of sampled names; "
-                        "higher indicates atypical string shape."
-                    ),
-                },
-                {"label": "X-axis", "description": "Sample names sorted by weirdness."},
-            ],
-        },
-        "rare_names_singletons": timebar(
-            summary="Singleton name composition over time.",
-            primary_label="Con count",
-            primary_desc="Line shows con-side count among singleton records.",
-            include_low_power=False,
-            include_wilson=False,
-            volume_label="Pro count",
-            volume_desc="Bars show pro-side count among singleton records.",
-        ),
-        "rare_names_rarity_timeline": timebar(
-            summary="Rarity-score timeline.",
-            primary_label="Rarity median",
-            primary_desc="Median rarity score in each bucket.",
-            include_low_power=True,
-            include_wilson=False,
-            extra=[
-                {
-                    "label": "Rarity p95",
-                    "description": "95th percentile rarity score to show tail behavior.",
-                }
-            ],
-        ),
         "org_anomalies_blank_rate": timebar(
             summary="Blank organization-rate trend with position splits.",
             primary_label="Blank org rate",
@@ -1537,26 +1251,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             primary_desc="Position-specific blank organization share.",
             include_wilson=True,
         ),
-        "org_anomalies_bursts": {
-            "summary": "Organization burst concentration.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Burst count for organization-related minute windows.",
-                },
-                {"label": "X-axis", "description": "Minute bucket of organization burst sample."},
-            ],
-        },
-        "org_anomalies_top_orgs": {
-            "summary": "Most common organization values.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Total records linked to each normalized organization value.",
-                },
-                {"label": "X-axis", "description": "Organization value labels."},
-            ],
-        },
         "voter_registry_match_rates": timebar(
             summary="Conservative voter-linkage trend with matched-rate focus.",
             primary_label="Matched rate",
@@ -1653,105 +1347,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Unmatched rate under each linkage mode.",
                 },
                 {"label": "X-axis", "description": "Linkage mode."},
-            ],
-        },
-        "periodicity_clockface": {
-            "summary": "Clock-face minute concentration.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Observed event count at each minute-of-hour bin.",
-                },
-                {"label": "X-axis", "description": "Minute of hour (0-59)."},
-            ],
-        },
-        "periodicity_autocorr": {
-            "summary": "Autocorrelation by lag.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Autocorrelation coefficient at each lag in minutes.",
-                },
-                {"label": "X-axis", "description": "Lag length in minutes."},
-            ],
-        },
-        "periodicity_spectrum": {
-            "summary": "Top spectral periods.",
-            "items": [
-                {"label": "Bar height", "description": "Spectral power for each candidate period."},
-                {"label": "X-axis", "description": "Detected period in minutes."},
-            ],
-        },
-        "periodicity_rolling_fano": {
-            "summary": "Rolling Fano overdispersion by window size.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Median rolling Fano factor for each window size.",
-                },
-                {"label": "X-axis", "description": "Rolling window size in minutes."},
-            ],
-        },
-        "multivariate_score_timeline": timebar(
-            summary="Multivariate anomaly score and support over time.",
-            primary_label="Anomaly score",
-            primary_desc="Combined feature-space anomaly score for each bucket.",
-            include_wilson=False,
-            include_low_power=True,
-            extra=[
-                {
-                    "label": "Anomaly score percentile",
-                    "description": "Percentile rank of anomaly score within this run.",
-                }
-            ],
-        ),
-        "multivariate_top_buckets": {
-            "summary": "Top anomaly buckets (scatter).",
-            "items": [
-                {
-                    "label": "Point position",
-                    "description": "X-axis is bucket volume; Y-axis is anomaly score.",
-                },
-                {
-                    "label": "Point color",
-                    "description": "Color reflects anomaly-score percentile rank.",
-                },
-                {"label": "Point size", "description": "Bubble size scales with bucket volume."},
-            ],
-        },
-        "multivariate_feature_projection": {
-            "summary": "Feature projection scatter.",
-            "items": [
-                {
-                    "label": "Point position",
-                    "description": "X-axis is log volume; Y-axis is pro rate.",
-                },
-                {"label": "Point color", "description": "Color shows anomaly score intensity."},
-                {"label": "Point size", "description": "Bubble size scales with bucket volume."},
-            ],
-        },
-        "composite_score_timeline": timebar(
-            summary="Composite risk score over time.",
-            primary_label="Composite score",
-            primary_desc="Aggregate score from multi-detector evidence overlap.",
-            include_wilson=False,
-            include_low_power=True,
-        ),
-        "composite_evidence_flags": {
-            "summary": "Evidence-flag composition.",
-            "items": [
-                {
-                    "label": "Bar height",
-                    "description": "Count of windows containing each detector flag.",
-                },
-                {"label": "X-axis", "description": "Detector evidence flag token."},
-            ],
-        },
-        "composite_high_priority": {
-            "summary": "Highest-priority composite windows.",
-            "items": [
-                {"label": "Bar height", "description": "Composite score for top-ranked windows."},
-                {"label": "X-axis", "description": "Window timestamp bucket."},
             ],
         },
     }

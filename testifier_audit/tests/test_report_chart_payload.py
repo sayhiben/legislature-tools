@@ -1781,14 +1781,18 @@ def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> N
 def test_payload_values_are_json_safe_scalars() -> None:
     payload = _build_interactive_chart_payload_v2(
         table_map={
-            "multivariate_anomalies.bucket_anomaly_scores": pd.DataFrame(
+            "artifacts.counts_per_minute": pd.DataFrame(
                 {
-                    "bucket_start": [pd.Timestamp("2026-02-01T00:00:00Z")],
-                    "bucket_minutes": [15],
+                    "minute_bucket": [pd.Timestamp("2026-02-01T00:00:00Z")],
                     "n_total": [55],
-                    "anomaly_score": [float("nan")],
-                    "anomaly_score_percentile": [float("inf")],
-                    "pro_rate": [0.45],
+                    "n_pro": [25],
+                    "n_con": [30],
+                    "pro_rate": [float("nan")],
+                    "pro_rate_wilson_low": [0.2],
+                    "pro_rate_wilson_high": [float("inf")],
+                    "is_low_power": [False],
+                    "n_unique_names": [44],
+                    "unique_ratio": [float("-inf")],
                 }
             )
         },

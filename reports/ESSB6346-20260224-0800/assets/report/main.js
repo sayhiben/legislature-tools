@@ -5831,7 +5831,6 @@
   }
 
   const simpleBarCategoricalChartIds = new Set([
-    "composite_evidence_flags",
     "duplicates_exact_swing_impact",
     "off_hours_primary_flag_channels",
     "voter_registry_linkage_by_position_rows",
@@ -5844,8 +5843,6 @@
   const simpleBarRankedChartIds = new Set([
     "baseline_top_names",
     "baseline_name_length_distribution",
-    "changepoints_hour_hist",
-    "changepoints_magnitude",
     "duplicates_exact_per_name_anomalies",
     "duplicates_exact_metric_diagnostics",
     "duplicates_exact_top_names",
@@ -5853,33 +5850,18 @@
     "duplicates_exact_position_bucket_deviance",
     "off_hours_hourly_profile",
     "off_hours_summary_compare",
-    "org_anomalies_bursts",
-    "org_anomalies_top_orgs",
-    "periodicity_clockface",
-    "periodicity_spectrum",
-    "rare_names_weird_scores",
-    "sortedness_minute_spikes",
     "voter_registry_pairwise_tests",
     "voter_registry_unmatched_names",
   ]);
   const simpleBarNullDiagnosticChartIds = new Set([
     "bursts_null_distribution",
-    "bursts_significance_by_window",
     "duplicates_exact_null_distribution",
     "procon_swings_null_distribution",
-    "periodicity_rolling_fano",
   ]);
   const simpleBarRatioReferenceChartIds = new Set([
-    "composite_high_priority",
     "voter_registry_pairwise_tests",
-    "periodicity_autocorr",
-    "sortedness_bucket_summary",
-    "sortedness_kendall_tau_summary",
   ]);
   const simpleBarDirectionalReferenceChartIds = new Set([
-    "periodicity_autocorr",
-    "sortedness_bucket_summary",
-    "sortedness_kendall_tau_summary",
     "voter_registry_pairwise_tests",
   ]);
 
@@ -6239,11 +6221,7 @@
       }
     } else if (simpleBarRatioReferenceChartIds.has(mount.chartId)) {
       const referenceByChartId = {
-        composite_high_priority: 0.8,
-        periodicity_autocorr: 0.0,
         procon_swings_time_of_day_profile: 0.5,
-        sortedness_bucket_summary: 0.5,
-        sortedness_kendall_tau_summary: 0.0,
         voter_registry_pairwise_tests: 0.0,
       };
       const referenceValue = Object.prototype.hasOwnProperty.call(referenceByChartId, mount.chartId)
@@ -7664,18 +7642,6 @@
         lineMin: 0,
         lineMax: 1,
       },
-      changepoints_hero_timeline: {
-        timeField: "minute_bucket",
-        barField: "n_total",
-        lineField: "pro_rate",
-        lineLow: "pro_rate_wilson_low",
-        lineHigh: "pro_rate_wilson_high",
-        lowPowerField: "is_low_power",
-        flaggedField: "is_changepoint",
-        lineAxisName: "Pro rate",
-        lineMin: 0,
-        lineMax: 1,
-      },
       off_hours_control_timeline: {
         timeField: "bucket_start",
         barField: "n_total",
@@ -7714,16 +7680,6 @@
         barAxisName: "Known pro+con",
         lineAxisName: "Primary z-score",
       },
-      rare_names_unique_ratio: {
-        timeField: "minute_bucket",
-        barField: "n_total",
-        lineField: "unique_ratio",
-        extraLines: ["threshold_unique_ratio"],
-        lowPowerField: "is_low_power",
-        lineAxisName: "Unique ratio",
-        lineMin: 0,
-        lineMax: 1,
-      },
       org_anomalies_blank_rate: {
         timeField: "bucket_start",
         barField: "n_total",
@@ -7760,27 +7716,12 @@
         lineMin: 0,
         lineMax: 1,
       },
-      multivariate_score_timeline: {
-        timeField: "bucket_start",
-        barField: "n_total",
-        lineField: "anomaly_score",
-        extraLines: ["anomaly_score_percentile"],
-        lowPowerField: "is_low_power",
-        lineAxisName: "Anomaly score",
-      },
       procon_swings_direction_runs: {
         timeField: "start_bucket",
         barField: "run_length_buckets",
         lineField: "mean_abs_delta_pro_rate",
         lineAxisName: "Mean abs delta",
         barAxisName: "Run length",
-      },
-      composite_score_timeline: {
-        timeField: "minute_bucket",
-        barField: "n_total",
-        lineField: "composite_score",
-        lowPowerField: "is_low_power",
-        lineAxisName: "Composite score",
       },
       duplicates_exact_bucket_concentration: {
         timeField: "bucket_start",
@@ -7793,14 +7734,6 @@
         extraLines: ["expected_duplicate_rows"],
         lineAxisName: "Duplicated count",
         barAxisName: "Positioned rows",
-      },
-      sortedness_bucket_ratio: {
-        timeField: "bucket_start",
-        barField: "n_records",
-        lineField: "is_alphabetical",
-        lineAxisName: "Alphabetical (0/1)",
-        lineMin: 0,
-        lineMax: 1,
       },
       org_anomalies_position_rates: {
         timeField: "bucket_start",
@@ -7825,37 +7758,31 @@
         lineMin: 0,
         lineMax: 1,
       },
-      rare_names_singletons: {
-        timeField: "first_seen",
-        barField: "n_pro",
-        lineField: "n_con",
-        lineAxisName: "Counts",
-        barAxisName: "Pro count",
-      },
-      rare_names_rarity_timeline: {
-        timeField: "minute_bucket",
-        barField: "n_total",
-        lineField: "rarity_median",
-        extraLines: ["rarity_p95"],
-        lowPowerField: "is_low_power",
-        lineAxisName: "Rarity",
-      },
       bursts_hero_timeline: {
         timeField: "start_minute",
         barField: "observed_count",
         lineField: "rate_ratio",
-        barAxisLines: ["expected_count"],
+        barAxisLines: ["expected_count", "excess_count"],
         lineAxisName: "Rate ratio",
         barAxisName: "Observed count",
       },
+      bursts_significance_by_window: {
+        timeField: "start_minute",
+        barField: "duration_minutes",
+        lineField: "excess_count",
+        extraLines: ["dominant_impact_count"],
+        lowPowerField: "is_low_power",
+        lineAxisName: "Excess submissions",
+        barAxisName: "Burst duration (minutes)",
+      },
       bursts_composition_shift: {
         timeField: "start_minute",
-        barField: "observed_count",
-        lineField: "abs_delta_pro_rate",
+        barField: "dominant_impact_count",
+        lineField: "net_position_impact",
+        extraLines: ["pro_impact_count", "con_impact_count"],
         lowPowerField: "is_low_power",
-        lineAxisName: "Abs pro-rate delta",
-        barAxisName: "Observed count",
-        lineMin: 0,
+        lineAxisName: "Net position impact (Pro minus Con)",
+        barAxisName: "Dominant position impact",
       },
     };
 
@@ -7867,15 +7794,6 @@
       return renderTimeBarLine(mount, rows, timeOverrides[mount.chartId]);
     }
 
-    if (mount.chartId === "multivariate_feature_projection") {
-      return renderScatter(mount, rows, "log_n_total", "pro_rate", "anomaly_score", "n_total");
-    }
-    if (mount.chartId === "multivariate_top_buckets") {
-      return renderScatter(mount, rows, "n_total", "anomaly_score", "anomaly_score_percentile", "n_total");
-    }
-    if (mount.chartId === "composite_evidence_flags") {
-      return renderSimpleBar(mount, rows, "flag", "count", "count");
-    }
     if (mount.chartId === "off_hours_hourly_profile") {
       return renderSimpleBar(mount, rows, "hour", "n_total", "submissions");
     }
@@ -7886,48 +7804,17 @@
         expectedSeriesName: "On-hours pro rate",
       });
     }
-    if (mount.chartId === "periodicity_clockface") {
-      return renderSimpleBar(mount, rows, "minute_of_hour", "n_events", "events", {
-        observedSeriesName: "Observed events",
-        expectedField: "expected_n_events_uniform",
-        expectedSeriesName: "Expected uniform events",
-      });
-    }
-    if (mount.chartId === "periodicity_autocorr") {
-      return renderSimpleBar(mount, rows, "lag_minutes", "autocorr", "autocorr");
-    }
-    if (mount.chartId === "periodicity_spectrum") {
-      return renderSimpleBar(mount, rows, "period_minutes", "power", "power");
-    }
-    if (mount.chartId === "periodicity_rolling_fano") {
-      return renderSimpleBar(
-        mount,
-        rows,
-        "window_minutes",
-        "median_fano_factor",
-        "median fano factor"
-      );
-    }
     if (mount.chartId === "baseline_top_names") {
       return renderSimpleBar(mount, rows, "display_name", "n", "count");
     }
     if (mount.chartId === "baseline_name_length_distribution") {
       return renderSimpleBar(mount, rows, "name_length", "n_names", "names");
     }
-    if (mount.chartId === "bursts_significance_by_window") {
-      return renderSimpleBar(mount, rows, "window_minutes", "n_significant", "significant windows");
-    }
     if (mount.chartId === "bursts_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "max_window_count", "max count");
     }
     if (mount.chartId === "procon_swings_null_distribution") {
       return renderSimpleBar(mount, rows, "iteration", "max_abs_delta_pro_rate", "max abs delta");
-    }
-    if (mount.chartId === "changepoints_magnitude") {
-      return renderSimpleBar(mount, rows, "change_index", "abs_delta", "abs delta");
-    }
-    if (mount.chartId === "changepoints_hour_hist") {
-      return renderSimpleBar(mount, rows, "change_hour", "n_changes", "changes");
     }
     if (
       mount.chartId === "duplicates_exact_top_names" ||
@@ -7960,30 +7847,6 @@
       return renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share", {
         observedSeriesName: "Scenario pro share",
       });
-    }
-    if (mount.chartId === "sortedness_bucket_summary") {
-      return renderSimpleBar(mount, rows, "bucket_minutes", "alphabetical_ratio", "alphabetical ratio");
-    }
-    if (mount.chartId === "sortedness_kendall_tau_summary") {
-      return renderSimpleBar(
-        mount,
-        rows,
-        "bucket_minutes",
-        "mean_abs_kendall_tau",
-        "mean abs kendall tau"
-      );
-    }
-    if (mount.chartId === "sortedness_minute_spikes") {
-      return renderSimpleBar(mount, rows, "minute_bucket", "n_records", "records");
-    }
-    if (mount.chartId === "rare_names_weird_scores") {
-      return renderSimpleBar(mount, rows, "sample_name", "weirdness_score", "weirdness");
-    }
-    if (mount.chartId === "org_anomalies_bursts") {
-      return renderSimpleBar(mount, rows, "minute_bucket", "n", "count");
-    }
-    if (mount.chartId === "org_anomalies_top_orgs") {
-      return renderSimpleBar(mount, rows, "organization_clean", "n", "count");
     }
     if (mount.chartId === "voter_registry_match_by_position") {
       return renderSimpleBar(mount, rows, "position_normalized", "match_rate", "match rate", {
@@ -8077,10 +7940,6 @@
         expectedBandName: "Stable band",
       });
     }
-    if (mount.chartId === "composite_high_priority") {
-      return renderSimpleBar(mount, rows, "minute_bucket", "composite_score", "score");
-    }
-
     const timeField = inferTimeField(rows);
     if (timeField) {
       const fields = numericFields(rows[0]);
@@ -10333,99 +10192,6 @@
       ]);
       tableNames = tableNames.filter((name) => !hiddenVoterSurfaceTables.has(name));
     }
-    if (analysis.id === "composite_score" && Array.isArray(reportData.evidence_bundle_preview || [])) {
-      const evidenceDetails = document.createElement("details");
-      evidenceDetails.className = "table-group";
-      evidenceDetails.open = true;
-      const evidenceSummary = document.createElement("summary");
-      evidenceSummary.textContent = humanizeTableSectionHeader("evidence_bundle_preview");
-      decorateTableSummaryAnchor(evidenceSummary, analysis.id, "evidence_bundle_preview");
-      evidenceDetails.appendChild(evidenceSummary);
-      const evidenceWrap = document.createElement("div");
-      evidenceWrap.className = "table-wrap";
-      const evidenceHost = document.createElement("div");
-      evidenceHost.className = "table-host";
-      const evidenceRows = reportData.evidence_bundle_preview || [];
-      renderTableHelpCard(
-        evidenceWrap,
-        "composite_score.evidence_bundle_preview",
-        evidenceRows
-      );
-      evidenceWrap.appendChild(evidenceHost);
-      evidenceDetails.appendChild(evidenceWrap);
-      mountTable(evidenceHost, evidenceRows, {
-        paginationSize: 10,
-        maxHeight: "380px",
-        tableKey: "composite_score.evidence_bundle_preview",
-      });
-      container.appendChild(evidenceDetails);
-    }
-
-    if (analysis.id === "rare_names") {
-      const rarityTables = [
-        ["rarity_coverage_preview", reportData.rarity_coverage_preview || []],
-        ["rarity_unmatched_first_preview", reportData.rarity_unmatched_first_preview || []],
-        ["rarity_unmatched_last_preview", reportData.rarity_unmatched_last_preview || []],
-      ];
-      const rarityTableKeys = {
-        rarity_coverage_preview: "rare_names.rarity_coverage_preview",
-        rarity_unmatched_first_preview: "rare_names.rarity_unmatched_first_preview",
-        rarity_unmatched_last_preview: "rare_names.rarity_unmatched_last_preview",
-      };
-      rarityTables.forEach((entry, index) => {
-        const rows = Array.isArray(entry[1]) ? entry[1] : [];
-        if (!rows.length) {
-          return;
-        }
-        const details = document.createElement("details");
-        details.className = "table-group";
-        details.open = index === 0;
-        const summary = document.createElement("summary");
-        summary.textContent = humanizeTableSectionHeader(entry[0]);
-        decorateTableSummaryAnchor(summary, analysis.id, entry[0]);
-        details.appendChild(summary);
-        const wrap = document.createElement("div");
-        wrap.className = "table-wrap";
-        const host = document.createElement("div");
-        host.className = "table-host";
-        renderTableHelpCard(wrap, rarityTableKeys[entry[0]] || "", rows);
-        wrap.appendChild(host);
-        details.appendChild(wrap);
-        mountTable(host, rows, {
-          paginationSize: 8,
-          maxHeight: "320px",
-          tableKey: rarityTableKeys[entry[0]] || "",
-        });
-        container.appendChild(details);
-      });
-    }
-
-    if (analysis.id === "periodicity" && Array.isArray(reportData.clockface_top_preview || [])) {
-      const rows = reportData.clockface_top_preview || [];
-      if (rows.length) {
-        const details = document.createElement("details");
-        details.className = "table-group";
-        details.open = true;
-        const summary = document.createElement("summary");
-        summary.textContent = humanizeTableSectionHeader("clockface_top_preview");
-        decorateTableSummaryAnchor(summary, analysis.id, "clockface_top_preview");
-        details.appendChild(summary);
-        const wrap = document.createElement("div");
-        wrap.className = "table-wrap";
-        const host = document.createElement("div");
-        host.className = "table-host";
-        renderTableHelpCard(wrap, "periodicity.clockface_top_preview", rows);
-        wrap.appendChild(host);
-        details.appendChild(wrap);
-        mountTable(host, rows, {
-          paginationSize: 8,
-          maxHeight: "300px",
-          tableKey: "periodicity.clockface_top_preview",
-        });
-        container.appendChild(details);
-      }
-    }
-
     tableNames.forEach((tableName, index) => {
       const sourceRows = detectorTables[tableName] || [];
       let rows = sourceRows;
@@ -12126,7 +11892,6 @@
       "bursts",
       "procon_swings",
       "duplicates_exact",
-      "rare_names",
     ];
     const available = requiredAnalyses.filter((analysisId) =>
       !!chartShardEntryForAnalysis(analysisId)

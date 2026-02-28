@@ -35,6 +35,12 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     assert "duplicates_exact_top_name_timing_loose" not in duplicates_exact["detail_chart_ids"]
     off_hours = next(entry for entry in definitions if entry["id"] == "off_hours")
     assert "off_hours_model_fit_diagnostics" not in off_hours["detail_chart_ids"]
+    org = next(entry for entry in definitions if entry["id"] == "org_anomalies")
+    assert org["detail_chart_ids"] == ["org_anomalies_position_rates"]
+    assert org["expected_metric_keys"] == [
+        "blank_org_ratio",
+        "blank_org_gap_pro_minus_con",
+    ]
     voter = next(entry for entry in definitions if entry["id"] == "voter_registry_match")
     assert "voter_registry_position_bounds" in voter["detail_chart_ids"]
     assert "voter_registry_pairwise_tests" not in voter["detail_chart_ids"]

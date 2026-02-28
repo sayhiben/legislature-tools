@@ -37,11 +37,11 @@ class AnalysisDefinition:
 # Temporary analysis scope for active development.
 # Uncomment analyses to run/render; leave empty to run/render the full pack.
 ANALYSES_TO_PERFORM: tuple[str, ...] = (
-    # "baseline_profile",
-    # "bursts",
+    "baseline_profile",
+    "bursts",
     # "procon_swings",
     "duplicates_exact",
-    # "org_anomalies",
+    "org_anomalies",
     "voter_registry_match",
     "off_hours",
 )
@@ -80,12 +80,15 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         detail_chart_ids=(
             "bursts_significance_by_window",
             "bursts_composition_shift",
-            "bursts_null_distribution",
         ),
-        how_to_read="Burst windows compare observed local volume to expected background volume.",
+        how_to_read=(
+            "Start with burst windows over time, then confirm each burst's duration and "
+            "position-specific impact magnitude."
+        ),
         what_to_look_for=(
-            "Repeated high-rate-ratio windows with composition shifts at multiple "
-            "window sizes rather than isolated spikes."
+            "Sustained windows with clear excess volume where pro/con impact counts are "
+            "materially imbalanced, and where merged burst durations extend beyond a "
+            "single isolated minute."
         ),
         common_benign_causes=(
             "Agenda release timing and outbound campaign alerts can generate short-lived "
@@ -180,19 +183,20 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         hero_chart_id="org_anomalies_blank_rate",
         detail_chart_ids=(
             "org_anomalies_position_rates",
-            "org_anomalies_bursts",
-            "org_anomalies_top_orgs",
         ),
-        how_to_read="Track blank-organization share with Wilson intervals and per-position splits.",
+        how_to_read=(
+            "Track overall blank-organization rate over time first, then compare "
+            "blank-rate differences by position in the same windows."
+        ),
         what_to_look_for=(
-            "Blank-rate surges that persist across higher-volume windows and one position "
-            "side."
+            "Sustained blank-rate elevation in bucketed timelines, and consistent Pro/Con "
+            "separation in position-specific blank rates across adjacent windows."
         ),
         common_benign_causes=(
             "Form UX and campaign guidance often increase legitimate blank organization "
             "submissions."
         ),
-        expected_metric_keys=("total_submissions",),
+        expected_metric_keys=("blank_org_ratio", "blank_org_gap_pro_minus_con"),
     ),
     AnalysisDefinition(
         id="voter_registry_match",

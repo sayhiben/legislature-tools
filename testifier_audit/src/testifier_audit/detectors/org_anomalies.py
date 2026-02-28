@@ -271,37 +271,33 @@ class OrganizationAnomaliesDetector(Detector):
 
         nonblank = working[working["organization_clean"] != ""].copy()
 
-        org_counts = (
-            nonblank.groupby("organization_clean", dropna=True)
-            .agg(
-                n=("id", "count"),
-                n_pro=("position_normalized", lambda s: int((s == "Pro").sum())),
-                n_con=("position_normalized", lambda s: int((s == "Con").sum())),
-                first_seen=("timestamp", "min"),
-                last_seen=("timestamp", "max"),
-            )
-            .reset_index()
-            .sort_values("n", ascending=False)
-        )
-
-        minute_org_counts = (
-            nonblank.groupby(["minute_bucket", "organization_clean"], dropna=True)
-            .agg(n=("id", "count"))
-            .reset_index()
-            .sort_values("n", ascending=False)
-        )
-        if not minute_org_counts.empty:
-            threshold = float(minute_org_counts["n"].quantile(0.99))
-            org_bursts = minute_org_counts[minute_org_counts["n"] >= max(2.0, threshold)].copy()
-            org_bursts["threshold"] = threshold
-        else:
-            org_bursts = minute_org_counts
-
         low_power_min_total = DEFAULT_LOW_POWER_MIN_TOTAL
         by_bucket, by_bucket_position, by_bucket_summary = _organization_blank_rate_tables(
             working,
             bucket_minutes=self.bucket_minutes,
             low_power_min_total=low_power_min_total,
+        )
+
+        pro_total = int((working["position_normalized"] == "Pro").sum())
+        con_total = int((working["position_normalized"] == "Con").sum())
+        pro_blank = int(
+            ((working["position_normalized"] == "Pro") & (working["organization_is_blank"]))
+            .sum()
+        )
+        con_blank = int(
+            ((working["position_normalized"] == "Con") & (working["organization_is_blank"]))
+            .sum()
+        )
+        pro_blank_org_rate = (
+            float(pro_blank / pro_total) if pro_total > 0 else None
+        )
+        con_blank_org_rate = (
+            float(con_blank / con_total) if con_total > 0 else None
+        )
+        blank_org_gap_pro_minus_con = (
+            float(pro_blank_org_rate - con_blank_org_rate)
+            if pro_blank_org_rate is not None and con_blank_org_rate is not None
+            else None
         )
 
         summary = {
@@ -312,9 +308,9 @@ class OrganizationAnomaliesDetector(Detector):
             "blank_org_ratio": float((working["organization_is_blank"]).mean())
             if len(working)
             else 0.0,
-            "max_org_minute_count": int(minute_org_counts["n"].max())
-            if not minute_org_counts.empty
-            else 0,
+            "pro_blank_org_rate": pro_blank_org_rate,
+            "con_blank_org_rate": con_blank_org_rate,
+            "blank_org_gap_pro_minus_con": blank_org_gap_pro_minus_con,
             "organization_blank_bucket_minutes": [int(value) for value in self.bucket_minutes],
             "low_power_min_total": int(low_power_min_total),
             "n_low_power_blank_org_buckets": int(by_bucket["is_low_power"].sum())
@@ -326,8 +322,6 @@ class OrganizationAnomaliesDetector(Detector):
             detector=self.name,
             summary=summary,
             tables={
-                "organization_counts": org_counts,
-                "organization_minute_bursts": org_bursts,
                 "organization_blank_rate_by_bucket": by_bucket,
                 "organization_blank_rate_by_bucket_position": by_bucket_position,
                 "organization_blank_rate_summary": by_bucket_summary,

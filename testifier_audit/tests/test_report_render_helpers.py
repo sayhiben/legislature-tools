@@ -555,14 +555,25 @@ def test_render_report_json_payload_does_not_include_nan_literals(tmp_path: Path
     (out_dir / "figures").mkdir(parents=True)
 
     results = {
-        "multivariate_anomalies": DetectorResult(
-            detector="multivariate_anomalies",
-            summary={"max_anomaly_score": float("nan")},
+        "bursts": DetectorResult(
+            detector="bursts",
+            summary={"max_rate_ratio": float("nan")},
             tables={
-                "bucket_anomaly_scores": pd.DataFrame(
+                "burst_window_tests": pd.DataFrame(
                     {
-                        "bucket_start": [pd.Timestamp("2026-02-01T00:00:00Z")],
-                        "anomaly_score": [float("nan")],
+                        "window_minutes": [5],
+                        "bucket_minutes": [5],
+                        "start_minute": [pd.Timestamp("2026-02-01T00:00:00Z")],
+                        "end_minute": [pd.Timestamp("2026-02-01T00:05:00Z")],
+                        "observed_count": [10],
+                        "expected_count": [12],
+                        "rate_ratio": [float("nan")],
+                        "pro_rate": [0.4],
+                        "baseline_pro_rate": [0.5],
+                        "delta_pro_rate": [-0.1],
+                        "abs_delta_pro_rate": [0.1],
+                        "is_low_power": [False],
+                        "is_significant": [False],
                     }
                 )
             },
@@ -853,7 +864,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "voter_registry_match_tiers" in js_text
     voter_rates_block_start = js_text.find("voter_registry_match_rates: {")
     voter_rates_block_end = js_text.find(
-        "multivariate_score_timeline:",
+        "procon_swings_direction_runs:",
         voter_rates_block_start if voter_rates_block_start >= 0 else 0,
     )
     assert voter_rates_block_start >= 0 and voter_rates_block_end > voter_rates_block_start
@@ -881,7 +892,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "function humanizeTableColumnHeader(field)" in js_text
     assert "function humanizeTableSectionHeader(value)" in js_text
     assert "title: humanizeTableColumnHeader(field)," in js_text
-    assert "summary.textContent = humanizeTableSectionHeader(entry[0]);" in js_text
+    assert "summary.textContent = tableTitle;" in js_text
     assert 'summary.textContent = "per_name_duplicates";' not in js_text
     assert 'summary.textContent = "clockface_top_preview";' not in js_text
     assert 'evidenceSummary.textContent = "evidence_bundle_preview";' not in js_text

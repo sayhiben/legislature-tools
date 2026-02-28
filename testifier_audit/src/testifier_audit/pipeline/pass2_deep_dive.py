@@ -19,9 +19,6 @@ from testifier_audit.report.analysis_registry import (
 )
 from testifier_audit.viz.distributions import (
     plot_burst_null_distribution,
-    plot_periodicity_autocorrelation,
-    plot_periodicity_clockface,
-    plot_periodicity_spectrum,
     plot_swing_null_distribution,
 )
 from testifier_audit.viz.heatmaps import (
@@ -30,7 +27,6 @@ from testifier_audit.viz.heatmaps import (
 )
 from testifier_audit.viz.time_series import (
     plot_counts_with_annotations,
-    plot_multivariate_anomaly_scores,
     plot_organization_blank_rates,
     plot_pro_rate_bucket_trends,
     plot_pro_rate_with_annotations,
@@ -65,15 +61,11 @@ def _remove_stale_overlay_figures(paths: OutputPaths, figure_suffix: str) -> Non
         "pro_rate_with_anomalies",
         "bursts_null_distribution",
         "swing_null_distribution",
-        "periodicity_autocorr",
-        "periodicity_spectrum",
-        "periodicity_clockface",
         "pro_rate_heatmap_day_hour",
         "pro_rate_bucket_trends",
         "pro_rate_time_of_day_profiles",
         "organization_blank_rates",
         "voter_registry_match_rates",
-        "multivariate_anomaly_scores",
     }
     for bucket_minutes in (1, 5, 15, 30, 60, 120, 240):
         figure_names.add(f"pro_rate_heatmap_day_hour_{int(bucket_minutes)}m")
@@ -115,28 +107,16 @@ def _render_detector_figures(
     voter_match_by_bucket = feature_context.get(
         "voter_registry_match.match_by_bucket", pd.DataFrame()
     )
-    multivariate_scores = feature_context.get(
-        "multivariate_anomalies.bucket_anomaly_scores", pd.DataFrame()
-    )
-    periodicity_autocorr = feature_context.get("periodicity.autocorr", pd.DataFrame())
-    periodicity_spectrum = feature_context.get("periodicity.spectrum_top", pd.DataFrame())
-    periodicity_clockface = feature_context.get(
-        "periodicity.clockface_distribution", pd.DataFrame()
-    )
-    volume_changes = feature_context.get("changepoints.volume_changepoints", pd.DataFrame())
-    pro_rate_changes = feature_context.get("changepoints.pro_rate_changepoints", pd.DataFrame())
 
     try:
         plot_counts_with_annotations(
             counts_per_minute=counts,
             burst_windows=bursts,
-            volume_changepoints=volume_changes,
             output_path=paths.figures / f"counts_with_anomalies.{figure_suffix}",
         )
         plot_pro_rate_with_annotations(
             counts_per_minute=counts,
             swing_windows=swings,
-            pro_rate_changepoints=pro_rate_changes,
             output_path=paths.figures / f"pro_rate_with_anomalies.{figure_suffix}",
         )
         plot_burst_null_distribution(
@@ -148,18 +128,6 @@ def _render_detector_figures(
             null_distribution=swing_null_distribution,
             swing_tests=swing_tests,
             output_path=paths.figures / f"swing_null_distribution.{figure_suffix}",
-        )
-        plot_periodicity_autocorrelation(
-            autocorr=periodicity_autocorr,
-            output_path=paths.figures / f"periodicity_autocorr.{figure_suffix}",
-        )
-        plot_periodicity_spectrum(
-            spectrum_top=periodicity_spectrum,
-            output_path=paths.figures / f"periodicity_spectrum.{figure_suffix}",
-        )
-        plot_periodicity_clockface(
-            clockface_distribution=periodicity_clockface,
-            output_path=paths.figures / f"periodicity_clockface.{figure_suffix}",
         )
         plot_pro_rate_day_hour_heatmap(
             counts_per_minute=counts,
@@ -210,10 +178,6 @@ def _render_detector_figures(
         plot_voter_registry_match_rates(
             match_by_bucket=voter_match_by_bucket,
             output_path=paths.figures / f"voter_registry_match_rates.{figure_suffix}",
-        )
-        plot_multivariate_anomaly_scores(
-            bucket_anomaly_scores=multivariate_scores,
-            output_path=paths.figures / f"multivariate_anomaly_scores.{figure_suffix}",
         )
     except Exception:  # pragma: no cover
         LOGGER.exception("Failed rendering detector overlay figures")

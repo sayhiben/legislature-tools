@@ -56,23 +56,6 @@ class CalibrationConfig(BaseModel):
     support_alpha: float = Field(default=0.1, gt=0, lt=1)
 
 
-class ChangePointConfig(BaseModel):
-    enabled: bool = True
-    min_segment_minutes: int = Field(default=30, ge=2)
-    penalty_scale: float = Field(default=3.0, gt=0.0)
-
-
-class PeriodicityConfig(BaseModel):
-    enabled: bool = True
-    max_lag_minutes: int = Field(default=180, ge=2)
-    min_period_minutes: float = Field(default=5.0, gt=0.0)
-    max_period_minutes: float = Field(default=720.0, gt=0.0)
-    top_n_periods: int = Field(default=20, ge=1)
-    calibration_iterations: int = Field(default=100, ge=0)
-    random_seed: int = Field(default=42, ge=0)
-    fdr_alpha: float = Field(default=0.05, gt=0.0, lt=1.0)
-
-
 class NamesConfig(BaseModel):
     strip_punctuation: bool = True
     normalize_unicode: bool = True
@@ -123,13 +106,6 @@ class NameAnalysisConfig(BaseModel):
     contextual_baseline_path: str | None = None
 
 
-class RarityConfig(BaseModel):
-    enabled: bool = False
-    first_name_frequency_path: str | None = None
-    last_name_frequency_path: str | None = None
-    epsilon: float = Field(default=1e-9, gt=0.0, lt=1.0)
-
-
 class InputConfig(BaseModel):
     mode: Literal["csv", "postgres"] = "csv"
     db_url: str | None = None
@@ -151,15 +127,6 @@ class VoterRegistryConfig(BaseModel):
     pairwise_alpha: float = Field(default=0.05, gt=0.0, lt=1.0)
     status_mode: Literal["single", "dual_bounds"] = "single"
     registry_snapshot_date: str | None = None
-
-
-class MultivariateAnomalyConfig(BaseModel):
-    enabled: bool = True
-    bucket_minutes: int = Field(default=15, ge=1)
-    contamination: float = Field(default=0.03, gt=0.0, le=0.5)
-    min_bucket_total: int = Field(default=25, ge=1)
-    top_n: int = Field(default=50, ge=1)
-    random_seed: int = Field(default=42, ge=0)
 
 
 class OutputsConfig(BaseModel):
@@ -192,16 +159,10 @@ class AppConfig(BaseModel):
     windows: WindowsConfig = Field(default_factory=WindowsConfig)
     thresholds: ThresholdsConfig = Field(default_factory=ThresholdsConfig)
     calibration: CalibrationConfig = Field(default_factory=CalibrationConfig)
-    changepoints: ChangePointConfig = Field(default_factory=ChangePointConfig)
-    periodicity: PeriodicityConfig = Field(default_factory=PeriodicityConfig)
     names: NamesConfig = Field(default_factory=NamesConfig)
     name_analysis: NameAnalysisConfig = Field(default_factory=NameAnalysisConfig)
-    rarity: RarityConfig = Field(default_factory=RarityConfig)
     input: InputConfig = Field(default_factory=InputConfig)
     voter_registry: VoterRegistryConfig = Field(default_factory=VoterRegistryConfig)
-    multivariate_anomaly: MultivariateAnomalyConfig = Field(
-        default_factory=MultivariateAnomalyConfig
-    )
     report: ReportConfig = Field(default_factory=ReportConfig)
     off_hours: OffHoursConfig = Field(default_factory=OffHoursConfig)
     outputs: OutputsConfig = Field(default_factory=OutputsConfig)
@@ -243,14 +204,6 @@ def load_config(path: Path) -> AppConfig:
 
     config.names.nickname_map_path = (
         _resolve_optional_path(config.names.nickname_map_path, base_dir) or ""
-    )
-    config.rarity.first_name_frequency_path = _resolve_optional_path(
-        config.rarity.first_name_frequency_path,
-        base_dir,
-    )
-    config.rarity.last_name_frequency_path = _resolve_optional_path(
-        config.rarity.last_name_frequency_path,
-        base_dir,
     )
     config.input.hearing_metadata_path = _resolve_optional_path(
         config.input.hearing_metadata_path,

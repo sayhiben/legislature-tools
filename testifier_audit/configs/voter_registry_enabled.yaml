@@ -33,21 +33,6 @@ calibration:
   random_seed: 42
   support_alpha: 0.1
 
-changepoints:
-  enabled: true
-  min_segment_minutes: 30
-  penalty_scale: 3.0
-
-periodicity:
-  enabled: true
-  max_lag_minutes: 180
-  min_period_minutes: 5.0
-  max_period_minutes: 720.0
-  top_n_periods: 20
-  calibration_iterations: 100
-  random_seed: 42
-  fdr_alpha: 0.05
-
 names:
   strip_punctuation: true
   normalize_unicode: true
@@ -83,12 +68,6 @@ name_analysis:
   position_interval_draws: 5000
   position_claim_min_rows_per_position: 25
   contextual_baseline_path:
-
-rarity:
-  enabled: false
-  first_name_frequency_path:
-  last_name_frequency_path:
-  epsilon: 1.0e-9
 
 input:
   mode: "postgres"

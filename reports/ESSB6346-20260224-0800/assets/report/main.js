@@ -3804,7 +3804,36 @@
     const lineField = config.lineField;
     const lineLow = config.lineLow;
     const lineHigh = config.lineHigh;
-    const extraLines = Array.isArray(config.extraLines) ? config.extraLines : [];
+    const extraLineSpecs = Array.isArray(config.extraLines)
+      ? config.extraLines
+          .map((entry) => {
+            if (typeof entry === "string") {
+              const field = entry.trim();
+              if (!field) {
+                return null;
+              }
+              return {
+                field: field,
+                name: "",
+              };
+            }
+            if (!entry || typeof entry !== "object") {
+              return null;
+            }
+            const field = String(entry.field || "").trim();
+            if (!field) {
+              return null;
+            }
+            const name = String(entry.name || "").trim();
+            return {
+              field: field,
+              name: name,
+            };
+          })
+          .filter((entry) => entry !== null)
+      : [];
+    const extraLineFields = extraLineSpecs.map((entry) => entry.field);
+    const extraLinesBeforeBounds = toBool(config.extraLinesBeforeBounds);
     const barAxisLines = Array.isArray(config.barAxisLines)
       ? config.barAxisLines
           .map((field) => (typeof field === "string" ? field.trim() : ""))
@@ -4142,7 +4171,7 @@
     };
     const adaptiveLineAxisFields = Array.isArray(config.adaptiveLineRangeFields)
       ? config.adaptiveLineRangeFields
-      : [lineField, lineLow, lineHigh].concat(extraLines);
+      : [lineField, lineLow, lineHigh].concat(extraLineFields);
     const adaptiveLineAxisRange = adaptiveLineRange
       ? resolveAdaptiveLineAxisRange(adaptiveLineAxisFields)
       : null;
@@ -4235,6 +4264,25 @@
       series: [],
     };
 
+    const appendExtraLineSeries = () => {
+      extraLineSpecs.forEach((spec, index) => {
+        const extraLineStyle = styleForExtraLine(spec.field, index, mount.chartId);
+        option.series.push({
+          name: spec.name || spec.field.replace(/_/g, " "),
+          type: "line",
+          yAxisIndex: lineAxisIndex,
+          data: sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[spec.field])]),
+          showSymbol: false,
+          lineStyle: {
+            color: colorForExtraLine(spec.field, index),
+            width: extraLineStyle.width,
+            type: extraLineStyle.type,
+            opacity: extraLineStyle.opacity,
+          },
+        });
+      });
+    };
+
     if (hasStackedBars) {
       const stackId = "stacked-bars-" + mount.chartId;
       stackedBarFields.forEach((spec, index) => {
@@ -4325,6 +4373,9 @@
         });
       }
     }
+    if (extraLinesBeforeBounds) {
+      appendExtraLineSeries();
+    }
     if (lineLow && lineHigh && !sparseMode && shadeWilsonBand) {
       const stackId = "wilson-band-" + mount.chartId;
       const bandBaseData = sorted.map((row) => {
@@ -4408,23 +4459,9 @@
         },
       });
     }
-
-    extraLines.forEach((field, index) => {
-      const extraLineStyle = styleForExtraLine(field, index, mount.chartId);
-      option.series.push({
-        name: field.replace(/_/g, " "),
-        type: "line",
-        yAxisIndex: lineAxisIndex,
-        data: sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[field])]),
-        showSymbol: false,
-        lineStyle: {
-          color: colorForExtraLine(field, index),
-          width: extraLineStyle.width,
-          type: extraLineStyle.type,
-          opacity: extraLineStyle.opacity,
-        },
-      });
-    });
+    if (!extraLinesBeforeBounds) {
+      appendExtraLineSeries();
+    }
     barAxisLines.forEach((field, index) => {
       const barLineStyle = styleForExtraLine(field, index, mount.chartId);
       option.series.push({
@@ -7844,7 +7881,8 @@
         lineLow: "pro_blank_org_rate_wilson_low",
         lineHigh: "pro_blank_org_rate_wilson_high",
         lineSeriesName: "Pro blank org rate",
-        extraLines: ["con_blank_org_rate", "unknown_blank_org_rate"],
+        extraLines: [{ field: "con_blank_org_rate", name: "Con blank org rate" }],
+        extraLinesBeforeBounds: true,
         lowPowerField: "pro_is_low_power",
         barAxisName: "Positioned rows",
         lineAxisName: "Blank org rate by position",
@@ -10275,6 +10313,7 @@
         "match_by_bucket_position",
         "position_pairwise_tests",
         "sensitivity_modes",
+        "unmatched_names",
       ]);
       tableNames = tableNames.filter((name) => !hiddenVoterSurfaceTables.has(name));
     }
@@ -10369,12 +10408,6 @@
       container.appendChild(details);
     });
 
-    if (!container.childElementCount) {
-      const empty = document.createElement("p");
-      empty.className = "empty-message";
-      empty.textContent = "No preview tables available for this analysis.";
-      container.appendChild(empty);
-    }
   }
 
   async function renderChartMount(mount) {

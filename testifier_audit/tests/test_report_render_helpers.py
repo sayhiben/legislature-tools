@@ -758,6 +758,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "buildTableSummaryAnchorId(" in js_text
     assert 'setAttribute("data-toc-entry", "table")' in js_text
     assert "summary.toc-entry-anchor" in js_text
+    assert "No preview tables available for this analysis." not in js_text
     assert "initializeLinkedZoomOnLoad()" in js_text
     assert "updateSectionViewControlsForHeading" in js_text
     assert "bucketSelectorLabel" in js_text
@@ -959,6 +960,10 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "stackedBarFields" in org_position_block
     assert '{ field: "n_pro", name: "Pro volume", color: "contextLine", opacity: 0.44 }' in org_position_block
     assert '{ field: "n_con", name: "Con volume", color: "alertLower", opacity: 0.44 }' in org_position_block
+    assert 'lineSeriesName: "Pro blank org rate"' in org_position_block
+    assert '{ field: "con_blank_org_rate", name: "Con blank org rate" }' in org_position_block
+    assert "extraLinesBeforeBounds: true" in org_position_block
+    assert "unknown_blank_org_rate" not in org_position_block
     assert 'barField: "n_total"' not in org_position_block
     voter_rates_block_start = js_text.find("voter_registry_match_rates: {")
     voter_rates_block_end = js_text.find(
@@ -971,6 +976,14 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert '"unmatched_rate",' not in voter_rates_block
     assert '"control_low_998_match_global"' not in voter_rates_block
     assert '"control_high_998_match_global"' not in voter_rates_block
+    hidden_voter_tables_start = js_text.find("const hiddenVoterSurfaceTables = new Set([")
+    hidden_voter_tables_end = js_text.find(
+        "]);",
+        hidden_voter_tables_start if hidden_voter_tables_start >= 0 else 0,
+    )
+    assert hidden_voter_tables_start >= 0 and hidden_voter_tables_end > hidden_voter_tables_start
+    hidden_voter_tables_block = js_text[hidden_voter_tables_start:hidden_voter_tables_end]
+    assert '"unmatched_names"' in hidden_voter_tables_block
     assert 'pageStateKey: "voterUnmatchedNamesPage"' in js_text
     assert "pageSize: 10" in js_text
     assert "maxPages: 10" in js_text

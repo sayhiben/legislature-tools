@@ -3534,7 +3534,7 @@ def _build_interactive_chart_payload_v2(
     if not voter_unmatched_top.empty and "match_mode" in voter_unmatched_top.columns:
         voter_unmatched_top = voter_unmatched_top.groupby(
             "match_mode", dropna=False, group_keys=False
-        ).head(50)
+        ).head(100)
     charts["voter_registry_unmatched_names"] = _records_from_frame(
         voter_unmatched_top,
         columns=[

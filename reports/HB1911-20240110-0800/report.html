@@ -10,7 +10,7 @@
 />
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/dist/tippy.css" />
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/themes/light-border.css" />
-<link rel="stylesheet" href="assets/report/report.css?v=a201fc04fda6" />  </head>
+<link rel="stylesheet" href="assets/report/report.css?v=fa20c317bd75" />  </head>
   <body>
 
     <div class="page-shell" id="page-shell">
@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-27T17:05:43.807694-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-27T17:54:21.022005-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -400,12 +400,12 @@
       <p><strong>What is this?</strong> Observed versus expected duplicated-anywhere presence over time (rows or distinct names). This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
       <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
       <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Rows, Observed duplicated-anywhere count, Expected duplicated-anywhere count.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Positioned rows, Observed duplicated-anywhere count, Expected duplicated-anywhere count.</p>
       <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
       <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
       <p><strong>Legend guide:</strong> Observed versus expected duplicated-anywhere presence over time (rows or distinct names).</p>
         <ul>
-            <li><strong>Rows:</strong> Total rows in each bucket.</li>
+            <li><strong>Positioned rows:</strong> Stacked Pro/Con row counts in each bucket (desaturated context bars).</li>
             <li><strong>Observed duplicated-anywhere count:</strong> Line shows the selected unit count in each bucket for names that are duplicated anywhere in the timeline.</li>
             <li><strong>Expected duplicated-anywhere count:</strong> Volume-share expectation for the selected unit (bucket rows * global duplicated-anywhere share).</li>
         </ul>
@@ -543,16 +543,19 @@
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Legend semantics for this chart. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>What is this?</strong> Position-level observed versus baseline duplicate counts over time, split by position and metric. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
       <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
       <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Primary series, Axes.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Rows in position bucket, Observed duplicate count, <Position> baseline, <Position> low-power, Low-power.</p>
       <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
       <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
-      <p><strong>Legend guide:</strong> Legend semantics for this chart.</p>
+      <p><strong>Legend guide:</strong> Position-level observed versus baseline duplicate counts over time, split by position and metric.</p>
         <ul>
-            <li><strong>Primary series:</strong> Main plotted signal for duplicates exact position bucket deviance.</li>
-            <li><strong>Axes:</strong> X-axis encodes time/category context; Y-axis encodes magnitude or rate.</li>
+            <li><strong>Rows in position bucket:</strong> Bar height is total rows available in each position bucket.</li>
+            <li><strong>Observed duplicate count:</strong> Solid lines show observed duplicate count in each position bucket for the selected position/metric series.</li>
+            <li><strong><Position> baseline:</strong> Dashed line for expected duplicate count under the position-aware baseline for the same position/metric series.</li>
+            <li><strong><Position> low-power:</strong> Triangle markers on observed points where support is too sparse for robust inference.</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
         </ul>
   </div>
 </details>
@@ -708,13 +711,13 @@
               <details class="chart-help-card">
   <summary>Chart Help</summary>
   <div class="chart-help-body">
-      <p><strong>What is this?</strong> Top unmatched names by row count (chart keeps top 50 and pages through up to 10 pages; table preview shows first 50 rows). This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>What is this?</strong> Top unmatched names by row count (chart keeps top 100 and pages 10 names per page, up to 10 pages; table preview shows first 50 rows). This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
       <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
       <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
       <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Bar height, X-axis.</p>
       <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
       <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
-      <p><strong>Legend guide:</strong> Top unmatched names by row count (chart keeps top 50 and pages through up to 10 pages; table preview shows first 50 rows).</p>
+      <p><strong>Legend guide:</strong> Top unmatched names by row count (chart keeps top 100 and pages 10 names per page, up to 10 pages; table preview shows first 50 rows).</p>
         <ul>
             <li><strong>Bar height:</strong> Count of unmatched rows for each display name.</li>
             <li><strong>X-axis:</strong> Display names for unmatched rows.</li>
@@ -748,7 +751,7 @@
       <p><strong>What is this?</strong> Off-hours control timeline with primary baseline overlays (model when available, day-adjusted fallback otherwise). This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
       <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
       <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
-      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Submission count, Pro rate, Wilson low / Wilson high, Wilson interval area, expected pro rate primary, control low 95 primary / control high 95 primary, expected pro rate day, expected pro rate global, control low 95 global / control high 95 global, SPC-only flag, FDR-only flag, Robust alert run span, Robust lower-tail alert / Robust upper-tail alert, Low-power.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Submission count, Pro rate, Wilson low / Wilson high, expected pro rate primary, control low 95 primary / control high 95 primary, expected pro rate global, Inferentially tested windows, SPC-only flag, FDR-only flag, Robust alert run span, Robust lower-tail alert / Robust upper-tail alert, Low-power.</p>
       <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
       <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
       <p><strong>Legend guide:</strong> Off-hours control timeline with primary baseline overlays (model when available, day-adjusted fallback otherwise).</p>
@@ -756,14 +759,12 @@
             <li><strong>Submission count:</strong> Total records per bucket for support context.</li>
             <li><strong>Pro rate:</strong> Observed pro share by bucket, with Wilson uncertainty and primary expected/control-band overlays.</li>
             <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
-            <li><strong>Wilson interval area:</strong> Shaded region between Wilson low and Wilson high.</li>
             <li><strong>expected pro rate primary:</strong> Primary expected pro share (model when available, day-adjusted fallback otherwise).</li>
             <li><strong>control low 95 primary / control high 95 primary:</strong> Primary 95% control limits around the primary baseline.</li>
-            <li><strong>expected pro rate day:</strong> Day-adjusted expected pro share comparator.</li>
             <li><strong>expected pro rate global:</strong> Hearing-level expected pro share comparator.</li>
-            <li><strong>control low 95 global / control high 95 global:</strong> Global 95% control limits for contextual comparison.</li>
-            <li><strong>SPC-only flag:</strong> Window passed the SPC 99.8% control-limit channel but not the FDR channel.</li>
-            <li><strong>FDR-only flag:</strong> Window passed the two-sided FDR channel but not the SPC 99.8% channel.</li>
+            <li><strong>Inferentially tested windows:</strong> Alert-eligible windows that are not low-power; SPC/FDR channels are evaluated on this tested subset.</li>
+            <li><strong>SPC-only flag:</strong> SPC = Statistical Process Control. Window crossed the primary 99.8% control channel but did not also pass the FDR channel.</li>
+            <li><strong>FDR-only flag:</strong> FDR = False Discovery Rate control on multiple tested windows. Window passed the two-sided FDR channel but not the SPC 99.8% channel.</li>
             <li><strong>Robust alert run span:</strong> Shaded x-range for contiguous robust-alert runs.</li>
             <li><strong>Robust lower-tail alert / Robust upper-tail alert:</strong> Alert-eligible windows beyond the primary 99.8% control limits with tail-consistent FDR support and material effect size. Shaded spans mark contiguous robust-alert runs (lower or upper tail).</li>
             <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
@@ -805,22 +806,21 @@
       <p><strong>What is this?</strong> Funnel plot of pro share versus support with primary and global control references. This scatter plot maps each bucket as a point in feature space, often with color and size as additional signals. It is a relationship view, showing joint behavior rather than a single metric over time.</p>
       <p><strong>Why this matters:</strong> Scatter views expose joint-feature structure, clusters, and outliers that are not visible in one-dimensional summaries. They help determine whether anomalies are isolated outliers or part of a broader feature-space regime.</p>
       <p><strong>How to interpret:</strong> Read axis meaning first, then evaluate whether outliers are isolated or part of a cluster. Use color/size encodings to understand confidence and support. Cross-reference extreme points with time-based charts to determine whether they are single events or repeated states.</p>
-      <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: On-hours/mixed windows, Off-hours windows, Inferentially tested off-hours, SPC-only flag, FDR-only flag, Robust lower-tail alert, Robust upper-tail alert, Low-power windows, Global expected rate, Global 95% lower / Global 95% upper, Global 99.8% lower / Global 99.8% upper, Y-axis scaling.</p>
+      <p><strong>What to look for:</strong> Look for detached point clouds, extreme tails, and dense anomaly clusters that align with flagged windows. A compact cluster far from baseline often carries more weight than one far-away point with low support. Legend components: On-hours/mixed windows, Off-hours windows, Inferentially tested off-hours, SPC-only flag, FDR-only flag, Robust lower-tail alert, Robust upper-tail alert, Low-power windows, Global expected rate, Global 95% lower / Global 95% upper, Y-axis scaling.</p>
       <p><strong>Momentary high/low:</strong> A single extreme point may be a one-off event or model artifact. Validate with timeline charts and table support counts. Momentary lows are usually returns toward baseline and are often benign unless paired with abrupt nearby outliers.</p>
       <p><strong>Extended high/low:</strong> Large persistent outlier clusters imply broad feature-space drift. Extended low-intensity clustering implies stable baseline behavior. Sustained dual-cluster structure can indicate mixed populations or alternating operational modes.</p>
       <p><strong>Legend guide:</strong> Funnel plot of pro share versus support with primary and global control references.</p>
         <ul>
             <li><strong>On-hours/mixed windows:</strong> Reference windows outside off-hours dominance (or mixed windows).</li>
             <li><strong>Off-hours windows:</strong> All off-hours-dominant windows regardless of inferential support.</li>
-            <li><strong>Inferentially tested off-hours:</strong> Off-hours windows that are alert-eligible and not low-power.</li>
-            <li><strong>SPC-only flag:</strong> SPC 99.8% channel hit without two-sided FDR channel support.</li>
-            <li><strong>FDR-only flag:</strong> Two-sided FDR channel hit without SPC 99.8% channel support.</li>
+            <li><strong>Inferentially tested off-hours:</strong> Off-hours windows that are alert-eligible and not low-power; only these feed SPC/FDR inferential channels.</li>
+            <li><strong>SPC-only flag:</strong> SPC = Statistical Process Control. Window hit the primary 99.8% channel without two-sided FDR support.</li>
+            <li><strong>FDR-only flag:</strong> FDR = False Discovery Rate control. Window hit the two-sided FDR channel without SPC 99.8% channel support.</li>
             <li><strong>Robust lower-tail alert:</strong> Robust lower-tail primary alert (99.8% lower breach + FDR support + material effect).</li>
             <li><strong>Robust upper-tail alert:</strong> Robust upper-tail primary alert (99.8% upper breach + FDR support + material effect).</li>
             <li><strong>Low-power windows:</strong> Alert-eligible windows excluded from inferential claims by low support.</li>
             <li><strong>Global expected rate:</strong> Global expected pro share as a function of support.</li>
             <li><strong>Global 95% lower / Global 95% upper:</strong> Global 95% control envelope.</li>
-            <li><strong>Global 99.8% lower / Global 99.8% upper:</strong> Global 99.8% extreme-tail control envelope.</li>
             <li><strong>Y-axis scaling:</strong> The pro-rate axis uses a tail-stretch transform so dense extreme-tail regions remain readable instead of collapsing at chart boundaries.</li>
         </ul>
   </div>
@@ -894,6 +894,6 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/theme/roma.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
-    <script type="module" src="assets/report/main.js?v=192a11146614"></script>
+    <script type="module" src="assets/report/main.js?v=3ba2b4ac6e84"></script>
   </body>
 </html>

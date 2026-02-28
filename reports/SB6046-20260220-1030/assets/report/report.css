@@ -1204,7 +1204,7 @@ code {
   margin-top: 0.82rem;
   display: grid;
   gap: 0.82rem;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
 }
 
 .analysis-detail-grid.analysis-detail-grid-compact {
@@ -1217,11 +1217,21 @@ code {
   border-radius: 10px;
   background: var(--surface-alt);
   padding: 0.66rem;
+  grid-column: 1 / -1;
 }
 
 .detail-card.detail-card-half {
-  justify-self: start;
-  width: min(100%, calc((100% - 0.82rem) / 2));
+  grid-column: span 6;
+  min-width: 0;
+  width: 100%;
+}
+
+.analysis-detail-grid.analysis-detail-grid-compact .detail-card {
+  grid-column: auto;
+}
+
+.analysis-detail-grid.analysis-detail-grid-compact .detail-card.detail-card-half {
+  grid-column: auto;
 }
 
 .detail-card.detail-card-compact {
@@ -2207,7 +2217,12 @@ tr.duplicate-name-inline-detail-row > td {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .detail-card {
+    grid-column: 1 / -1;
+  }
+
   .detail-card.detail-card-half {
+    grid-column: 1 / -1;
     width: 100%;
   }
 

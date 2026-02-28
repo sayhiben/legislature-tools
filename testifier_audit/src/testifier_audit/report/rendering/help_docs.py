@@ -976,10 +976,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ),
             extra=[
                 {
-                    "label": "Wilson interval area",
-                    "description": "Shaded region between Wilson low and Wilson high.",
-                },
-                {
                     "label": "expected pro rate primary",
                     "description": (
                         "Primary expected pro share (model when available, day-adjusted fallback otherwise)."
@@ -990,27 +986,28 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Primary 95% control limits around the primary baseline.",
                 },
                 {
-                    "label": "expected pro rate day",
-                    "description": "Day-adjusted expected pro share comparator.",
-                },
-                {
                     "label": "expected pro rate global",
                     "description": "Hearing-level expected pro share comparator.",
                 },
                 {
-                    "label": "control low 95 global / control high 95 global",
-                    "description": "Global 95% control limits for contextual comparison.",
+                    "label": "Inferentially tested windows",
+                    "description": (
+                        "Alert-eligible windows that are not low-power; SPC/FDR channels are evaluated "
+                        "on this tested subset."
+                    ),
                 },
                 {
                     "label": "SPC-only flag",
                     "description": (
-                        "Window passed the SPC 99.8% control-limit channel but not the FDR channel."
+                        "SPC = Statistical Process Control. Window crossed the primary 99.8% control "
+                        "channel but did not also pass the FDR channel."
                     ),
                 },
                 {
                     "label": "FDR-only flag",
                     "description": (
-                        "Window passed the two-sided FDR channel but not the SPC 99.8% channel."
+                        "FDR = False Discovery Rate control on multiple tested windows. Window passed "
+                        "the two-sided FDR channel but not the SPC 99.8% channel."
                     ),
                 },
                 {
@@ -1040,16 +1037,23 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {
                     "label": "Inferentially tested off-hours",
                     "description": (
-                        "Off-hours windows that are alert-eligible and not low-power."
+                        "Off-hours windows that are alert-eligible and not low-power; only these "
+                        "feed SPC/FDR inferential channels."
                     ),
                 },
                 {
                     "label": "SPC-only flag",
-                    "description": "SPC 99.8% channel hit without two-sided FDR channel support.",
+                    "description": (
+                        "SPC = Statistical Process Control. Window hit the primary 99.8% channel "
+                        "without two-sided FDR support."
+                    ),
                 },
                 {
                     "label": "FDR-only flag",
-                    "description": "Two-sided FDR channel hit without SPC 99.8% channel support.",
+                    "description": (
+                        "FDR = False Discovery Rate control. Window hit the two-sided FDR channel "
+                        "without SPC 99.8% channel support."
+                    ),
                 },
                 {
                     "label": "Robust lower-tail alert",
@@ -1074,10 +1078,6 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 {
                     "label": "Global 95% lower / Global 95% upper",
                     "description": "Global 95% control envelope.",
-                },
-                {
-                    "label": "Global 99.8% lower / Global 99.8% upper",
-                    "description": "Global 99.8% extreme-tail control envelope.",
                 },
                 {
                     "label": "Y-axis scaling",
@@ -1273,8 +1273,8 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ),
             include_low_power=False,
             include_wilson=False,
-            volume_label="Rows",
-            volume_desc="Total rows in each bucket.",
+            volume_label="Positioned rows",
+            volume_desc="Stacked Pro/Con row counts in each bucket (desaturated context bars).",
             extra=[
                 {
                     "label": "Expected duplicated-anywhere count",
@@ -1377,6 +1377,37 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                 },
             ],
         },
+        "duplicates_exact_position_bucket_deviance": timebar(
+            summary=(
+                "Position-level observed versus baseline duplicate counts over time, split by "
+                "position and metric."
+            ),
+            primary_label="Observed duplicate count",
+            primary_desc=(
+                "Solid lines show observed duplicate count in each position bucket for the selected "
+                "position/metric series."
+            ),
+            include_low_power=True,
+            include_wilson=False,
+            volume_label="Rows in position bucket",
+            volume_desc="Bar height is total rows available in each position bucket.",
+            extra=[
+                {
+                    "label": "<Position> baseline",
+                    "description": (
+                        "Dashed line for expected duplicate count under the position-aware baseline "
+                        "for the same position/metric series."
+                    ),
+                },
+                {
+                    "label": "<Position> low-power",
+                    "description": (
+                        "Triangle markers on observed points where support is too sparse for robust "
+                        "inference."
+                    ),
+                },
+            ],
+        ),
         "duplicates_exact_null_distribution": {
             "summary": "Monte Carlo null distribution for duplicate burden metrics.",
             "items": [
@@ -1590,8 +1621,8 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "voter_registry_unmatched_names": {
             "summary": (
-                "Top unmatched names by row count (chart keeps top 50 and pages through up to 10 pages; "
-                "table preview shows first 50 rows)."
+                "Top unmatched names by row count (chart keeps top 100 and pages 10 names per page, "
+                "up to 10 pages; table preview shows first 50 rows)."
             ),
             "items": [
                 {

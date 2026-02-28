@@ -863,7 +863,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert '"control_low_998_match_global"' not in voter_rates_block
     assert '"control_high_998_match_global"' not in voter_rates_block
     assert 'pageStateKey: "voterUnmatchedNamesPage"' in js_text
-    assert "pageSize: 5" in js_text
+    assert "pageSize: 10" in js_text
     assert "maxPages: 10" in js_text
     assert "linkage_overview_bounds" in js_text
     assert "position_pairwise_tests" in js_text

@@ -3772,6 +3772,36 @@
     const theme = currentChartTheme();
     const timeField = config.timeField;
     const barField = config.barField;
+    const stackedBarFields = Array.isArray(config.stackedBarFields)
+      ? config.stackedBarFields
+          .map((entry) => {
+            if (!entry || typeof entry !== "object") {
+              return null;
+            }
+            const field = String(entry.field || "").trim();
+            if (!field) {
+              return null;
+            }
+            const name = String(entry.name || field.replace(/_/g, " ")).trim();
+            const opacityRaw = toFiniteNumberOrNull(entry.opacity);
+            const opacity = opacityRaw === null ? null : Math.max(0, Math.min(1, opacityRaw));
+            const colorKey = String(entry.color || "").trim();
+            const color =
+              colorKey && Object.prototype.hasOwnProperty.call(theme, colorKey)
+                ? theme[colorKey]
+                : colorKey || null;
+            return {
+              field: field,
+              name: name,
+              color: color,
+              opacity: opacity,
+            };
+          })
+          .filter((entry) => entry !== null)
+      : [];
+    const hasStackedBars = stackedBarFields.length > 0;
+    const hasBarAxis = !!barField || hasStackedBars;
+    const lineAxisIndex = hasBarAxis ? 1 : 0;
     const lineField = config.lineField;
     const lineLow = config.lineLow;
     const lineHigh = config.lineHigh;
@@ -3886,6 +3916,15 @@
     const barData = barField
       ? sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[barField])])
       : [];
+    const stackedBarDataByField = new Map();
+    if (hasStackedBars) {
+      stackedBarFields.forEach((spec) => {
+        stackedBarDataByField.set(
+          spec.field,
+          sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[spec.field])])
+        );
+      });
+    }
     const lineData = lineField
       ? sorted.map((row) => [
           row.__time,
@@ -4174,7 +4213,7 @@
       grid: { left: 56, right: 56, top: 18, bottom: 88 },
       xAxis: { type: "time", name: "Time (" + reportTimezoneLabel + ")" },
       yAxis: [
-        barField
+        hasBarAxis
           ? { type: "value", name: config.barAxisName || "Volume" }
           : Object.assign({}, lineAxisBase),
         Object.assign({}, lineAxisBase),
@@ -4197,7 +4236,26 @@
       series: [],
     };
 
-      if (barField) {
+    if (hasStackedBars) {
+      const stackId = "stacked-bars-" + mount.chartId;
+      stackedBarFields.forEach((spec, index) => {
+        option.series.push({
+          id: index === 0 ? mainSeriesId : undefined,
+          name: spec.name,
+          type: "bar",
+          stack: stackId,
+          yAxisIndex: 0,
+          data: stackedBarDataByField.get(spec.field) || [],
+          barMaxWidth: 11,
+          itemStyle: {
+            color: spec.color || theme.volumeBar,
+            opacity: spec.opacity === null ? theme.volumeBarOpacity : spec.opacity,
+          },
+          markLine:
+            index === 0 ? appendCursorMarkLine(mount.baseMarkLines || []) : undefined,
+        });
+      });
+    } else if (barField) {
       option.series.push({
         id: mainSeriesId,
         name: config.barSeriesName || "Volume",
@@ -4225,17 +4283,17 @@
       if (sparseMode) {
         option.series.push({
           name: (config.lineSeriesName || "Value") + " (tested windows)",
-            type: "scatter",
-            yAxisIndex: barField ? 1 : 0,
-            data: sparsePointData,
-            symbolSize: 7,
-            itemStyle: { color: config.lineColor || theme.primaryLine, opacity: 0.9 },
-          });
+          type: "scatter",
+          yAxisIndex: lineAxisIndex,
+          data: sparsePointData,
+          symbolSize: 7,
+          itemStyle: { color: config.lineColor || theme.primaryLine, opacity: 0.9 },
+        });
         if (sparseErrorbarData.length) {
           option.series.push({
             name: "Wilson low (tested)",
             type: "line",
-            yAxisIndex: barField ? 1 : 0,
+            yAxisIndex: lineAxisIndex,
             data: sparseErrorbarData.map((row) => [row[0], row[1]]),
             showSymbol: false,
             lineStyle: {
@@ -4247,7 +4305,7 @@
           option.series.push({
             name: "Wilson high (tested)",
             type: "line",
-            yAxisIndex: barField ? 1 : 0,
+            yAxisIndex: lineAxisIndex,
             data: sparseErrorbarData.map((row) => [row[0], row[2]]),
             showSymbol: false,
             lineStyle: {
@@ -4261,7 +4319,7 @@
         option.series.push({
           name: config.lineSeriesName || "Value",
           type: "line",
-          yAxisIndex: barField ? 1 : 0,
+          yAxisIndex: lineAxisIndex,
           data: lineData,
           showSymbol: false,
           lineStyle: { color: config.lineColor || theme.primaryLine, width: 1.6 },
@@ -4296,7 +4354,7 @@
       });
       option.series.push({
         type: "line",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: bandBaseData,
         stack: stackId,
         showSymbol: false,
@@ -4309,7 +4367,7 @@
       option.series.push({
         name: "Wilson interval area",
         type: "line",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: bandSpanData,
         stack: stackId,
         showSymbol: false,
@@ -4327,7 +4385,7 @@
       option.series.push({
         name: "Wilson low",
         type: "line",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: lowData,
         showSymbol: false,
         lineStyle: {
@@ -4341,7 +4399,7 @@
       option.series.push({
         name: "Wilson high",
         type: "line",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: highData,
         showSymbol: false,
         lineStyle: {
@@ -4357,7 +4415,7 @@
       option.series.push({
         name: field.replace(/_/g, " "),
         type: "line",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[field])]),
         showSymbol: false,
         lineStyle: {
@@ -4436,7 +4494,7 @@
         option.series.push({
           name: "Robust alert run span",
           type: "line",
-          yAxisIndex: barField ? 1 : 0,
+          yAxisIndex: lineAxisIndex,
           data: sorted.map((row) => [row.__time, null]),
           showSymbol: false,
           tooltip: { show: false },
@@ -4457,7 +4515,7 @@
       option.series.push({
         name: "Robust lower-tail alert",
         type: "scatter",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: robustLowerData,
         symbol: "diamond",
         symbolSize: denseOffHoursMarkers ? 9 : 10,
@@ -4473,7 +4531,7 @@
       option.series.push({
         name: "Robust upper-tail alert",
         type: "scatter",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: robustUpperData,
         symbol: "triangle",
         symbolSize: denseOffHoursMarkers ? 9 : 10,
@@ -4489,7 +4547,7 @@
       option.series.push({
         name: "SPC-only flag",
         type: "scatter",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: spcOnlyData,
         symbol: "rect",
         symbolSize: denseOffHoursMarkers ? 7 : 8,
@@ -4505,7 +4563,7 @@
       option.series.push({
         name: "FDR-only flag",
         type: "scatter",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: fdrOnlyData,
         symbol: "circle",
         symbolSize: denseOffHoursMarkers ? 7 : 8,
@@ -4521,7 +4579,7 @@
       option.series.push({
         name: "Flagged",
         type: "scatter",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: genericFlagData,
         symbol: "diamond",
         symbolSize: denseOffHoursMarkers ? 8 : 9,
@@ -4537,7 +4595,7 @@
       option.series.push({
         name: "Low-power",
         type: "scatter",
-        yAxisIndex: barField ? 1 : 0,
+        yAxisIndex: lineAxisIndex,
         data: lowPowerData,
         symbol: "triangle",
         symbolRotate: 180,
@@ -5147,8 +5205,6 @@
         high998Primary: toFiniteNumberOrNull(row.control_high_998_primary),
         low95Global: toFiniteNumberOrNull(row.control_low_95_global),
         high95Global: toFiniteNumberOrNull(row.control_high_95_global),
-        low998Global: toFiniteNumberOrNull(row.control_low_998_global),
-        high998Global: toFiniteNumberOrNull(row.control_high_998_global),
         zDay: toFiniteNumberOrNull(row.z_score_day),
         zPrimary: toFiniteNumberOrNull(row.z_score_primary),
         deltaPrimary: toFiniteNumberOrNull(row.delta_pro_rate_primary),
@@ -5246,12 +5302,6 @@
     const high95Series = curveRows
       .filter((entry) => entry.row.high95Global !== null)
       .map((entry) => [entry.n, toTailStretchScale(entry.row.high95Global)]);
-    const low998Series = curveRows
-      .filter((entry) => entry.row.low998Global !== null)
-      .map((entry) => [entry.n, toTailStretchScale(entry.row.low998Global)]);
-    const high998Series = curveRows
-      .filter((entry) => entry.row.high998Global !== null)
-      .map((entry) => [entry.n, toTailStretchScale(entry.row.high998Global)]);
 
     const scaledValues = sorted
       .map((row) => toTailStretchScale(row.proRate))
@@ -5446,13 +5496,7 @@
           },
         },
       grid: { left: 66, right: 36, top: 18, bottom: 60 },
-      legend: {
-          bottom: 0,
-          selected: {
-            "Global 99.8% lower": false,
-            "Global 99.8% upper": false,
-          },
-        },
+      legend: { bottom: 0 },
       xAxis: {
           type: "log",
           name: "Known Pro+Con Count (n)",
@@ -5578,20 +5622,6 @@
             data: high95Series,
             showSymbol: false,
             lineStyle: { color: theme.intervalBand, width: 0.95, type: "dashed", opacity: 0.43 },
-          },
-          {
-            name: "Global 99.8% lower",
-            type: "line",
-            data: low998Series,
-            showSymbol: false,
-            lineStyle: { color: theme.intervalBand, width: 0.85, type: "dotted", opacity: 0.28 },
-          },
-          {
-            name: "Global 99.8% upper",
-            type: "line",
-            data: high998Series,
-            showSymbol: false,
-            lineStyle: { color: theme.intervalBand, width: 0.85, type: "dotted", opacity: 0.28 },
           },
         ],
     };
@@ -5916,6 +5946,7 @@
     const bucketLabel = bucketLabelFromValue(mount.activeBucket);
     const option = {
       animation: false,
+      color: [theme.contextLine, theme.alertLower],
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow" },
@@ -6496,6 +6527,7 @@
 
     const option = {
       animation: false,
+      color: [theme.contextLine, theme.alertLower],
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow" },
@@ -6537,6 +6569,7 @@
       },
       legend: {
         top: 4,
+        data: ["Pro", "Con"],
         textStyle: { color: theme.axisText },
       },
       grid: { left: 64, right: 20, top: 58, bottom: 94 },
@@ -6557,10 +6590,12 @@
           type: "bar",
           stack: "position-count",
           barMaxWidth: 22,
+          itemStyle: {
+            color: theme.contextLine,
+          },
           data: limited.map((row) => ({
             value: row.nPro,
             itemStyle: {
-              color: theme.contextLine,
               opacity: row.nPro > 0 ? 0.9 : 0.0,
             },
           })),
@@ -6570,10 +6605,12 @@
           type: "bar",
           stack: "position-count",
           barMaxWidth: 22,
+          itemStyle: {
+            color: theme.alertLower,
+          },
           data: limited.map((row) => ({
             value: row.nCon,
             itemStyle: {
-              color: theme.alertLower,
               opacity: row.nCon > 0 ? 0.9 : 0.0,
             },
           })),
@@ -7645,7 +7682,6 @@
         lineField: "pro_rate",
         lineLow: "pro_rate_wilson_low",
         lineHigh: "pro_rate_wilson_high",
-        shadeWilsonBand: true,
         lowPowerField: "is_low_power",
         flaggedField: "is_primary_two_sided_alert_window",
         inferentialWindowField: "is_alert_off_hours_window",
@@ -7657,10 +7693,7 @@
           "expected_pro_rate_primary",
           "control_low_95_primary",
           "control_high_95_primary",
-          "expected_pro_rate_day",
           "expected_pro_rate_global",
-          "control_low_95_global",
-          "control_high_95_global",
         ],
         lineAxisName: "Pro rate",
         lineMin: 0,
@@ -7751,11 +7784,15 @@
       },
       duplicates_exact_bucket_concentration: {
         timeField: "bucket_start",
-        barField: "n_rows",
+        barField: null,
+        stackedBarFields: [
+          { field: "n_pro", name: "Pro volume", color: "contextLine", opacity: 0.44 },
+          { field: "n_con", name: "Con volume", color: "alertLower", opacity: 0.44 },
+        ],
         lineField: "duplicate_rows",
         extraLines: ["expected_duplicate_rows"],
         lineAxisName: "Duplicated count",
-        barAxisName: "Total rows",
+        barAxisName: "Positioned rows",
       },
       sortedness_bucket_ratio: {
         timeField: "bucket_start",
@@ -8009,7 +8046,7 @@
     if (mount.chartId === "voter_registry_unmatched_names") {
       return renderSimpleBar(mount, rows, "display_name", "n_records", "count", {
         pageStateKey: "voterUnmatchedNamesPage",
-        pageSize: 5,
+        pageSize: 10,
         maxPages: 10,
         pageLabel: "Names",
       });
@@ -10270,6 +10307,7 @@
     }
     if (analysis.id === "off_hours") {
       const hiddenOffHoursSurfaceTables = new Set([
+        "off_hours_summary",
         "window_control_profile",
         "model_fit_diagnostics",
         "hourly_distribution",
@@ -10295,13 +10333,6 @@
       ]);
       tableNames = tableNames.filter((name) => !hiddenVoterSurfaceTables.has(name));
     }
-    if (isOffHoursFocusOnly && analysis.id === "off_hours") {
-      const preferred = ["off_hours_summary"];
-      tableNames = preferred.filter((name) =>
-        Object.prototype.hasOwnProperty.call(detectorTables, name)
-      );
-    }
-
     if (analysis.id === "composite_score" && Array.isArray(reportData.evidence_bundle_preview || [])) {
       const evidenceDetails = document.createElement("details");
       evidenceDetails.className = "table-group";

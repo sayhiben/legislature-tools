@@ -1365,7 +1365,7 @@ def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract
     assert payload["charts"]["duplicates_exact_null_distribution"]
 
 
-def test_voter_registry_unmatched_names_chart_is_capped_to_top_50() -> None:
+def test_voter_registry_unmatched_names_chart_is_capped_to_top_100() -> None:
     unmatched_rows = pd.DataFrame(
         [
             {
@@ -1380,7 +1380,7 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_50() -> None:
                 "best_similarity_score": 0.5,
                 "candidate_pool_size": 3,
             }
-            for index in range(75)
+            for index in range(175)
         ]
     )
     payload = _build_interactive_chart_payload_v2(
@@ -1424,7 +1424,7 @@ def test_voter_registry_unmatched_names_chart_is_capped_to_top_50() -> None:
     )
 
     chart_rows = payload["charts"]["voter_registry_unmatched_names"]
-    assert len(chart_rows) == 50
+    assert len(chart_rows) == 100
     assert [row["n_records"] for row in chart_rows] == sorted(
         [row["n_records"] for row in chart_rows],
         reverse=True,

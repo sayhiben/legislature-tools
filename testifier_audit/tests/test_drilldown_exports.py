@@ -4,12 +4,14 @@ from pathlib import Path
 
 from testifier_audit.report.render import render_report
 
+from ._report_js_assets import load_report_js_corpus
+
 
 def test_report_template_includes_drilldown_and_export_runtime_hooks(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
     rendered = report_path.read_text(encoding="utf-8")
-    js_text = (out_dir / "assets" / "report" / "main.js").read_text(encoding="utf-8")
+    js_text = load_report_js_corpus(out_dir)
 
     assert 'id="download-selected-window-rows"' not in rendered
     assert 'id="download-top-evidence-windows"' not in rendered

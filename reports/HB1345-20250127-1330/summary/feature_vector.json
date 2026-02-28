@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "report_id": "HB1345-20250127-1330",
-  "generated_at_utc": "2026-02-28T01:53:50.409778+00:00",
+  "generated_at_utc": "2026-02-28T22:50:16.303498+00:00",
   "lens": "side_by_side",
   "date_range_start": "2025-01-25T12:54:00-08:00",
   "date_range_end": "2025-01-27T11:51:00-08:00",
@@ -28,6 +28,8 @@
     "window_min_q_value": null,
     "top_name_max_records": 2,
     "off_hours_ratio": 0.014925373134328358,
+    "blank_org_ratio": 0.7164179104477612,
+    "blank_org_gap_pro_minus_con": -0.6979591836734693,
     "dedup_drop_fraction": 0.0
   },
   "top_repeated_names": [

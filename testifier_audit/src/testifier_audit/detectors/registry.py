@@ -53,6 +53,8 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             nickname_map_path=config.names.nickname_map_path,
             status_mode=config.voter_registry.status_mode,
             registry_snapshot_date=config.voter_registry.registry_snapshot_date,
+            lookup_cache_dir=config.voter_registry.lookup_cache_dir,
+            lookup_cache_db_snapshot=config.voter_registry.lookup_cache_db_snapshot,
         ),
         DuplicatesExactDetector(
             top_n=config.thresholds.top_duplicate_names,

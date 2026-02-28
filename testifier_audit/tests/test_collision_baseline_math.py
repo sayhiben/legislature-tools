@@ -5,13 +5,15 @@ import math
 import numpy as np
 import pandas as pd
 
+from testifier_audit.names import collision_baseline as collision_baseline_module
 from testifier_audit.names.collision_baseline import (
     expected_collision_metrics,
     expected_collision_metrics_from_probabilities,
-    histogram_from_probabilities,
     histogram_from_name_counts,
+    histogram_from_probabilities,
     simulate_collision_null_from_histogram,
 )
+from testifier_audit.profiling import RuntimeProfiler, activate_runtime_profiler
 
 
 def _hist_from_counts(values: list[int]) -> pd.DataFrame:
@@ -143,3 +145,118 @@ def test_histogram_from_probabilities_builds_nonempty_distribution() -> None:
     assert not histogram.empty
     assert set(histogram.columns) == {"name_count", "n_keys", "N"}
     assert int(histogram["N"].iloc[0]) > 0
+
+
+def test_collision_simulation_emits_runtime_profile_events() -> None:
+    histogram = _hist_from_counts([50, 40, 20, 10, 5, 2, 1, 1])
+    profiler = RuntimeProfiler()
+    with activate_runtime_profiler(profiler):
+        samples = simulate_collision_null_from_histogram(
+            n_rows=120,
+            histogram=histogram,
+            draws=25,
+            max_draws=25,
+            rng=np.random.default_rng(2026),
+            baseline_model="multinomial",
+        )
+    assert not samples.empty
+
+    profile = profiler.to_dict()
+    timings = profile["timings"]
+    counters = profile["counters"]
+    assert "simulation.collision_null_from_histogram" in timings
+    assert timings["simulation.collision_null_from_histogram"]["calls"] == 1
+    assert counters["simulation.collision_null_from_histogram.draws_effective"] == 25
+
+
+def test_collision_simulation_heavy_calls_use_parallel_executor(
+    monkeypatch,
+) -> None:
+    class _FakeProcessPoolExecutor:
+        entered = 0
+        exited = 0
+        map_calls = 0
+
+        def __init__(self, *, max_workers: int):
+            self.max_workers = int(max_workers)
+
+        def __enter__(self):
+            _FakeProcessPoolExecutor.entered += 1
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            _FakeProcessPoolExecutor.exited += 1
+            return False
+
+        def map(self, fn, iterable):
+            _FakeProcessPoolExecutor.map_calls += 1
+            return [fn(item) for item in iterable]
+
+    monkeypatch.setattr(collision_baseline_module, "ProcessPoolExecutor", _FakeProcessPoolExecutor)
+    monkeypatch.setattr(collision_baseline_module.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_MIN_DRAWS", 8)
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_MIN_ROWS", 2)
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_CHUNK_SIZE", 4)
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_MAX_WORKERS", 4)
+
+    histogram = _hist_from_counts([120, 80, 40, 20, 10, 5, 2, 1, 1])
+    samples = simulate_collision_null_from_histogram(
+        n_rows=100,
+        histogram=histogram,
+        draws=16,
+        max_draws=16,
+        rng=np.random.default_rng(1234),
+        baseline_model="multinomial",
+    )
+
+    assert len(samples) == 16
+    assert _FakeProcessPoolExecutor.entered == 1
+    assert _FakeProcessPoolExecutor.exited == 1
+    assert _FakeProcessPoolExecutor.map_calls == 1
+
+
+def test_collision_simulation_parallel_and_single_worker_are_deterministic(
+    monkeypatch,
+) -> None:
+    class _FakeProcessPoolExecutor:
+        def __init__(self, *, max_workers: int):
+            self.max_workers = int(max_workers)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def map(self, fn, iterable):
+            return [fn(item) for item in iterable]
+
+    monkeypatch.setattr(collision_baseline_module, "ProcessPoolExecutor", _FakeProcessPoolExecutor)
+    monkeypatch.setattr(collision_baseline_module.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_MIN_DRAWS", 8)
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_MIN_ROWS", 2)
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_CHUNK_SIZE", 4)
+
+    histogram = _hist_from_counts([90, 60, 30, 15, 8, 3, 2, 1, 1])
+
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_MAX_WORKERS", 1)
+    serial_samples = simulate_collision_null_from_histogram(
+        n_rows=80,
+        histogram=histogram,
+        draws=24,
+        max_draws=24,
+        rng=np.random.default_rng(777),
+        baseline_model="multinomial",
+    )
+
+    monkeypatch.setattr(collision_baseline_module, "_COLLISION_NULL_PARALLEL_MAX_WORKERS", 4)
+    parallel_samples = simulate_collision_null_from_histogram(
+        n_rows=80,
+        histogram=histogram,
+        draws=24,
+        max_draws=24,
+        rng=np.random.default_rng(777),
+        baseline_model="multinomial",
+    )
+
+    pd.testing.assert_frame_equal(serial_samples, parallel_samples, check_exact=True)

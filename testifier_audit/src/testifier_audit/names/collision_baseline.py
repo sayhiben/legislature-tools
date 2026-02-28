@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import math
+import os
+from concurrent.futures import ProcessPoolExecutor
+from time import perf_counter
 from typing import Literal
 
 import numpy as np
@@ -8,6 +11,7 @@ import pandas as pd
 from scipy.special import gammaln
 
 from testifier_audit.names.stat_tests import empirical_p_value_one_sided
+from testifier_audit.profiling import record_runtime_counter, record_runtime_timing
 
 CollisionMetric = Literal["pairs", "excess_rows", "repeated_group_rows"]
 
@@ -16,6 +20,11 @@ COLLISION_METRICS: tuple[CollisionMetric, ...] = (
     "excess_rows",
     "repeated_group_rows",
 )
+
+_COLLISION_NULL_PARALLEL_MIN_DRAWS = 512
+_COLLISION_NULL_PARALLEL_MIN_ROWS = 200
+_COLLISION_NULL_PARALLEL_CHUNK_SIZE = 128
+_COLLISION_NULL_PARALLEL_MAX_WORKERS = 8
 
 
 def _safe_float(value: float) -> float:
@@ -345,6 +354,46 @@ def _simulate_one_draw_from_histogram(
     return _clamp_non_negative(pairs), _clamp_non_negative(excess_rows), _clamp_non_negative(repeated_rows)
 
 
+def _draw_chunk_plan(total_draws: int, chunk_size: int) -> list[int]:
+    draws = int(max(int(total_draws), 0))
+    if draws <= 0:
+        return []
+    normalized_chunk_size = int(max(int(chunk_size), 1))
+    plan: list[int] = []
+    remaining = draws
+    while remaining > 0:
+        draw_count = min(normalized_chunk_size, remaining)
+        plan.append(int(draw_count))
+        remaining -= draw_count
+    return plan
+
+
+def _simulate_collision_chunk(
+    args: tuple[int, np.ndarray, np.ndarray, int, np.ndarray],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    n_rows, class_prob, n_key_buckets, draw_count, seed_state = args
+    n = int(max(int(n_rows), 0))
+    draws = int(max(int(draw_count), 0))
+    if n <= 0 or draws <= 0:
+        empty = np.asarray([], dtype=float)
+        return empty, empty, empty
+    rng = np.random.default_rng(np.random.SeedSequence(seed_state))
+    pairs = np.zeros(draws, dtype=float)
+    excess_rows = np.zeros(draws, dtype=float)
+    repeated_rows = np.zeros(draws, dtype=float)
+    for draw_idx in range(draws):
+        class_draw_counts = rng.multinomial(n, class_prob)
+        pairs_i, excess_rows_i, repeated_rows_i = _simulate_one_draw_from_histogram(
+            class_draw_counts=class_draw_counts,
+            n_keys=n_key_buckets,
+            rng=rng,
+        )
+        pairs[draw_idx] = pairs_i
+        excess_rows[draw_idx] = excess_rows_i
+        repeated_rows[draw_idx] = repeated_rows_i
+    return pairs, excess_rows, repeated_rows
+
+
 def simulate_collision_null_from_histogram(
     *,
     n_rows: int,
@@ -355,50 +404,136 @@ def simulate_collision_null_from_histogram(
     n_population: int | None = None,
     max_draws: int = 1000,
 ) -> pd.DataFrame:
+    started = perf_counter()
+    samples = pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
     n = int(max(int(n_rows), 0))
     n_draws = int(max(int(draws), 0))
-    if n <= 0 or n_draws <= 0:
-        return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+    limited_draws = 0
+    parallel_enabled = False
+    parallel_worker_count = 1
+    parallel_chunk_count = 0
+    parallel_fallback = False
+    try:
+        if n <= 0 or n_draws <= 0:
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
 
-    name_count, n_keys, n_pop = _extract_histogram_arrays(histogram, n_population=n_population)
-    if n_pop <= 0 or name_count.size == 0:
-        return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+        name_count, n_keys, n_pop = _extract_histogram_arrays(histogram, n_population=n_population)
+        if n_pop <= 0 or name_count.size == 0:
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
 
-    if baseline_model != "multinomial":
-        # Hypergeometric mode currently uses analytic expectations only.
-        return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+        if baseline_model != "multinomial":
+            # Hypergeometric mode currently uses analytic expectations only.
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
 
-    limited_draws = int(min(max_draws, n_draws))
-    if limited_draws <= 0:
-        return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+        limited_draws = int(min(max_draws, n_draws))
+        if limited_draws <= 0:
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
 
-    class_prob = (name_count * n_keys) / float(n_pop)
-    prob_total = float(class_prob.sum())
-    if not math.isfinite(prob_total) or prob_total <= 0.0:
-        return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
-    class_prob = class_prob / prob_total
+        class_prob = (name_count * n_keys) / float(n_pop)
+        prob_total = float(class_prob.sum())
+        if not math.isfinite(prob_total) or prob_total <= 0.0:
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+        class_prob = class_prob / prob_total
 
-    n_key_buckets = np.asarray(np.rint(n_keys), dtype=np.int64)
-    pairs = np.zeros(limited_draws, dtype=float)
-    excess_rows = np.zeros(limited_draws, dtype=float)
-    repeated_rows = np.zeros(limited_draws, dtype=float)
-    for draw_idx in range(limited_draws):
-        class_draw_counts = rng.multinomial(n, class_prob)
-        pairs_i, excess_rows_i, repeated_rows_i = _simulate_one_draw_from_histogram(
-            class_draw_counts=class_draw_counts,
-            n_keys=n_key_buckets,
-            rng=rng,
+        n_key_buckets = np.asarray(np.rint(n_keys), dtype=np.int64)
+        draw_plan = _draw_chunk_plan(
+            total_draws=limited_draws,
+            chunk_size=_COLLISION_NULL_PARALLEL_CHUNK_SIZE,
         )
-        pairs[draw_idx] = pairs_i
-        excess_rows[draw_idx] = excess_rows_i
-        repeated_rows[draw_idx] = repeated_rows_i
-    return pd.DataFrame(
-        {
-            "pairs": pairs,
-            "excess_rows": excess_rows,
-            "repeated_group_rows": repeated_rows,
-        }
-    )
+        if not draw_plan:
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+        parallel_chunk_count = int(len(draw_plan))
+        available_cpus = int(max(int(os.cpu_count() or 1), 1))
+        parallel_worker_cap = int(
+            min(
+                _COLLISION_NULL_PARALLEL_MAX_WORKERS,
+                available_cpus,
+                parallel_chunk_count,
+            )
+        )
+        parallel_worker_count = int(max(parallel_worker_cap, 1))
+        parallel_enabled = bool(
+            n >= _COLLISION_NULL_PARALLEL_MIN_ROWS
+            and limited_draws >= _COLLISION_NULL_PARALLEL_MIN_DRAWS
+            and parallel_worker_count > 1
+        )
+
+        seed_value = int(rng.integers(0, np.iinfo(np.uint64).max, dtype=np.uint64))
+        seed_sequence = np.random.SeedSequence(seed_value)
+        child_sequences = seed_sequence.spawn(parallel_chunk_count)
+        tasks: list[tuple[int, np.ndarray, np.ndarray, int, np.ndarray]] = [
+            (
+                int(n),
+                class_prob,
+                n_key_buckets,
+                int(draw_count),
+                child_sequences[idx].generate_state(4, dtype=np.uint64),
+            )
+            for idx, draw_count in enumerate(draw_plan)
+        ]
+
+        chunk_results: list[tuple[np.ndarray, np.ndarray, np.ndarray]]
+        if parallel_enabled:
+            try:
+                with ProcessPoolExecutor(max_workers=parallel_worker_count) as executor:
+                    chunk_results = list(executor.map(_simulate_collision_chunk, tasks))
+            except Exception:
+                parallel_fallback = True
+                chunk_results = [_simulate_collision_chunk(task) for task in tasks]
+        else:
+            chunk_results = [_simulate_collision_chunk(task) for task in tasks]
+
+        if not chunk_results:
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+        pairs = np.concatenate([chunk[0] for chunk in chunk_results], axis=0)
+        excess_rows = np.concatenate([chunk[1] for chunk in chunk_results], axis=0)
+        repeated_rows = np.concatenate([chunk[2] for chunk in chunk_results], axis=0)
+        samples = pd.DataFrame(
+            {
+                "pairs": pairs,
+                "excess_rows": excess_rows,
+                "repeated_group_rows": repeated_rows,
+            }
+        )
+        return samples
+    finally:
+        record_runtime_timing(
+            "simulation.collision_null_from_histogram",
+            (perf_counter() - started) * 1000.0,
+        )
+        record_runtime_counter("simulation.collision_null_from_histogram.calls", 1)
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.n_rows",
+            max(int(n_rows), 0),
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.draws_requested",
+            max(int(draws), 0),
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.draws_effective",
+            max(int(limited_draws), 0),
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.output_samples",
+            int(len(samples)),
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.parallel_enabled",
+            1 if parallel_enabled else 0,
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.parallel_workers",
+            int(parallel_worker_count),
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.parallel_chunks",
+            int(parallel_chunk_count),
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.parallel_fallback",
+            1 if parallel_fallback else 0,
+        )
 
 
 def summarize_collision_observed_vs_null(

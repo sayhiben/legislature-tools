@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
+from time import perf_counter
+from typing import Any
 
 import pandas as pd
 
@@ -11,6 +14,7 @@ from testifier_audit.detectors.registry import default_detectors
 from testifier_audit.io.write import write_summary, write_table
 from testifier_audit.paths import OutputPaths, build_output_paths
 from testifier_audit.pipeline.pass1_profile import prepare_base_dataframe
+from testifier_audit.profiling import RuntimeProfiler, activate_runtime_profiler
 from testifier_audit.report.analysis_registry import (
     configured_analysis_ids as registry_configured_analysis_ids,
 )
@@ -31,6 +35,10 @@ from testifier_audit.viz.time_series import (
 )
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _round_ms(value: float) -> float:
+    return round(float(max(value, 0.0)), 3)
 
 
 def _series_to_table(series: pd.Series, value_column: str) -> pd.DataFrame:
@@ -145,7 +153,9 @@ def run_detectors(
     config: AppConfig,
     *,
     base_df: pd.DataFrame | None = None,
+    runtime_profile_out: dict[str, Any] | None = None,
 ) -> dict[str, DetectorResult]:
+    detectors_started = perf_counter()
     paths = build_output_paths(out_dir)
     df = base_df.copy() if base_df is not None else prepare_base_dataframe(csv_path=csv_path, config=config)
 
@@ -175,32 +185,112 @@ def run_detectors(
         )
 
     results: dict[str, DetectorResult] = {}
+    detector_runtime_map: dict[str, dict[str, Any]] = {}
     for detector in detector_instances:
-        result = detector.run(df=df, features=feature_context)
+        detector_profiler = RuntimeProfiler()
+        run_started = perf_counter()
+        with activate_runtime_profiler(detector_profiler):
+            result = detector.run(df=df, features=feature_context)
+        run_ms = _round_ms((perf_counter() - run_started) * 1000.0)
+
+        write_tables_ms = 0.0
+        write_flags_ms = 0.0
+        table_rows_written = 0
+        flag_rows_written = 0
+        table_count = 0
+        flag_count = 0
+
         results[result.detector] = result
 
-        write_summary(result.summary, paths.summary / f"{result.detector}.json")
         for table_name, table in result.tables.items():
+            table_write_started = perf_counter()
             write_table(
                 table,
                 paths.tables / f"{result.detector}__{table_name}.{extension}",
                 fmt=config.outputs.tables_format,
             )
+            write_tables_ms += (perf_counter() - table_write_started) * 1000.0
             feature_context[f"{result.detector}.{table_name}"] = table
+            table_rows_written += int(len(table))
+            table_count += 1
 
         if result.record_scores is not None:
+            score_table = _series_to_table(result.record_scores, "score")
+            flag_write_started = perf_counter()
             write_table(
-                _series_to_table(result.record_scores, "score"),
+                score_table,
                 paths.flags / f"{result.detector}__record_scores.{extension}",
                 fmt=config.outputs.tables_format,
             )
+            write_flags_ms += (perf_counter() - flag_write_started) * 1000.0
+            flag_rows_written += int(len(score_table))
+            flag_count += 1
         if result.record_flags is not None:
+            flag_table = _series_to_table(result.record_flags, "flag")
+            flag_write_started = perf_counter()
             write_table(
-                _series_to_table(result.record_flags, "flag"),
+                flag_table,
                 paths.flags / f"{result.detector}__record_flags.{extension}",
                 fmt=config.outputs.tables_format,
             )
+            write_flags_ms += (perf_counter() - flag_write_started) * 1000.0
+            flag_rows_written += int(len(flag_table))
+            flag_count += 1
 
+        detector_profile_payload = detector_profiler.to_dict()
+        summary_runtime = {
+            "run_ms": run_ms,
+            "write_tables_ms": _round_ms(write_tables_ms),
+            "write_flags_ms": _round_ms(write_flags_ms),
+            "total_ms": _round_ms(run_ms + write_tables_ms + write_flags_ms),
+            "tables_written": int(table_count),
+            "table_rows_written": int(table_rows_written),
+            "flags_written": int(flag_count),
+            "flag_rows_written": int(flag_rows_written),
+            "profiling": detector_profile_payload,
+        }
+        result = DetectorResult(
+            detector=result.detector,
+            summary={**result.summary, "runtime": summary_runtime},
+            tables=result.tables,
+            record_scores=result.record_scores,
+            record_flags=result.record_flags,
+        )
+        results[result.detector] = result
+        summary_write_started = perf_counter()
+        write_summary(result.summary, paths.summary / f"{result.detector}.json")
+        summary_write_ms = _round_ms((perf_counter() - summary_write_started) * 1000.0)
+        detector_runtime_map[result.detector] = {
+            **summary_runtime,
+            "write_summary_ms": summary_write_ms,
+            "total_ms": _round_ms(summary_runtime["total_ms"] + summary_write_ms),
+        }
+
+    figure_render_ms = 0.0
     if not analysis_scope_ids:
+        figure_started = perf_counter()
         _render_detector_figures(feature_context=feature_context, out_dir=out_dir, config=config)
+        figure_render_ms = _round_ms((perf_counter() - figure_started) * 1000.0)
+
+    detector_runtime_payload = {
+        "detectors": detector_runtime_map,
+        "detector_total_ms": _round_ms(
+            sum(
+                float(runtime.get("total_ms", 0.0))
+                for runtime in detector_runtime_map.values()
+                if isinstance(runtime, dict)
+            )
+        ),
+        "figure_render_ms": _round_ms(figure_render_ms),
+        "run_detectors_total_ms": _round_ms((perf_counter() - detectors_started) * 1000.0),
+    }
+    runtime_path = paths.artifacts / "detector_runtime.json"
+    runtime_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_path.write_text(
+        json.dumps(detector_runtime_payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    if runtime_profile_out is not None:
+        runtime_profile_out.clear()
+        runtime_profile_out.update(detector_runtime_payload)
     return results

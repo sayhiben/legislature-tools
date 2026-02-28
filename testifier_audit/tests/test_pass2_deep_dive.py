@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -85,3 +86,18 @@ def test_run_detectors_scopes_execution_and_prunes_stale_outputs(
     assert not stale_table.exists()
     assert not stale_flag.exists()
     assert not stale_figure.exists()
+
+    detector_summary = json.loads((out_dir / "summary" / "off_hours.json").read_text(encoding="utf-8"))
+    assert isinstance(detector_summary.get("runtime"), dict)
+    assert detector_summary["runtime"]["run_ms"] >= 0.0
+    assert detector_summary["runtime"]["tables_written"] == 1
+    assert detector_summary["runtime"]["flags_written"] == 0
+
+    runtime_artifact = json.loads(
+        (out_dir / "artifacts" / "detector_runtime.json").read_text(encoding="utf-8")
+    )
+    assert runtime_artifact["detector_total_ms"] >= 0.0
+    assert runtime_artifact["run_detectors_total_ms"] >= 0.0
+    assert runtime_artifact["figure_render_ms"] == 0.0
+    assert "off_hours" in runtime_artifact["detectors"]
+    assert runtime_artifact["detectors"]["off_hours"]["write_summary_ms"] >= 0.0

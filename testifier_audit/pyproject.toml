@@ -59,6 +59,10 @@ where = ["src"]
   "templates/partials/*.j2",
   "static/report/*.css",
   "static/report/*.js",
+  "static/report/modules/*.js",
+  "static/report/modules/*/*.js",
+  "static/report/modules/*/*/*.js",
+  "static/report/modules/*/*/*/*.js",
 ]
 
 [tool.pytest.ini_options]

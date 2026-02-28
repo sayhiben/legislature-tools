@@ -4,7 +4,48 @@
   "date_range_end": "2026-01-13T14:59:00-08:00",
   "overall_pro_rate": 0.904258725584374,
   "overall_con_rate": 0.09317963496637849,
-  "top_burst_windows": [],
+  "top_burst_windows": [
+    {
+      "start_time": "2026-01-12T14:18:00-08:00",
+      "end_time": "2026-01-13T14:17:00-08:00",
+      "observed_count": 1557.0,
+      "expected_count": 542.9337196667874,
+      "rate_ratio": 2.867753362151777,
+      "q_value": 2.7984062099527474e-270
+    },
+    {
+      "start_time": "2026-01-12T14:41:00-08:00",
+      "end_time": "2026-01-13T14:40:00-08:00",
+      "observed_count": 1557.0,
+      "expected_count": 542.9337196667874,
+      "rate_ratio": 2.867753362151777,
+      "q_value": 2.7984062099527474e-270
+    },
+    {
+      "start_time": "2026-01-12T14:42:00-08:00",
+      "end_time": "2026-01-13T14:41:00-08:00",
+      "observed_count": 1557.0,
+      "expected_count": 542.9337196667874,
+      "rate_ratio": 2.867753362151777,
+      "q_value": 2.7984062099527474e-270
+    },
+    {
+      "start_time": "2026-01-12T14:17:00-08:00",
+      "end_time": "2026-01-13T14:16:00-08:00",
+      "observed_count": 1556.0,
+      "expected_count": 542.9337196667874,
+      "rate_ratio": 2.865911516704024,
+      "q_value": 2.7984062099527474e-270
+    },
+    {
+      "start_time": "2026-01-12T14:19:00-08:00",
+      "end_time": "2026-01-13T14:18:00-08:00",
+      "observed_count": 1556.0,
+      "expected_count": 542.9337196667874,
+      "rate_ratio": 2.865911516704024,
+      "q_value": 2.7984062099527474e-270
+    }
+  ],
   "top_swing_windows": [],
   "top_repeated_names": [
     {

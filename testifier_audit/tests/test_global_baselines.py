@@ -10,6 +10,7 @@ from testifier_audit.report.global_baselines import (
     build_leave_one_out_baseline_from_reports_dir,
     load_cross_hearing_baseline,
     normalize_leave_one_out_baseline_payload,
+    write_leave_one_out_baselines_from_reports_dir,
     write_global_baselines,
 )
 
@@ -450,3 +451,67 @@ def test_leave_one_out_baseline_handles_empty_comparison_corpus(tmp_path: Path) 
     assert payload["reason"] == "no_comparison_reports"
     assert payload["report_count"] == 0
     assert payload["comparison_report_ids"] == []
+
+
+def test_write_leave_one_out_baselines_from_reports_dir_writes_many_and_reports_failures(
+    tmp_path: Path,
+) -> None:
+    reports_dir = tmp_path / "reports"
+    target_a = reports_dir / "HB1000-20260201-1000"
+    target_b = reports_dir / "HB1001-20260201-1000"
+    _write_feature_vector(
+        target_a,
+        _feature_payload(
+            report_id=target_a.name,
+            total_submissions=210,
+            overall_pro_rate=0.41,
+            top_name_count=6,
+            off_hours_ratio=0.04,
+            dedup_drop_fraction=0.01,
+            chamber="House",
+            committee_name="Appropriations",
+        ),
+    )
+    _write_feature_vector(
+        target_b,
+        _feature_payload(
+            report_id=target_b.name,
+            total_submissions=320,
+            overall_pro_rate=0.38,
+            top_name_count=9,
+            off_hours_ratio=0.03,
+            dedup_drop_fraction=0.02,
+            chamber="House",
+            committee_name="Appropriations",
+        ),
+    )
+    for index in range(10):
+        report_dir = reports_dir / f"HB2{index:03d}-20260201-1000"
+        _write_feature_vector(
+            report_dir,
+            _feature_payload(
+                report_id=report_dir.name,
+                total_submissions=100 + index * 7,
+                overall_pro_rate=0.20 + index * 0.02,
+                top_name_count=2 + (index % 4),
+                off_hours_ratio=0.01 + index * 0.001,
+                dedup_drop_fraction=0.002 + index * 0.0005,
+                chamber="House",
+                committee_name="Finance",
+            ),
+        )
+
+    written_paths, failures = write_leave_one_out_baselines_from_reports_dir(
+        reports_dir=reports_dir,
+        target_report_ids=[target_a.name, "MISSING-REPORT", target_b.name],
+    )
+
+    assert len(written_paths) == 2
+    assert [entry["report_id"] for entry in failures] == ["MISSING-REPORT"]
+    assert [entry["reason"] for entry in failures] == ["target_report_not_found"]
+
+    for target in (target_a, target_b):
+        path = target / "summary" / "cross_hearing_baseline_loo.json"
+        assert path in written_paths
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        assert payload["target_report_id"] == target.name

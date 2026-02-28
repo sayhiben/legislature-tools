@@ -43,6 +43,8 @@ ALLOWED_NAME_KEY_COLUMNS = frozenset(
     }
 )
 ALLOWED_STRATIFICATION_MODES = frozenset({"none", "birth_decade"})
+ACTIVE_STATUS_VALUE = "Active"
+INACTIVE_STATUS_VALUE = "Inactive"
 
 
 @dataclass(frozen=True)
@@ -117,6 +119,14 @@ def _fallback_voter_key(frame: pd.DataFrame) -> pd.Series:
     return basis.map(lambda value: "NAME:" + sha1(value.encode("utf-8")).hexdigest())
 
 
+def _normalize_status_code_series(series: pd.Series) -> pd.Series:
+    normalized = series.fillna("").astype(str).str.strip()
+    lowered = normalized.str.lower()
+    normalized = normalized.mask(lowered == "active", ACTIVE_STATUS_VALUE)
+    normalized = normalized.mask(lowered == "inactive", INACTIVE_STATUS_VALUE)
+    return normalized
+
+
 def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
     if chunk.empty:
         return pd.DataFrame(
@@ -172,7 +182,7 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
     out["birth_year"] = (
         chunk[birth_year_col].fillna("").astype(str).str.strip() if birth_year_col else ""
     )
-    out["status_code"] = chunk[status_col].fillna("").astype(str).str.strip() if status_col else ""
+    out["status_code"] = _normalize_status_code_series(chunk[status_col]) if status_col else ""
     out["canonical_first"] = out["first_name"].map(normalize_name_token)
     out["canonical_last"] = out["last_name"].map(normalize_name_token)
     out["canonical_name"] = out["canonical_last"] + "|" + out["canonical_first"]
@@ -671,18 +681,20 @@ def fetch_matching_voter_keys(
     active_only: bool = True,
 ) -> pd.DataFrame:
     resolved_column = _validated_name_key_column(key_column)
-    if not key_values:
+    normalized_key_values = sorted({str(value or "").strip() for value in key_values if str(value or "").strip()})
+    if not normalized_key_values:
         return pd.DataFrame(columns=[resolved_column, "n_registry_rows"])
 
     psycopg, sql = _load_psycopg()
     rows: list[tuple[str, int]] = []
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
-            for chunk in _chunk_values(key_values, chunk_size=10_000):
+            for chunk in _chunk_values(normalized_key_values, chunk_size=10_000):
                 where_clause = sql.SQL("{} = ANY(%s)").format(sql.Identifier(resolved_column))
                 if active_only:
-                    where_clause = sql.SQL("{} AND LOWER(status_code) = 'active'").format(
-                        where_clause
+                    where_clause = sql.SQL("{} AND status_code = {}").format(
+                        where_clause,
+                        sql.SQL(f"'{ACTIVE_STATUS_VALUE}'"),
                     )
                 query = sql.SQL(
                     "SELECT {key_column}, COUNT(*)::INT AS n_registry_rows "
@@ -720,7 +732,8 @@ def fetch_voter_candidates_by_last_name(
     canonical_lasts: list[str],
     active_only: bool = True,
 ) -> pd.DataFrame:
-    if not canonical_lasts:
+    normalized_lasts = sorted({str(value or "").strip() for value in canonical_lasts if str(value or "").strip()})
+    if not normalized_lasts:
         return pd.DataFrame(
             columns=[
                 "canonical_last",
@@ -738,27 +751,27 @@ def fetch_voter_candidates_by_last_name(
     rows: list[tuple[str, str, str, str, str, str, str, int]] = []
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
-            for chunk in _chunk_values(canonical_lasts, chunk_size=10_000):
-                where_clause = sql.SQL("canonical_last = ANY(%s)")
-                if active_only:
-                    where_clause = sql.SQL("{} AND LOWER(status_code) = 'active'").format(
-                        where_clause
-                    )
-                query = sql.SQL(
-                    "SELECT canonical_last, canonical_first, canonical_name, "
-                    "canonical_middle_initial, canonical_suffix, canonical_key_strict, "
-                    "canonical_key_medium, "
-                    "COUNT(*)::INT AS n_registry_rows "
-                    "FROM {table_name} WHERE {where_clause} "
-                    "GROUP BY canonical_last, canonical_first, canonical_name, "
-                    "canonical_middle_initial, canonical_suffix, canonical_key_strict, "
-                    "canonical_key_medium"
-                ).format(
-                    table_name=sql.Identifier(table_name),
-                    where_clause=where_clause,
+            where_clause = sql.SQL("canonical_last = ANY(%s)")
+            if active_only:
+                where_clause = sql.SQL("{} AND status_code = {}").format(
+                    where_clause,
+                    sql.SQL(f"'{ACTIVE_STATUS_VALUE}'"),
                 )
-                cursor.execute(query, (chunk,))
-                rows.extend(cursor.fetchall())
+            query = sql.SQL(
+                "SELECT canonical_last, canonical_first, canonical_name, "
+                "canonical_middle_initial, canonical_suffix, canonical_key_strict, "
+                "canonical_key_medium, "
+                "COUNT(*)::INT AS n_registry_rows "
+                "FROM {table_name} WHERE {where_clause} "
+                "GROUP BY canonical_last, canonical_first, canonical_name, "
+                "canonical_middle_initial, canonical_suffix, canonical_key_strict, "
+                "canonical_key_medium"
+            ).format(
+                table_name=sql.Identifier(table_name),
+                where_clause=where_clause,
+            )
+            cursor.execute(query, (normalized_lasts,))
+            rows.extend(cursor.fetchall())
 
     if not rows:
         return pd.DataFrame(
@@ -801,7 +814,9 @@ def fetch_voter_name_key_frequencies(
         with conn.cursor() as cursor:
             where_clause = sql.SQL("TRUE")
             if active_only:
-                where_clause = sql.SQL("LOWER(status_code) = 'active'")
+                where_clause = sql.SQL("status_code = {}").format(
+                    sql.SQL(f"'{ACTIVE_STATUS_VALUE}'")
+                )
             query = sql.SQL(
                 "SELECT {key_column}, COUNT(*)::INT AS n_registry_rows "
                 "FROM {table_name} WHERE {where_clause} GROUP BY {key_column}"
@@ -830,7 +845,9 @@ def fetch_voter_name_key_count_histogram(
         with conn.cursor() as cursor:
             where_clause = sql.SQL("TRUE")
             if active_only:
-                where_clause = sql.SQL("LOWER(status_code) = 'active'")
+                where_clause = sql.SQL("status_code = {}").format(
+                    sql.SQL(f"'{ACTIVE_STATUS_VALUE}'")
+                )
             query = sql.SQL(
                 "WITH key_counts AS ("
                 "  SELECT {key_column} AS key_value, COUNT(*)::BIGINT AS name_count "
@@ -876,7 +893,9 @@ def fetch_voter_name_key_stratum_frequencies(
         with conn.cursor() as cursor:
             where_clause = sql.SQL("TRUE")
             if active_only:
-                where_clause = sql.SQL("LOWER(status_code) = 'active'")
+                where_clause = sql.SQL("status_code = {}").format(
+                    sql.SQL(f"'{ACTIVE_STATUS_VALUE}'")
+                )
             query = sql.SQL(
                 "SELECT {key_column} AS name_key, "
                 "{strat_expr} AS stratum, "
@@ -908,7 +927,9 @@ def count_registry_rows(db_url: str, table_name: str, active_only: bool = True) 
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
             where_sql = (
-                sql.SQL(" WHERE LOWER(status_code) = 'active'") if active_only else sql.SQL("")
+                sql.SQL(" WHERE status_code = {}").format(sql.SQL(f"'{ACTIVE_STATUS_VALUE}'"))
+                if active_only
+                else sql.SQL("")
             )
             query = sql.SQL("SELECT COUNT(*)::BIGINT FROM {table_name}{where_sql}").format(
                 table_name=sql.Identifier(table_name),

@@ -22,7 +22,7 @@
             <div class="sidebar-title-block">
               <h1 class="sidebar-report-title" id="sidebar-report-title">Sign-in Audit</h1>
               <p class="tiny-note sidebar-hearing-meta hidden" id="sidebar-meeting-meta"></p>
-              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-27T17:55:48.332043-08:00</code></p>
+              <p class="tiny-note sidebar-meta">Generated (America/Los_Angeles): <code>2026-02-28T14:57:12.586126-08:00</code></p>
             </div>
             <button
               id="sidebar-toggle"
@@ -292,7 +292,7 @@
       <p><strong>Legend guide:</strong> Stacked pro/con/other volume by time bucket.</p>
         <ul>
             <li><strong>Stacked columns:</strong> Each bucket stacks Pro, Con, and Other testimony counts so composition and total support are visible at once.</li>
-            <li><strong>Pro-share lines:</strong> Solid line is observed Pro share in each bucket; dashed line at 50% is the neutral split reference to highlight when sentiment is majority Pro versus majority Con.</li>
+            <li><strong>Pro-share lines:</strong> Solid line is observed Pro share in each bucket; dashed horizontal line at 50% is the neutral split reference; dashed Wilson low/high bounds show 95% uncertainty for the Pro-share estimate.</li>
             <li><strong>Axes:</strong> X-axis is bucket timestamp in report timezone; Y-axis is submission count.</li>
         </ul>
   </div>
@@ -379,6 +379,116 @@
             </div>
           </section>
 <section id="analysis-root" class="report-section">
+    <section
+      class="analysis-section"
+      id="section-bursts"
+      data-analysis-id="bursts"
+      data-analysis-status="ready"
+      data-analysis-detector="bursts"
+    >
+      <div class="analysis-header">
+        <h2 id="analysis-bursts" class="toc-heading">Burst Windows</h2>
+      </div>
+
+      <div class="analysis-hero-block">
+        <div class="chart-host chart-host-hero" data-chart-id="bursts_hero_timeline" data-chart-role="hero"></div>
+<p class="empty-message hidden" data-chart-empty-for="bursts_hero_timeline">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="bursts_hero_timeline"></p>
+        <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Detected burst windows with timing, intensity, and dominant position impact. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Observed count, Rate ratio, Low-power.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Detected burst windows with timing, intensity, and dominant position impact.</p>
+        <ul>
+            <li><strong>Observed count:</strong> Bars show observed submissions in each burst window.</li>
+            <li><strong>Rate ratio:</strong> Observed-to-expected count ratio per tested window.</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
+        </ul>
+  </div>
+</details>
+
+      </div>
+
+      <details class="analysis-help-card">
+  <summary>Analysis Help</summary>
+  <div class="analysis-help-body">
+      <p><strong>What is this?</strong> Burst Windows focuses on burst duration, excess volume, and position impact counts. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
+      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
+      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
+      <p><strong>What do I look for?</strong> Sustained windows with clear excess volume where pro/con impact counts are materially imbalanced, and where merged burst durations extend beyond a single isolated minute. Prioritize merged burst windows that last multiple minutes; single-minute spikes can be routine campaign timing noise. Use excess-count and position-impact rows to see whether Pro, Con, or both sides drive the burst and by how many submissions. When duration and excess remain elevated across adjacent windows, treat the burst as sustained and correlate with other analyses. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate legitimate synchronized outreach or one-off reminder cascades. Momentary lows can indicate short-lived spikes with little excess and no clear position dominance. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
+      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate multi-window burst periods with persistent excess and stable position impact direction. Extended lows can indicate baseline activity without concentrated burst windows. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
+      <ul>
+          <li>Prioritize merged burst windows that last multiple minutes; single-minute spikes can be routine campaign timing noise.</li>
+          <li>Use excess-count and position-impact rows to see whether Pro, Con, or both sides drive the burst and by how many submissions.</li>
+          <li>When duration and excess remain elevated across adjacent windows, treat the burst as sustained and correlate with other analyses.</li>
+      </ul>
+    <p><strong>Common benign causes:</strong> Agenda release timing and outbound campaign alerts can generate short-lived legitimate bursts.</p>
+  </div>
+</details>
+
+        <div class="analysis-detail-grid">
+            <article class="detail-card">
+              <h3 class="detail-title">Bursts Significance By Window</h3>
+              <p class="tiny-note"><code>bursts_significance_by_window</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="bursts_significance_by_window" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="bursts_significance_by_window">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="bursts_significance_by_window"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Burst duration and excess volume over time. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Duration, Excess submissions, X-axis.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Burst duration and excess volume over time.</p>
+        <ul>
+            <li><strong>Duration:</strong> Bar height shows merged burst duration in minutes for each burst period.</li>
+            <li><strong>Excess submissions:</strong> Line values show observed minus expected submissions.</li>
+            <li><strong>X-axis:</strong> Burst start time.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+            <article class="detail-card">
+              <h3 class="detail-title">Bursts Composition Shift</h3>
+              <p class="tiny-note"><code>bursts_composition_shift</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="bursts_composition_shift" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="bursts_composition_shift">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="bursts_composition_shift"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Position-specific burst impact over time. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Dominant position impact, Net position impact, Pro impact count, Con impact count, Low-power.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Position-specific burst impact over time.</p>
+        <ul>
+            <li><strong>Dominant position impact:</strong> Absolute count impact for the dominant affected position.</li>
+            <li><strong>Net position impact:</strong> Pro impact minus Con impact count in each burst window.</li>
+            <li><strong>Pro impact count:</strong> Observed Pro count minus expected Pro count in the burst window.</li>
+            <li><strong>Con impact count:</strong> Observed Con count minus expected Con count in the burst window.</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+        </div>
+
+      <div class="analysis-tables" data-analysis-tables-for="bursts"></div>
+    </section>
     <section
       class="analysis-section"
       id="section-duplicates_exact"
@@ -564,6 +674,95 @@
         </div>
 
       <div class="analysis-tables" data-analysis-tables-for="duplicates_exact"></div>
+    </section>
+    <section
+      class="analysis-section"
+      id="section-org_anomalies"
+      data-analysis-id="org_anomalies"
+      data-analysis-status="ready"
+      data-analysis-detector="org_anomalies"
+    >
+      <div class="analysis-header">
+        <h2 id="analysis-org_anomalies" class="toc-heading">Organization Field Anomalies</h2>
+      </div>
+
+      <div class="analysis-hero-block">
+        <div class="chart-host chart-host-hero" data-chart-id="org_anomalies_blank_rate" data-chart-role="hero"></div>
+<p class="empty-message hidden" data-chart-empty-for="org_anomalies_blank_rate">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="org_anomalies_blank_rate"></p>
+        <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Blank organization-rate trend with position splits. This categorical/ranked chart compares values across labels, groups, or parameter settings. It emphasizes composition and concentration instead of chronology.</p>
+      <p><strong>Why this matters:</strong> Category comparisons show concentration, imbalance, and dominance patterns that can explain why timeline signals moved. They are often the fastest way to identify which subgroup is driving a detector outcome.</p>
+      <p><strong>How to interpret:</strong> Sort by magnitude, compare head vs tail behavior, and relate category concentration to corresponding detector windows. Check both absolute values and relative spacing so you can distinguish true concentration from a uniformly low baseline.</p>
+      <p><strong>What to look for:</strong> Look for heavy concentration in a few categories, abrupt drop-offs, or rare categories with disproportionately high values. A long flat tail with one or two dominant bars often indicates a targeted driver worth validating in tables. Legend components: Positioned rows, Blank org rate, Wilson low / Wilson high, Pro blank org rate, Con blank org rate, Low-power.</p>
+      <p><strong>Momentary high/low:</strong> A single dominant category may come from one campaign event or local data artifact. Check whether the dominance repeats over time. Momentary category suppression can also happen when total volume is temporarily low.</p>
+      <p><strong>Extended high/low:</strong> Persistent dominance/absence across many categories can indicate structural participation effects rather than random variation. Extended concentration deserves follow-up to determine whether it is policy-driven outreach, operational process, or suspicious patterning.</p>
+      <p><strong>Legend guide:</strong> Blank organization-rate trend with position splits.</p>
+        <ul>
+            <li><strong>Positioned rows:</strong> Stacked Pro/Con row counts in each bucket (desaturated context bars).</li>
+            <li><strong>Blank org rate:</strong> Overall blank/null organization share per bucket.</li>
+            <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
+            <li><strong>Pro blank org rate:</strong> Blank-org share among pro records.</li>
+            <li><strong>Con blank org rate:</strong> Blank-org share among con records.</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
+        </ul>
+  </div>
+</details>
+
+      </div>
+
+      <details class="analysis-help-card">
+  <summary>Analysis Help</summary>
+  <div class="analysis-help-body">
+      <p><strong>What is this?</strong> Organization Field Anomalies focuses on blank organization rate overall and by position. This section combines a hero chart, supporting charts, and tables to separate one-off noise from meaningful sustained behavior. Treat it as a detector notebook: start broad, then drill into specific windows with evidence context.</p>
+      <p><strong>Why this data matters:</strong> This data matters because it changes how confident you should be in an anomaly narrative. Strong claims should come from persistent, well-supported patterns rather than isolated spikes. It also prevents both over-calling benign fluctuations and missing slow-burn anomalies that only emerge over longer runs.</p>
+      <p><strong>How do I interpret this data?</strong> Read the hero chart first for the dominant temporal structure, then use detail charts to test whether the signal repeats across scales, dayparts, or subgroup splits. Use tables to verify exact values and support counts behind flagged windows. When uncertainty bands or low-power markers are present, discount single-window jumps unless they recur with stronger support.</p>
+      <p><strong>What do I look for?</strong> Sustained blank-rate elevation in bucketed timelines, and consistent Pro/Con separation in position-specific blank rates across adjacent windows. Start with sustained changes in overall blank-organization rate across adjacent windows instead of isolated single-bucket spikes. Compare Pro and Con blank-organization rates and prioritize gaps that persist across multiple neighboring buckets. Treat low-support windows as descriptive context; use higher-support periods for stronger conclusions about rate differences. Investigation priority should increase when multiple independent views tell the same story at the same time.</p>
+      <p><strong>What could a momentary high/low mean?</strong> Momentary highs can indicate a short-lived blank-rate bump in a sparse window. Momentary lows can indicate a temporary completeness improvement in a small bucket. Treat both cautiously when low-power flags are present. A practical rule: do not escalate on a single bucket unless a nearby table row and at least one companion chart support the same direction.</p>
+      <p><strong>What could an extended high/low mean?</strong> Extended highs can indicate persistent blank-rate elevation that can reduce organization attribution quality. Extended lows can indicate sustained lower blank rates with more complete organization capture. Persistence across adjacent windows and corroborating detectors raises confidence that the shift is meaningful. Extended runs deserve timeline annotation and root-cause notes so later reviewers can separate operational context from suspicious behavior.</p>
+      <ul>
+          <li>Start with sustained changes in overall blank-organization rate across adjacent windows instead of isolated single-bucket spikes.</li>
+          <li>Compare Pro and Con blank-organization rates and prioritize gaps that persist across multiple neighboring buckets.</li>
+          <li>Treat low-support windows as descriptive context; use higher-support periods for stronger conclusions about rate differences.</li>
+      </ul>
+    <p><strong>Common benign causes:</strong> Form UX and campaign guidance often increase legitimate blank organization submissions.</p>
+  </div>
+</details>
+
+        <div class="analysis-detail-grid">
+            <article class="detail-card">
+              <h3 class="detail-title">Org Anomalies Position Rates</h3>
+              <p class="tiny-note"><code>org_anomalies_position_rates</code></p>
+              <div class="chart-host chart-host-detail" data-chart-id="org_anomalies_position_rates" data-chart-role="detail"></div>
+<p class="empty-message hidden" data-chart-empty-for="org_anomalies_position_rates">No chartable records for this run.</p>
+<p class="tiny-note chart-note" data-chart-note-for="org_anomalies_position_rates"></p>
+              <details class="chart-help-card">
+  <summary>Chart Help</summary>
+  <div class="chart-help-body">
+      <p><strong>What is this?</strong> Per-position blank-org rates (Pro/Con/Other) by time bucket. This time-aligned view shows how the measured signal changes across chronological buckets. It is the primary lens for identifying sequence, duration, and coincidence with external events.</p>
+      <p><strong>Why this matters:</strong> Time-series structure distinguishes transient spikes from sustained regime changes and helps align detector evidence by timestamp. Without duration context, it is easy to overreact to one-bucket noise and miss broad shifts.</p>
+      <p><strong>How to interpret:</strong> Read left to right, compare volume with rate/score overlays, and pay attention to uncertainty bounds and low-power markers where available. When zoomed in, verify whether local extremes persist across neighboring buckets and remain visible at wider scales.</p>
+      <p><strong>What to look for:</strong> Look for repeated peaks, troughs, trend breaks, and persistent drifts across adjacent windows. Patterns that recur at the same daypart across dates are usually stronger than one isolated wave. Legend components: Positioned rows, Pro blank org rate, Wilson low / Wilson high, Con blank org rate, Other blank org rate, Low-power.</p>
+      <p><strong>Momentary high/low:</strong> Short highs/lows can reflect event timing, random variance, or small-sample effects. Confirm with neighboring buckets before treating them as material anomalies. A momentary high near a known outreach time can be benign; a momentary low during expected peak periods may indicate data lag.</p>
+      <p><strong>Extended high/low:</strong> Extended highs/lows are stronger indicators of behavioral shifts, especially when they persist across multiple bucket sizes and coincide with corroborating detector outputs. Extended highs may indicate sustained mobilization or systematic bias; extended lows may indicate prolonged inactivity or missing segments.</p>
+      <p><strong>Legend guide:</strong> Per-position blank-org rates (Pro/Con/Other) by time bucket.</p>
+        <ul>
+            <li><strong>Positioned rows:</strong> Stacked Pro/Con row counts in each bucket (desaturated context bars).</li>
+            <li><strong>Pro blank org rate:</strong> Blank organization share among Pro records in each bucket.</li>
+            <li><strong>Wilson low / Wilson high:</strong> Confidence band for the proportion metric; wider bands indicate higher uncertainty.</li>
+            <li><strong>Con blank org rate:</strong> Blank organization share among Con records.</li>
+            <li><strong>Other blank org rate:</strong> Blank organization share among non-Pro/Con records.</li>
+            <li><strong>Low-power:</strong> Markers for buckets with insufficient support where rates can swing from noise.</li>
+        </ul>
+  </div>
+</details>
+
+            </article>
+        </div>
+
+      <div class="analysis-tables" data-analysis-tables-for="org_anomalies"></div>
     </section>
     <section
       class="analysis-section"
@@ -787,7 +986,7 @@
           <li>Prioritize robust primary alerts (below primary 99.8% lower limit, lower-tail FDR-significant, and materially negative delta at adequate support); avoid interpreting low-n windows even if raw rates look extreme.</li>
           <li>If tested off-hours windows are zero after low-power filtering, treat the section as descriptive-only and avoid inferential conclusions.</li>
           <li>Use the funnel view to compare primary and global expected bands; treat primary-baseline breaches as the decision metric and global bands as context.</li>
-          <li>In date-hour heatmaps, repeated overnight blocks across multiple dates are stronger than a single-night dip; corroborate with burst, periodicity, and duplicate detectors before escalation.</li>
+          <li>In date-hour heatmaps, repeated overnight blocks across multiple dates are stronger than a single-night dip; corroborate with burst and duplicate detectors before escalation.</li>
       </ul>
     <p><strong>Common benign causes:</strong> Time-zone spillover, campaign scheduling, and hearing-deadline pushes can produce legitimate overnight composition shifts.</p>
   </div>
@@ -894,6 +1093,6 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/theme/roma.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
-    <script type="module" src="assets/report/main.js?v=3ba2b4ac6e84"></script>
+    <script type="module" src="assets/report/main.js?v=e5be3337f585"></script>
   </body>
 </html>

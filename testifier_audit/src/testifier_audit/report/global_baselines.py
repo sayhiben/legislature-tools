@@ -1098,6 +1098,61 @@ def build_leave_one_out_baseline_from_reports_dir(
     )
 
 
+def write_leave_one_out_baselines_from_reports_dir(
+    *,
+    reports_dir: Path,
+    target_report_ids: list[str] | None = None,
+    excluded_report_ids: list[str] | None = None,
+    cohort_strategy: str = "hierarchical",
+) -> tuple[list[Path], list[dict[str, str]]]:
+    """Build and write leave-one-out baselines for one or more report IDs in a single pass."""
+    records = collect_report_feature_records(reports_dir)
+    record_ids = {record.report_id for record in records}
+    targets: list[str] = []
+    seen_targets: set[str] = set()
+
+    if target_report_ids is None:
+        for record in records:
+            target = str(record.report_id or "").strip()
+            if not target or target in seen_targets:
+                continue
+            seen_targets.add(target)
+            targets.append(target)
+    else:
+        for report_id in target_report_ids:
+            target = str(report_id or "").strip()
+            if not target or target in seen_targets:
+                continue
+            seen_targets.add(target)
+            targets.append(target)
+
+    written_paths: list[Path] = []
+    failures: list[dict[str, str]] = []
+    for target in targets:
+        if target not in record_ids:
+            failures.append(
+                {
+                    "report_id": target,
+                    "reason": "target_report_not_found",
+                }
+            )
+            continue
+        payload = build_leave_one_out_baseline(
+            records=records,
+            target_report_id=target,
+            excluded_report_ids=excluded_report_ids,
+            cohort_strategy=cohort_strategy,
+        )
+        output_path = reports_dir / target / "summary" / LEAVE_ONE_OUT_BASELINE_FILENAME
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        written_paths.append(output_path)
+    return written_paths, failures
+
+
 def write_global_baselines(
     *,
     reports_dir: Path,

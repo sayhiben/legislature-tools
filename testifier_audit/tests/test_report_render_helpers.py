@@ -24,6 +24,8 @@ from testifier_audit.report.render import (
     render_report,
 )
 
+from ._report_js_assets import load_report_js_corpus
+
 
 def _configured_focus_analysis_ids() -> list[str]:
     seen: set[str] = set()
@@ -732,7 +734,7 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     css_asset_path = out_dir / "assets" / "report" / "report.css"
     js_asset_path = out_dir / "assets" / "report" / "main.js"
     css_text = css_asset_path.read_text(encoding="utf-8")
-    js_text = js_asset_path.read_text(encoding="utf-8")
+    js_text = load_report_js_corpus(out_dir)
 
     assert css_asset_path.exists()
     assert js_asset_path.exists()
@@ -1012,7 +1014,10 @@ def test_render_report_includes_external_assets_and_runtime_contracts(
     assert "function renderOffHoursPrimaryFlagChannels(mount, rows)" in js_text
     assert "shortOffHoursPrimaryFlagChannelLabel(row)" in js_text
     assert "function renderDuplicatePositionBucketDeviance(mount, rows)" in js_text
-    assert "return renderDuplicatePositionBucketDeviance(mount, rows);" in js_text
+    assert (
+        "return renderDuplicatePositionBucketDeviance(mount, rows);" in js_text
+        or 'registry.register("duplicates_exact_position_bucket_deviance", (mount, rows) =>' in js_text
+    )
     assert 'tablePreviewRows("duplicates_exact", "per_name_display")' in js_text
     assert "filterRowsByDuplicateTableBucket(" in js_text
     assert "rerenderBucketAwareTables();" in js_text
@@ -1039,7 +1044,7 @@ def test_render_report_table_semantic_rules_and_cell_background_normalization(
     out_dir = tmp_path / "out"
     render_report(results={}, artifacts={}, out_dir=out_dir)
     css_text = (out_dir / "assets" / "report" / "report.css").read_text(encoding="utf-8")
-    js_text = (out_dir / "assets" / "report" / "main.js").read_text(encoding="utf-8")
+    js_text = load_report_js_corpus(out_dir)
 
     assert "--table-semantic-alert-bg:" in css_text
     assert "--table-semantic-warn-bg:" in css_text

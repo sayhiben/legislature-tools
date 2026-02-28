@@ -11,3 +11,9 @@ if [[ "${CI_SKIP_INSTALL:-0}" != "1" ]]; then
 fi
 
 python -m pytest
+
+if command -v node >/dev/null 2>&1; then
+  node --test ./tests_js/*.test.js
+else
+  echo "Node.js not found; skipping JS unit tests."
+fi

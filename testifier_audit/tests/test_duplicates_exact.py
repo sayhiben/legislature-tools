@@ -8,6 +8,7 @@ import pytest
 
 from testifier_audit.detectors import duplicates_exact as duplicates_exact_module
 from testifier_audit.detectors.duplicates_exact import DuplicatesExactDetector
+from testifier_audit.profiling import RuntimeProfiler, activate_runtime_profiler
 
 
 def _build_submission_frame(name_counts: dict[str, int]) -> pd.DataFrame:
@@ -154,6 +155,37 @@ def test_collision_baseline_failure_policy_fail_and_degrade() -> None:
     )
     with pytest.raises(RuntimeError, match="collision baseline requires voter_registry.db_url"):
         fail_fast.run(df=frame, features={})
+
+
+def test_duplicates_exact_emits_scope_phase_runtime_profile_keys() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2, "BROWN|AVA": 1})
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+    )
+    profiler = RuntimeProfiler()
+    with activate_runtime_profiler(profiler):
+        detector.run(df=frame, features={})
+
+    timings = profiler.to_dict()["timings"]
+    expected_keys = {
+        "detector.duplicates_exact.prepare_working",
+        "detector.duplicates_exact.resolve_scope_frames",
+        "detector.duplicates_exact.load_contextual_baseline",
+        "detector.duplicates_exact.prepare_stratification",
+        "detector.duplicates_exact.scope.prepare_frame",
+        "detector.duplicates_exact.scope.top_name_timing",
+        "detector.duplicates_exact.scope.expected_metrics_and_null",
+        "detector.duplicates_exact.scope.per_name_tests",
+        "detector.duplicates_exact.scope.temporal_metrics",
+        "detector.duplicates_exact.scope.bucket_scan",
+        "detector.duplicates_exact.scope.primary_legacy_outputs",
+        "detector.duplicates_exact.assemble_outputs",
+    }
+    assert expected_keys.issubset(set(timings))
+    for key in expected_keys:
+        assert timings[key]["calls"] >= 1
 
 
 def test_default_scope_analyzes_full_hearing_even_when_voter_matches_exist() -> None:
@@ -891,3 +923,107 @@ def test_position_claim_is_gated_for_unsupported_baseline_model() -> None:
     )
     assert (metrics["interval_draws_effective"].astype(int) == 0).all()
     assert set(metrics["inference_status"].astype(str)) == {"descriptive_only"}
+
+
+def test_collision_null_simulation_cache_reuses_histogram_draws(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="monte_carlo",
+        monte_carlo_draws=500,
+    )
+    calls = {"count": 0}
+
+    def _fake_simulation(**_kwargs) -> pd.DataFrame:
+        calls["count"] += 1
+        return pd.DataFrame(
+            {
+                "pairs": [1.0, 2.0],
+                "excess_rows": [0.0, 1.0],
+                "repeated_group_rows": [2.0, 3.0],
+            }
+        )
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "simulate_collision_null_from_histogram",
+        _fake_simulation,
+    )
+
+    histogram = pd.DataFrame(
+        {
+            "name_count": [1, 2],
+            "n_keys": [8, 3],
+            "N": [14, 14],
+        }
+    )
+    rng = np.random.default_rng(9)
+    cache: dict[tuple[int, str, int, int, str], pd.DataFrame] = {}
+    digest_cache: dict[int, str] = {}
+
+    first = detector._simulate_collision_null_cached(
+        n_rows=120,
+        histogram=histogram,
+        draws=500,
+        rng=rng,
+        baseline_model="multinomial",
+        n_population=14,
+        max_draws=250,
+        cache=cache,
+        histogram_digest_cache=digest_cache,
+    )
+    second = detector._simulate_collision_null_cached(
+        n_rows=120,
+        histogram=histogram,
+        draws=500,
+        rng=rng,
+        baseline_model="multinomial",
+        n_population=14,
+        max_draws=250,
+        cache=cache,
+        histogram_digest_cache=digest_cache,
+    )
+
+    assert calls["count"] == 1
+    pd.testing.assert_frame_equal(first, second, check_exact=True)
+
+
+def test_contextual_shrink_lookup_is_memoized_by_bucket_hour_weekday(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = pd.DataFrame(
+        {
+            "id": [1, 2, 3],
+            "canonical_name": ["DOE|JANE", "DOE|JANE", "SMITH|JOHN"],
+            "position_normalized": ["Pro", "Con", "Pro"],
+            "timestamp": pd.to_datetime(
+                ["2026-02-01 00:00:00", "2026-02-01 00:01:00", "2026-02-01 00:02:00"]
+            ),
+            "minute_bucket": pd.to_datetime(
+                ["2026-02-01 00:00:00", "2026-02-01 00:01:00", "2026-02-01 00:02:00"]
+            ),
+            "name_display": ["DOE, JANE", "DOE, JANE", "SMITH, JOHN"],
+        }
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+        position_hearing_baseline_enabled=True,
+        position_baseline_shrink_k=10.0,
+    )
+
+    calls = {"count": 0}
+    original = detector._resolve_contextual_shrink_k
+
+    def _wrapped_resolve(*args, **kwargs):
+        calls["count"] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(detector, "_resolve_contextual_shrink_k", _wrapped_resolve)
+    detector.run(df=frame, features={})
+
+    # Same (bucket_minutes, hour_bin, weekday_bin) should resolve once then hit cache.
+    assert calls["count"] == 1

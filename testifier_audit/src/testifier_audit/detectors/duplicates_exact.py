@@ -4,6 +4,7 @@ import json
 import math
 from hashlib import sha1
 from pathlib import Path
+from time import perf_counter
 from typing import Literal
 
 import numpy as np
@@ -32,6 +33,11 @@ from testifier_audit.names.stat_tests import (
     binomial_tail_p_value,
     bootstrap_rate_difference,
     hypergeometric_tail_p_value,
+)
+from testifier_audit.profiling import (
+    profile_runtime_block,
+    record_runtime_counter,
+    record_runtime_timing,
 )
 
 CollisionBaselineModel = Literal["multinomial", "hypergeometric"]
@@ -716,60 +722,87 @@ class DuplicatesExactDetector(Detector):
         stratum_probabilities: list[np.ndarray],
         max_draws: int,
     ) -> pd.DataFrame:
-        n = int(max(int(n_rows), 0))
-        n_draws = int(max(int(draws), 0))
-        if (
-            n <= 0
-            or n_draws <= 0
-            or stratum_weights.size == 0
-            or not stratum_keys
-            or not stratum_probabilities
-        ):
-            return pd.DataFrame(columns=list(COLLISION_METRICS))
-        limited_draws = int(min(max_draws, n_draws))
-        if limited_draws <= 0:
-            return pd.DataFrame(columns=list(COLLISION_METRICS))
+        started = perf_counter()
+        output = pd.DataFrame(columns=list(COLLISION_METRICS))
+        limited_draws = 0
+        try:
+            n = int(max(int(n_rows), 0))
+            n_draws = int(max(int(draws), 0))
+            if (
+                n <= 0
+                or n_draws <= 0
+                or stratum_weights.size == 0
+                or not stratum_keys
+                or not stratum_probabilities
+            ):
+                return pd.DataFrame(columns=list(COLLISION_METRICS))
+            limited_draws = int(min(max_draws, n_draws))
+            if limited_draws <= 0:
+                return pd.DataFrame(columns=list(COLLISION_METRICS))
 
-        pairs = np.zeros(limited_draws, dtype=float)
-        excess_rows = np.zeros(limited_draws, dtype=float)
-        repeated_rows = np.zeros(limited_draws, dtype=float)
+            pairs = np.zeros(limited_draws, dtype=float)
+            excess_rows = np.zeros(limited_draws, dtype=float)
+            repeated_rows = np.zeros(limited_draws, dtype=float)
 
-        for draw_idx in range(limited_draws):
-            sampled_by_stratum = rng.multinomial(n, stratum_weights)
-            sampled_key_chunks: list[np.ndarray] = []
-            for idx, draw_count in enumerate(sampled_by_stratum):
-                draw_n = int(draw_count)
-                if draw_n <= 0:
+            for draw_idx in range(limited_draws):
+                sampled_by_stratum = rng.multinomial(n, stratum_weights)
+                sampled_key_chunks: list[np.ndarray] = []
+                for idx, draw_count in enumerate(sampled_by_stratum):
+                    draw_n = int(draw_count)
+                    if draw_n <= 0:
+                        continue
+                    keys = stratum_keys[idx]
+                    probs = stratum_probabilities[idx]
+                    if keys.size == 0 or probs.size == 0:
+                        continue
+                    sampled_idx = rng.choice(keys.size, size=draw_n, replace=True, p=probs)
+                    sampled_key_chunks.append(keys[sampled_idx])
+
+                if not sampled_key_chunks:
                     continue
-                keys = stratum_keys[idx]
-                probs = stratum_probabilities[idx]
-                if keys.size == 0 or probs.size == 0:
+                if len(sampled_key_chunks) == 1:
+                    _, occupancy = np.unique(sampled_key_chunks[0], return_counts=True)
+                else:
+                    _, occupancy = np.unique(np.concatenate(sampled_key_chunks), return_counts=True)
+                occupancy = occupancy.astype(float)
+                over_one = np.maximum(occupancy - 1.0, 0.0)
+                if occupancy.size == 0:
                     continue
-                sampled_idx = rng.choice(keys.size, size=draw_n, replace=True, p=probs)
-                sampled_key_chunks.append(keys[sampled_idx])
+                pairs[draw_idx] = float((occupancy * over_one / 2.0).sum())
+                excess_rows[draw_idx] = float(over_one.sum())
+                repeated_rows[draw_idx] = float(occupancy[occupancy >= 2.0].sum())
 
-            if not sampled_key_chunks:
-                continue
-            if len(sampled_key_chunks) == 1:
-                _, occupancy = np.unique(sampled_key_chunks[0], return_counts=True)
-            else:
-                _, occupancy = np.unique(np.concatenate(sampled_key_chunks), return_counts=True)
-            occupancy = occupancy.astype(float)
-            over_one = np.maximum(occupancy - 1.0, 0.0)
-            if occupancy.size == 0:
-                continue
-            pairs[draw_idx] = float((occupancy * over_one / 2.0).sum())
-            excess_rows[draw_idx] = float(over_one.sum())
-            repeated_rows[draw_idx] = float(occupancy[occupancy >= 2.0].sum())
-
-        return pd.DataFrame(
-            {
-                "pairs": pairs,
-                "excess_rows": excess_rows,
-                "repeated_group_rows": repeated_rows,
-            },
-            columns=list(COLLISION_METRICS),
-        )
+            output = pd.DataFrame(
+                {
+                    "pairs": pairs,
+                    "excess_rows": excess_rows,
+                    "repeated_group_rows": repeated_rows,
+                },
+                columns=list(COLLISION_METRICS),
+            )
+            return output
+        finally:
+            record_runtime_timing(
+                "simulation.duplicates_exact_stratified_collision_null",
+                (perf_counter() - started) * 1000.0,
+            )
+            record_runtime_counter("simulation.duplicates_exact_stratified_collision_null.calls", 1)
+            record_runtime_counter(
+                "simulation.duplicates_exact_stratified_collision_null.n_rows",
+                max(int(n_rows), 0),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_stratified_collision_null.draws_requested",
+                max(int(draws), 0),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_stratified_collision_null.draws_effective",
+                max(int(limited_draws), 0),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_stratified_collision_null.output_samples",
+                int(len(output)),
+            )
 
     def _population_counts_for_observed_names(
         self,
@@ -814,94 +847,124 @@ class DuplicatesExactDetector(Detector):
         key_column: str,
         *,
         rng: np.random.Generator,
+        n_permutations: int | None = None,
     ) -> pd.DataFrame:
-        if working.empty:
-            return pd.DataFrame()
-        positions = _safe_str_series(working["position_normalized"]).to_numpy(dtype=object)
-        if not {"Pro", "Con"}.issubset(set(np.unique(positions))):
-            return pd.DataFrame()
+        started = perf_counter()
+        has_result = False
+        permutations_effective = 0
+        try:
+            if working.empty:
+                return pd.DataFrame()
+            positions = _safe_str_series(working["position_normalized"]).to_numpy(dtype=object)
+            if not {"Pro", "Con"}.issubset(set(np.unique(positions))):
+                return pd.DataFrame()
 
-        key_ids, _ = pd.factorize(_safe_str_series(working[key_column]), sort=False)
-        key_ids = key_ids.astype(np.int64, copy=False)
-        valid_rows = key_ids >= 0
-        if not bool(np.any(valid_rows)):
-            return pd.DataFrame()
-        if not bool(np.all(valid_rows)):
-            key_ids = key_ids[valid_rows]
-            positions = positions[valid_rows]
+            key_ids, _ = pd.factorize(_safe_str_series(working[key_column]), sort=False)
+            key_ids = key_ids.astype(np.int64, copy=False)
+            valid_rows = key_ids >= 0
+            if not bool(np.any(valid_rows)):
+                return pd.DataFrame()
+            if not bool(np.all(valid_rows)):
+                key_ids = key_ids[valid_rows]
+                positions = positions[valid_rows]
 
-        if key_ids.size == 0:
-            return pd.DataFrame()
-        n_keys = int(max(int(key_ids.max()), -1) + 1)
-        if n_keys <= 0:
-            return pd.DataFrame()
+            if key_ids.size == 0:
+                return pd.DataFrame()
+            n_keys = int(max(int(key_ids.max()), -1) + 1)
+            if n_keys <= 0:
+                return pd.DataFrame()
 
-        pro_mask_observed = positions == "Pro"
-        con_mask_observed = positions == "Con"
-        pro_total = int(np.count_nonzero(pro_mask_observed))
-        con_total = int(np.count_nonzero(con_mask_observed))
-        if pro_total <= 0 or con_total <= 0:
-            return pd.DataFrame()
-        pro_counts_observed = np.bincount(key_ids[pro_mask_observed], minlength=n_keys)
-        con_counts_observed = np.bincount(key_ids[con_mask_observed], minlength=n_keys)
-        pro_dup_rows = int(pro_counts_observed[pro_counts_observed >= 2].sum())
-        con_dup_rows = int(con_counts_observed[con_counts_observed >= 2].sum())
-        pro_rate = (pro_dup_rows / pro_total) if pro_total else 0.0
-        con_rate = (con_dup_rows / con_total) if con_total else 0.0
-        observed_diff = pro_rate - con_rate
-        observed_rr = (pro_rate / con_rate) if con_rate > 0 else np.inf
+            pro_mask_observed = positions == "Pro"
+            con_mask_observed = positions == "Con"
+            pro_total = int(np.count_nonzero(pro_mask_observed))
+            con_total = int(np.count_nonzero(con_mask_observed))
+            if pro_total <= 0 or con_total <= 0:
+                return pd.DataFrame()
+            pro_counts_observed = np.bincount(key_ids[pro_mask_observed], minlength=n_keys)
+            con_counts_observed = np.bincount(key_ids[con_mask_observed], minlength=n_keys)
+            pro_dup_rows = int(pro_counts_observed[pro_counts_observed >= 2].sum())
+            con_dup_rows = int(con_counts_observed[con_counts_observed >= 2].sum())
+            pro_rate = (pro_dup_rows / pro_total) if pro_total else 0.0
+            con_rate = (con_dup_rows / con_total) if con_total else 0.0
+            observed_diff = pro_rate - con_rate
+            observed_rr = (pro_rate / con_rate) if con_rate > 0 else np.inf
 
-        n_rows = int(key_ids.size)
-        pro_n = int(pro_total)
-        con_n = int(con_total)
-        perm_values = np.empty(self.position_permutation_draws, dtype=float)
-        for draw_idx in range(self.position_permutation_draws):
-            # Equivalent to permuting categorical labels while preserving label totals.
-            # Assign first pro_n indices to Pro, next con_n to Con, remainder to non-Pro/Con.
-            permuted_indices = rng.permutation(n_rows)
-            pro_indices = permuted_indices[:pro_n]
-            con_indices = permuted_indices[pro_n : pro_n + con_n]
-            pro_counts = np.bincount(key_ids[pro_indices], minlength=n_keys)
-            con_counts = np.bincount(key_ids[con_indices], minlength=n_keys)
-            pro_perm_dup_rows = int(pro_counts[pro_counts >= 2].sum())
-            con_perm_dup_rows = int(con_counts[con_counts >= 2].sum())
-            pro_perm_rate = pro_perm_dup_rows / pro_total
-            con_perm_rate = con_perm_dup_rows / con_total
-            perm_values[draw_idx] = pro_perm_rate - con_perm_rate
+            n_rows = int(key_ids.size)
+            pro_n = int(pro_total)
+            con_n = int(con_total)
+            permutations_effective = max(
+                0,
+                int(
+                    self.position_permutation_draws
+                    if n_permutations is None
+                    else min(int(n_permutations), int(self.position_permutation_draws))
+                ),
+            )
+            if permutations_effective <= 0:
+                return pd.DataFrame()
+            perm_values = np.empty(permutations_effective, dtype=float)
+            for draw_idx in range(permutations_effective):
+                # Equivalent to permuting categorical labels while preserving label totals.
+                # Assign first pro_n indices to Pro, next con_n to Con, remainder to non-Pro/Con.
+                permuted_indices = rng.permutation(n_rows)
+                pro_indices = permuted_indices[:pro_n]
+                con_indices = permuted_indices[pro_n : pro_n + con_n]
+                pro_counts = np.bincount(key_ids[pro_indices], minlength=n_keys)
+                con_counts = np.bincount(key_ids[con_indices], minlength=n_keys)
+                pro_perm_dup_rows = int(pro_counts[pro_counts >= 2].sum())
+                con_perm_dup_rows = int(con_counts[con_counts >= 2].sum())
+                pro_perm_rate = pro_perm_dup_rows / pro_total
+                con_perm_rate = con_perm_dup_rows / con_total
+                perm_values[draw_idx] = pro_perm_rate - con_perm_rate
 
-        perm_series = perm_values
-        if observed_diff >= 0:
-            p_value = float((np.sum(perm_series >= observed_diff) + 1) / (perm_series.size + 1))
-        else:
-            p_value = float((np.sum(perm_series <= observed_diff) + 1) / (perm_series.size + 1))
-        effect, ci_low, ci_high = bootstrap_rate_difference(
-            successes_a=pro_dup_rows,
-            total_a=pro_total,
-            successes_b=con_dup_rows,
-            total_b=con_total,
-            n_boot=4000,
-            rng=rng,
-        )
-        return pd.DataFrame(
-            [
-                {
-                    "position_left": "Pro",
-                    "position_right": "Con",
-                    "left_duplicate_rows": int(pro_dup_rows),
-                    "left_total_rows": int(pro_total),
-                    "left_duplicate_row_rate": float(pro_rate),
-                    "right_duplicate_rows": int(con_dup_rows),
-                    "right_total_rows": int(con_total),
-                    "right_duplicate_row_rate": float(con_rate),
-                    "rate_difference": float(effect),
-                    "rate_difference_ci_low": float(ci_low),
-                    "rate_difference_ci_high": float(ci_high),
-                    "rate_ratio": float(observed_rr) if np.isfinite(observed_rr) else 0.0,
-                    "permutation_p_value_one_sided": float(p_value),
-                    "n_permutations": int(self.position_permutation_draws),
-                }
-            ]
-        )
+            perm_series = perm_values
+            if observed_diff >= 0:
+                p_value = float((np.sum(perm_series >= observed_diff) + 1) / (perm_series.size + 1))
+            else:
+                p_value = float((np.sum(perm_series <= observed_diff) + 1) / (perm_series.size + 1))
+            effect, ci_low, ci_high = bootstrap_rate_difference(
+                successes_a=pro_dup_rows,
+                total_a=pro_total,
+                successes_b=con_dup_rows,
+                total_b=con_total,
+                n_boot=4000,
+                rng=rng,
+            )
+            has_result = True
+            return pd.DataFrame(
+                [
+                    {
+                        "position_left": "Pro",
+                        "position_right": "Con",
+                        "left_duplicate_rows": int(pro_dup_rows),
+                        "left_total_rows": int(pro_total),
+                        "left_duplicate_row_rate": float(pro_rate),
+                        "right_duplicate_rows": int(con_dup_rows),
+                        "right_total_rows": int(con_total),
+                        "right_duplicate_row_rate": float(con_rate),
+                        "rate_difference": float(effect),
+                        "rate_difference_ci_low": float(ci_low),
+                        "rate_difference_ci_high": float(ci_high),
+                        "rate_ratio": float(observed_rr) if np.isfinite(observed_rr) else 0.0,
+                        "permutation_p_value_one_sided": float(p_value),
+                        "n_permutations": int(permutations_effective),
+                    }
+                ]
+            )
+        finally:
+            record_runtime_timing(
+                "simulation.duplicates_exact_position_permutation",
+                (perf_counter() - started) * 1000.0,
+            )
+            record_runtime_counter("simulation.duplicates_exact_position_permutation.calls", 1)
+            record_runtime_counter(
+                "simulation.duplicates_exact_position_permutation.permutations",
+                int(permutations_effective),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_position_permutation.successful_results",
+                1 if has_result else 0,
+            )
 
     def _temporal_metrics_by_name(
         self,
@@ -910,81 +973,123 @@ class DuplicatesExactDetector(Detector):
         *,
         rng: np.random.Generator,
     ) -> pd.DataFrame:
+        started = perf_counter()
         rows: list[dict[str, object]] = []
-        if working.empty:
-            return pd.DataFrame()
-        all_times = pd.to_datetime(working["timestamp"], errors="coerce").dropna().to_numpy(dtype="datetime64[m]")
-        if all_times.size == 0:
-            return pd.DataFrame()
-        all_minutes = all_times.astype("datetime64[m]").astype(np.int64)
-        draws = min(self.temporal_permutation_draws, 1000)
-        if draws <= 0:
-            return pd.DataFrame()
-
-        temporal_null_cache: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
-
-        def _cached_temporal_null(sample_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-            cached = temporal_null_cache.get(sample_size)
-            if cached is not None:
-                return cached
-            min_gap_null = np.empty(draws, dtype=np.int64)
-            within_5_null = np.empty(draws, dtype=np.int64)
-            within_15_null = np.empty(draws, dtype=np.int64)
-            for draw_idx in range(draws):
-                sampled = np.sort(rng.choice(all_minutes, size=sample_size, replace=False))
-                sampled_gaps = np.diff(sampled)
-                if sampled_gaps.size:
-                    min_gap_null[draw_idx] = int(sampled_gaps.min())
-                    within_5_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 5))
-                    within_15_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 15))
-                else:
-                    min_gap_null[draw_idx] = 0
-                    within_5_null[draw_idx] = 0
-                    within_15_null[draw_idx] = 0
-            out = (min_gap_null, within_5_null, within_15_null)
-            temporal_null_cache[sample_size] = out
-            return out
-
-        for key, group in working.groupby(key_column, dropna=False):
-            times = pd.to_datetime(group["timestamp"], errors="coerce").dropna().to_numpy(dtype="datetime64[m]")
-            if times.size < 2:
-                continue
-            minutes = np.sort(times.astype("datetime64[m]").astype(np.int64))
-            gaps = np.diff(minutes)
-            min_gap = int(gaps.min()) if gaps.size else 0
-            within_5 = int(np.sum(gaps <= 5))
-            within_15 = int(np.sum(gaps <= 15))
-            span_minutes = int(minutes.max() - minutes.min()) if minutes.size else 0
-
-            sample_size = int(len(minutes))
-            min_gap_null, within_5_null, within_15_null = _cached_temporal_null(sample_size)
-            p_value_min_gap = (
-                float((np.sum(min_gap_null <= min_gap) + 1) / (draws + 1)) if draws else 1.0
+        draws = 0
+        cached_sample_sizes = 0
+        try:
+            if working.empty:
+                return pd.DataFrame()
+            all_times = pd.to_datetime(working["timestamp"], errors="coerce").dropna().to_numpy(
+                dtype="datetime64[m]"
             )
-            p_value_within_5 = (
-                float((np.sum(within_5_null >= within_5) + 1) / (draws + 1))
-                if draws
-                else 1.0
+            if all_times.size == 0:
+                return pd.DataFrame()
+            all_minutes = all_times.astype("datetime64[m]").astype(np.int64)
+            draws = min(self.temporal_permutation_draws, 1000)
+            if draws <= 0:
+                return pd.DataFrame()
+
+            duplicate_keys = (
+                working.groupby(key_column, dropna=False)
+                .size()
+                .rename("observed_count")
+                .reset_index()
             )
-            p_value_within_15 = (
-                float((np.sum(within_15_null >= within_15) + 1) / (draws + 1))
-                if draws
-                else 1.0
+            duplicate_keys = duplicate_keys[duplicate_keys["observed_count"] >= 2]
+            if duplicate_keys.empty:
+                return pd.DataFrame()
+            working = working[
+                working[key_column].isin(duplicate_keys[key_column].astype(str).tolist())
+            ].copy()
+            if working.empty:
+                return pd.DataFrame()
+
+            temporal_null_cache: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+
+            def _cached_temporal_null(sample_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+                cached = temporal_null_cache.get(sample_size)
+                if cached is not None:
+                    return cached
+                min_gap_null = np.empty(draws, dtype=np.int64)
+                within_5_null = np.empty(draws, dtype=np.int64)
+                within_15_null = np.empty(draws, dtype=np.int64)
+                for draw_idx in range(draws):
+                    sampled = np.sort(rng.choice(all_minutes, size=sample_size, replace=False))
+                    sampled_gaps = np.diff(sampled)
+                    if sampled_gaps.size:
+                        min_gap_null[draw_idx] = int(sampled_gaps.min())
+                        within_5_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 5))
+                        within_15_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 15))
+                    else:
+                        min_gap_null[draw_idx] = 0
+                        within_5_null[draw_idx] = 0
+                        within_15_null[draw_idx] = 0
+                out = (min_gap_null, within_5_null, within_15_null)
+                temporal_null_cache[sample_size] = out
+                return out
+
+            for key, group in working.groupby(key_column, dropna=False):
+                times = pd.to_datetime(group["timestamp"], errors="coerce").dropna().to_numpy(
+                    dtype="datetime64[m]"
+                )
+                if times.size < 2:
+                    continue
+                minutes = np.sort(times.astype("datetime64[m]").astype(np.int64))
+                gaps = np.diff(minutes)
+                min_gap = int(gaps.min()) if gaps.size else 0
+                within_5 = int(np.sum(gaps <= 5))
+                within_15 = int(np.sum(gaps <= 15))
+                span_minutes = int(minutes.max() - minutes.min()) if minutes.size else 0
+
+                sample_size = int(len(minutes))
+                min_gap_null, within_5_null, within_15_null = _cached_temporal_null(sample_size)
+                p_value_min_gap = (
+                    float((np.sum(min_gap_null <= min_gap) + 1) / (draws + 1)) if draws else 1.0
+                )
+                p_value_within_5 = (
+                    float((np.sum(within_5_null >= within_5) + 1) / (draws + 1))
+                    if draws
+                    else 1.0
+                )
+                p_value_within_15 = (
+                    float((np.sum(within_15_null >= within_15) + 1) / (draws + 1))
+                    if draws
+                    else 1.0
+                )
+                rows.append(
+                    {
+                        "canonical_name": str(key),
+                        "min_gap_minutes": min_gap,
+                        "within_5m_pairs": within_5,
+                        "within_15m_pairs": within_15,
+                        "time_span_minutes": span_minutes,
+                        "temporal_p_value_min_gap": p_value_min_gap,
+                        "temporal_p_value_within_5m": p_value_within_5,
+                        "temporal_p_value_within_15m": p_value_within_15,
+                        "temporal_permutation_draws": draws,
+                    }
+                )
+            cached_sample_sizes = int(len(temporal_null_cache))
+            return pd.DataFrame(rows)
+        finally:
+            record_runtime_timing(
+                "simulation.duplicates_exact_temporal_null",
+                (perf_counter() - started) * 1000.0,
             )
-            rows.append(
-                {
-                    "canonical_name": str(key),
-                    "min_gap_minutes": min_gap,
-                    "within_5m_pairs": within_5,
-                    "within_15m_pairs": within_15,
-                    "time_span_minutes": span_minutes,
-                    "temporal_p_value_min_gap": p_value_min_gap,
-                    "temporal_p_value_within_5m": p_value_within_5,
-                    "temporal_p_value_within_15m": p_value_within_15,
-                    "temporal_permutation_draws": draws,
-                }
+            record_runtime_counter("simulation.duplicates_exact_temporal_null.calls", 1)
+            record_runtime_counter(
+                "simulation.duplicates_exact_temporal_null.draws_effective",
+                max(int(draws), 0),
             )
-        return pd.DataFrame(rows)
+            record_runtime_counter(
+                "simulation.duplicates_exact_temporal_null.cached_sample_sizes",
+                max(int(cached_sample_sizes), 0),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_temporal_null.output_rows",
+                int(len(rows)),
+            )
 
     def _legacy_duplicate_metrics_overview(
         self,
@@ -1171,37 +1276,119 @@ class DuplicatesExactDetector(Detector):
             return candidate_k, level
         return default_k, "default"
 
+    @staticmethod
+    def _histogram_digest(histogram: pd.DataFrame) -> str:
+        if not isinstance(histogram, pd.DataFrame) or histogram.empty:
+            return "empty"
+        digest_frame = pd.DataFrame(
+            {
+                "name_count": pd.to_numeric(histogram.get("name_count", 0), errors="coerce")
+                .fillna(0)
+                .astype(int),
+                "n_keys": pd.to_numeric(histogram.get("n_keys", 0), errors="coerce")
+                .fillna(0)
+                .astype(int),
+                "N": pd.to_numeric(histogram.get("N", 0), errors="coerce").fillna(0).astype(int),
+            }
+        )
+        if digest_frame.empty:
+            return "empty"
+        digest_frame = digest_frame.sort_values(
+            ["name_count", "n_keys", "N"],
+            ascending=[True, True, True],
+        ).reset_index(drop=True)
+        return sha1(digest_frame.to_csv(index=False).encode("utf-8")).hexdigest()
+
+    def _simulate_collision_null_cached(
+        self,
+        *,
+        n_rows: int,
+        histogram: pd.DataFrame,
+        draws: int,
+        rng: np.random.Generator,
+        baseline_model: CollisionBaselineModel,
+        n_population: int | None,
+        max_draws: int,
+        cache: dict[tuple[int, str, int, int, str], pd.DataFrame],
+        histogram_digest_cache: dict[int, str],
+    ) -> pd.DataFrame:
+        normalized_rows = int(max(int(n_rows), 0))
+        normalized_draws = int(max(int(draws), 0))
+        normalized_max_draws = int(max(int(max_draws), 0))
+        if normalized_rows <= 0 or normalized_draws <= 0 or normalized_max_draws <= 0:
+            return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
+        normalized_population = int(max(int(n_population or 0), 0))
+        histogram_id = id(histogram)
+        histogram_digest = histogram_digest_cache.get(histogram_id)
+        if histogram_digest is None:
+            histogram_digest = self._histogram_digest(histogram)
+            histogram_digest_cache[histogram_id] = histogram_digest
+        cache_key = (
+            normalized_rows,
+            str(baseline_model),
+            normalized_population,
+            normalized_max_draws,
+            histogram_digest,
+        )
+        cached = cache.get(cache_key)
+        if cached is not None:
+            record_runtime_counter(
+                "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_hit",
+                1,
+            )
+            return cached.copy()
+        record_runtime_counter(
+            "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_miss",
+            1,
+        )
+        null_samples = simulate_collision_null_from_histogram(
+            n_rows=normalized_rows,
+            histogram=histogram,
+            draws=normalized_draws,
+            rng=rng,
+            baseline_model=baseline_model,
+            n_population=normalized_population if normalized_population > 0 else None,
+            max_draws=normalized_max_draws,
+        )
+        cache[cache_key] = null_samples.copy()
+        return null_samples
+
     def run(self, df: pd.DataFrame, features: dict[str, pd.DataFrame]) -> DetectorResult:
         if df.empty:
             return DetectorResult(detector=self.name, summary={"n_records": 0}, tables={})
 
-        working = df.copy()
-        key_column = self._resolved_collision_key_column(working)
-        working[key_column] = _safe_str_series(working[key_column])
-        working = working[working[key_column] != ""].copy()
-        if working.empty:
-            return DetectorResult(detector=self.name, summary={"n_records": 0}, tables={})
-        working["canonical_name"] = _safe_str_series(working.get("canonical_name", working[key_column]))
-        working["position_normalized"] = _safe_str_series(working.get("position_normalized", "Unknown")).replace(
-            "", "Unknown"
-        )
-        working["timestamp"] = pd.to_datetime(working.get("timestamp"), errors="coerce")
-        working["minute_bucket"] = pd.to_datetime(working.get("minute_bucket"), errors="coerce")
-        working["name_display"] = _safe_str_series(
-            working.get("name_display", working[key_column].map(lambda value: str(value)))
-        )
-        infer = working.copy()
-        if self.exclude_non_person_from_inference and "is_person_name" in infer.columns:
-            infer = infer[infer["is_person_name"].astype(bool)].copy()
-        if infer.empty:
+        with profile_runtime_block("detector.duplicates_exact.prepare_working"):
+            working = df.copy()
+            key_column = self._resolved_collision_key_column(working)
+            working[key_column] = _safe_str_series(working[key_column])
+            working = working[working[key_column] != ""].copy()
+            if working.empty:
+                return DetectorResult(detector=self.name, summary={"n_records": 0}, tables={})
+            working["canonical_name"] = _safe_str_series(working.get("canonical_name", working[key_column]))
+            working["position_normalized"] = _safe_str_series(
+                working.get("position_normalized", "Unknown")
+            ).replace("", "Unknown")
+            working["timestamp"] = pd.to_datetime(working.get("timestamp"), errors="coerce")
+            working["minute_bucket"] = pd.to_datetime(working.get("minute_bucket"), errors="coerce")
+            working["name_display"] = _safe_str_series(
+                working.get("name_display", working[key_column].map(lambda value: str(value)))
+            )
             infer = working.copy()
+            if self.exclude_non_person_from_inference and "is_person_name" in infer.columns:
+                infer = infer[infer["is_person_name"].astype(bool)].copy()
+            if infer.empty:
+                infer = working.copy()
+        record_runtime_counter("detector.duplicates_exact.rows.working", int(len(working)))
+        record_runtime_counter("detector.duplicates_exact.rows.inference", int(len(infer)))
 
         rng = np.random.default_rng(self.random_seed)
-        scope_frames = self._scope_frames(infer=infer, features=features)
-        scope_names = self._scope_list()
-        for required_scope in scope_names:
-            if required_scope not in scope_frames:
-                scope_frames[required_scope] = pd.DataFrame(columns=infer.columns)
+        with profile_runtime_block("detector.duplicates_exact.resolve_scope_frames"):
+            scope_frames = self._scope_frames(infer=infer, features=features)
+            scope_names = self._scope_list()
+            for required_scope in scope_names:
+                if required_scope not in scope_frames:
+                    scope_frames[required_scope] = pd.DataFrame(columns=infer.columns)
+        record_runtime_counter("detector.duplicates_exact.scope.count", int(len(scope_names)))
 
         normalization_hash = self._normalization_version_hash()
         methods_rows: list[dict[str, object]] = []
@@ -1243,43 +1430,50 @@ class DuplicatesExactDetector(Detector):
         effective_stratification = requested_stratification
         stratification_degraded = False
         stratum_frequencies = pd.DataFrame(columns=["name_key", "stratum", "n_registry_rows"])
-        contextual_baseline = self._load_contextual_baseline()
+        with profile_runtime_block("detector.duplicates_exact.load_contextual_baseline"):
+            contextual_baseline = self._load_contextual_baseline()
+        contextual_shrink_cache: dict[tuple[int, int, int], tuple[float, str]] = {}
+        null_simulation_cache: dict[tuple[int, str, int, int, str], pd.DataFrame] = {}
+        histogram_digest_cache: dict[int, str] = {}
 
-        if requested_stratification != "none":
-            if self.collision_baseline_source == "hearing_empirical":
-                if self.collision_baseline_failure_policy == "fail":
-                    raise RuntimeError(
-                        "collision_stratification requires a registry-derived baseline_source."
-                    )
-                effective_stratification = "none"
-                stratification_degraded = True
-            elif not self.voter_db_url:
-                if self.collision_baseline_failure_policy == "fail":
-                    raise RuntimeError(
-                        "collision_stratification requires voter_registry.db_url but none was configured."
-                    )
-                effective_stratification = "none"
-                stratification_degraded = True
-            else:
-                try:
-                    stratum_frequencies = fetch_voter_name_key_stratum_frequencies(
-                        db_url=self.voter_db_url,
-                        table_name=self.voter_table_name,
-                        key_column=key_column,
-                        stratification=requested_stratification,
-                        active_only=self.voter_active_only,
-                    )
-                    if stratum_frequencies.empty:
-                        raise RuntimeError("No registry rows available for requested stratification.")
-                except Exception as exc:
+        with profile_runtime_block("detector.duplicates_exact.prepare_stratification"):
+            if requested_stratification != "none":
+                if self.collision_baseline_source == "hearing_empirical":
                     if self.collision_baseline_failure_policy == "fail":
                         raise RuntimeError(
-                            f"Failed loading stratified collision baseline inputs: {exc}"
-                        ) from exc
+                            "collision_stratification requires a registry-derived baseline_source."
+                        )
                     effective_stratification = "none"
                     stratification_degraded = True
+                elif not self.voter_db_url:
+                    if self.collision_baseline_failure_policy == "fail":
+                        raise RuntimeError(
+                            "collision_stratification requires voter_registry.db_url but none was configured."
+                        )
+                    effective_stratification = "none"
+                    stratification_degraded = True
+                else:
+                    try:
+                        stratum_frequencies = fetch_voter_name_key_stratum_frequencies(
+                            db_url=self.voter_db_url,
+                            table_name=self.voter_table_name,
+                            key_column=key_column,
+                            stratification=requested_stratification,
+                            active_only=self.voter_active_only,
+                        )
+                        if stratum_frequencies.empty:
+                            raise RuntimeError("No registry rows available for requested stratification.")
+                    except Exception as exc:
+                        if self.collision_baseline_failure_policy == "fail":
+                            raise RuntimeError(
+                                f"Failed loading stratified collision baseline inputs: {exc}"
+                            ) from exc
+                        effective_stratification = "none"
+                        stratification_degraded = True
 
         for scope in scope_names:
+            record_runtime_counter("detector.duplicates_exact.scope.iterations", 1)
+            scope_prepare_started = perf_counter()
             scope_frame = scope_frames.get(scope, pd.DataFrame(columns=infer.columns)).copy()
             scope_frame[key_column] = _safe_str_series(scope_frame.get(key_column, pd.Series(dtype=str)))
             scope_frame = scope_frame[scope_frame[key_column] != ""].copy()
@@ -1297,7 +1491,17 @@ class DuplicatesExactDetector(Detector):
                 scope_frame["_n_other_position"] = (~position_series.isin({"Pro", "Con"})).astype(
                     np.int64
                 )
+            record_runtime_timing(
+                "detector.duplicates_exact.scope.prepare_frame",
+                (perf_counter() - scope_prepare_started) * 1000.0,
+            )
+            record_runtime_counter("detector.duplicates_exact.scope.rows_total", int(len(scope_frame)))
+            record_runtime_counter(
+                "detector.duplicates_exact.scope.unique_names_total",
+                int(scope_frame[key_column].nunique()) if not scope_frame.empty else 0,
+            )
 
+            scope_top_name_started = perf_counter()
             scope_top_name_timing: list[pd.DataFrame] = []
             for mode_spec in _TOP_NAME_TIMING_MATCH_MODES:
                 mode_key_column = str(mode_spec.get("key_column", "")).strip()
@@ -1469,9 +1673,14 @@ class DuplicatesExactDetector(Detector):
                             ]
                         ].copy()
                     )
+            record_runtime_timing(
+                "detector.duplicates_exact.scope.top_name_timing",
+                (perf_counter() - scope_top_name_started) * 1000.0,
+            )
             if scope_top_name_timing:
                 top_name_timing_frames.append(pd.concat(scope_top_name_timing, ignore_index=True))
 
+            scope_inference_started = perf_counter()
             grouped = (
                 scope_frame.groupby(key_column, dropna=False)
                 .agg(
@@ -1595,7 +1804,7 @@ class DuplicatesExactDetector(Detector):
                                 probabilities=stratified_probabilities.to_numpy(dtype=float),
                                 n_population=max(int(n_population), 1),
                             )
-                        null_samples = simulate_collision_null_from_histogram(
+                        null_samples = self._simulate_collision_null_cached(
                             n_rows=n_scope,
                             histogram=stratified_null_histogram,
                             draws=self.monte_carlo_draws,
@@ -1603,9 +1812,11 @@ class DuplicatesExactDetector(Detector):
                             baseline_model="multinomial",
                             n_population=n_population if n_population > 0 else None,
                             max_draws=scope_max_draws,
+                            cache=null_simulation_cache,
+                            histogram_digest_cache=histogram_digest_cache,
                         )
                 else:
-                    null_samples = simulate_collision_null_from_histogram(
+                    null_samples = self._simulate_collision_null_cached(
                         n_rows=n_scope,
                         histogram=histogram,
                         draws=self.monte_carlo_draws,
@@ -1613,6 +1824,8 @@ class DuplicatesExactDetector(Detector):
                         baseline_model=self.collision_baseline_model,
                         n_population=n_population if n_population > 0 else None,
                         max_draws=scope_max_draws,
+                        cache=null_simulation_cache,
+                        histogram_digest_cache=histogram_digest_cache,
                     )
             else:
                 null_samples = pd.DataFrame()
@@ -1651,7 +1864,12 @@ class DuplicatesExactDetector(Detector):
                     }
                 )
             )
+            record_runtime_timing(
+                "detector.duplicates_exact.scope.expected_metrics_and_null",
+                (perf_counter() - scope_inference_started) * 1000.0,
+            )
 
+            per_name_started = perf_counter()
             key_values = grouped["canonical_name"].astype(str).tolist()
             if effective_scope_stratification != "none" and not stratified_probabilities.empty:
                 grouped["population_probability"] = (
@@ -1758,11 +1976,20 @@ class DuplicatesExactDetector(Detector):
                     ]
                 ].copy()
             )
+            record_runtime_timing(
+                "detector.duplicates_exact.scope.per_name_tests",
+                (perf_counter() - per_name_started) * 1000.0,
+            )
 
+            temporal_started = perf_counter()
             temporal = self._temporal_metrics_by_name(scope_frame, key_column, rng=rng)
             if not temporal.empty:
                 temporal["scope"] = scope
                 temporal_frames.append(temporal)
+            record_runtime_timing(
+                "detector.duplicates_exact.scope.temporal_metrics",
+                (perf_counter() - temporal_started) * 1000.0,
+            )
 
             scope_degraded = bool(
                 baseline_degraded
@@ -1791,6 +2018,7 @@ class DuplicatesExactDetector(Detector):
                 }
             )
 
+            scope_bucket_scan_started = perf_counter()
             metric_summary_by_n: dict[int, dict[str, dict[str, float]]] = {}
             scope_all_name_counts = scope_frame.groupby(key_column, dropna=False).size().astype(float)
             scope_all_histogram = histogram_from_name_counts(scope_all_name_counts)
@@ -1813,9 +2041,19 @@ class DuplicatesExactDetector(Detector):
             expected_all_primary_by_n: dict[int, float] = {}
             expected_position_primary_by_n: dict[str, dict[int, float]] = {}
             minute_series = pd.to_datetime(scope_frame.get("minute_bucket"), errors="coerce")
+            scope_bucketed_by_minutes: dict[int, pd.DataFrame] = {}
             for bucket_minutes in self.bucket_minutes:
                 bucket_start = minute_series.dt.floor(f"{int(bucket_minutes)}min")
                 bucketed = scope_frame.assign(bucket_start=bucket_start).dropna(subset=["bucket_start"])
+                if bucketed.empty:
+                    continue
+                scope_bucketed_by_minutes[int(bucket_minutes)] = bucketed
+            record_runtime_counter(
+                "detector.duplicates_exact.scope.bucketed_frame_cache.entries",
+                int(len(scope_bucketed_by_minutes)),
+            )
+            for bucket_minutes in self.bucket_minutes:
+                bucketed = scope_bucketed_by_minutes.get(int(bucket_minutes), pd.DataFrame())
                 if bucketed.empty:
                     continue
                 for start, group_frame in bucketed.groupby("bucket_start", dropna=False):
@@ -1869,7 +2107,7 @@ class DuplicatesExactDetector(Detector):
                                         max_draws=bucket_max_draws,
                                     )
                                 else:
-                                    null_for_n = simulate_collision_null_from_histogram(
+                                    null_for_n = self._simulate_collision_null_cached(
                                         n_rows=n_bucket,
                                         histogram=(
                                             stratified_null_histogram
@@ -1884,6 +2122,8 @@ class DuplicatesExactDetector(Detector):
                                         baseline_model="multinomial",
                                         n_population=n_population if n_population > 0 else None,
                                         max_draws=bucket_max_draws,
+                                        cache=null_simulation_cache,
+                                        histogram_digest_cache=histogram_digest_cache,
                                     )
                             else:
                                 null_for_n = pd.DataFrame()
@@ -1903,7 +2143,7 @@ class DuplicatesExactDetector(Detector):
                                 hard_cap=250,
                             )
                             null_for_n = (
-                                simulate_collision_null_from_histogram(
+                                self._simulate_collision_null_cached(
                                     n_rows=n_bucket,
                                     histogram=histogram,
                                     draws=self.monte_carlo_draws,
@@ -1911,6 +2151,8 @@ class DuplicatesExactDetector(Detector):
                                     baseline_model=self.collision_baseline_model,
                                     n_population=n_population if n_population > 0 else None,
                                     max_draws=bucket_max_draws,
+                                    cache=null_simulation_cache,
+                                    histogram_digest_cache=histogram_digest_cache,
                                 )
                                 if self.collision_uncertainty_mode == "monte_carlo"
                                 and bucket_max_draws > 0
@@ -1993,11 +2235,33 @@ class DuplicatesExactDetector(Detector):
                                     position_histogram = scope_all_histogram
                                 if position_histogram.empty:
                                     continue
-                                shrink_k, prior_level = self._resolve_contextual_shrink_k(
-                                    contextual_baseline=contextual_baseline,
-                                    bucket_start=pd.to_datetime(start),
-                                    bucket_minutes=int(bucket_minutes),
+                                bucket_start_ts = pd.to_datetime(start)
+                                cache_key = (
+                                    int(bucket_minutes),
+                                    int(bucket_start_ts.hour),
+                                    int(bucket_start_ts.weekday()),
                                 )
+                                cached_contextual = contextual_shrink_cache.get(cache_key)
+                                if cached_contextual is not None:
+                                    record_runtime_counter(
+                                        "detector.duplicates_exact.contextual_shrink.cache_hit",
+                                        1,
+                                    )
+                                    shrink_k, prior_level = cached_contextual
+                                else:
+                                    record_runtime_counter(
+                                        "detector.duplicates_exact.contextual_shrink.cache_miss",
+                                        1,
+                                    )
+                                    shrink_k, prior_level = self._resolve_contextual_shrink_k(
+                                        contextual_baseline=contextual_baseline,
+                                        bucket_start=bucket_start_ts,
+                                        bucket_minutes=int(bucket_minutes),
+                                    )
+                                    contextual_shrink_cache[cache_key] = (
+                                        float(shrink_k),
+                                        str(prior_level),
+                                    )
                                 lambda_side = (
                                     float(n_side) / float(n_side + shrink_k)
                                     if (float(n_side + shrink_k) > 0.0)
@@ -2067,8 +2331,13 @@ class DuplicatesExactDetector(Detector):
                                         ),
                                     }
                                 )
+            record_runtime_timing(
+                "detector.duplicates_exact.scope.bucket_scan",
+                (perf_counter() - scope_bucket_scan_started) * 1000.0,
+            )
 
             if scope == self.collision_scope_primary:
+                primary_scope_started = perf_counter()
                 primary_scope_row_count = int(n_scope)
                 primary_scope_unique_count = int(observed_metrics["n_unique_names"])
                 primary_scope_repeated = float(observed_metrics["repeated_group_rows"])
@@ -2245,7 +2514,20 @@ class DuplicatesExactDetector(Detector):
                 )
                 if not position_claim_eligible and not legacy_position_metrics.empty:
                     legacy_position_metrics["inference_status"] = "descriptive_only"
-                legacy_position_tests = self._position_permutation_test(scope_frame, key_column, rng=rng)
+                if position_model_supported:
+                    permutation_draws = (
+                        int(self.position_permutation_draws)
+                        if position_claim_eligible
+                        else int(min(256, int(self.position_permutation_draws)))
+                    )
+                    legacy_position_tests = self._position_permutation_test(
+                        scope_frame,
+                        key_column,
+                        rng=rng,
+                        n_permutations=permutation_draws,
+                    )
+                else:
+                    legacy_position_tests = pd.DataFrame()
                 if not legacy_position_tests.empty and not legacy_position_metrics.empty:
                     legacy_position_tests["left_is_low_power"] = bool(
                         legacy_position_metrics.set_index("position_normalized")
@@ -2260,12 +2542,17 @@ class DuplicatesExactDetector(Detector):
                         .iloc[0]
                     )
 
+                duplicate_name_keys = set(
+                    grouped[grouped["observed_count"] >= 2]["canonical_name"].astype(str).tolist()
+                )
                 repeated_same_bucket_frames: list[pd.DataFrame] = []
                 for bucket_minutes in self.bucket_minutes:
-                    bucket_start = pd.to_datetime(scope_frame["minute_bucket"], errors="coerce").dt.floor(
-                        f"{int(bucket_minutes)}min"
-                    )
-                    bucketed = scope_frame.assign(bucket_start=bucket_start).dropna(subset=["bucket_start"])
+                    bucketed_scope = scope_bucketed_by_minutes.get(int(bucket_minutes), pd.DataFrame())
+                    if bucketed_scope.empty or not duplicate_name_keys:
+                        continue
+                    bucketed = bucketed_scope[
+                        bucketed_scope[key_column].isin(duplicate_name_keys)
+                    ].copy()
                     if bucketed.empty:
                         continue
                     repeated_same_bucket = (
@@ -2371,7 +2658,20 @@ class DuplicatesExactDetector(Detector):
                         }
                     )
                 legacy_swing_impact = pd.DataFrame(swing_rows)
+                record_runtime_timing(
+                    "detector.duplicates_exact.scope.primary_legacy_outputs",
+                    (perf_counter() - primary_scope_started) * 1000.0,
+                )
 
+        assemble_started = perf_counter()
+        record_runtime_counter(
+            "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_size",
+            int(len(null_simulation_cache)),
+        )
+        record_runtime_counter(
+            "detector.duplicates_exact.contextual_shrink.cache_size",
+            int(len(contextual_shrink_cache)),
+        )
         collision_methods = pd.DataFrame(methods_rows)
         collision_overview = pd.concat(overview_frames, ignore_index=True) if overview_frames else pd.DataFrame()
         collision_by_bucket = (
@@ -2460,6 +2760,10 @@ class DuplicatesExactDetector(Detector):
             "position_claim_eligible": bool(position_claim_eligible),
             "position_claim_reason": str(position_claim_reason),
         }
+        record_runtime_timing(
+            "detector.duplicates_exact.assemble_outputs",
+            (perf_counter() - assemble_started) * 1000.0,
+        )
 
         return DetectorResult(
             detector=self.name,

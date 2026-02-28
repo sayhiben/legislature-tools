@@ -45,11 +45,14 @@ def _copy_report_static_assets(out_dir: Path) -> dict[str, str]:
     destination_root.mkdir(parents=True, exist_ok=True)
 
     copied_files: set[str] = set()
-    for source_path in sorted(source_root.iterdir()):
+    for source_path in sorted(source_root.rglob("*")):
         if not source_path.is_file():
             continue
-        shutil.copy2(source_path, destination_root / source_path.name)
-        copied_files.add(source_path.name)
+        relative_path = source_path.relative_to(source_root)
+        destination_path = destination_root / relative_path
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, destination_path)
+        copied_files.add(relative_path.as_posix())
 
     required_files = {"report.css", "main.js"}
     missing = sorted(required_files.difference(copied_files))
@@ -58,9 +61,16 @@ def _copy_report_static_assets(out_dir: Path) -> dict[str, str]:
         raise FileNotFoundError(f"Missing required report static asset(s): {missing_label}")
 
     css_path = destination_root / "report.css"
-    js_path = destination_root / "main.js"
     css_version = hashlib.sha256(css_path.read_bytes()).hexdigest()[:12]
-    js_version = hashlib.sha256(js_path.read_bytes()).hexdigest()[:12]
+    js_hash = hashlib.sha256()
+    js_asset_paths = sorted(path for path in copied_files if path.endswith(".js"))
+    for asset_path in js_asset_paths:
+        asset = destination_root / asset_path
+        js_hash.update(asset_path.encode("utf-8"))
+        js_hash.update(b"\0")
+        js_hash.update(asset.read_bytes())
+        js_hash.update(b"\0")
+    js_version = js_hash.hexdigest()[:12]
 
     return {
         "css_url": f"{REPORT_CSS_ASSET_FILENAME}?v={css_version}",

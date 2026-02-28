@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
 from itertools import combinations
+from hashlib import sha1
+from pathlib import Path
+from time import perf_counter
 
 import pandas as pd
 
@@ -17,6 +21,10 @@ from testifier_audit.names.linkage import (
 )
 from testifier_audit.names.stat_tests import fisher_pairwise_rate_test
 from testifier_audit.names.nickname_map import load_nickname_map
+from testifier_audit.profiling import (
+    record_runtime_counter,
+    record_runtime_timing,
+)
 from testifier_audit.proportion_stats import (
     DEFAULT_LOW_POWER_MIN_TOTAL,
     low_power_mask,
@@ -71,6 +79,8 @@ class VoterRegistryMatchDetector(Detector):
         nickname_map_path: str = "",
         status_mode: str = "single",
         registry_snapshot_date: str | None = None,
+        lookup_cache_dir: str | None = None,
+        lookup_cache_db_snapshot: str | None = None,
     ) -> None:
         self.enabled = bool(enabled)
         self.db_url = db_url
@@ -98,6 +108,8 @@ class VoterRegistryMatchDetector(Detector):
         resolved_status_mode = str(status_mode or "single").strip().lower()
         self.status_mode = resolved_status_mode if resolved_status_mode in STATUS_MODES else "single"
         self.registry_snapshot_date = str(registry_snapshot_date or "").strip()
+        self.lookup_cache_dir = str(lookup_cache_dir or "").strip()
+        self.lookup_cache_db_snapshot = str(lookup_cache_db_snapshot or "").strip()
 
     @staticmethod
     def _empty_tables() -> dict[str, pd.DataFrame]:
@@ -119,7 +131,6 @@ class VoterRegistryMatchDetector(Detector):
     def _normalize_candidate_lookup(candidates: pd.DataFrame) -> dict[str, list[dict[str, object]]]:
         if candidates.empty:
             return {}
-
         if "canonical_name" not in candidates.columns:
             return {}
 
@@ -133,15 +144,21 @@ class VoterRegistryMatchDetector(Detector):
             if not canonical_name:
                 continue
 
-            if "|" in canonical_name:
-                parsed_last, parsed_first = canonical_name.split("|", 1)
-                parsed_last = parsed_last.strip()
-                parsed_first = parsed_first.strip()
-            else:
-                parsed_last = canonical_name
-                parsed_first = ""
+            parsed_last = ""
+            parsed_first = ""
+            if not has_last_col or not has_first_col:
+                if "|" in canonical_name:
+                    parsed_last, parsed_first = canonical_name.split("|", 1)
+                    parsed_last = parsed_last.strip()
+                    parsed_first = parsed_first.strip()
+                else:
+                    parsed_last = canonical_name
 
-            last = str(getattr(row, "canonical_last", "") or "").strip() if has_last_col else parsed_last
+            last = (
+                str(getattr(row, "canonical_last", "") or "").strip()
+                if has_last_col
+                else parsed_last
+            )
             first = (
                 str(getattr(row, "canonical_first", "") or "").strip()
                 if has_first_col
@@ -171,6 +188,131 @@ class VoterRegistryMatchDetector(Detector):
             )
         return lookup
 
+    def _prepare_bucket_cache(self, working: pd.DataFrame) -> dict[int, dict[str, object]]:
+        if working.empty:
+            return {}
+        minute_bucket = pd.to_datetime(working.get("minute_bucket"), errors="coerce")
+        position_normalized = _safe_str_series(working.get("position_normalized")).replace("", "Unknown")
+        cache: dict[int, dict[str, object]] = {}
+        for bucket_minutes in self.bucket_minutes:
+            normalized_bucket = int(bucket_minutes)
+            bucket_start = minute_bucket.dt.floor(f"{normalized_bucket}min")
+            non_null_mask = bucket_start.notna()
+            if not bool(non_null_mask.any()):
+                continue
+            skeleton_base = pd.DataFrame(
+                {
+                    "bucket_start": bucket_start[non_null_mask],
+                    "position_normalized": position_normalized[non_null_mask],
+                }
+            )
+            skeleton_base["_is_pro"] = (skeleton_base["position_normalized"] == "Pro").astype(int)
+            skeleton_base["_is_con"] = (skeleton_base["position_normalized"] == "Con").astype(int)
+            by_bucket_skeleton = (
+                skeleton_base.groupby("bucket_start", dropna=False)
+                .agg(
+                    n_total=("position_normalized", "count"),
+                    n_pro=("_is_pro", "sum"),
+                    n_con=("_is_con", "sum"),
+                )
+                .reset_index()
+                .sort_values("bucket_start")
+            )
+            by_bucket_position_skeleton = (
+                skeleton_base.groupby(["bucket_start", "position_normalized"], dropna=False)
+                .agg(n_total=("position_normalized", "count"))
+                .reset_index()
+                .sort_values(["bucket_start", "position_normalized"])
+            )
+            cache[normalized_bucket] = {
+                "bucket_start": bucket_start,
+                "non_null_mask": non_null_mask,
+                "by_bucket_skeleton": by_bucket_skeleton,
+                "by_bucket_position_skeleton": by_bucket_position_skeleton,
+            }
+        return cache
+
+    def _lookup_cache_snapshot_token(self) -> str:
+        override = str(self.lookup_cache_db_snapshot or "").strip()
+        if override:
+            return override
+        return str(self.registry_snapshot_date or "").strip()
+
+    def _registry_lookup_cache_path(
+        self,
+        *,
+        submission_names: list[str],
+        active_only: bool,
+    ) -> Path | None:
+        cache_dir_value = str(self.lookup_cache_dir or "").strip()
+        if not cache_dir_value:
+            return None
+        snapshot_token = self._lookup_cache_snapshot_token()
+        if not snapshot_token:
+            # Require an explicit snapshot token to avoid stale cross-snapshot reuse.
+            return None
+        names_hash = sha1("\n".join(submission_names).encode("utf-8")).hexdigest()
+        payload = {
+            "version": 1,
+            "submission_names_hash": names_hash,
+            "active_only": bool(active_only),
+            "db_snapshot": snapshot_token,
+            "table_name": str(self.table_name),
+            "db_url_hash": sha1(str(self.db_url or "").encode("utf-8")).hexdigest(),
+        }
+        cache_key = sha1(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        return Path(cache_dir_value) / f"registry-lookup-{cache_key}.pkl"
+
+    def _load_registry_lookup_cache(
+        self,
+        cache_path: Path | None,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, int] | None:
+        if cache_path is None or not cache_path.exists():
+            return None
+        try:
+            payload = pd.read_pickle(cache_path)
+        except Exception:
+            return None
+        if not isinstance(payload, dict):
+            return None
+        exact_lookup_frame = payload.get("exact_lookup_frame")
+        candidate_frame = payload.get("candidate_frame")
+        registry_row_count = payload.get("registry_row_count")
+        if not isinstance(exact_lookup_frame, pd.DataFrame):
+            return None
+        if not isinstance(candidate_frame, pd.DataFrame):
+            return None
+        try:
+            resolved_row_count = int(registry_row_count)
+        except Exception:
+            return None
+        return exact_lookup_frame, candidate_frame, resolved_row_count
+
+    def _save_registry_lookup_cache(
+        self,
+        cache_path: Path | None,
+        *,
+        exact_lookup_frame: pd.DataFrame,
+        candidate_frame: pd.DataFrame,
+        registry_row_count: int,
+    ) -> None:
+        if cache_path is None:
+            return
+        try:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "exact_lookup_frame": exact_lookup_frame.copy(),
+                "candidate_frame": candidate_frame.copy(),
+                "registry_row_count": int(registry_row_count),
+            }
+            temp_path = cache_path.with_suffix(".tmp")
+            pd.to_pickle(payload, temp_path)
+            temp_path.replace(cache_path)
+        except Exception:
+            return
+
     def _build_linkage_by_position(
         self,
         frame: pd.DataFrame,
@@ -179,8 +321,9 @@ class VoterRegistryMatchDetector(Detector):
         unit_label: str,
         position_column: str = "position_normalized",
     ) -> pd.DataFrame:
+        started = perf_counter()
         if frame.empty:
-            return pd.DataFrame(
+            result = pd.DataFrame(
                 columns=[
                     "unit",
                     "position_normalized",
@@ -197,6 +340,11 @@ class VoterRegistryMatchDetector(Detector):
                     "is_low_power",
                 ]
             )
+            record_runtime_timing(
+                "detector.voter_registry_match.build_linkage_by_position",
+                (perf_counter() - started) * 1000.0,
+            )
+            return result
 
         working = frame.copy()
         working["_is_matched_unique"] = (working[outcome_column] == "matched_unique").astype(int)
@@ -243,7 +391,7 @@ class VoterRegistryMatchDetector(Detector):
             "",
             "Unknown",
         )
-        return grouped[
+        result = grouped[
             [
                 "unit",
                 "position_normalized",
@@ -260,9 +408,23 @@ class VoterRegistryMatchDetector(Detector):
                 "is_low_power",
             ]
         ].sort_values(["position_normalized"])
+        record_runtime_timing(
+            "detector.voter_registry_match.build_linkage_by_position",
+            (perf_counter() - started) * 1000.0,
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.build_linkage_by_position.rows",
+            int(len(result)),
+        )
+        return result
 
     def _build_pairwise_tests(self, grouped: pd.DataFrame, *, unit_label: str) -> pd.DataFrame:
+        started = perf_counter()
         if grouped.empty:
+            record_runtime_timing(
+                "detector.voter_registry_match.build_pairwise_tests",
+                (perf_counter() - started) * 1000.0,
+            )
             return pd.DataFrame()
         rows: list[dict[str, object]] = []
         positions = sorted(
@@ -316,36 +478,99 @@ class VoterRegistryMatchDetector(Detector):
                     "test_method": "fisher_exact",
                 }
             )
-        return pd.DataFrame(rows)
+        result = pd.DataFrame(rows)
+        record_runtime_timing(
+            "detector.voter_registry_match.build_pairwise_tests",
+            (perf_counter() - started) * 1000.0,
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.build_pairwise_tests.rows",
+            int(len(result)),
+        )
+        return result
 
     def _build_match_by_bucket(
         self,
         working: pd.DataFrame,
         *,
         outcome_column: str,
+        bucket_cache: dict[int, dict[str, object]] | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        started = perf_counter()
         bucket_frames: list[pd.DataFrame] = []
         bucket_position_frames: list[pd.DataFrame] = []
 
-        for bucket_minutes in self.bucket_minutes:
-            bucketed = working.copy()
-            bucketed["bucket_start"] = bucketed["minute_bucket"].dt.floor(f"{int(bucket_minutes)}min")
+        if working.empty:
+            record_runtime_timing(
+                "detector.voter_registry_match.build_match_by_bucket",
+                (perf_counter() - started) * 1000.0,
+            )
+            return pd.DataFrame(), pd.DataFrame()
 
-            by_bucket = (
-                bucketed.groupby("bucket_start", dropna=False)
+        resolved_bucket_cache = bucket_cache or self._prepare_bucket_cache(working)
+        outcome_series = _safe_str_series(working.get(outcome_column, pd.Series(dtype=str))).replace(
+            "",
+            "unmatched",
+        )
+        position_series = _safe_str_series(working.get("position_normalized", pd.Series(dtype=str))).replace(
+            "",
+            "Unknown",
+        )
+
+        for bucket_minutes in self.bucket_minutes:
+            normalized_bucket = int(bucket_minutes)
+            cache_entry = resolved_bucket_cache.get(normalized_bucket)
+            if cache_entry is None:
+                continue
+            bucket_start = cache_entry.get("bucket_start")
+            non_null_mask = cache_entry.get("non_null_mask")
+            by_bucket_skeleton = cache_entry.get("by_bucket_skeleton")
+            by_bucket_position_skeleton = cache_entry.get("by_bucket_position_skeleton")
+            if (
+                not isinstance(bucket_start, pd.Series)
+                or not isinstance(non_null_mask, pd.Series)
+                or not isinstance(by_bucket_skeleton, pd.DataFrame)
+                or by_bucket_skeleton.empty
+                or not isinstance(by_bucket_position_skeleton, pd.DataFrame)
+                or by_bucket_position_skeleton.empty
+            ):
+                continue
+
+            mode_base = pd.DataFrame(
+                {
+                    "bucket_start": bucket_start[non_null_mask],
+                    "position_normalized": position_series[non_null_mask],
+                    "_outcome": outcome_series[non_null_mask],
+                }
+            )
+            if mode_base.empty:
+                continue
+            mode_base["_is_matched_unique"] = (mode_base["_outcome"] == "matched_unique").astype(int)
+            mode_base["_is_matched_ambiguous"] = (mode_base["_outcome"] == "matched_ambiguous").astype(int)
+            mode_base["_is_unmatched"] = (mode_base["_outcome"] == "unmatched").astype(int)
+
+            bucket_mode_counts = (
+                mode_base.groupby("bucket_start", dropna=False)
                 .agg(
-                    n_total=("canonical_name", "count"),
-                    n_matched_unique=(outcome_column, lambda series: int((series == "matched_unique").sum())),
-                    n_matched_ambiguous=(
-                        outcome_column,
-                        lambda series: int((series == "matched_ambiguous").sum()),
-                    ),
-                    n_unmatched=(outcome_column, lambda series: int((series == "unmatched").sum())),
-                    n_pro=("position_normalized", lambda series: int((series == "Pro").sum())),
-                    n_con=("position_normalized", lambda series: int((series == "Con").sum())),
+                    n_matched_unique=("_is_matched_unique", "sum"),
+                    n_matched_ambiguous=("_is_matched_ambiguous", "sum"),
+                    n_unmatched=("_is_unmatched", "sum"),
                 )
                 .reset_index()
-                .sort_values("bucket_start")
+            )
+            by_bucket = by_bucket_skeleton.merge(
+                bucket_mode_counts,
+                on="bucket_start",
+                how="left",
+            ).sort_values("bucket_start")
+            by_bucket["n_matched_unique"] = (
+                pd.to_numeric(by_bucket["n_matched_unique"], errors="coerce").fillna(0).astype(int)
+            )
+            by_bucket["n_matched_ambiguous"] = (
+                pd.to_numeric(by_bucket["n_matched_ambiguous"], errors="coerce").fillna(0).astype(int)
+            )
+            by_bucket["n_unmatched"] = (
+                pd.to_numeric(by_bucket["n_unmatched"], errors="coerce").fillna(0).astype(int)
             )
             by_bucket["n_matched"] = by_bucket["n_matched_unique"] + by_bucket["n_matched_ambiguous"]
             by_bucket["matched_rate"] = (by_bucket["n_matched"] / by_bucket["n_total"]).where(
@@ -372,22 +597,31 @@ class VoterRegistryMatchDetector(Detector):
                 totals=by_bucket["n_total"],
                 min_total=self.low_power_min_total,
             )
-            by_bucket["bucket_minutes"] = int(bucket_minutes)
+            by_bucket["bucket_minutes"] = normalized_bucket
             bucket_frames.append(by_bucket)
 
-            by_bucket_pos = (
-                bucketed.groupby(["bucket_start", "position_normalized"], dropna=False)
+            bucket_pos_mode_counts = (
+                mode_base.groupby(["bucket_start", "position_normalized"], dropna=False)
                 .agg(
-                    n_total=("canonical_name", "count"),
-                    n_matched_unique=(outcome_column, lambda series: int((series == "matched_unique").sum())),
-                    n_matched_ambiguous=(
-                        outcome_column,
-                        lambda series: int((series == "matched_ambiguous").sum()),
-                    ),
-                    n_unmatched=(outcome_column, lambda series: int((series == "unmatched").sum())),
+                    n_matched_unique=("_is_matched_unique", "sum"),
+                    n_matched_ambiguous=("_is_matched_ambiguous", "sum"),
+                    n_unmatched=("_is_unmatched", "sum"),
                 )
                 .reset_index()
-                .sort_values(["bucket_start", "position_normalized"])
+            )
+            by_bucket_pos = by_bucket_position_skeleton.merge(
+                bucket_pos_mode_counts,
+                on=["bucket_start", "position_normalized"],
+                how="left",
+            ).sort_values(["bucket_start", "position_normalized"])
+            by_bucket_pos["n_matched_unique"] = (
+                pd.to_numeric(by_bucket_pos["n_matched_unique"], errors="coerce").fillna(0).astype(int)
+            )
+            by_bucket_pos["n_matched_ambiguous"] = (
+                pd.to_numeric(by_bucket_pos["n_matched_ambiguous"], errors="coerce").fillna(0).astype(int)
+            )
+            by_bucket_pos["n_unmatched"] = (
+                pd.to_numeric(by_bucket_pos["n_unmatched"], errors="coerce").fillna(0).astype(int)
             )
             by_bucket_pos["n_matched"] = (
                 by_bucket_pos["n_matched_unique"] + by_bucket_pos["n_matched_ambiguous"]
@@ -414,7 +648,7 @@ class VoterRegistryMatchDetector(Detector):
                 totals=by_bucket_pos["n_total"],
                 min_total=self.low_power_min_total,
             )
-            by_bucket_pos["bucket_minutes"] = int(bucket_minutes)
+            by_bucket_pos["bucket_minutes"] = normalized_bucket
             bucket_position_frames.append(by_bucket_pos)
 
         by_bucket = (
@@ -430,6 +664,18 @@ class VoterRegistryMatchDetector(Detector):
             .reset_index(drop=True)
             if bucket_position_frames
             else pd.DataFrame()
+        )
+        record_runtime_timing(
+            "detector.voter_registry_match.build_match_by_bucket",
+            (perf_counter() - started) * 1000.0,
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.build_match_by_bucket.rows",
+            int(len(by_bucket)),
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.build_match_by_bucket.position_rows",
+            int(len(by_bucket_position)),
         )
         return by_bucket, by_bucket_position
 
@@ -476,6 +722,7 @@ class VoterRegistryMatchDetector(Detector):
                 "Missing required columns for voter registry matching: " + ", ".join(missing)
             )
 
+        working_prepare_started = perf_counter()
         working = df.copy()
         working["canonical_name"] = _safe_str_series(working["canonical_name"])
         working = working[working["canonical_name"].isin(["", "|"]) == False].copy()
@@ -485,6 +732,11 @@ class VoterRegistryMatchDetector(Detector):
         )
         working["minute_bucket"] = pd.to_datetime(working["minute_bucket"], errors="coerce")
         working = working.dropna(subset=["minute_bucket"]).copy()
+        record_runtime_timing(
+            "detector.voter_registry_match.prepare_working",
+            (perf_counter() - working_prepare_started) * 1000.0,
+        )
+        record_runtime_counter("detector.voter_registry_match.rows.working", int(len(working)))
         if working.empty:
             return DetectorResult(
                 detector=self.name,
@@ -492,6 +744,7 @@ class VoterRegistryMatchDetector(Detector):
                 tables=self._empty_tables(),
             )
 
+        submission_index_started = perf_counter()
         submission_names = sorted(
             {
                 value
@@ -507,28 +760,116 @@ class VoterRegistryMatchDetector(Detector):
                 if last_name
             }
         )
+        record_runtime_timing(
+            "detector.voter_registry_match.build_submission_name_index",
+            (perf_counter() - submission_index_started) * 1000.0,
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.submission_names.count",
+            int(len(submission_names)),
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.submission_last_names.count",
+            int(len(submission_last_names)),
+        )
 
+        fetch_started = perf_counter()
+        lookup_cache_path = self._registry_lookup_cache_path(
+            submission_names=submission_names,
+            active_only=active_only,
+        )
         try:
-            exact_lookup_frame = fetch_matching_voter_names(
-                db_url=self.db_url,
-                table_name=self.table_name,
-                canonical_names=submission_names,
-                active_only=active_only,
-            )
-            candidate_frame = fetch_voter_candidates_by_last_name(
-                db_url=self.db_url,
-                table_name=self.table_name,
-                canonical_lasts=submission_last_names,
-                active_only=active_only,
-            )
-            registry_row_count = int(
-                count_registry_rows(
+            cached_lookup = self._load_registry_lookup_cache(lookup_cache_path)
+            if cached_lookup is not None:
+                exact_lookup_frame, candidate_frame, registry_row_count = cached_lookup
+                record_runtime_counter("detector.voter_registry_match.fetch_registry_data.cache_hit", 1)
+            else:
+                record_runtime_counter("detector.voter_registry_match.fetch_registry_data.cache_miss", 1)
+                exact_lookup_frame = fetch_matching_voter_names(
                     db_url=self.db_url,
                     table_name=self.table_name,
+                    canonical_names=submission_names,
                     active_only=active_only,
                 )
+                if isinstance(exact_lookup_frame, pd.DataFrame):
+                    exact_presence = exact_lookup_frame.copy()
+                else:
+                    exact_presence = pd.DataFrame(columns=["canonical_name", "n_registry_rows"])
+                exact_presence["canonical_name"] = _safe_str_series(
+                    exact_presence.get("canonical_name", pd.Series(dtype=str))
+                )
+                exact_presence["n_registry_rows"] = (
+                    pd.to_numeric(exact_presence.get("n_registry_rows", 0), errors="coerce")
+                    .fillna(0)
+                    .astype(int)
+                )
+                exact_present_names = set(
+                    exact_presence.loc[
+                        (exact_presence["canonical_name"] != "") & (exact_presence["n_registry_rows"] > 0),
+                        "canonical_name",
+                    ].tolist()
+                )
+                unresolved_last_names = sorted(
+                    {
+                        last_name
+                        for canonical_name, (last_name, _first_name) in zip(
+                            submission_names,
+                            submission_name_parts,
+                            strict=False,
+                        )
+                        if last_name and canonical_name not in exact_present_names
+                    }
+                )
+                record_runtime_counter(
+                    "detector.voter_registry_match.unresolved_last_names.count",
+                    int(len(unresolved_last_names)),
+                )
+                if unresolved_last_names:
+                    candidate_frame = fetch_voter_candidates_by_last_name(
+                        db_url=self.db_url,
+                        table_name=self.table_name,
+                        canonical_lasts=unresolved_last_names,
+                        active_only=active_only,
+                    )
+                else:
+                    candidate_frame = pd.DataFrame(
+                        columns=[
+                            "canonical_last",
+                            "canonical_first",
+                            "canonical_name",
+                            "canonical_middle_initial",
+                            "canonical_suffix",
+                            "canonical_key_strict",
+                            "canonical_key_medium",
+                            "n_registry_rows",
+                        ]
+                    )
+                registry_row_count = int(
+                    count_registry_rows(
+                        db_url=self.db_url,
+                        table_name=self.table_name,
+                        active_only=active_only,
+                    )
+                )
+                self._save_registry_lookup_cache(
+                    lookup_cache_path,
+                    exact_lookup_frame=exact_lookup_frame,
+                    candidate_frame=candidate_frame,
+                    registry_row_count=registry_row_count,
+                )
+            record_runtime_counter(
+                "detector.voter_registry_match.fetch_registry_data.cache_enabled",
+                1 if lookup_cache_path is not None else 0,
+            )
+            record_runtime_timing(
+                "detector.voter_registry_match.fetch_registry_data",
+                (perf_counter() - fetch_started) * 1000.0,
             )
         except Exception as exc:
+            record_runtime_timing(
+                "detector.voter_registry_match.fetch_registry_data",
+                (perf_counter() - fetch_started) * 1000.0,
+            )
             return DetectorResult(
                 detector=self.name,
                 summary={
@@ -540,6 +881,7 @@ class VoterRegistryMatchDetector(Detector):
                 tables=self._empty_tables(),
             )
 
+        lookup_normalization_started = perf_counter()
         if not isinstance(exact_lookup_frame, pd.DataFrame):
             exact_lookup_frame = pd.DataFrame(columns=["canonical_name", "n_registry_rows"])
         exact_lookup_frame = exact_lookup_frame.copy()
@@ -570,7 +912,20 @@ class VoterRegistryMatchDetector(Detector):
                 columns=["canonical_last", "canonical_first", "canonical_name", "n_registry_rows"]
             )
         candidate_lookup = self._normalize_candidate_lookup(candidate_frame)
+        record_runtime_timing(
+            "detector.voter_registry_match.normalize_lookup_frames",
+            (perf_counter() - lookup_normalization_started) * 1000.0,
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.lookup.exact_name_count",
+            int(len(exact_lookup)),
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.lookup.candidate_last_count",
+            int(len(candidate_lookup)),
+        )
 
+        classify_started = perf_counter()
         nickname_map: dict[str, str] = {}
         if self.nickname_map_path:
             nickname_map = load_nickname_map(self.nickname_map_path)
@@ -602,7 +957,12 @@ class VoterRegistryMatchDetector(Detector):
                     "match_caveat",
                 ]
             )
+        record_runtime_timing(
+            "detector.voter_registry_match.classify_name_linkage",
+            (perf_counter() - classify_started) * 1000.0,
+        )
 
+        assignment_normalize_started = perf_counter()
         assignments["canonical_name"] = _safe_str_series(assignments["canonical_name"])
         assignments["matched_registry_name"] = _safe_str_series(assignments["matched_registry_name"])
         assignments["matched_registry_rows"] = (
@@ -648,7 +1008,13 @@ class VoterRegistryMatchDetector(Detector):
                 .where(_safe_str_series(assignments[outcome_column]).isin(PRIMARY_OUTCOMES), "unmatched")
                 .replace("", "unmatched")
             )
+        record_runtime_timing(
+            "detector.voter_registry_match.normalize_assignments",
+            (perf_counter() - assignment_normalize_started) * 1000.0,
+        )
+        record_runtime_counter("detector.voter_registry_match.assignments.rows", int(len(assignments)))
 
+        working_merge_started = perf_counter()
         working = working.merge(assignments, on="canonical_name", how="left")
         for mode, outcome_column in MODE_TO_OUTCOME_COLUMN.items():
             if outcome_column not in working.columns:
@@ -668,39 +1034,57 @@ class VoterRegistryMatchDetector(Detector):
             working[f"is_matched_{match_mode}"] = working[outcome_column].isin(
                 {"matched_unique", "matched_ambiguous"}
             )
+        record_runtime_timing(
+            "detector.voter_registry_match.merge_assignments_into_rows",
+            (perf_counter() - working_merge_started) * 1000.0,
+        )
 
         # Name-level position assignment for unique-name inference unit.
+        unique_position_started = perf_counter()
         unique_position = (
             working.groupby(["canonical_name", "position_normalized"], dropna=False)
             .size()
             .rename("n_rows")
             .reset_index()
         )
-        unique_rows: list[dict[str, object]] = []
-        for canonical_name, group in unique_position.groupby("canonical_name", dropna=False):
-            group_sorted = group.sort_values(
-                ["n_rows", "position_normalized"],
-                ascending=[False, True],
-            )
-            top_rows = group_sorted[group_sorted["n_rows"] == group_sorted["n_rows"].iloc[0]]
-            dominant_position = (
-                str(top_rows["position_normalized"].iloc[0])
-                if len(top_rows) == 1
-                else "Mixed"
-            )
-            unique_rows.append(
-                {
-                    "canonical_name": str(canonical_name),
-                    "dominant_position": dominant_position,
-                    "n_rows": int(group["n_rows"].sum()),
-                    "n_positions": int(group["position_normalized"].nunique()),
-                }
-            )
-        unique_names = pd.DataFrame(unique_rows)
-        if unique_names.empty:
+        if unique_position.empty:
             unique_names = pd.DataFrame(
                 columns=["canonical_name", "dominant_position", "n_rows", "n_positions"]
             )
+        else:
+            unique_position = unique_position.sort_values(
+                ["canonical_name", "n_rows", "position_normalized"],
+                ascending=[True, False, True],
+            )
+            max_rows = unique_position.groupby("canonical_name", dropna=False)["n_rows"].transform("max")
+            top_rows = unique_position[max_rows == unique_position["n_rows"]].copy()
+
+            top_counts = (
+                top_rows.groupby("canonical_name", dropna=False)
+                .size()
+                .rename("n_top_positions")
+            )
+            dominant_single = (
+                top_rows.drop_duplicates("canonical_name", keep="first")
+                .set_index("canonical_name")["position_normalized"]
+                .rename("dominant_single")
+            )
+            unique_summary = unique_position.groupby("canonical_name", dropna=False).agg(
+                n_rows=("n_rows", "sum"),
+                n_positions=("position_normalized", "nunique"),
+            )
+            unique_summary = unique_summary.join(top_counts, how="left").join(dominant_single, how="left")
+            unique_summary["n_top_positions"] = (
+                pd.to_numeric(unique_summary["n_top_positions"], errors="coerce")
+                .fillna(0)
+                .astype(int)
+            )
+            unique_summary["dominant_position"] = _safe_str_series(
+                unique_summary["dominant_single"]
+            ).where(unique_summary["n_top_positions"] == 1, "Mixed")
+            unique_names = unique_summary.reset_index()[
+                ["canonical_name", "dominant_position", "n_rows", "n_positions"]
+            ].copy()
 
         assignments = assignments.merge(unique_names, on="canonical_name", how="left")
         assignments["dominant_position"] = _safe_str_series(
@@ -711,6 +1095,10 @@ class VoterRegistryMatchDetector(Detector):
         )
         assignments["n_positions"] = (
             pd.to_numeric(assignments.get("n_positions", 0), errors="coerce").fillna(0).astype(int)
+        )
+        record_runtime_timing(
+            "detector.voter_registry_match.derive_unique_positions",
+            (perf_counter() - unique_position_started) * 1000.0,
         )
 
         def _build_unmatched_names(
@@ -781,8 +1169,21 @@ class VoterRegistryMatchDetector(Detector):
         match_by_bucket_position_frames: list[pd.DataFrame] = []
         unmatched_names_frames: list[pd.DataFrame] = []
         sensitivity_rows: list[dict[str, object]] = []
+        bucket_cache_started = perf_counter()
+        bucket_cache = self._prepare_bucket_cache(working)
+        record_runtime_timing(
+            "detector.voter_registry_match.prepare_bucket_cache",
+            (perf_counter() - bucket_cache_started) * 1000.0,
+        )
+        record_runtime_counter(
+            "detector.voter_registry_match.prepare_bucket_cache.entries",
+            int(len(bucket_cache)),
+        )
 
+        mode_loop_started = perf_counter()
         for match_mode, outcome_column in REPORT_MATCH_MODE_TO_OUTCOME_COLUMN.items():
+            record_runtime_counter("detector.voter_registry_match.mode.iterations", 1)
+            mode_started = perf_counter()
             row_counts = working[outcome_column].value_counts().reindex(PRIMARY_OUTCOMES, fill_value=0)
             unique_counts = assignments[outcome_column].value_counts().reindex(PRIMARY_OUTCOMES, fill_value=0)
             n_rows_total = int(len(working))
@@ -908,6 +1309,7 @@ class VoterRegistryMatchDetector(Detector):
             match_by_bucket, match_by_bucket_position = self._build_match_by_bucket(
                 working,
                 outcome_column=outcome_column,
+                bucket_cache=bucket_cache,
             )
             if not match_by_bucket.empty:
                 match_by_bucket["match_mode"] = str(match_mode)
@@ -920,7 +1322,20 @@ class VoterRegistryMatchDetector(Detector):
             unmatched_names_frames.append(
                 _build_unmatched_names(source=unmatched_source, match_mode=match_mode)
             )
+            record_runtime_timing(
+                "detector.voter_registry_match.mode.total",
+                (perf_counter() - mode_started) * 1000.0,
+            )
+            record_runtime_counter(
+                "detector.voter_registry_match.mode.rows_processed",
+                int(n_rows_total),
+            )
+        record_runtime_timing(
+            "detector.voter_registry_match.mode.loop_total",
+            (perf_counter() - mode_loop_started) * 1000.0,
+        )
 
+        assemble_tables_started = perf_counter()
         linkage_overview = (
             pd.concat(linkage_overview_frames, ignore_index=True)
             if linkage_overview_frames
@@ -956,17 +1371,23 @@ class VoterRegistryMatchDetector(Detector):
             if match_by_bucket_position_frames
             else pd.DataFrame()
         )
+        unmatched_nonempty_frames = [frame for frame in unmatched_names_frames if not frame.empty]
         unmatched_names = (
-            pd.concat(unmatched_names_frames, ignore_index=True)
+            pd.concat(unmatched_nonempty_frames, ignore_index=True)
             .sort_values(["match_mode", "n_rows", "display_name"], ascending=[True, False, True])
-            if unmatched_names_frames
+            if unmatched_nonempty_frames
             else pd.DataFrame()
         )
         if not unmatched_names.empty:
             unmatched_names = unmatched_names.groupby(
                 "match_mode", dropna=False, group_keys=False
             ).head(1000)
+        record_runtime_timing(
+            "detector.voter_registry_match.assemble_tables",
+            (perf_counter() - assemble_tables_started) * 1000.0,
+        )
 
+        summary_started = perf_counter()
         available_mode_values = (
             set(sensitivity_modes["mode"])
             if isinstance(sensitivity_modes, pd.DataFrame) and "mode" in sensitivity_modes.columns
@@ -1052,6 +1473,10 @@ class VoterRegistryMatchDetector(Detector):
             "voter_signal_role": "supporting_evidence_only",
             "attribution_caveat": self._ATTRIBUTION_CAVEAT,
         }
+        record_runtime_timing(
+            "detector.voter_registry_match.build_summary_and_assignments",
+            (perf_counter() - summary_started) * 1000.0,
+        )
 
         tables = {
             "linkage_overview": linkage_overview,

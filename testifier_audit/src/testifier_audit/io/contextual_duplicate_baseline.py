@@ -17,6 +17,11 @@ from testifier_audit.names.nickname_map import load_nickname_map
 DEFAULT_BUCKET_MINUTES = (1, 5, 15, 30, 60, 120, 240, 480, 720, 1440)
 
 
+def _log_info(message: str) -> None:
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{timestamp} [contextual-baseline][info] {message}")
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build position-free contextual duplicate baselines from local corpus CSV files."
@@ -64,6 +69,19 @@ def _safe_level_text(value: Any) -> str:
     return _safe_text(value).lower()
 
 
+def _parse_time_signed_in(values: pd.Series) -> pd.Series:
+    # Fast-path the known WA exports timestamp format; fall back for edge-case rows.
+    parsed = pd.to_datetime(
+        values,
+        format="%m/%d/%Y %I:%M %p",
+        errors="coerce",
+    )
+    missing_mask = parsed.isna()
+    if missing_mask.any():
+        parsed.loc[missing_mask] = pd.to_datetime(values.loc[missing_mask], errors="coerce")
+    return parsed
+
+
 def load_sidecar_context(metadata_path: Path) -> tuple[str, str]:
     if not metadata_path.exists():
         return "", ""
@@ -90,7 +108,7 @@ def build_window_rows(
     if not required.issubset(set(frame.columns)):
         return []
     frame = frame.copy()
-    frame["timestamp"] = pd.to_datetime(frame["Time Signed In"], errors="coerce")
+    frame["timestamp"] = _parse_time_signed_in(frame["Time Signed In"])
     frame = frame.dropna(subset=["timestamp"])
     if frame.empty:
         return []
@@ -324,8 +342,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         output_csv,
         [row for row in rows if isinstance(row, dict)],
     )
-    print(f"Wrote contextual baseline JSON: {output_json} ({len(rows)} rows)")
-    print(f"Wrote contextual baseline CSV:  {output_csv}")
+    _log_info(f"Wrote contextual baseline JSON: {output_json} ({len(rows)} rows)")
+    _log_info(f"Wrote contextual baseline CSV: {output_csv}")
 
 
 if __name__ == "__main__":

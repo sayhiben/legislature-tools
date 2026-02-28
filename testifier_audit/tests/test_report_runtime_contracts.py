@@ -22,7 +22,12 @@ def test_payload_runtime_metrics_include_size_and_build_time() -> None:
 
 def test_render_report_writes_runtime_artifact(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
-    report_path = render_report(results={}, artifacts={}, out_dir=out_dir)
+    report_path = render_report(
+        results={},
+        artifacts={},
+        out_dir=out_dir,
+        additional_runtime_metrics={"pipeline": {"detector_pass_ms": 12.34}},
+    )
 
     assert report_path.exists()
     report_data_path = out_dir / REPORT_DATA_FILENAME
@@ -38,3 +43,9 @@ def test_render_report_writes_runtime_artifact(tmp_path: Path) -> None:
     assert runtime["report_write_ms"] >= 0.0
     assert runtime["report_total_ms"] >= 0.0
     assert runtime["interactive_payload_build_ms"] >= 0.0
+    assert runtime["context_load_ms"] >= 0.0
+    assert runtime["table_docs_build_ms"] >= 0.0
+    assert runtime["report_data_payload_build_ms"] >= 0.0
+    assert runtime["report_data_write_ms"] >= 0.0
+    assert runtime["report_assets_copy_ms"] >= 0.0
+    assert runtime["pipeline_runtime"]["pipeline"]["detector_pass_ms"] == 12.34

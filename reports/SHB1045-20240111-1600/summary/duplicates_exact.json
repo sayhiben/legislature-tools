@@ -20,5 +20,156 @@
   "position_interval_method_id": "position_duplicate_interval_multinomial_mc_v1",
   "position_interval_nominal": 0.95,
   "primary_low_power": true,
+  "runtime": {
+    "flag_rows_written": 0,
+    "flags_written": 0,
+    "profiling": {
+      "counters": {
+        "detector.duplicates_exact.contextual_shrink.cache_hit": 4410,
+        "detector.duplicates_exact.contextual_shrink.cache_miss": 841,
+        "detector.duplicates_exact.contextual_shrink.cache_size": 841,
+        "detector.duplicates_exact.rows.inference": 2901,
+        "detector.duplicates_exact.rows.working": 2911,
+        "detector.duplicates_exact.scope.bucketed_frame_cache.entries": 10,
+        "detector.duplicates_exact.scope.count": 1,
+        "detector.duplicates_exact.scope.iterations": 1,
+        "detector.duplicates_exact.scope.rows_total": 2901,
+        "detector.duplicates_exact.scope.unique_names_total": 2523,
+        "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_miss": 1,
+        "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_size": 1,
+        "simulation.collision_null_from_histogram.calls": 4,
+        "simulation.collision_null_from_histogram.draws_effective": 16000,
+        "simulation.collision_null_from_histogram.draws_requested": 35000,
+        "simulation.collision_null_from_histogram.n_rows": 5802,
+        "simulation.collision_null_from_histogram.output_samples": 16000,
+        "simulation.collision_null_from_histogram.parallel_chunks": 128,
+        "simulation.collision_null_from_histogram.parallel_enabled": 3,
+        "simulation.collision_null_from_histogram.parallel_fallback": 0,
+        "simulation.collision_null_from_histogram.parallel_workers": 32,
+        "simulation.duplicates_exact_position_permutation.calls": 1,
+        "simulation.duplicates_exact_position_permutation.permutations": 256,
+        "simulation.duplicates_exact_position_permutation.successful_results": 1,
+        "simulation.duplicates_exact_temporal_null.cached_sample_sizes": 5,
+        "simulation.duplicates_exact_temporal_null.calls": 1,
+        "simulation.duplicates_exact_temporal_null.draws_effective": 1000,
+        "simulation.duplicates_exact_temporal_null.output_rows": 306
+      },
+      "timed_event_count": 18,
+      "timings": {
+        "detector.duplicates_exact.assemble_outputs": {
+          "avg_ms": 73.37,
+          "calls": 1,
+          "max_ms": 73.37,
+          "min_ms": 73.37,
+          "total_ms": 73.37
+        },
+        "detector.duplicates_exact.load_contextual_baseline": {
+          "avg_ms": 72.201,
+          "calls": 1,
+          "max_ms": 72.201,
+          "min_ms": 72.201,
+          "total_ms": 72.201
+        },
+        "detector.duplicates_exact.prepare_stratification": {
+          "avg_ms": 0.0,
+          "calls": 1,
+          "max_ms": 0.0,
+          "min_ms": 0.0,
+          "total_ms": 0.0
+        },
+        "detector.duplicates_exact.prepare_working": {
+          "avg_ms": 7.21,
+          "calls": 1,
+          "max_ms": 7.21,
+          "min_ms": 7.21,
+          "total_ms": 7.21
+        },
+        "detector.duplicates_exact.resolve_scope_frames": {
+          "avg_ms": 0.142,
+          "calls": 1,
+          "max_ms": 0.142,
+          "min_ms": 0.142,
+          "total_ms": 0.142
+        },
+        "detector.duplicates_exact.scope.bucket_scan": {
+          "avg_ms": 3671.725,
+          "calls": 1,
+          "max_ms": 3671.725,
+          "min_ms": 3671.725,
+          "total_ms": 3671.725
+        },
+        "detector.duplicates_exact.scope.expected_metrics_and_null": {
+          "avg_ms": 4508.405,
+          "calls": 1,
+          "max_ms": 4508.405,
+          "min_ms": 4508.405,
+          "total_ms": 4508.405
+        },
+        "detector.duplicates_exact.scope.per_name_tests": {
+          "avg_ms": 56.142,
+          "calls": 1,
+          "max_ms": 56.142,
+          "min_ms": 56.142,
+          "total_ms": 56.142
+        },
+        "detector.duplicates_exact.scope.prepare_frame": {
+          "avg_ms": 2.914,
+          "calls": 1,
+          "max_ms": 2.914,
+          "min_ms": 2.914,
+          "total_ms": 2.914
+        },
+        "detector.duplicates_exact.scope.primary_legacy_outputs": {
+          "avg_ms": 4210.545,
+          "calls": 1,
+          "max_ms": 4210.545,
+          "min_ms": 4210.545,
+          "total_ms": 4210.545
+        },
+        "detector.duplicates_exact.scope.temporal_metrics": {
+          "avg_ms": 93.408,
+          "calls": 1,
+          "max_ms": 93.408,
+          "min_ms": 93.408,
+          "total_ms": 93.408
+        },
+        "detector.duplicates_exact.scope.top_name_timing": {
+          "avg_ms": 100.578,
+          "calls": 1,
+          "max_ms": 100.578,
+          "min_ms": 100.578,
+          "total_ms": 100.578
+        },
+        "simulation.collision_null_from_histogram": {
+          "avg_ms": 1515.344,
+          "calls": 4,
+          "max_ms": 2007.372,
+          "min_ms": 96.582,
+          "total_ms": 6061.376
+        },
+        "simulation.duplicates_exact_position_permutation": {
+          "avg_ms": 11.975,
+          "calls": 1,
+          "max_ms": 11.975,
+          "min_ms": 11.975,
+          "total_ms": 11.975
+        },
+        "simulation.duplicates_exact_temporal_null": {
+          "avg_ms": 93.232,
+          "calls": 1,
+          "max_ms": 93.232,
+          "min_ms": 93.232,
+          "total_ms": 93.232
+        }
+      },
+      "total_timed_ms": 18963.222
+    },
+    "run_ms": 12806.057,
+    "table_rows_written": 38581,
+    "tables_written": 23,
+    "total_ms": 12845.283,
+    "write_flags_ms": 0.0,
+    "write_tables_ms": 39.226
+  },
   "stratification": "none"
 }

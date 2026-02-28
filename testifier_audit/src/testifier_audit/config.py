@@ -127,6 +127,8 @@ class VoterRegistryConfig(BaseModel):
     pairwise_alpha: float = Field(default=0.05, gt=0.0, lt=1.0)
     status_mode: Literal["single", "dual_bounds"] = "single"
     registry_snapshot_date: str | None = None
+    lookup_cache_dir: str | None = None
+    lookup_cache_db_snapshot: str | None = None
 
 
 class OutputsConfig(BaseModel):

@@ -8,6 +8,7 @@ import yaml
 
 from testifier_audit.config import load_config
 from testifier_audit.detectors.voter_registry_match import VoterRegistryMatchDetector
+from testifier_audit.profiling import RuntimeProfiler, activate_runtime_profiler
 
 
 _EXPECTED_TABLES = {
@@ -155,6 +156,142 @@ def test_voter_registry_match_detector_emits_conservative_outputs(monkeypatch) -
     assert unmatched.loc["BROWN|AVA", "last_seen"] == pd.Timestamp("2026-02-01 00:35:00")
 
 
+def test_voter_registry_match_fetches_last_name_candidates_only_for_unresolved_exact_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "canonical_name": ["DOE|JANE", "SMITH|JOHN", "BROWN|AVA"],
+            "position_normalized": ["Pro", "Con", "Pro"],
+            "minute_bucket": pd.to_datetime(
+                [
+                    "2026-02-01 00:05:00",
+                    "2026-02-01 00:06:00",
+                    "2026-02-01 00:10:00",
+                ]
+            ),
+        }
+    )
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_matching_voter_names",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
+                "n_registry_rows": [1, 1],
+            }
+        ),
+    )
+
+    def _candidate_lookup(**kwargs) -> pd.DataFrame:
+        calls.append(list(kwargs.get("canonical_lasts", [])))
+        return pd.DataFrame(
+            {
+                "canonical_last": ["BROWN"],
+                "canonical_first": ["AVA"],
+                "canonical_name": ["BROWN|AVA"],
+                "n_registry_rows": [1],
+            }
+        )
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
+        _candidate_lookup,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.count_registry_rows",
+        lambda **_kwargs: 3,
+    )
+
+    detector = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        bucket_minutes=30,
+        active_only=True,
+    )
+    detector.run(df=df, features={})
+
+    assert calls == [["BROWN"]]
+
+
+def test_voter_registry_match_emits_phase_runtime_profile_keys(monkeypatch) -> None:
+    df = pd.DataFrame(
+        {
+            "canonical_name": ["DOE|JANE", "DOE|JANE", "SMITH|JOHN", "BROWN|AVA"],
+            "position_normalized": ["Pro", "Con", "Pro", "Con"],
+            "minute_bucket": pd.to_datetime(
+                [
+                    "2026-02-01 00:05:00",
+                    "2026-02-01 00:06:00",
+                    "2026-02-01 00:10:00",
+                    "2026-02-01 00:35:00",
+                ]
+            ),
+        }
+    )
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_matching_voter_names",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_name": ["DOE|JANE"],
+                "n_registry_rows": [1],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.count_registry_rows",
+        lambda **_kwargs: 1,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
+        lambda **_kwargs: pd.DataFrame(
+            {
+                "canonical_last": ["DOE", "SMITH"],
+                "canonical_first": ["JANE", "JOHN"],
+                "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
+                "n_registry_rows": [1, 1],
+            }
+        ),
+    )
+
+    detector = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        bucket_minutes=[5, 30],
+        active_only=True,
+    )
+    profiler = RuntimeProfiler()
+    with activate_runtime_profiler(profiler):
+        detector.run(df=df, features={})
+
+    timings = profiler.to_dict()["timings"]
+    expected_keys = {
+        "detector.voter_registry_match.prepare_working",
+        "detector.voter_registry_match.build_submission_name_index",
+        "detector.voter_registry_match.fetch_registry_data",
+        "detector.voter_registry_match.normalize_lookup_frames",
+        "detector.voter_registry_match.classify_name_linkage",
+        "detector.voter_registry_match.normalize_assignments",
+        "detector.voter_registry_match.merge_assignments_into_rows",
+        "detector.voter_registry_match.derive_unique_positions",
+        "detector.voter_registry_match.prepare_bucket_cache",
+        "detector.voter_registry_match.build_linkage_by_position",
+        "detector.voter_registry_match.build_pairwise_tests",
+        "detector.voter_registry_match.build_match_by_bucket",
+        "detector.voter_registry_match.mode.total",
+        "detector.voter_registry_match.mode.loop_total",
+        "detector.voter_registry_match.assemble_tables",
+        "detector.voter_registry_match.build_summary_and_assignments",
+    }
+    assert expected_keys.issubset(set(timings))
+    for key in expected_keys:
+        assert timings[key]["calls"] >= 1
+
+
 def test_voter_registry_match_detector_supports_multiple_bucket_windows(monkeypatch) -> None:
     df = pd.DataFrame(
         {
@@ -232,6 +369,90 @@ def test_voter_registry_match_detector_supports_multiple_bucket_windows(monkeypa
     by_bucket_position = result.tables["match_by_bucket_position"]
     assert not by_bucket_position.empty
     assert set(by_bucket_position["bucket_minutes"].astype(int).unique()) == {1, 5, 15}
+
+
+def test_voter_registry_match_registry_fetch_uses_disk_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    df = pd.DataFrame(
+        {
+            "canonical_name": ["DOE|JANE", "DOE|JANE", "SMITH|JOHN"],
+            "position_normalized": ["Pro", "Con", "Pro"],
+            "minute_bucket": pd.to_datetime(
+                [
+                    "2026-02-01 00:05:00",
+                    "2026-02-01 00:06:00",
+                    "2026-02-01 00:10:00",
+                ]
+            ),
+        }
+    )
+    calls = {"exact": 0, "candidate": 0, "count": 0}
+
+    def _exact_lookup(**_kwargs) -> pd.DataFrame:
+        calls["exact"] += 1
+        return pd.DataFrame(
+            {
+                "canonical_name": ["DOE|JANE"],
+                "n_registry_rows": [1],
+            }
+        )
+
+    def _candidate_lookup(**_kwargs) -> pd.DataFrame:
+        calls["candidate"] += 1
+        return pd.DataFrame(
+            {
+                "canonical_last": ["DOE", "SMITH"],
+                "canonical_first": ["JANE", "JOHN"],
+                "canonical_name": ["DOE|JANE", "SMITH|JOHN"],
+                "n_registry_rows": [1, 1],
+            }
+        )
+
+    def _row_count(**_kwargs) -> int:
+        calls["count"] += 1
+        return 2
+
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_matching_voter_names",
+        _exact_lookup,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.fetch_voter_candidates_by_last_name",
+        _candidate_lookup,
+    )
+    monkeypatch.setattr(
+        "testifier_audit.detectors.voter_registry_match.count_registry_rows",
+        _row_count,
+    )
+
+    cache_dir = tmp_path / "registry_lookup_cache"
+    detector = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        bucket_minutes=30,
+        active_only=True,
+        lookup_cache_dir=str(cache_dir),
+        registry_snapshot_date="2026-02-02",
+    )
+    detector.run(df=df, features={})
+
+    # Recreate detector to ensure second run reads from disk, not process memory.
+    detector_second = VoterRegistryMatchDetector(
+        enabled=True,
+        db_url="postgresql://user:pass@localhost:5432/legislature",
+        table_name="voter_registry",
+        bucket_minutes=30,
+        active_only=True,
+        lookup_cache_dir=str(cache_dir),
+        registry_snapshot_date="2026-02-02",
+    )
+    detector_second.run(df=df, features={})
+
+    assert calls == {"exact": 1, "candidate": 1, "count": 1}
+    assert any(cache_dir.glob("registry-lookup-*.pkl"))
 
 
 def test_voter_registry_match_nickname_equivalence_is_loose_only(

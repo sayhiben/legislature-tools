@@ -17,6 +17,7 @@ from testifier_audit.io.vrdb_postgres import (
     _upsert_vrdb_rows,
     count_registry_rows,
     ensure_voter_registry_schema,
+    fetch_voter_candidates_by_last_name,
     fetch_voter_name_key_count_histogram,
     fetch_matching_voter_names,
     fetch_voter_name_key_stratum_frequencies,
@@ -147,7 +148,7 @@ def test_normalize_vrdb_chunk_standardizes_and_filters_names() -> None:
             "LName": ["Doe", "Smith", "NoFirst"],
             "MName": ["A", "", "X"],
             "Birthyear": ["1980", "1975", "1990"],
-            "StatusCode": ["Active", "Active", "Inactive"],
+            "StatusCode": ["active", " Inactive ", "Inactive"],
         }
     )
 
@@ -163,6 +164,7 @@ def test_normalize_vrdb_chunk_standardizes_and_filters_names() -> None:
     assert normalized["source_file"].iloc[0] == "sample.txt"
     assert normalized.loc[normalized.index[0], "collision_key_medium"] == "DOE|JANE"
     assert normalized.loc[normalized.index[0], "collision_key_strict"] == "DOE|JANE|A|"
+    assert set(normalized["status_code"]) == {"Active", "Inactive"}
 
 
 def test_normalize_vrdb_chunk_empty_and_missing_columns_paths() -> None:
@@ -179,7 +181,7 @@ def test_normalize_vrdb_chunk_without_optional_columns_applies_defaults() -> Non
         {
             "FirstName": [" Jane ", " "],
             "LastName": [" Doe ", "MissingFirst"],
-            "StatusCode": ["Active", "Inactive"],
+            "StatusCode": ["aCtIvE", "Inactive"],
         }
     )
     out = normalize_vrdb_chunk(chunk=chunk, source_file="simple.txt")
@@ -189,6 +191,7 @@ def test_normalize_vrdb_chunk_without_optional_columns_applies_defaults() -> Non
     assert out.loc[out.index[0], "name_suffix"] == ""
     assert out.loc[out.index[0], "birth_year"] == ""
     assert out.loc[out.index[0], "canonical_name"] == "DOE|JANE"
+    assert out.loc[out.index[0], "status_code"] == "Active"
 
 
 def test_detect_vrdb_encoding_covers_bom_cp1252_and_utf8(tmp_path: Path) -> None:
@@ -459,7 +462,7 @@ def test_fetch_matching_voter_names_queries_chunks_and_supports_active_only_togg
     )
     assert set(out["canonical_name"]) == {"DOE|JANE", "SMITH|JOHN"}
     assert len(cursor.executed) == 2
-    assert "LOWER(status_code) = 'active'" not in cursor.executed[0][0]
+    assert "status_code = 'Active'" not in cursor.executed[0][0]
 
     cursor.executed.clear()
     cursor._fetchall_batches = [[("DOE|JANE", 2)]]
@@ -474,7 +477,39 @@ def test_fetch_matching_voter_names_queries_chunks_and_supports_active_only_togg
         canonical_names=["DOE|JANE"],
         active_only=True,
     )
-    assert "LOWER(status_code) = 'active'" in cursor.executed[0][0]
+    assert "status_code = 'Active'" in cursor.executed[0][0]
+
+
+def test_fetch_voter_candidates_by_last_name_uses_single_query_and_dedupes_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    psycopg, fake_sql, _conn, cursor = _fake_psycopg_bundle(
+        fetchall_batches=[[("DOE", "JANE", "DOE|JANE", "", "", "DOE|JANE||", "DOE|JANE", 2)]]
+    )
+    monkeypatch.setattr(vrdb_module, "_load_psycopg", lambda: (psycopg, fake_sql))
+
+    out = fetch_voter_candidates_by_last_name(
+        db_url="postgresql://example",
+        table_name="voter_registry",
+        canonical_lasts=["DOE", "DOE", "", "SMITH", " "],
+        active_only=True,
+    )
+    assert len(cursor.executed) == 1
+    executed_query, executed_params = cursor.executed[0]
+    assert "status_code = 'Active'" in executed_query
+    assert isinstance(executed_params, tuple)
+    assert len(executed_params) == 1
+    assert executed_params[0] == ["DOE", "SMITH"]
+    assert list(out.columns) == [
+        "canonical_last",
+        "canonical_first",
+        "canonical_name",
+        "canonical_middle_initial",
+        "canonical_suffix",
+        "canonical_key_strict",
+        "canonical_key_medium",
+        "n_registry_rows",
+    ]
 
 
 def test_fetch_voter_name_key_count_histogram_aggregates_population_counts(
@@ -494,7 +529,7 @@ def test_fetch_voter_name_key_count_histogram_aggregates_population_counts(
     assert list(out["name_count"]) == [1, 2]
     assert list(out["n_keys"]) == [10, 5]
     assert (out["N"] == 20).all()
-    assert "LOWER(status_code) = 'active'" in cursor.executed[0][0]
+    assert "status_code = 'Active'" in cursor.executed[0][0]
 
     out_inactive = fetch_voter_name_key_count_histogram(
         db_url="postgresql://example",
@@ -504,7 +539,7 @@ def test_fetch_voter_name_key_count_histogram_aggregates_population_counts(
     )
     assert list(out_inactive["name_count"]) == [1]
     assert list(out_inactive["n_keys"]) == [2]
-    assert "LOWER(status_code) = 'active'" not in cursor.executed[1][0]
+    assert "status_code = 'Active'" not in cursor.executed[1][0]
 
 
 def test_fetch_voter_name_key_stratum_frequencies_queries_and_normalizes(
@@ -531,7 +566,7 @@ def test_fetch_voter_name_key_stratum_frequencies_queries_and_normalizes(
     )
     assert set(out["name_key"]) == {"DOE|JANE", "SMITH|JOHN"}
     assert set(out["stratum"]) == {"1980s", "1990s", "unknown"}
-    assert "LOWER(status_code) = 'active'" in cursor.executed[0][0]
+    assert "status_code = 'Active'" in cursor.executed[0][0]
 
 
 def test_fetch_voter_name_key_stratum_frequencies_rejects_invalid_mode() -> None:
@@ -552,10 +587,10 @@ def test_count_registry_rows_handles_none_and_non_none_results(
     monkeypatch.setattr(vrdb_module, "_load_psycopg", lambda: (psycopg, fake_sql))
 
     assert count_registry_rows("postgresql://example", "voter_registry", active_only=True) == 5
-    assert "LOWER(status_code) = 'active'" in cursor.executed[0][0]
+    assert "status_code = 'Active'" in cursor.executed[0][0]
 
     assert count_registry_rows("postgresql://example", "voter_registry", active_only=False) == 0
-    assert "LOWER(status_code) = 'active'" not in cursor.executed[1][0]
+    assert "status_code = 'Active'" not in cursor.executed[1][0]
 
     assert count_registry_rows("postgresql://example", "voter_registry", active_only=False) == 0
 

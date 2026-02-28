@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "report_id": "SHB1621-20250314-1030",
+  "generated_at_utc": "2026-02-28T23:05:12.036619+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-03-07T17:57:00-08:00",
+  "date_range_end": "2025-03-13T19:51:00-07:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Housing"
+  },
+  "chamber": "Senate",
+  "committee_name": "Housing",
+  "metrics": {
+    "total_submissions": 44,
+    "overall_pro_rate": 0.9772727272727273,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.09090909090909091,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.022727272727272728,
+    "blank_org_ratio": 0.5,
+    "blank_org_gap_pro_minus_con": null,
+    "dedup_drop_fraction": 0.022727272727272728
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BAMBERGER|JIM||",
+      "display_name": "BAMBERGER, JIM",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "KINNEY|SALLY||",
+      "display_name": "KINNEY, SALLY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 44,
+  "overall_pro_rate": 0.9772727272727273,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -14,6 +14,7 @@ from testifier_audit.detectors.stats import (
     simulate_poisson_max_rolling_sums_hourly,
     simulate_poisson_max_rolling_sums_stratified,
 )
+from testifier_audit.profiling import RuntimeProfiler, activate_runtime_profiler
 
 
 def test_stats_basic_helpers_handle_edge_cases() -> None:
@@ -115,3 +116,43 @@ def test_binomial_simulation_utilities_cover_edge_and_success_paths() -> None:
     )
     assert empty_maxima.size == 0
     assert empty_expected.size == 0
+
+
+def test_simulation_helpers_emit_runtime_profile_events() -> None:
+    rng = np.random.default_rng(31)
+    profiler = RuntimeProfiler()
+
+    with activate_runtime_profiler(profiler):
+        simulate_poisson_max_rolling_sums(
+            n_minutes=20,
+            rate_per_minute=1.2,
+            window=4,
+            iterations=3,
+            rng=rng,
+        )
+        simulate_poisson_max_rolling_sums_stratified(
+            lambdas_per_minute=np.array([0.1, 0.2, 0.5, 0.8, 1.0, 1.1], dtype=float),
+            window=2,
+            iterations=4,
+            rng=rng,
+        )
+        simulate_binomial_max_abs_delta(
+            totals_per_minute=np.array([4, 8, 10, 6, 3, 5], dtype=int),
+            baseline_probability=0.45,
+            window=3,
+            min_window_total=6,
+            iterations=5,
+            rng=rng,
+        )
+
+    profile = profiler.to_dict()
+    timings = profile["timings"]
+    counters = profile["counters"]
+
+    assert "simulation.poisson_max_rolling_sums" in timings
+    assert "simulation.poisson_max_rolling_sums_stratified" in timings
+    assert "simulation.binomial_max_abs_delta" in timings
+    assert timings["simulation.poisson_max_rolling_sums"]["calls"] >= 1
+    assert timings["simulation.binomial_max_abs_delta"]["total_ms"] >= 0.0
+    assert counters["simulation.poisson_max_rolling_sums.iterations"] >= 3
+    assert counters["simulation.binomial_max_abs_delta.iterations"] >= 5

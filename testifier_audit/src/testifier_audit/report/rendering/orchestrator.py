@@ -47,6 +47,7 @@ def render_report(
     default_dedup_mode: str = DEFAULT_DEDUP_MODE,
     min_cell_n_for_rates: int = 25,
     hearing_metadata: HearingMetadata | None = None,
+    additional_runtime_metrics: dict[str, object] | None = None,
 ) -> Path:
     report_started = perf_counter()
     generated_at = datetime.now(ZoneInfo(PACIFIC_TIMEZONE_NAME)).isoformat()
@@ -54,6 +55,7 @@ def render_report(
     env = _template_env()
     template = env.get_template("report.html.j2")
 
+    context_started = perf_counter()
     detector_summaries = (
         {name: result.summary for name, result in sorted(results.items())}
         if results
@@ -69,11 +71,15 @@ def render_report(
         if results
         else _load_table_previews_from_disk(out_dir)
     )
+    context_load_ms = round((perf_counter() - context_started) * 1000.0, 3)
+
+    table_docs_started = perf_counter()
     table_column_docs = _build_table_column_docs(
         table_previews=table_previews,
         artifact_rows=artifact_rows,
     )
     table_help_docs = _build_table_help_docs(table_column_docs=table_column_docs)
+    table_docs_build_ms = round((perf_counter() - table_docs_started) * 1000.0, 3)
     interactive_started = perf_counter()
     interactive_charts = (
         _interactive_chart_payload_from_results(
@@ -94,11 +100,12 @@ def render_report(
     )
     interactive_build_ms = round((perf_counter() - interactive_started) * 1000.0, 3)
     if isinstance(interactive_charts.get("controls"), dict):
-        runtime_metrics = interactive_charts["controls"].get("runtime", {})
-        if not isinstance(runtime_metrics, dict):
-            runtime_metrics = {}
-        runtime_metrics["interactive_payload_build_ms"] = interactive_build_ms
-        interactive_charts["controls"]["runtime"] = runtime_metrics
+        runtime_controls = interactive_charts["controls"].get("runtime", {})
+        if not isinstance(runtime_controls, dict):
+            runtime_controls = {}
+        runtime_controls["interactive_payload_build_ms"] = interactive_build_ms
+        interactive_charts["controls"]["runtime"] = runtime_controls
+    investigation_started = perf_counter()
     _write_investigation_artifacts(
         out_dir=out_dir,
         report_id=out_dir.name,
@@ -107,13 +114,16 @@ def render_report(
         detector_summaries=detector_summaries,
         hearing_context_panel=interactive_charts.get("hearing_context_panel", {}),
     )
+    investigation_artifacts_ms = round((perf_counter() - investigation_started) * 1000.0, 3)
 
+    serialization_started = perf_counter()
     detector_summaries_safe = _json_safe(detector_summaries)
     artifact_rows_safe = _json_safe(artifact_rows)
     table_previews_safe = _json_safe(table_previews)
     table_column_docs_safe = _json_safe(table_column_docs)
     table_help_docs_safe = _json_safe(table_help_docs)
     interactive_charts_safe = _json_safe(interactive_charts)
+    serialization_ms = round((perf_counter() - serialization_started) * 1000.0, 3)
     report_data_root = out_dir / REPORT_DATA_DIRECTORY
     if report_data_root.exists():
         shutil.rmtree(report_data_root)
@@ -121,6 +131,7 @@ def render_report(
     if legacy_report_data_path.exists():
         legacy_report_data_path.unlink()
 
+    report_data_payload_started = perf_counter()
     report_data_payload, report_data_shards_json_bytes = _build_report_data_payload(
         out_dir=out_dir,
         artifact_rows_safe=artifact_rows_safe,
@@ -130,6 +141,7 @@ def render_report(
         table_help_docs_safe=table_help_docs_safe,
         interactive_charts_safe=interactive_charts_safe,
     )
+    report_data_payload_build_ms = round((perf_counter() - report_data_payload_started) * 1000.0, 3)
     interactive_charts_for_template = report_data_payload.get("interactive_charts", {})
     report_data_path = out_dir / REPORT_DATA_FILENAME
     report_data_path.parent.mkdir(parents=True, exist_ok=True)
@@ -138,8 +150,12 @@ def render_report(
         ensure_ascii=False,
         separators=(",", ":"),
     )
+    report_data_write_started = perf_counter()
     report_data_path.write_text(report_data_json, encoding="utf-8")
+    report_data_write_ms = round((perf_counter() - report_data_write_started) * 1000.0, 3)
+    assets_copy_started = perf_counter()
     report_assets = _copy_report_static_assets(out_dir)
+    report_assets_copy_ms = round((perf_counter() - assets_copy_started) * 1000.0, 3)
 
     template_started = perf_counter()
     rendered = template.render(
@@ -172,7 +188,16 @@ def render_report(
         "report_html_bytes": int(report_path.stat().st_size),
         "report_data_json_bytes": len(report_data_json.encode("utf-8")),
         "report_data_shards_json_bytes": report_data_shards_json_bytes,
+        "context_load_ms": context_load_ms,
+        "table_docs_build_ms": table_docs_build_ms,
+        "investigation_artifacts_ms": investigation_artifacts_ms,
+        "serialization_ms": serialization_ms,
+        "report_data_payload_build_ms": report_data_payload_build_ms,
+        "report_data_write_ms": report_data_write_ms,
+        "report_assets_copy_ms": report_assets_copy_ms,
     }
+    if additional_runtime_metrics:
+        runtime_metrics["pipeline_runtime"] = _json_safe(additional_runtime_metrics)
     runtime_path = out_dir / "artifacts" / "report_runtime.json"
     runtime_path.parent.mkdir(parents=True, exist_ok=True)
     runtime_path.write_text(

@@ -47,5 +47,21 @@
   "primary_model_fit_rows": 90,
   "primary_model_fit_unique_days": 7,
   "primary_model_fit_unique_hours": 22,
-  "window_profile_rows": 845
+  "runtime": {
+    "flag_rows_written": 0,
+    "flags_written": 0,
+    "profiling": {
+      "counters": {},
+      "timed_event_count": 0,
+      "timings": {},
+      "total_timed_ms": 0.0
+    },
+    "run_ms": 1235.044,
+    "table_rows_written": 1486,
+    "tables_written": 9,
+    "total_ms": 1252.42,
+    "write_flags_ms": 0.0,
+    "write_tables_ms": 17.376
+  },
+  "window_profile_rows": 905
 }

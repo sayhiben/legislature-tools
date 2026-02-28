@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "report_id": "ESSB6039-20240223-0800",
-  "generated_at_utc": "2026-02-28T01:53:12.475204+00:00",
+  "generated_at_utc": "2026-02-28T22:47:15.644120+00:00",
   "lens": "side_by_side",
   "date_range_start": "2024-02-22T13:09:00-08:00",
   "date_range_end": "2024-02-23T06:18:00-08:00",
@@ -28,6 +28,8 @@
     "window_min_q_value": null,
     "top_name_max_records": 2,
     "off_hours_ratio": 0.1,
+    "blank_org_ratio": 0.2,
+    "blank_org_gap_pro_minus_con": null,
     "dedup_drop_fraction": 0.1
   },
   "top_repeated_names": [

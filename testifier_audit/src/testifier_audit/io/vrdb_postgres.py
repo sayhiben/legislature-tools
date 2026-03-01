@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import codecs
+import re
 from dataclasses import dataclass
 from hashlib import sha1
 from pathlib import Path
@@ -34,8 +35,10 @@ LAST_COLUMN_CANDIDATES = ("LName", "LastName", "last_name", "Last")
 SUFFIX_COLUMN_CANDIDATES = ("NameSuffix", "Suffix", "name_suffix")
 BIRTH_YEAR_COLUMN_CANDIDATES = ("Birthyear", "BirthYear", "birth_year")
 STATUS_COLUMN_CANDIDATES = ("StatusCode", "status_code", "Status")
+REG_CITY_COLUMN_CANDIDATES = ("RegCity", "reg_city", "RegistrationCity", "City")
+COUNTY_CODE_COLUMN_CANDIDATES = ("CountyCode", "county_code", "County")
 IMPORT_KIND_VRDB = "vrdb_extract"
-VRDB_IMPORTER_VERSION = "vrdb_extract_v3"
+VRDB_IMPORTER_VERSION = "vrdb_extract_v4"
 ALLOWED_NAME_KEY_COLUMNS = frozenset(
     {
         "full_name_key",
@@ -138,6 +141,21 @@ def _normalize_status_code_series(series: pd.Series) -> pd.Series:
     return normalized
 
 
+def _normalize_geo_city_series(series: pd.Series) -> pd.Series:
+    city = series.fillna("").astype(str).str.strip().str.upper()
+    city = city.str.replace(r"[^A-Z0-9]+", " ", regex=True)
+    city = city.str.replace(r"\s+", " ", regex=True).str.strip()
+    city = city.mask(city.isin({"UNKNOWN", "UNK", "NA", "N A", "NONE", "NULL"}), "")
+    return city
+
+
+def _normalize_geo_county_code_series(series: pd.Series) -> pd.Series:
+    county = series.fillna("").astype(str).str.upper()
+    county = county.map(lambda value: re.sub(r"[^A-Z0-9]+", "", value))
+    county = county.mask(county.isin({"UNKNOWN", "UNK", "NA", "NONE", "NULL"}), "")
+    return county
+
+
 def normalize_vrdb_chunk(
     chunk: pd.DataFrame,
     source_file: str,
@@ -159,6 +177,8 @@ def normalize_vrdb_chunk(
                 "name_suffix",
                 "birth_year",
                 "status_code",
+                "reg_city",
+                "county_code",
                 "canonical_first",
                 "canonical_last",
                 "canonical_name",
@@ -196,6 +216,8 @@ def normalize_vrdb_chunk(
     suffix_col = _resolve_column(columns, SUFFIX_COLUMN_CANDIDATES)
     birth_year_col = _resolve_column(columns, BIRTH_YEAR_COLUMN_CANDIDATES)
     status_col = _resolve_column(columns, STATUS_COLUMN_CANDIDATES)
+    reg_city_col = _resolve_column(columns, REG_CITY_COLUMN_CANDIDATES)
+    county_code_col = _resolve_column(columns, COUNTY_CODE_COLUMN_CANDIDATES)
 
     out = pd.DataFrame(index=chunk.index)
     out["state_voter_id"] = (
@@ -209,6 +231,14 @@ def normalize_vrdb_chunk(
         chunk[birth_year_col].fillna("").astype(str).str.strip() if birth_year_col else ""
     )
     out["status_code"] = _normalize_status_code_series(chunk[status_col]) if status_col else ""
+    out["reg_city"] = (
+        _normalize_geo_city_series(chunk[reg_city_col]) if reg_city_col is not None else ""
+    )
+    out["county_code"] = (
+        _normalize_geo_county_code_series(chunk[county_code_col])
+        if county_code_col is not None
+        else ""
+    )
     nickname_map_value = nickname_map or {}
     resolved_version_hash = str(normalization_version_hash_value or "").strip() or normalization_version_hash(
         normalize_unicode=normalize_unicode,
@@ -342,6 +372,8 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
           name_suffix TEXT,
           birth_year TEXT,
           status_code TEXT,
+          reg_city TEXT NOT NULL DEFAULT '',
+          county_code TEXT NOT NULL DEFAULT '',
           canonical_first TEXT NOT NULL,
           canonical_last TEXT NOT NULL,
           canonical_name TEXT NOT NULL,
@@ -368,6 +400,14 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
         """
     ).format(table_name=sql.Identifier(table_name))
     add_missing_columns = (
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS reg_city TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS county_code TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
         sql.SQL(
             "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS canonical_middle_initial TEXT "
             "NOT NULL DEFAULT ''"
@@ -442,6 +482,14 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
         ),
         sql.SQL("CREATE INDEX IF NOT EXISTS {idx_status} ON {table_name} (status_code)").format(
             idx_status=sql.Identifier(f"{table_name}_status_code_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL("CREATE INDEX IF NOT EXISTS {idx_county_code} ON {table_name} (county_code)").format(
+            idx_county_code=sql.Identifier(f"{table_name}_county_code_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL("CREATE INDEX IF NOT EXISTS {idx_reg_city} ON {table_name} (reg_city)").format(
+            idx_reg_city=sql.Identifier(f"{table_name}_reg_city_idx"),
             table_name=sql.Identifier(table_name),
         ),
         sql.SQL(
@@ -589,6 +637,14 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
               ELSE ''
             END
           ),
+          reg_city = COALESCE(
+            NULLIF(TRIM(REGEXP_REPLACE(UPPER(COALESCE(reg_city, '')), '[^A-Z0-9]+', ' ', 'g')), ''),
+            ''
+          ),
+          county_code = COALESCE(
+            NULLIF(TRIM(REGEXP_REPLACE(UPPER(COALESCE(county_code, '')), '[^A-Z0-9]+', '', 'g')), ''),
+            ''
+          ),
           normalization_version = COALESCE(
             NULLIF(TRIM(normalization_version), ''),
             'legacy_vrdb_import'
@@ -651,6 +707,8 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           name_suffix,
           birth_year,
           status_code,
+          reg_city,
+          county_code,
           canonical_first,
           canonical_last,
           canonical_name,
@@ -681,6 +739,8 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           %(name_suffix)s,
           %(birth_year)s,
           %(status_code)s,
+          %(reg_city)s,
+          %(county_code)s,
           %(canonical_first)s,
           %(canonical_last)s,
           %(canonical_name)s,
@@ -711,6 +771,8 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           name_suffix = EXCLUDED.name_suffix,
           birth_year = EXCLUDED.birth_year,
           status_code = EXCLUDED.status_code,
+          reg_city = EXCLUDED.reg_city,
+          county_code = EXCLUDED.county_code,
           canonical_first = EXCLUDED.canonical_first,
           canonical_last = EXCLUDED.canonical_last,
           canonical_name = EXCLUDED.canonical_name,

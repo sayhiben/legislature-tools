@@ -149,6 +149,8 @@ def test_normalize_vrdb_chunk_standardizes_and_filters_names() -> None:
             "MName": ["A", "", "X"],
             "Birthyear": ["1980", "1975", "1990"],
             "StatusCode": ["active", " Inactive ", "Inactive"],
+            "RegCity": ["Ritzville", "Lind", "Unknown"],
+            "CountyCode": ["AD", "AD", "AD"],
         }
     )
 
@@ -170,6 +172,8 @@ def test_normalize_vrdb_chunk_standardizes_and_filters_names() -> None:
     assert normalized.loc[normalized.index[0], "normalization_version"] != ""
     assert normalized.loc[normalized.index[0], "normalization_version_hash"] != ""
     assert set(normalized["status_code"]) == {"Active", "Inactive"}
+    assert set(normalized["county_code"]) == {"AD"}
+    assert set(normalized["reg_city"]) == {"RITZVILLE", "LIND"}
 
 
 def test_normalize_vrdb_chunk_empty_and_missing_columns_paths() -> None:
@@ -198,6 +202,8 @@ def test_normalize_vrdb_chunk_without_optional_columns_applies_defaults() -> Non
     assert out.loc[out.index[0], "canonical_name"] == "DOE|JANE"
     assert out.loc[out.index[0], "full_name_key"] == "DOE|JANE||"
     assert out.loc[out.index[0], "status_code"] == "Active"
+    assert out.loc[out.index[0], "reg_city"] == ""
+    assert out.loc[out.index[0], "county_code"] == ""
 
 
 def test_detect_vrdb_encoding_covers_bom_cp1252_and_utf8(tmp_path: Path) -> None:
@@ -258,8 +264,15 @@ def test_ensure_voter_registry_schema_executes_create_statement(
         for stmt in statements
     )
     assert any(
+        "ADD COLUMN IF NOT EXISTS county_code TEXT NOT NULL DEFAULT ''" in stmt
+        for stmt in statements
+    )
+    assert any(
         'CREATE INDEX IF NOT EXISTS "voter_registry_canonical_key_medium_idx"' in stmt
         for stmt in statements
+    )
+    assert any(
+        'CREATE INDEX IF NOT EXISTS "voter_registry_county_code_idx"' in stmt for stmt in statements
     )
     assert any(
         'CREATE INDEX IF NOT EXISTS "voter_registry_canonical_last_idx"' in stmt

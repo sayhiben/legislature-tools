@@ -36,6 +36,9 @@ from testifier_audit.io.baseline_corpus_sampler import (
 from testifier_audit.io.csi_testifiers import download_csi_testifier_csv
 from testifier_audit.io.hearing_metadata import load_hearing_metadata
 from testifier_audit.io.submissions_postgres import import_submission_csv_to_postgres
+from testifier_audit.io.vrdb_probability_artifacts import (
+    build_and_write_vrdb_probability_artifacts_from_postgres,
+)
 from testifier_audit.io.vrdb_postgres import import_vrdb_extract_to_postgres
 from testifier_audit.logging import configure_logging
 from testifier_audit.paths import build_output_paths
@@ -602,6 +605,93 @@ def import_vrdb(
     typer.echo(f"- import_skipped: {str(result.import_skipped).lower()}")
     if result.skip_reason:
         typer.echo(f"- skip_reason: {result.skip_reason}")
+
+
+@app.command("build-vrdb-probability-artifacts")
+def build_vrdb_probability_artifacts(
+    config: Path = typer.Option(DEFAULT_CONFIG_PATH, exists=True, readable=True, resolve_path=True),
+    db_url: str | None = typer.Option(
+        None,
+        envvar=["TESTIFIER_AUDIT_DB_URL", "DATABASE_URL"],
+        help="PostgreSQL connection string. Falls back to config.voter_registry.db_url.",
+    ),
+    table_name: str | None = typer.Option(
+        None,
+        help="Source VRDB table name. Falls back to config.voter_registry.table_name.",
+    ),
+    probability_csv: Path = typer.Option(
+        Path("data/metadata/vrdb_name_probabilities.csv"),
+        resolve_path=True,
+        help="Output CSV path for name probability rows.",
+    ),
+    backoff_csv: Path = typer.Option(
+        Path("data/metadata/vrdb_geo_backoff.csv"),
+        resolve_path=True,
+        help="Output CSV path for geography backoff rows.",
+    ),
+    metadata_json: Path = typer.Option(
+        Path("data/metadata/vrdb_probability_artifacts.json"),
+        resolve_path=True,
+        help="Output JSON metadata path with checksums and provenance.",
+    ),
+    chunk_size: int = typer.Option(250_000, min=1000, help="Streaming fetch chunk size."),
+    min_county_denominator: int = typer.Option(
+        1_000,
+        min=1,
+        help="Minimum county denominator required before county-conditioned rows are published.",
+    ),
+    min_city_denominator: int = typer.Option(
+        250,
+        min=1,
+        help="Minimum city denominator required before city-conditioned rows are published.",
+    ),
+    min_city_coverage: float = typer.Option(
+        0.75,
+        min=0.0,
+        max=1.0,
+        help="Minimum county-level city coverage ratio required before city-conditioned rows are published.",
+    ),
+    include_marginals: bool = typer.Option(
+        False,
+        help="Also emit first-name and last-name marginals alongside full-name rows.",
+    ),
+) -> None:
+    """Build versioned VRDB probability + geography-backoff artifacts from PostgreSQL."""
+    configure_logging()
+    cfg = _load_app_config(config)
+
+    effective_db_url = db_url or cfg.voter_registry.db_url
+    if not effective_db_url:
+        raise typer.BadParameter(
+            "Missing database URL. Set --db-url or TESTIFIER_AUDIT_DB_URL "
+            "or voter_registry.db_url in config."
+        )
+
+    effective_table_name = table_name or cfg.voter_registry.table_name
+    result = build_and_write_vrdb_probability_artifacts_from_postgres(
+        db_url=effective_db_url,
+        table_name=effective_table_name,
+        probability_rows_path=probability_csv,
+        backoff_rows_path=backoff_csv,
+        metadata_path=metadata_json,
+        chunk_size=int(chunk_size),
+        include_marginals=bool(include_marginals),
+        min_county_denominator=int(min_county_denominator),
+        min_city_denominator=int(min_city_denominator),
+        min_city_coverage=float(min_city_coverage),
+    )
+
+    typer.echo("VRDB probability artifact build complete")
+    typer.echo(f"- table_name: {effective_table_name}")
+    typer.echo(f"- probability_rows_path: {result.probability_rows_path}")
+    typer.echo(f"- backoff_rows_path: {result.backoff_rows_path}")
+    typer.echo(f"- metadata_path: {result.metadata_path}")
+    typer.echo(f"- probability_row_count: {result.probability_row_count}")
+    typer.echo(f"- backoff_row_count: {result.backoff_row_count}")
+    typer.echo(f"- probability_rows_sha256: {result.probability_rows_sha256}")
+    typer.echo(f"- backoff_rows_sha256: {result.backoff_rows_sha256}")
+    typer.echo(f"- vrdb_version: {result.vrdb_version}")
+    typer.echo(f"- normalization_version: {result.normalization_version}")
 
 
 if __name__ == "__main__":

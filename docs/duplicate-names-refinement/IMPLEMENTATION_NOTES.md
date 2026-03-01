@@ -14,30 +14,30 @@ Execution order is tracked here independently from ticket numbering.
 3. `DUP-009` (Done, 2026-02-28)
 4. `DUP-010` (Done, 2026-02-28)
 5. `DUP-002` (Done, 2026-02-28)
+6. `DUP-003` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-003` (next in-progress target)
+1. `DUP-004` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-003`
-2. `DUP-004`
-3. `DUP-005`
-4. `DUP-007`
-5. `DUP-006`
-6. `DUP-011`
-7. `DUP-012`
-8. `DUP-013`
-9. `DUP-014`
-10. `DUP-015`
-11. `DUP-016`
-12. `DUP-017`
-13. `DUP-018`
-14. `DUP-019`
-15. `DUP-020`
-16. `DUP-021`
+1. `DUP-004`
+2. `DUP-005`
+3. `DUP-007`
+4. `DUP-006`
+5. `DUP-011`
+6. `DUP-012`
+7. `DUP-013`
+8. `DUP-014`
+9. `DUP-015`
+10. `DUP-016`
+11. `DUP-017`
+12. `DUP-018`
+13. `DUP-019`
+14. `DUP-020`
+15. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, and **DUP-002**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, and **DUP-003**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -384,3 +384,85 @@ Work item: DUP-002 (P0)
 ## Remaining Work / Handoff
 - Move to `DUP-003` (versioned VRDB probability artifacts and geography-aware backoff).
 - Preserve DUP-002 shared normalization layer as the single source for submission + VRDB key generation; do not introduce sidecar-only normalizers in DUP-003+.
+
+---
+
+## DUP-003 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-003 (P0)
+
+## What Was Implemented
+- Added a dedicated VRDB probability artifact builder module:
+  - `src/testifier_audit/io/vrdb_probability_artifacts.py`
+  - supports versioned artifact generation with:
+    - probability rows (state/county/city-conditioned where supported)
+    - deterministic geography backoff rows (`city -> county -> state`)
+    - metadata with provenance + checksums
+- Implemented denominator variants:
+  - `all_registrants`
+  - `active_only`
+- Implemented conservative geography backoff policy with deterministic metadata:
+  - requested and effective geography level/value
+  - fallback step count
+  - fallback reason and county city-coverage signal
+- Extended VRDB ingest/schema for geography fields used by conditioned baselines:
+  - `reg_city`
+  - `county_code`
+  - importer version bumped from `vrdb_extract_v3` to `vrdb_extract_v4`
+- Added CLI entrypoint:
+  - `python -m testifier_audit.cli build-vrdb-probability-artifacts ...`
+  - emits artifact CSVs + metadata JSON with SHA256 hashes.
+
+## Tests Added/Updated
+- Added `tests/test_vrdb_probability_artifacts.py`:
+  - deterministic threshold/backoff behavior
+  - active-only vs all-registrants denominator separation
+  - reproducible checksum output across repeated rebuilds
+  - threshold validation guardrails
+- Updated `tests/test_vrdb_postgres.py`:
+  - geography normalization assertions (`reg_city`, `county_code`)
+  - schema/index assertions for new geography columns
+- Updated `tests/test_cli.py`:
+  - command coverage for `build-vrdb-probability-artifacts`
+  - missing-DB-URL validation for the new command
+- Verification runs:
+  - focused suites for new/modified modules passed
+  - full suite passed via `./testifier_audit/scripts/ci/test.sh`:
+    - `335 passed`
+  - lint passed via `./testifier_audit/scripts/ci/lint.sh`.
+
+## Runtime / Report Validation (ESSB 6346)
+- Executed unified run with explicit ESSB source and skip-import mode:
+  - `scripts/report/run_unified_report.sh --skip-imports .../ESSB6346-20260224-0800.csv ...`
+- Executed report rerender:
+  - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 ...`
+- Playwright MCP checks completed on:
+  - desktop `1728x1117`
+  - mobile `390x844`
+- Verified:
+  - sidebar/menu toggle works on desktop/mobile
+  - global controls expand/collapse works on mobile
+  - bucket switch updates linked notes and retains chart-level fallback messaging where bucket is unavailable
+  - theme toggle works
+  - no failed report-data requests (all report-data shard fetches `200`)
+  - only console error observed was expected local `favicon.ico` `404`.
+
+## Artifact Build Evidence
+- Extract-backed full artifact generation completed (chunked):
+  - `output/dup003/vrdb_name_probabilities.csv` (30,421,343 rows)
+  - `output/dup003/vrdb_geo_backoff.csv` (1,471 rows)
+  - `output/dup003/vrdb_probability_artifacts.json`
+- Recorded checksums:
+  - probability rows SHA256: `2b08287b3ca5883b2e4a8bee80dfcbfffb7aa4113b04d4cd07eae95a3276080d`
+  - backoff rows SHA256: `4fa89a74779939771a4ce7a7171b69b7e039f71aecc973eff4b110b1e8e40ce9`.
+
+## Issues Discovered During Implementation
+- Legacy local DB snapshots may not yet include DUP-002 key columns (`full_name_key` et al), which blocks the DB-backed artifact builder path until the one-time schema/backfill completes.
+- The one-time `ensure_voter_registry_schema` backfill can run for a long duration on large existing `voter_registry` tables.
+- Mitigation used for DUP-003 runtime verification in this environment:
+  - used extract-backed artifact generation path (same normalization + artifact logic) to validate end-to-end output and reproducibility without waiting on the full DB migration.
+
+## Remaining Work / Handoff
+- Move to `DUP-004` (dedicated VRDB collision-null engine per analysis slice).
+- Reuse DUP-003 artifacts as the sole probability/backoff source for DUP-004 slice-level expectation calculations.

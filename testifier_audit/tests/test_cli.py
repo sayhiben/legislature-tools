@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from testifier_audit.cli import app
 from testifier_audit.io.csi_testifiers import CSIDownloadResult
+from testifier_audit.io.vrdb_probability_artifacts import VRDBProbabilityArtifactBuildResult
 from testifier_audit.io.submissions_postgres import SubmissionImportResult
 from testifier_audit.io.vrdb_postgres import VRDBImportResult
 
@@ -276,6 +277,123 @@ def test_import_vrdb_command_requires_db_url(monkeypatch, tmp_path: Path) -> Non
             "import-vrdb",
             "--extract",
             str(extract_path),
+            "--config",
+            str(config_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    combined_output = result.stdout
+    if hasattr(result, "stderr") and result.stderr:
+        combined_output += result.stderr
+    assert "Missing database URL" in combined_output or "Missing database URL" in str(
+        result.exception
+    )
+
+
+def test_build_vrdb_probability_artifacts_command_runs_with_config_defaults(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+    probability_csv = tmp_path / "vrdb_name_probabilities.csv"
+    backoff_csv = tmp_path / "vrdb_geo_backoff.csv"
+    metadata_json = tmp_path / "vrdb_probability_artifacts.json"
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            voter_registry=SimpleNamespace(
+                db_url="postgresql://user:pass@localhost:5432/legislature",
+                table_name="voter_registry",
+            ),
+        ),
+    )
+
+    captured: dict[str, object] = {}
+
+    def _fake_build(**kwargs: object) -> VRDBProbabilityArtifactBuildResult:
+        captured.update(kwargs)
+        return VRDBProbabilityArtifactBuildResult(
+            probability_rows_path=Path(str(kwargs["probability_rows_path"])),
+            backoff_rows_path=Path(str(kwargs["backoff_rows_path"])),
+            metadata_path=Path(str(kwargs["metadata_path"])),
+            probability_row_count=42,
+            backoff_row_count=17,
+            probability_rows_sha256="abc123",
+            backoff_rows_sha256="def456",
+            vrdb_version="vrdb_extract_v4:0000aaaa1111",
+            normalization_version="shared_name_normalization_v1:abc123def456",
+        )
+
+    monkeypatch.setattr(
+        "testifier_audit.cli.build_and_write_vrdb_probability_artifacts_from_postgres",
+        _fake_build,
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "build-vrdb-probability-artifacts",
+            "--config",
+            str(config_path),
+            "--probability-csv",
+            str(probability_csv),
+            "--backoff-csv",
+            str(backoff_csv),
+            "--metadata-json",
+            str(metadata_json),
+            "--chunk-size",
+            "2000",
+            "--min-county-denominator",
+            "500",
+            "--min-city-denominator",
+            "125",
+            "--min-city-coverage",
+            "0.8",
+            "--include-marginals",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert captured["db_url"] == "postgresql://user:pass@localhost:5432/legislature"
+    assert captured["table_name"] == "voter_registry"
+    assert captured["probability_rows_path"] == probability_csv
+    assert captured["backoff_rows_path"] == backoff_csv
+    assert captured["metadata_path"] == metadata_json
+    assert captured["chunk_size"] == 2000
+    assert captured["min_county_denominator"] == 500
+    assert captured["min_city_denominator"] == 125
+    assert captured["min_city_coverage"] == 0.8
+    assert captured["include_marginals"] is True
+    assert "probability_row_count: 42" in result.stdout
+    assert "backoff_row_count: 17" in result.stdout
+
+
+def test_build_vrdb_probability_artifacts_command_requires_db_url(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "testifier_audit.cli._load_app_config",
+        lambda _path: SimpleNamespace(
+            voter_registry=SimpleNamespace(
+                db_url=None,
+                table_name="voter_registry",
+            ),
+        ),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "build-vrdb-probability-artifacts",
             "--config",
             str(config_path),
         ],

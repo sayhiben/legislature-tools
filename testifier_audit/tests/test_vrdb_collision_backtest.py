@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from testifier_audit.backtests.vrdb_collision_backtest import (
     BaselineScenario,
@@ -13,6 +14,8 @@ from testifier_audit.backtests.vrdb_collision_backtest import (
     split_case_ids,
     summarize_case_metrics,
     synthetic_case_frame,
+    threshold_feasibility_scan,
+    wilson_interval,
 )
 
 
@@ -218,3 +221,43 @@ def test_synthetic_case_frame_injection_increases_injected_name_count() -> None:
     assert injected_count > no_injection_count
     assert len(injected) == 200
     assert injected["timestamp"].notna().all()
+
+
+def test_wilson_interval_returns_nan_when_trials_zero() -> None:
+    lo, hi = wilson_interval(successes=0, trials=0)
+    assert pd.isna(lo)
+    assert pd.isna(hi)
+
+
+def test_wilson_interval_matches_known_half_success_case() -> None:
+    lo, hi = wilson_interval(successes=1, trials=2, z_score=1.96)
+    assert lo == pytest.approx(0.0945, abs=0.001)
+    assert hi == pytest.approx(0.9055, abs=0.001)
+
+
+def test_threshold_feasibility_scan_reports_infeasible_when_no_threshold_meets_targets() -> None:
+    result = threshold_feasibility_scan(
+        holdout_normal_tail_probs=[0.2, 0.6],
+        synthetic_injected_tail_probs=[0.4, 0.8],
+        max_holdout_normal_alert_rate=0.20,
+        min_synthetic_injected_alert_rate=0.80,
+    )
+
+    assert result["feasible"] is False
+    assert result["feasible_count"] == 0
+    assert pd.isna(result["feasible_min_threshold"])
+    assert pd.isna(result["feasible_max_threshold"])
+
+
+def test_threshold_feasibility_scan_reports_feasible_range() -> None:
+    result = threshold_feasibility_scan(
+        holdout_normal_tail_probs=[0.6, 0.7, 0.8, 0.9],
+        synthetic_injected_tail_probs=[0.1, 0.2, 0.3, 0.4],
+        max_holdout_normal_alert_rate=0.25,
+        min_synthetic_injected_alert_rate=0.75,
+    )
+
+    assert result["feasible"] is True
+    assert result["feasible_count"] == 3
+    assert result["feasible_min_threshold"] == pytest.approx(0.3)
+    assert result["feasible_max_threshold"] == pytest.approx(0.6)

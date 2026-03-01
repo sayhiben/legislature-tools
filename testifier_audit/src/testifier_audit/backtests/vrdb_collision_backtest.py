@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from hashlib import sha1
+from math import sqrt
 from pathlib import Path
 from typing import Any
 
@@ -576,6 +577,81 @@ def split_case_ids(
     holdout = sorted(str(value) for value in shuffled[:holdout_size].tolist())
     calibration = sorted(str(value) for value in shuffled[holdout_size:].tolist())
     return calibration, holdout
+
+
+def wilson_interval(
+    *,
+    successes: int,
+    trials: int,
+    z_score: float = 1.96,
+) -> tuple[float, float]:
+    n = int(max(trials, 0))
+    if n == 0:
+        return float("nan"), float("nan")
+
+    k = int(min(max(successes, 0), n))
+    z = float(max(z_score, 0.0))
+    p_hat = float(k) / float(n)
+    denominator = 1.0 + ((z * z) / float(n))
+    centre = (p_hat + ((z * z) / (2.0 * float(n)))) / denominator
+    radius = (z / denominator) * sqrt((p_hat * (1.0 - p_hat) / float(n)) + ((z * z) / (4.0 * float(n) * float(n))))
+    lower = max(0.0, centre - radius)
+    upper = min(1.0, centre + radius)
+    return lower, upper
+
+
+def threshold_feasibility_scan(
+    *,
+    holdout_normal_tail_probs: Sequence[float],
+    synthetic_injected_tail_probs: Sequence[float],
+    max_holdout_normal_alert_rate: float,
+    min_synthetic_injected_alert_rate: float,
+    candidate_thresholds: Sequence[float] | None = None,
+) -> dict[str, Any]:
+    normal = np.asarray([float(value) for value in holdout_normal_tail_probs], dtype=float)
+    injected = np.asarray([float(value) for value in synthetic_injected_tail_probs], dtype=float)
+    normal = normal[np.isfinite(normal)]
+    injected = injected[np.isfinite(injected)]
+
+    if normal.size == 0 or injected.size == 0:
+        return {
+            "feasible": False,
+            "feasible_count": 0,
+            "feasible_min_threshold": float("nan"),
+            "feasible_max_threshold": float("nan"),
+        }
+
+    if candidate_thresholds is None:
+        thresholds = np.unique(np.concatenate([normal, injected]))
+    else:
+        thresholds = np.asarray([float(value) for value in candidate_thresholds], dtype=float)
+        thresholds = thresholds[np.isfinite(thresholds)]
+        if thresholds.size == 0:
+            thresholds = np.unique(np.concatenate([normal, injected]))
+
+    thresholds = np.sort(np.unique(thresholds))
+    max_normal = float(max_holdout_normal_alert_rate)
+    min_injected = float(min_synthetic_injected_alert_rate)
+    feasible: list[float] = []
+    for threshold in thresholds:
+        holdout_normal_rate = float(np.mean(normal <= threshold))
+        synthetic_injected_rate = float(np.mean(injected <= threshold))
+        if holdout_normal_rate <= max_normal and synthetic_injected_rate >= min_injected:
+            feasible.append(float(threshold))
+
+    if not feasible:
+        return {
+            "feasible": False,
+            "feasible_count": 0,
+            "feasible_min_threshold": float("nan"),
+            "feasible_max_threshold": float("nan"),
+        }
+    return {
+        "feasible": True,
+        "feasible_count": int(len(feasible)),
+        "feasible_min_threshold": float(min(feasible)),
+        "feasible_max_threshold": float(max(feasible)),
+    }
 
 
 def synthetic_case_frame(

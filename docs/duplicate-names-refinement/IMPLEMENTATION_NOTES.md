@@ -1883,3 +1883,94 @@ Scope: Quantify whether current DUP-007 scenario results admit a practical thres
 ## Interpretation / Impact
 - The pending DUP-007 blocker is not only calibration-split variance; current score distributions do not provide a threshold tradeoff that simultaneously preserves strong injected detection and acceptable normal-control alerting under the tested criterion.
 - This supports keeping DUP-007 in pending-review state with rollout blocked until reviewers accept the current control behavior or approve revised operating policy/cohort design.
+
+---
+
+## DUP-007 Instrumentation + ESSB 6346 Validation Refresh
+
+Date: 2026-03-01  
+Scope: Complete code-level threshold-feasibility instrumentation for DUP-007, rerun backtest artifacts, and re-validate ESSB 6346 report behavior.
+
+## What Changed (Code)
+- Added backtest helper functions:
+  - `testifier_audit/src/testifier_audit/backtests/vrdb_collision_backtest.py`
+    - `wilson_interval(...)` for interval-aware alert-rate context.
+    - `threshold_feasibility_scan(...)` for scenario-level operating-point feasibility checks.
+- Extended DUP-007 backtest script outputs:
+  - `testifier_audit/scripts/tests/backtest_vrdb_collision_module.py`
+    - new CLI args:
+      - `--max-holdout-normal-alert-rate` (default `0.20`)
+      - `--min-synthetic-injected-alert-rate` (default `0.80`)
+    - scenario summary now includes:
+      - per-family/sample `n` and `alerts`
+      - Wilson interval bounds for alert rates
+      - threshold-feasibility fields (`feasible`, count, min/max feasible threshold)
+    - memo output now prints interval/feasibility context per scenario.
+    - summary JSON now records operating targets.
+- Added unit coverage:
+  - `testifier_audit/tests/test_vrdb_collision_backtest.py`
+    - Wilson interval zero-trials and known-value tests.
+    - threshold-feasibility feasible/infeasible scenario tests.
+
+## Backtest Execution (DUP-007)
+- Reproducible run completed with seed `6346`:
+  - command:
+    - `python testifier_audit/scripts/tests/backtest_vrdb_collision_module.py --log-level WARNING --historical-normal-count 6 --historical-suspect-count 2 --synthetic-replicates 1 --bucket-minutes 15,60,240 --small-bucket-minutes 15 --monte-carlo-draws 96`
+  - run logs:
+    - `output/dup007/backtest_run_20260301.log` (interrupted INFO run due high-volume per-slice logs)
+    - `output/dup007/backtest_run_20260301_warning.log` (completed run)
+- Regenerated artifacts:
+  - `output/dup007/vrdb_collision_backtest_case_metrics.csv`
+  - `output/dup007/vrdb_collision_backtest_scenario_summary.csv`
+  - `output/dup007/vrdb_collision_backtest_summary.json`
+  - `output/dup007/vrdb_collision_backtest_memo.md`
+  - `output/dup007/vrdb_collision_backtest_threshold_feasibility.csv`
+
+## Validation Runs
+- Focused unit tests:
+  - `python -m pytest testifier_audit/tests/test_vrdb_collision_backtest.py -q`
+  - result: pass (`13 passed`).
+- Full CI test script:
+  - `./testifier_audit/scripts/ci/test.sh`
+  - result: pass (`383 passed`, warnings only).
+
+## Backtest Findings (Current State)
+- Holdout-normal sample size remains `n=2` per scenario (wide intervals).
+- Holdout-normal alert rates remain elevated (`0.50` to `1.00`).
+- Synthetic-injected alert rates remain `1.00`.
+- Threshold-feasibility remains absent for all scenarios under target policy:
+  - holdout-normal `<= 0.20`
+  - synthetic-injected `>= 0.80`
+  - `threshold_feasible_count=0` for all scenarios.
+- DUP-007 rollout blocker remains unchanged: review sign-off pending.
+
+## ESSB 6346 Report Exercise (Rerender + Playwright MCP)
+- Rerender run completed:
+  - `output/dup007/essb6346_report_rerender_20260301.log`
+  - output report: `reports/ESSB6346-20260224-0800/report.html`
+- Playwright MCP validation completed on:
+  - desktop `1728x1117`
+  - mobile `390x844`
+- Verified interactions:
+  - sidebar show/hide
+  - bucket change (`30m -> 60m`) with URL sync (`?bucket=60`) and cross-analysis bucket-note updates
+  - theme toggle (`Light <-> Dark`)
+  - mobile global-controls collapse/expand
+- Diagnostics:
+  - report-data requests returned `200`.
+  - console showed only expected local static-server `favicon.ico` `404`.
+
+## Issues Observed
+- INFO-level DUP-007 backtest logging can emit extremely high per-slice volume and slow turnaround materially.
+  - Mitigation in this batch: complete run at `--log-level WARNING`.
+- Backtest run emitted repeated NumPy warning lines:
+  - `RuntimeWarning: Mean of empty slice`.
+  - These were non-fatal in this run and did not block artifact generation.
+- Rerender emitted existing warning:
+  - `UserWarning: DataFrame columns are not unique, some columns will be omitted.` from `report/rendering/payload/common.py:68`.
+  - This warning was observed in rerender logs but did not block report generation.
+
+## Current Status / Next Step
+- Engineering implementation for DUP-007 instrumentation is complete and tested.
+- Evidence remains blocker-confirming; acceptance criterion for historical-control false-positive behavior is still not met.
+- Next step is non-coding review sign-off decision on rollout policy for DUP-007.

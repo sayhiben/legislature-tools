@@ -96,3 +96,25 @@ Operational rollout should remain blocked until review explicitly accepts the ob
   - synthetic null/injected separation is strong;
   - historical-control false-positive behavior is still too high for rollout approval;
   - review sign-off should remain pending and rollout blocked.
+
+## 2026-03-01 Addendum (Instrumentation Rerun)
+- Backtest pipeline was updated to emit interval-aware and operating-point diagnostics directly:
+  - Wilson interval bounds for alert rates by family/split.
+  - Scenario-level threshold-feasibility scan against explicit targets:
+    - holdout-normal alert rate `<= 0.20`
+    - synthetic-injected alert rate `>= 0.80`
+- Reproducible rerun completed (seed `6346`) and regenerated:
+  - `output/dup007/vrdb_collision_backtest_case_metrics.csv`
+  - `output/dup007/vrdb_collision_backtest_scenario_summary.csv`
+  - `output/dup007/vrdb_collision_backtest_summary.json`
+  - `output/dup007/vrdb_collision_backtest_memo.md`
+  - `output/dup007/vrdb_collision_backtest_threshold_feasibility.csv`
+- Rerun outcomes:
+  - holdout-normal sample sizes remain `n=2` per scenario (wide Wilson intervals).
+  - holdout-normal alert rates remain elevated (`0.50` to `1.00`).
+  - synthetic-injected alert rate remains `1.00`.
+  - no scenario has a feasible threshold under the 0.20/0.80 targets (`threshold_feasible_count=0` everywhere).
+- Operational interpretation remains unchanged:
+  - synthetic separation is strong;
+  - historical-control behavior is still too high for rollout approval;
+  - sign-off stays pending and rollout remains blocked.

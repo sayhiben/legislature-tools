@@ -30,6 +30,8 @@ from testifier_audit.backtests.vrdb_collision_backtest import (  # noqa: E402
     stable_seed,
     summarize_case_metrics,
     synthetic_case_frame,
+    threshold_feasibility_scan,
+    wilson_interval,
 )
 from testifier_audit.config import AppConfig, load_config  # noqa: E402
 from testifier_audit.io.vrdb_collision_null import compute_vrdb_collision_null_for_slices  # noqa: E402
@@ -150,6 +152,18 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.40,
         help="Holdout split fraction for historical families.",
+    )
+    parser.add_argument(
+        "--max-holdout-normal-alert-rate",
+        type=float,
+        default=0.20,
+        help="Maximum acceptable holdout-normal alert rate for threshold-feasibility scan.",
+    )
+    parser.add_argument(
+        "--min-synthetic-injected-alert-rate",
+        type=float,
+        default=0.80,
+        help="Minimum acceptable synthetic-injected alert rate for threshold-feasibility scan.",
     )
     parser.add_argument(
         "--synthetic-replicates",
@@ -516,6 +530,8 @@ def _scenario_summary(
     case_results: pd.DataFrame,
     thresholds: dict[str, float],
     default_tail_alpha: float,
+    max_holdout_normal_alert_rate: float,
+    min_synthetic_injected_alert_rate: float,
 ) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for scenario_id, group in case_results.groupby("scenario_id", dropna=False):
@@ -528,23 +544,64 @@ def _scenario_summary(
         working["full_pairs_ratio"] = pd.to_numeric(working["full_pairs_ratio"], errors="coerce")
         working["has_metrics"] = working["has_metrics"].astype(bool)
 
-        def _alert_rate(mask: pd.Series) -> float:
+        def _alert_stats(mask: pd.Series, *, cutoff: float) -> dict[str, float]:
             frame = working[mask & working["has_metrics"]]
             if frame.empty:
-                return float("nan")
-            return float((frame["full_tail_prob_pairs"] <= threshold).mean())
-
-        def _default_alert_rate(mask: pd.Series) -> float:
-            frame = working[mask & working["has_metrics"]]
-            if frame.empty:
-                return float("nan")
-            return float((frame["full_tail_prob_pairs"] <= float(default_tail_alpha)).mean())
+                return {
+                    "n": 0.0,
+                    "alerts": 0.0,
+                    "rate": float("nan"),
+                    "wilson_lo": float("nan"),
+                    "wilson_hi": float("nan"),
+                }
+            alerts = int((frame["full_tail_prob_pairs"] <= float(cutoff)).sum())
+            n_rows = int(len(frame))
+            lo, hi = wilson_interval(successes=alerts, trials=n_rows)
+            return {
+                "n": float(n_rows),
+                "alerts": float(alerts),
+                "rate": float(alerts / n_rows),
+                "wilson_lo": float(lo),
+                "wilson_hi": float(hi),
+            }
 
         calibration_normal = (working["family"] == "historical_normal") & (working["split"] == "calibration")
         holdout_normal = (working["family"] == "historical_normal") & (working["split"] == "holdout")
         holdout_suspect = (working["family"] == "historical_suspect") & (working["split"] == "holdout")
         synthetic_null = working["family"] == "synthetic_null"
         synthetic_injected = working["family"] == "synthetic_injected"
+        calibration_normal_stats = _alert_stats(calibration_normal, cutoff=threshold)
+        holdout_normal_stats = _alert_stats(holdout_normal, cutoff=threshold)
+        holdout_suspect_stats = _alert_stats(holdout_suspect, cutoff=threshold)
+        synthetic_null_stats = _alert_stats(synthetic_null, cutoff=threshold)
+        synthetic_injected_stats = _alert_stats(synthetic_injected, cutoff=threshold)
+        default_holdout_normal_stats = _alert_stats(holdout_normal, cutoff=float(default_tail_alpha))
+        default_holdout_suspect_stats = _alert_stats(holdout_suspect, cutoff=float(default_tail_alpha))
+        feasibility = threshold_feasibility_scan(
+            holdout_normal_tail_probs=(
+                pd.to_numeric(
+                    working.loc[holdout_normal & working["has_metrics"], "full_tail_prob_pairs"],
+                    errors="coerce",
+                )
+                .dropna()
+                .to_numpy(dtype=float)
+            ),
+            synthetic_injected_tail_probs=(
+                pd.to_numeric(
+                    working.loc[synthetic_injected & working["has_metrics"], "full_tail_prob_pairs"],
+                    errors="coerce",
+                )
+                .dropna()
+                .to_numpy(dtype=float)
+            ),
+            max_holdout_normal_alert_rate=max_holdout_normal_alert_rate,
+            min_synthetic_injected_alert_rate=min_synthetic_injected_alert_rate,
+            candidate_thresholds=(
+                pd.to_numeric(working.loc[working["has_metrics"], "full_tail_prob_pairs"], errors="coerce")
+                .dropna()
+                .to_numpy(dtype=float)
+            ),
+        )
 
         rows.append(
             {
@@ -555,13 +612,37 @@ def _scenario_summary(
                 "normalization_mode": str(working["normalization_mode"].iloc[0]),
                 "calibrated_threshold": threshold,
                 "n_cases_with_metrics": int(working["has_metrics"].sum()),
-                "calibration_normal_alert_rate": _alert_rate(calibration_normal),
-                "holdout_normal_alert_rate": _alert_rate(holdout_normal),
-                "holdout_suspect_alert_rate": _alert_rate(holdout_suspect),
-                "synthetic_null_alert_rate": _alert_rate(synthetic_null),
-                "synthetic_injected_alert_rate": _alert_rate(synthetic_injected),
-                "default_holdout_normal_alert_rate": _default_alert_rate(holdout_normal),
-                "default_holdout_suspect_alert_rate": _default_alert_rate(holdout_suspect),
+                "calibration_normal_n": int(calibration_normal_stats["n"]),
+                "calibration_normal_alerts": int(calibration_normal_stats["alerts"]),
+                "calibration_normal_alert_rate": calibration_normal_stats["rate"],
+                "calibration_normal_wilson_lo": calibration_normal_stats["wilson_lo"],
+                "calibration_normal_wilson_hi": calibration_normal_stats["wilson_hi"],
+                "holdout_normal_n": int(holdout_normal_stats["n"]),
+                "holdout_normal_alerts": int(holdout_normal_stats["alerts"]),
+                "holdout_normal_alert_rate": holdout_normal_stats["rate"],
+                "holdout_normal_wilson_lo": holdout_normal_stats["wilson_lo"],
+                "holdout_normal_wilson_hi": holdout_normal_stats["wilson_hi"],
+                "holdout_suspect_n": int(holdout_suspect_stats["n"]),
+                "holdout_suspect_alerts": int(holdout_suspect_stats["alerts"]),
+                "holdout_suspect_alert_rate": holdout_suspect_stats["rate"],
+                "holdout_suspect_wilson_lo": holdout_suspect_stats["wilson_lo"],
+                "holdout_suspect_wilson_hi": holdout_suspect_stats["wilson_hi"],
+                "synthetic_null_n": int(synthetic_null_stats["n"]),
+                "synthetic_null_alerts": int(synthetic_null_stats["alerts"]),
+                "synthetic_null_alert_rate": synthetic_null_stats["rate"],
+                "synthetic_null_wilson_lo": synthetic_null_stats["wilson_lo"],
+                "synthetic_null_wilson_hi": synthetic_null_stats["wilson_hi"],
+                "synthetic_injected_n": int(synthetic_injected_stats["n"]),
+                "synthetic_injected_alerts": int(synthetic_injected_stats["alerts"]),
+                "synthetic_injected_alert_rate": synthetic_injected_stats["rate"],
+                "synthetic_injected_wilson_lo": synthetic_injected_stats["wilson_lo"],
+                "synthetic_injected_wilson_hi": synthetic_injected_stats["wilson_hi"],
+                "default_holdout_normal_alert_rate": default_holdout_normal_stats["rate"],
+                "default_holdout_suspect_alert_rate": default_holdout_suspect_stats["rate"],
+                "threshold_operating_point_feasible": bool(feasibility["feasible"]),
+                "threshold_operating_point_feasible_count": int(feasibility["feasible_count"]),
+                "threshold_operating_point_feasible_min": float(feasibility["feasible_min_threshold"]),
+                "threshold_operating_point_feasible_max": float(feasibility["feasible_max_threshold"]),
                 "median_full_tail_prob_pairs": float(
                     working.loc[working["has_metrics"], "full_tail_prob_pairs"].median()
                 ),
@@ -687,6 +768,11 @@ def _build_memo(
         "- Historical families are split deterministically into calibration and holdout subsets. "
         "Calibration thresholds target the configured normal-control false-positive rate."
     )
+    lines.append(
+        "- Threshold-feasibility target: "
+        + f"holdout_normal <= {float(args.max_holdout_normal_alert_rate):.3f} and "
+        + f"synthetic_injected >= {float(args.min_synthetic_injected_alert_rate):.3f}."
+    )
     if thresholds:
         for scenario_id in sorted(thresholds):
             lines.append(f"- {scenario_id}: calibrated threshold={thresholds[scenario_id]:.6f}")
@@ -699,10 +785,16 @@ def _build_memo(
         for row in scenario_summary.itertuples(index=False):
             lines.append(
                 "- "
-                + f"{row.scenario_id}: holdout_normal={row.holdout_normal_alert_rate:.3f}, "
-                + f"holdout_suspect={row.holdout_suspect_alert_rate:.3f}, "
-                + f"synthetic_null={row.synthetic_null_alert_rate:.3f}, "
-                + f"synthetic_injected={row.synthetic_injected_alert_rate:.3f}, "
+                + f"{row.scenario_id}: holdout_normal={row.holdout_normal_alert_rate:.3f} "
+                + f"(n={int(row.holdout_normal_n)}, wilson=[{row.holdout_normal_wilson_lo:.3f}, {row.holdout_normal_wilson_hi:.3f}]), "
+                + f"holdout_suspect={row.holdout_suspect_alert_rate:.3f} "
+                + f"(n={int(row.holdout_suspect_n)}), "
+                + f"synthetic_null={row.synthetic_null_alert_rate:.3f} "
+                + f"(n={int(row.synthetic_null_n)}), "
+                + f"synthetic_injected={row.synthetic_injected_alert_rate:.3f} "
+                + f"(n={int(row.synthetic_injected_n)}), "
+                + f"threshold_feasible={bool(row.threshold_operating_point_feasible)} "
+                + f"(count={int(row.threshold_operating_point_feasible_count)}), "
                 + f"median_pairs_ratio={row.median_full_pairs_ratio:.3f}, "
                 + f"max_fallback_steps={int(row.max_fallback_steps)}"
             )
@@ -913,6 +1005,8 @@ def run() -> int:
         case_results=case_results,
         thresholds=thresholds,
         default_tail_alpha=float(args.tail_alpha),
+        max_holdout_normal_alert_rate=float(args.max_holdout_normal_alert_rate),
+        min_synthetic_injected_alert_rate=float(args.min_synthetic_injected_alert_rate),
     )
     normalization_findings = _normalization_sensitivity(case_results)
 
@@ -944,6 +1038,8 @@ def run() -> int:
         "bucket_minutes": bucket_minutes,
         "tail_alpha": float(args.tail_alpha),
         "calibration_target_fpr": float(args.calibration_target_fpr),
+        "max_holdout_normal_alert_rate": float(args.max_holdout_normal_alert_rate),
+        "min_synthetic_injected_alert_rate": float(args.min_synthetic_injected_alert_rate),
         "monte_carlo_draws": int(args.monte_carlo_draws),
         "historical_paths_considered": int(len(historical_paths)),
         "historical_case_stats_rows": int(len(historical_stats)),

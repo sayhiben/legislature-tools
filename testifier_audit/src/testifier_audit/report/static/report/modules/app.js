@@ -210,6 +210,18 @@ export async function runReportApp() {
         .map((value) => String(value || "").trim())
         .filter((value) => !!value)
     : [];
+  const duplicateScopeAvailability = Array.isArray(controls.duplicate_collision_scope_availability)
+    ? controls.duplicate_collision_scope_availability
+        .map((entry) => ({
+          scope: String((entry && entry.scope) || "").trim(),
+          scopeStatus: String((entry && entry.scope_status) || "").trim().toLowerCase() || "available",
+          scopeReason: String((entry && entry.scope_reason) || "").trim(),
+        }))
+        .filter((entry) => !!entry.scope)
+    : [];
+  const duplicateUnavailableScopes = duplicateScopeAvailability.filter(
+    (entry) => entry.scopeStatus !== "available"
+  );
   const duplicateMetricOptions = Array.isArray(controls.duplicate_collision_metric_options)
     ? controls.duplicate_collision_metric_options
         .map((value) => String(value || "").trim())
@@ -10066,6 +10078,15 @@ export async function runReportApp() {
     scopeSelect.disabled = hideScopeControl;
     if (scopeLabel) {
       scopeLabel.classList.toggle("hidden", hideScopeControl);
+    }
+    const unavailableScopeMessage = duplicateUnavailableScopes.length
+      ? `Unavailable scopes: ${duplicateUnavailableScopes
+          .map((entry) => `${entry.scope.replace(/_/g, " ")} (${entry.scopeReason || "unavailable"})`)
+          .join("; ")}.`
+      : "";
+    scopeSelect.title = unavailableScopeMessage;
+    if (scopeLabel) {
+      scopeLabel.title = unavailableScopeMessage;
     }
 
     metricSelect.innerHTML = "";

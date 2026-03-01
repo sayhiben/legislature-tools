@@ -120,8 +120,19 @@ _DUPLICATE_TABLE_NAMES: tuple[str, ...] = (
 )
 
 
+def _normalized_optional_string(value: object) -> str:
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except TypeError:
+        pass
+    return str(value)
+
+
 def _duplicate_baseline_label_for_source(source: str) -> str:
-    source_norm = str(source or "").strip().lower()
+    source_norm = _normalized_optional_string(source).strip().lower()
     if source_norm in {"vrdb_full_histogram", "vrdb_full_keys"}:
         return "Statewide registry reference baseline"
     if source_norm == "hearing_empirical":
@@ -132,14 +143,14 @@ def _duplicate_baseline_label_for_source(source: str) -> str:
 
 
 def _duplicate_inferential_status_for_source(source: str) -> str:
-    source_norm = str(source or "").strip().lower()
+    source_norm = _normalized_optional_string(source).strip().lower()
     if source_norm == "hearing_empirical":
         return "descriptive_only"
     return "reference_model_inference"
 
 
 def _duplicate_default_inferential_reason_for_status(status: str) -> str:
-    status_norm = str(status or "").strip().lower()
+    status_norm = _normalized_optional_string(status).strip().lower()
     if status_norm == "descriptive_only":
         return "self_referential_baseline"
     if status_norm == "unavailable":
@@ -147,6 +158,20 @@ def _duplicate_default_inferential_reason_for_status(status: str) -> str:
     if status_norm in {"reference_model_inference", "tested"}:
         return "reference_model_inference_available"
     return "status_not_specified"
+
+
+def _duplicate_default_scope_reason_for_status(scope_status: str) -> str:
+    status_norm = _normalized_optional_string(scope_status).strip().lower()
+    if status_norm == "available":
+        return "available"
+    return "unavailable_no_rows_after_filtering"
+
+
+def _duplicate_default_scope_status_for_reason(scope_reason: str) -> str:
+    reason_norm = _normalized_optional_string(scope_reason).strip().lower()
+    if reason_norm in {"", "available"}:
+        return "available"
+    return "unavailable"
 
 
 def _duplicate_inferential_supported_mask(
@@ -165,6 +190,13 @@ def _duplicate_inferential_supported_mask(
         return pd.Series(False, index=frame.index, dtype=bool)
     status_norm = status_series.str.strip().str.lower()
     return status_norm.isin({"reference_model_inference", "tested"})
+
+
+def _duplicate_scope_available_mask(frame: pd.DataFrame) -> pd.Series:
+    if frame.empty or "scope_status" not in frame.columns:
+        return pd.Series(dtype=bool)
+    status_norm = frame["scope_status"].fillna("").astype(str).str.strip().str.lower()
+    return status_norm == "available"
 
 
 def _total_submissions_from_counts_per_minute(counts_per_minute: pd.DataFrame) -> int | None:
@@ -667,6 +699,8 @@ def _build_interactive_chart_payload_v2(
             "uncertainty_model",
             "n_used",
             "N_used",
+            "scope_status",
+            "scope_reason",
             "metric_primary",
             "metrics_reported",
             "baseline_degraded",
@@ -726,6 +760,35 @@ def _build_interactive_chart_payload_v2(
                 dup_exact_methods["inferential_status"].map(
                     _duplicate_default_inferential_reason_for_status
                 ),
+            )
+        )
+        dup_exact_methods["scope_status"] = (
+            dup_exact_methods.get("scope_status", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_methods.get("scope_status", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_methods.get("scope_reason", pd.Series(dtype=str)).map(
+                    _duplicate_default_scope_status_for_reason
+                ),
+            )
+            .replace("", "available")
+        )
+        dup_exact_methods["scope_reason"] = (
+            dup_exact_methods.get("scope_reason", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_methods.get("scope_reason", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_methods["scope_status"].map(_duplicate_default_scope_reason_for_status),
             )
         )
     dup_exact_summary_raw = detector_summaries.get("duplicates_exact", {})
@@ -793,20 +856,29 @@ def _build_interactive_chart_payload_v2(
         primary_dup_inferential_reason = _duplicate_default_inferential_reason_for_status(
             primary_dup_inferential_status
         )
-    duplicate_scope_options = sorted(
-        {
-            str(value).strip()
-            for value in dup_exact_methods.get("scope", pd.Series(dtype=str)).tolist()
-            if str(value).strip()
-        }
+    primary_dup_scope_status = (
+        str(dup_exact_methods.get("scope_status", pd.Series(dtype=str)).iloc[0]).strip()
+        if not dup_exact_methods.empty
+        else str(dup_exact_summary.get("scope_status") or "").strip()
     )
-    if not duplicate_scope_options:
-        duplicate_scope_options = [primary_dup_scope]
+    if not primary_dup_scope_status:
+        primary_dup_scope_status = "available"
+    primary_dup_scope_reason = (
+        str(dup_exact_methods.get("scope_reason", pd.Series(dtype=str)).iloc[0]).strip()
+        if not dup_exact_methods.empty
+        else str(dup_exact_summary.get("scope_reason") or "").strip()
+    )
+    if not primary_dup_scope_reason:
+        primary_dup_scope_reason = _duplicate_default_scope_reason_for_status(
+            primary_dup_scope_status
+        )
 
     dup_exact_collision_overview = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "collision_overview"), pd.DataFrame()),
         [
             "scope",
+            "scope_status",
+            "scope_reason",
             "metric",
             "observed",
             "expected",
@@ -836,6 +908,8 @@ def _build_interactive_chart_payload_v2(
     duplicate_match_mode_options: list[str] = []
     dup_scope_metadata_columns = [
         "scope",
+        "scope_status",
+        "scope_reason",
         "baseline_source",
         "baseline_label",
         "inferential_status",
@@ -854,6 +928,8 @@ def _build_interactive_chart_payload_v2(
             [
                 {
                     "scope": primary_dup_scope,
+                    "scope_status": primary_dup_scope_status,
+                    "scope_reason": primary_dup_scope_reason,
                     "baseline_source": primary_dup_baseline_source,
                     "baseline_label": primary_dup_baseline_label,
                     "inferential_status": primary_dup_inferential_status,
@@ -867,6 +943,8 @@ def _build_interactive_chart_payload_v2(
             [
                 {
                     "scope": primary_dup_scope,
+                    "scope_status": primary_dup_scope_status,
+                    "scope_reason": primary_dup_scope_reason,
                     "baseline_source": primary_dup_baseline_source,
                     "baseline_label": primary_dup_baseline_label,
                     "inferential_status": primary_dup_inferential_status,
@@ -875,6 +953,60 @@ def _build_interactive_chart_payload_v2(
                 }
             ]
         )
+    dup_scope_metadata["scope"] = (
+        dup_scope_metadata["scope"].fillna("").astype(str).replace("", primary_dup_scope)
+    )
+    dup_scope_metadata["scope_status"] = (
+        dup_scope_metadata.get("scope_status", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .where(
+            dup_scope_metadata.get("scope_status", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.len()
+            > 0,
+            dup_scope_metadata.get("scope_reason", pd.Series(dtype=str)).map(
+                _duplicate_default_scope_status_for_reason
+            ),
+        )
+        .replace("", "available")
+    )
+    dup_scope_metadata["scope_reason"] = (
+        dup_scope_metadata.get("scope_reason", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .where(
+            dup_scope_metadata.get("scope_reason", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.len()
+            > 0,
+            dup_scope_metadata["scope_status"].map(_duplicate_default_scope_reason_for_status),
+        )
+    )
+    duplicate_scope_availability = _records_from_frame(
+        dup_scope_metadata[["scope", "scope_status", "scope_reason"]],
+        columns=["scope", "scope_status", "scope_reason"],
+        max_rows=20,
+    )
+    available_scope_options = sorted(
+        {
+            str(value).strip()
+            for value in dup_scope_metadata.loc[
+                _duplicate_scope_available_mask(dup_scope_metadata), "scope"
+            ].tolist()
+            if str(value).strip()
+        }
+    )
+    duplicate_scope_options = (
+        available_scope_options if available_scope_options else [primary_dup_scope]
+    )
+    primary_dup_scope_control = (
+        primary_dup_scope
+        if primary_dup_scope in duplicate_scope_options
+        else duplicate_scope_options[0]
+    )
 
     def _attach_duplicate_scope_metadata(frame: pd.DataFrame) -> pd.DataFrame:
         if frame.empty:
@@ -892,6 +1024,8 @@ def _build_interactive_chart_payload_v2(
             suffixes=("", "_scope_meta"),
         )
         for column in (
+            "scope_status",
+            "scope_reason",
             "baseline_source",
             "baseline_label",
             "inferential_status",
@@ -918,6 +1052,35 @@ def _build_interactive_chart_payload_v2(
             working["baseline_source"] = working["baseline_source"].fillna("").astype(str)
         else:
             working["baseline_source"] = primary_dup_baseline_source
+        if "scope_status" in working.columns:
+            working["scope_status"] = (
+                working["scope_status"]
+                .fillna("")
+                .astype(str)
+                .where(
+                    working["scope_status"].fillna("").astype(str).str.len() > 0,
+                    working.get("scope_reason", pd.Series(dtype=str)).map(
+                        _duplicate_default_scope_status_for_reason
+                    ),
+                )
+                .replace("", "available")
+            )
+        else:
+            working["scope_status"] = "available"
+        if "scope_reason" in working.columns:
+            working["scope_reason"] = (
+                working["scope_reason"]
+                .fillna("")
+                .astype(str)
+                .where(
+                    working["scope_reason"].fillna("").astype(str).str.len() > 0,
+                    working["scope_status"].map(_duplicate_default_scope_reason_for_status),
+                )
+            )
+        else:
+            working["scope_reason"] = working["scope_status"].map(
+                _duplicate_default_scope_reason_for_status
+            )
         if "baseline_label" in working.columns:
             working["baseline_label"] = (
                 working["baseline_label"]
@@ -989,6 +1152,8 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("duplicates_exact", "collision_by_bucket"), pd.DataFrame()),
         [
             "scope",
+            "scope_status",
+            "scope_reason",
             "metric",
             "bucket_start",
             "bucket_minutes",
@@ -1026,6 +1191,8 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("duplicates_exact", "per_name_duplicates_by_mode"), pd.DataFrame()),
         [
             "scope",
+            "scope_status",
+            "scope_reason",
             "match_mode",
             "match_label",
             "match_definition",
@@ -1065,6 +1232,8 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("duplicates_exact", "per_name_submission_timing_by_mode"), pd.DataFrame()),
         [
             "scope",
+            "scope_status",
+            "scope_reason",
             "match_mode",
             "match_label",
             "match_definition",
@@ -1139,6 +1308,8 @@ def _build_interactive_chart_payload_v2(
             table_map.get(_table_key("duplicates_exact", "duplicate_by_bucket"), pd.DataFrame()),
             [
                 "scope",
+                "scope_status",
+                "scope_reason",
                 "bucket_start",
                 "bucket_minutes",
                 "n_rows",
@@ -1594,6 +1765,8 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("duplicates_exact", "per_name_anomalies"), pd.DataFrame()),
         [
             "scope",
+            "scope_status",
+            "scope_reason",
             "inferential_status",
             "inferential_reason",
             "match_mode",
@@ -1669,6 +1842,8 @@ def _build_interactive_chart_payload_v2(
             table_map.get(_table_key("duplicates_exact", "per_name_display"), pd.DataFrame()),
             [
                 "scope",
+                "scope_status",
+                "scope_reason",
                 "inferential_status",
                 "inferential_reason",
                 "display_name",
@@ -1808,6 +1983,8 @@ def _build_interactive_chart_payload_v2(
         ),
         [
             "scope",
+            "scope_status",
+            "scope_reason",
             "metric",
             "bucket_start",
             "bucket_minutes",
@@ -3878,10 +4055,30 @@ def _build_interactive_chart_payload_v2(
             methodology["caveats"].append(
                 "Duplicate-collision baseline degraded during runtime; review methods metadata before inference."
             )
+        unavailable_scope_rows = dup_exact_methods[
+            dup_exact_methods.get("scope_status", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            != "available"
+        ].copy()
+        if not unavailable_scope_rows.empty:
+            for row in unavailable_scope_rows.drop_duplicates(subset=["scope"], keep="first").itertuples(
+                index=False
+            ):
+                scope_name = str(getattr(row, "scope", "")).strip() or "unknown_scope"
+                scope_reason = str(getattr(row, "scope_reason", "")).strip() or "unavailable"
+                methodology["caveats"].append(
+                    "Duplicate-collision scope unavailable during runtime: "
+                    f"{scope_name} ({scope_reason})."
+                )
         methodology["duplicate_runtime"] = _records_from_frame(
             dup_exact_methods,
             columns=[
                 "scope",
+                "scope_status",
+                "scope_reason",
                 "baseline_source",
                 "baseline_label",
                 "baseline_model",
@@ -3997,9 +4194,10 @@ def _build_interactive_chart_payload_v2(
             "color_semantics": color_semantics,
             "dedup_modes": list(DEDUP_MODES),
             "default_dedup_mode": resolved_default_dedup_mode,
-            "duplicate_collision_scope_default": primary_dup_scope,
+            "duplicate_collision_scope_default": primary_dup_scope_control,
             "duplicate_collision_metric_default": primary_dup_unit,
             "duplicate_collision_scope_options": duplicate_scope_options,
+            "duplicate_collision_scope_availability": duplicate_scope_availability,
             "duplicate_collision_metric_options": duplicate_metric_options,
             "duplicate_match_mode_default": primary_dup_match_mode,
             "duplicate_match_mode_options": duplicate_match_mode_options,

@@ -11,9 +11,10 @@ Execution order is tracked here independently from ticket numbering.
 ### Completed (actual)
 1. `DUP-001` (Done, 2026-02-28)
 2. `DUP-008` (Done, 2026-02-28)
+3. `DUP-009` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-009` (next in-progress target)
+1. `DUP-010` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
 1. `DUP-010`
@@ -36,7 +37,7 @@ Execution order is tracked here independently from ticket numbering.
 18. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001** and **DUP-008**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, and **DUP-009**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -157,3 +158,73 @@ Work item: DUP-008 (P0)
 ## Remaining Work / Handoff
 - Move to `DUP-009` (scope semantics and unavailable-scope handling).
 - Preserve DUP-008 inferential status/reason fields as orthogonal metadata when implementing `scope_status`/`scope_reason`.
+
+---
+
+## DUP-009 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-009 (P0)
+
+## What Was Implemented
+- Preserved explicit duplicate scope semantics in detector runtime:
+  - no silent aliasing from `matched_only`/`unmatched_only` to `full_hearing`
+  - added scope availability taxonomy:
+    - `scope_status`: `available` | `unavailable`
+    - `scope_reason`: `available` | `unavailable_missing_match_assignments` | `unavailable_no_person_rows` | `unavailable_no_rows_after_filtering`
+- Kept scope availability separate from inferential status:
+  - inferential unavailability for unavailable scopes uses `inferential_reason=scope_unavailable`
+  - DUP-008 inferential taxonomy remains orthogonal metadata (not overloaded for scope semantics)
+- Removed fallback behavior that changed estimand:
+  - eliminated `infer = working.copy()` fallback when inference frame is empty after person filtering
+  - in unavailable scopes, inferential metrics remain null-masked under existing DUP-008 masking rules
+- Propagated scope availability metadata across detector outputs:
+  - `collision_methods`, `collision_overview`, `per_name_tests`, `per_name_display`,
+    `temporal_burst_signals`, `collision_by_bucket`, `collision_by_bucket_position`
+  - summary now includes `scope_status`, `scope_reason`, and `scope_availability`
+- Added runtime observability:
+  - profiling counter `detector.duplicates_exact.scope.unavailable_count`
+- Updated report payload/build behavior:
+  - payload normalization now carries `scope_status`/`scope_reason`
+  - duplicate scope controls include `duplicate_collision_scope_availability`
+  - unavailable scopes are excluded from `duplicate_collision_scope_options`
+  - default scope resolves to an available scope (fallback to primary scope only if option list is empty)
+  - duplicate methodology/runtime entries now include scope status/reason and caveats for unavailable scopes
+- Updated frontend duplicate controls:
+  - reads `duplicate_collision_scope_availability`
+  - surfaces unavailable-scope reason text on scope control label/select tooltips when applicable
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - added regressions for:
+    - missing match assignments => `matched_only` unavailable
+    - malformed assignments => scoped unavailable responses
+    - no-person rows after filtering => unavailable, no full-frame fallback
+    - requested scope empty after filtering => unavailable
+  - expanded collision-methods contract assertions for `scope_status`/`scope_reason`
+- `tests/test_report_chart_payload.py`
+  - added payload regression for duplicate scope controls:
+    - unavailable scopes excluded from options
+    - default scope resolves to available entry
+    - availability reasons preserved and shown in methodology caveats
+
+## Runtime / Report Validation
+- ESSB 6346 end-to-end run completed:
+  - `scripts/report/run_unified_report.sh` with hearing metadata and VRDB extract
+  - rerender pass via `python -m testifier_audit.cli report`
+- Playwright MCP validation completed on:
+  - desktop `1728x1117`
+  - mobile `390x844`
+- Verified:
+  - duplicate controls remain stable (mode/unit toggles, bucket sync)
+  - no console errors/warnings
+  - no failed data requests (all chart/data fetches `200`)
+
+## Issue Discovered During QA
+- ESSB 6346 run currently exposes only `full_hearing` as an available duplicate scope.
+- This is expected for the current detector configuration (`detector.duplicates_exact.scope.count = 1`) and not a scope-fallback regression.
+- Resulting UI behavior is intentional for this run: scope selector stays hidden because there are no alternate available scopes to choose from.
+
+## Remaining Work / Handoff
+- Move to `DUP-010` (report-layer baseline math + baseline-family separation).
+- Preserve DUP-009 scope-availability semantics when introducing additional baseline families and labels.

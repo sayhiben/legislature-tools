@@ -191,6 +191,8 @@ def test_duplicate_statistical_contract_is_emitted_in_summary_and_methods() -> N
     methods = result.tables["collision_methods"]
     required_columns = {
         "baseline_label",
+        "scope_status",
+        "scope_reason",
         "claim_class",
         "inferential_status",
         "inferential_reason",
@@ -211,6 +213,138 @@ def test_duplicate_statistical_contract_is_emitted_in_summary_and_methods() -> N
     assert methods["inferential_status"].astype(str).isin(
         {"descriptive_only", "reference_model_inference"}
     ).all()
+
+
+def test_matched_scope_is_unavailable_when_match_assignments_missing() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2, "BROWN|AVA": 1})
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_scope_primary="matched_only",
+        collision_scope_overlays=["full_hearing"],
+        collision_uncertainty_mode="analytic_only",
+    )
+    result = detector.run(df=frame, features={})
+
+    methods = result.tables["collision_methods"]
+    matched = methods[methods["scope"] == "matched_only"].reset_index(drop=True)
+    full_hearing = methods[methods["scope"] == "full_hearing"].reset_index(drop=True)
+    assert not matched.empty
+    assert not full_hearing.empty
+    assert str(matched.loc[0, "scope_status"]) == detector.SCOPE_STATUS_UNAVAILABLE
+    assert (
+        str(matched.loc[0, "scope_reason"])
+        == detector.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS
+    )
+    assert int(matched.loc[0, "n_used"]) == 0
+    assert str(full_hearing.loc[0, "scope_status"]) == detector.SCOPE_STATUS_AVAILABLE
+    assert int(full_hearing.loc[0, "n_used"]) == len(frame)
+    assert str(result.summary["scope_status"]) == detector.SCOPE_STATUS_UNAVAILABLE
+    assert (
+        str(result.summary["scope_reason"])
+        == detector.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS
+    )
+    assert int(result.summary["n_records"]) == 0
+
+
+def test_malformed_match_assignments_mark_requested_scopes_unavailable() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2, "BROWN|AVA": 1})
+    malformed_assignments = pd.DataFrame(
+        [
+            {"canonical_name": "DOE|JANE"},
+            {"canonical_name": "SMITH|JOHN"},
+        ]
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_scope_primary="matched_only",
+        collision_scope_overlays=["full_hearing", "unmatched_only"],
+        collision_uncertainty_mode="analytic_only",
+    )
+    result = detector.run(
+        df=frame,
+        features={"voter_registry_match.match_assignments": malformed_assignments},
+    )
+    methods = result.tables["collision_methods"]
+    for scope in ("matched_only", "unmatched_only"):
+        scope_row = methods[methods["scope"] == scope].reset_index(drop=True)
+        assert not scope_row.empty
+        assert str(scope_row.loc[0, "scope_status"]) == detector.SCOPE_STATUS_UNAVAILABLE
+        assert (
+            str(scope_row.loc[0, "scope_reason"])
+            == detector.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS
+        )
+        assert int(scope_row.loc[0, "n_used"]) == 0
+
+
+def test_no_person_filtering_marks_scope_unavailable_without_fallback() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2})
+    frame["is_person_name"] = False
+    assignments = pd.DataFrame(
+        [
+            {"canonical_name": "DOE|JANE", "primary_outcome": "matched_unique"},
+            {"canonical_name": "SMITH|JOHN", "primary_outcome": "unmatched"},
+        ]
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_scope_primary="full_hearing",
+        collision_scope_overlays=["matched_only"],
+        collision_uncertainty_mode="analytic_only",
+        exclude_non_person_from_inference=True,
+    )
+    result = detector.run(
+        df=frame,
+        features={"voter_registry_match.match_assignments": assignments},
+    )
+    methods = result.tables["collision_methods"]
+    for scope in ("full_hearing", "matched_only"):
+        scope_row = methods[methods["scope"] == scope].reset_index(drop=True)
+        assert not scope_row.empty
+        assert str(scope_row.loc[0, "scope_status"]) == detector.SCOPE_STATUS_UNAVAILABLE
+        assert (
+            str(scope_row.loc[0, "scope_reason"])
+            == detector.SCOPE_REASON_UNAVAILABLE_NO_PERSON_ROWS
+        )
+        assert int(scope_row.loc[0, "n_used"]) == 0
+    assert str(result.summary["scope_status"]) == detector.SCOPE_STATUS_UNAVAILABLE
+    assert (
+        str(result.summary["scope_reason"])
+        == detector.SCOPE_REASON_UNAVAILABLE_NO_PERSON_ROWS
+    )
+    assert int(result.summary["n_records"]) == 0
+
+
+def test_requested_scope_with_no_rows_after_filtering_is_unavailable() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2})
+    assignments = pd.DataFrame(
+        [
+            {"canonical_name": "DOE|JANE", "primary_outcome": "unmatched"},
+            {"canonical_name": "SMITH|JOHN", "primary_outcome": "unmatched"},
+        ]
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_scope_primary="matched_only",
+        collision_scope_overlays=["full_hearing"],
+        collision_uncertainty_mode="analytic_only",
+    )
+    result = detector.run(
+        df=frame,
+        features={"voter_registry_match.match_assignments": assignments},
+    )
+    methods = result.tables["collision_methods"]
+    matched = methods[methods["scope"] == "matched_only"].reset_index(drop=True)
+    assert not matched.empty
+    assert str(matched.loc[0, "scope_status"]) == detector.SCOPE_STATUS_UNAVAILABLE
+    assert (
+        str(matched.loc[0, "scope_reason"])
+        == detector.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
+    )
+    assert int(matched.loc[0, "n_used"]) == 0
 
 
 def test_self_referential_baseline_suppresses_inferential_fields() -> None:

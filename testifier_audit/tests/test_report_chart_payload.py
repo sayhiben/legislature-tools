@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from testifier_audit.io.hearing_metadata import parse_hearing_metadata
@@ -941,6 +942,126 @@ def test_duplicates_exact_top_name_timing_rows_include_rank_metadata_rows() -> N
     assert sorted(int(row["rank"]) for row in metadata_rows) == [1, 2]
     assert {str(row["name_key"]) for row in metadata_rows} == {"DOE|JANE", "SMITH|JOHN"}
     assert all(row.get("bucket_minutes") is None for row in metadata_rows)
+
+
+def test_duplicate_scope_controls_exclude_unavailable_scopes_and_surface_reasons() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "scope_status": "unavailable",
+                        "scope_reason": "unavailable_missing_match_assignments",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_label": "Statewide registry reference baseline",
+                        "baseline_model": "multinomial",
+                        "uncertainty_model": "analytic_only",
+                        "n_used": 0,
+                        "N_used": 1000,
+                        "metric_primary": "repeated_group_rows",
+                        "metrics_reported": "repeated_group_rows,excess_rows,pairs",
+                        "baseline_degraded": False,
+                        "fallback_policy": "degrade",
+                        "collision_key_mode": "strict",
+                        "normalization_version_hash": "abc",
+                        "stratification": "none",
+                        "censored": False,
+                        "claim_class": "collision_signal",
+                        "inferential_status": "unavailable",
+                        "inferential_reason": "scope_unavailable",
+                        "estimand_primary": "name-key collision burden relative to reference baseline",
+                        "non_goals": "cannot infer identity, intent, IP-based behavior, or per-person duplication from the public dataset",
+                        "baseline_semantics": "reference model; not the data-generating process",
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "scope_status": "available",
+                        "scope_reason": "available",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_label": "Statewide registry reference baseline",
+                        "baseline_model": "multinomial",
+                        "uncertainty_model": "analytic_only",
+                        "n_used": 100,
+                        "N_used": 1000,
+                        "metric_primary": "repeated_group_rows",
+                        "metrics_reported": "repeated_group_rows,excess_rows,pairs",
+                        "baseline_degraded": False,
+                        "fallback_policy": "degrade",
+                        "collision_key_mode": "strict",
+                        "normalization_version_hash": "def",
+                        "stratification": "none",
+                        "censored": False,
+                        "claim_class": "collision_signal",
+                        "inferential_status": "reference_model_inference",
+                        "inferential_reason": "reference_model_inference_available",
+                        "estimand_primary": "name-key collision burden relative to reference baseline",
+                        "non_goals": "cannot infer identity, intent, IP-based behavior, or per-person duplication from the public dataset",
+                        "baseline_semantics": "reference model; not the data-generating process",
+                    },
+                ]
+            ),
+            "duplicates_exact.collision_overview": pd.DataFrame(
+                [
+                    {
+                        "scope": "matched_only",
+                        "scope_status": "unavailable",
+                        "scope_reason": "unavailable_missing_match_assignments",
+                        "metric": "repeated_group_rows",
+                        "observed": 0.0,
+                        "expected": 0.0,
+                        "expected_p05": np.nan,
+                        "expected_p50": np.nan,
+                        "expected_p95": np.nan,
+                        "z_score": np.nan,
+                        "p_value": np.nan,
+                        "n_used": 0,
+                        "N_used": 1000,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "scope_status": "available",
+                        "scope_reason": "available",
+                        "metric": "repeated_group_rows",
+                        "observed": 6.0,
+                        "expected": 2.0,
+                        "expected_p05": 1.0,
+                        "expected_p50": 2.0,
+                        "expected_p95": 3.0,
+                        "z_score": 1.5,
+                        "p_value": 0.04,
+                        "n_used": 100,
+                        "N_used": 1000,
+                    },
+                ]
+            ),
+        },
+        detector_summaries={
+            "duplicates_exact": {
+                "collision_scope_primary": "matched_only",
+                "scope_status": "unavailable",
+                "scope_reason": "unavailable_missing_match_assignments",
+            }
+        },
+    )
+
+    controls = payload["controls"]
+    assert controls["duplicate_collision_scope_options"] == ["full_hearing"]
+    assert controls["duplicate_collision_scope_default"] == "full_hearing"
+    availability = controls["duplicate_collision_scope_availability"]
+    availability_by_scope = {str(row["scope"]): row for row in availability}
+    assert availability_by_scope["matched_only"]["scope_status"] == "unavailable"
+    assert (
+        availability_by_scope["matched_only"]["scope_reason"]
+        == "unavailable_missing_match_assignments"
+    )
+    assert availability_by_scope["full_hearing"]["scope_status"] == "available"
+    caveats = controls.get("methodology", {}).get("caveats", [])
+    assert any(
+        "matched_only" in str(caveat)
+        and "unavailable_missing_match_assignments" in str(caveat)
+        for caveat in caveats
+    )
 
 
 def test_duplicates_exact_bucket_concentration_keeps_signed_deviation() -> None:

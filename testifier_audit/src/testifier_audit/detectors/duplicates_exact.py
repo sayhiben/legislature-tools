@@ -105,11 +105,18 @@ class DuplicatesExactDetector(Detector):
         "reference model; not the data-generating process"
     )
     COLLISION_CLAIM_CLASS = "collision_signal"
+    SCOPE_STATUS_AVAILABLE = "available"
+    SCOPE_STATUS_UNAVAILABLE = "unavailable"
+    SCOPE_REASON_AVAILABLE = "available"
+    SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS = "unavailable_missing_match_assignments"
+    SCOPE_REASON_UNAVAILABLE_NO_PERSON_ROWS = "unavailable_no_person_rows"
+    SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING = "unavailable_no_rows_after_filtering"
     INFERENTIAL_REASON_REFERENCE_MODEL_INFERENCE = "reference_model_inference_available"
     INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE = "self_referential_baseline"
     INFERENTIAL_REASON_DEGRADED_TO_SELF_REFERENTIAL = "degraded_to_self_referential_baseline"
     INFERENTIAL_REASON_NO_NULL_SAMPLES = "analytic_only_no_null_samples"
     INFERENTIAL_REASON_LOW_POWER = "low_power_support"
+    INFERENTIAL_REASON_SCOPE_UNAVAILABLE = "scope_unavailable"
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
     POSITION_CLAIM_REASON_ELIGIBLE = "eligible"
     POSITION_CLAIM_REASON_UNSUPPORTED_MODEL = "unsupported_collision_baseline_model"
@@ -541,19 +548,106 @@ class DuplicatesExactDetector(Detector):
                 hasher.update(nickname_path.read_bytes())
         return hasher.hexdigest()
 
-    def _scope_frames(self, infer: pd.DataFrame, features: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-        scopes: dict[str, pd.DataFrame] = {"full_hearing": infer.copy()}
+    def _scope_frames(
+        self,
+        infer: pd.DataFrame,
+        features: dict[str, pd.DataFrame],
+        *,
+        no_person_rows_after_filter: bool,
+    ) -> tuple[dict[str, pd.DataFrame], dict[str, dict[str, str]]]:
+        scopes: dict[str, pd.DataFrame] = {}
+        scope_availability: dict[str, dict[str, str]] = {}
+
+        def _record_scope(
+            scope_name: str,
+            frame: pd.DataFrame,
+            *,
+            scope_status: str,
+            scope_reason: str,
+        ) -> None:
+            scopes[scope_name] = frame
+            scope_availability[scope_name] = {
+                "scope_status": scope_status,
+                "scope_reason": scope_reason,
+            }
+
+        full_scope_reason = self.SCOPE_REASON_AVAILABLE
+        full_scope_status = self.SCOPE_STATUS_AVAILABLE
+        if infer.empty:
+            full_scope_status = self.SCOPE_STATUS_UNAVAILABLE
+            full_scope_reason = (
+                self.SCOPE_REASON_UNAVAILABLE_NO_PERSON_ROWS
+                if no_person_rows_after_filter
+                else self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
+            )
+        _record_scope(
+            "full_hearing",
+            infer.copy(),
+            scope_status=full_scope_status,
+            scope_reason=full_scope_reason,
+        )
+
         requested = set(self._scope_list())
         if "matched_only" not in requested and "unmatched_only" not in requested:
-            return scopes
+            return scopes, scope_availability
+
+        if infer.empty:
+            unavailable_reason = (
+                self.SCOPE_REASON_UNAVAILABLE_NO_PERSON_ROWS
+                if no_person_rows_after_filter
+                else self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
+            )
+            if "matched_only" in requested:
+                _record_scope(
+                    "matched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=unavailable_reason,
+                )
+            if "unmatched_only" in requested:
+                _record_scope(
+                    "unmatched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=unavailable_reason,
+                )
+            return scopes, scope_availability
 
         assignments = features.get("voter_registry_match.match_assignments", pd.DataFrame())
         if assignments is None or not isinstance(assignments, pd.DataFrame) or assignments.empty:
-            scopes["matched_only"] = infer.copy()
-            scopes["unmatched_only"] = pd.DataFrame(columns=infer.columns)
-            return scopes
+            if "matched_only" in requested:
+                _record_scope(
+                    "matched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=self.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS,
+                )
+            if "unmatched_only" in requested:
+                _record_scope(
+                    "unmatched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=self.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS,
+                )
+            return scopes, scope_availability
 
         assignments = assignments.copy()
+        if "canonical_name" not in assignments.columns:
+            if "matched_only" in requested:
+                _record_scope(
+                    "matched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=self.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS,
+                )
+            if "unmatched_only" in requested:
+                _record_scope(
+                    "unmatched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=self.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS,
+                )
+            return scopes, scope_availability
         assignments["canonical_name"] = _safe_str_series(
             assignments.get("canonical_name", pd.Series(dtype=str))
         )
@@ -561,9 +655,21 @@ class DuplicatesExactDetector(Detector):
         if outcome_column not in assignments.columns:
             outcome_column = "primary_outcome" if "primary_outcome" in assignments.columns else ""
         if not outcome_column:
-            scopes["matched_only"] = infer.copy()
-            scopes["unmatched_only"] = pd.DataFrame(columns=infer.columns)
-            return scopes
+            if "matched_only" in requested:
+                _record_scope(
+                    "matched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=self.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS,
+                )
+            if "unmatched_only" in requested:
+                _record_scope(
+                    "unmatched_only",
+                    pd.DataFrame(columns=infer.columns),
+                    scope_status=self.SCOPE_STATUS_UNAVAILABLE,
+                    scope_reason=self.SCOPE_REASON_UNAVAILABLE_MISSING_MATCH_ASSIGNMENTS,
+                )
+            return scopes, scope_availability
         assignments[outcome_column] = _safe_str_series(assignments[outcome_column]).replace("", "unmatched")
         matched_names = set(
             assignments.loc[assignments[outcome_column].isin(_MATCHED_OUTCOMES), "canonical_name"].tolist()
@@ -572,9 +678,41 @@ class DuplicatesExactDetector(Detector):
             assignments.loc[assignments[outcome_column] == "unmatched", "canonical_name"].tolist()
         )
         infer_names = _safe_str_series(infer.get("canonical_name", pd.Series(dtype=str)))
-        scopes["matched_only"] = infer.loc[infer_names.isin(matched_names)].copy()
-        scopes["unmatched_only"] = infer.loc[infer_names.isin(unmatched_names)].copy()
-        return scopes
+        if "matched_only" in requested:
+            matched_scope = infer.loc[infer_names.isin(matched_names)].copy()
+            matched_scope_available = not matched_scope.empty
+            _record_scope(
+                "matched_only",
+                matched_scope,
+                scope_status=(
+                    self.SCOPE_STATUS_AVAILABLE
+                    if matched_scope_available
+                    else self.SCOPE_STATUS_UNAVAILABLE
+                ),
+                scope_reason=(
+                    self.SCOPE_REASON_AVAILABLE
+                    if matched_scope_available
+                    else self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
+                ),
+            )
+        if "unmatched_only" in requested:
+            unmatched_scope = infer.loc[infer_names.isin(unmatched_names)].copy()
+            unmatched_scope_available = not unmatched_scope.empty
+            _record_scope(
+                "unmatched_only",
+                unmatched_scope,
+                scope_status=(
+                    self.SCOPE_STATUS_AVAILABLE
+                    if unmatched_scope_available
+                    else self.SCOPE_STATUS_UNAVAILABLE
+                ),
+                scope_reason=(
+                    self.SCOPE_REASON_AVAILABLE
+                    if unmatched_scope_available
+                    else self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
+                ),
+            )
+        return scopes, scope_availability
 
     def _resolve_histogram(
         self,
@@ -1433,21 +1571,41 @@ class DuplicatesExactDetector(Detector):
                 working.get("name_display", working[key_column].map(lambda value: str(value)))
             )
             infer = working.copy()
+            infer_no_person_rows = False
             if self.exclude_non_person_from_inference and "is_person_name" in infer.columns:
                 infer = infer[infer["is_person_name"].astype(bool)].copy()
-            if infer.empty:
-                infer = working.copy()
+                infer_no_person_rows = bool(infer.empty and not working.empty)
         record_runtime_counter("detector.duplicates_exact.rows.working", int(len(working)))
         record_runtime_counter("detector.duplicates_exact.rows.inference", int(len(infer)))
 
         rng = np.random.default_rng(self.random_seed)
         with profile_runtime_block("detector.duplicates_exact.resolve_scope_frames"):
-            scope_frames = self._scope_frames(infer=infer, features=features)
+            scope_frames, scope_availability = self._scope_frames(
+                infer=infer,
+                features=features,
+                no_person_rows_after_filter=infer_no_person_rows,
+            )
             scope_names = self._scope_list()
             for required_scope in scope_names:
                 if required_scope not in scope_frames:
                     scope_frames[required_scope] = pd.DataFrame(columns=infer.columns)
+                if required_scope not in scope_availability:
+                    scope_availability[required_scope] = {
+                        "scope_status": self.SCOPE_STATUS_UNAVAILABLE,
+                        "scope_reason": self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING,
+                    }
         record_runtime_counter("detector.duplicates_exact.scope.count", int(len(scope_names)))
+        record_runtime_counter(
+            "detector.duplicates_exact.scope.unavailable_count",
+            int(
+                sum(
+                    1
+                    for scope in scope_names
+                    if scope_availability.get(scope, {}).get("scope_status")
+                    != self.SCOPE_STATUS_AVAILABLE
+                )
+            ),
+        )
 
         normalization_hash = self._normalization_version_hash()
         methods_rows: list[dict[str, object]] = []
@@ -1485,6 +1643,8 @@ class DuplicatesExactDetector(Detector):
         primary_scope_stratification = "none"
         primary_scope_inferential_status = "descriptive_only"
         primary_scope_inferential_reason = self.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE
+        primary_scope_status = self.SCOPE_STATUS_UNAVAILABLE
+        primary_scope_reason = self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
         position_claim_eligible = False
         position_claim_reason = self.POSITION_CLAIM_REASON_NO_POSITION_ROWS
         requested_stratification = self.collision_stratification
@@ -1538,6 +1698,31 @@ class DuplicatesExactDetector(Detector):
             scope_frame = scope_frames.get(scope, pd.DataFrame(columns=infer.columns)).copy()
             scope_frame[key_column] = _safe_str_series(scope_frame.get(key_column, pd.Series(dtype=str)))
             scope_frame = scope_frame[scope_frame[key_column] != ""].copy()
+            scope_meta = scope_availability.get(
+                scope,
+                {
+                    "scope_status": (
+                        self.SCOPE_STATUS_AVAILABLE
+                        if not scope_frame.empty
+                        else self.SCOPE_STATUS_UNAVAILABLE
+                    ),
+                    "scope_reason": (
+                        self.SCOPE_REASON_AVAILABLE
+                        if not scope_frame.empty
+                        else self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
+                    ),
+                },
+            )
+            scope_status = str(scope_meta.get("scope_status", "")).strip() or (
+                self.SCOPE_STATUS_AVAILABLE
+                if not scope_frame.empty
+                else self.SCOPE_STATUS_UNAVAILABLE
+            )
+            scope_reason = str(scope_meta.get("scope_reason", "")).strip() or (
+                self.SCOPE_REASON_AVAILABLE
+                if scope_status == self.SCOPE_STATUS_AVAILABLE
+                else self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING
+            )
             if not scope_frame.empty:
                 position_series = _safe_str_series(
                     scope_frame.get(
@@ -1552,6 +1737,11 @@ class DuplicatesExactDetector(Detector):
                 scope_frame["_n_other_position"] = (~position_series.isin({"Pro", "Con"})).astype(
                     np.int64
                 )
+            else:
+                scope_frame["_n_pro"] = pd.Series(dtype=np.int64)
+                scope_frame["_n_con"] = pd.Series(dtype=np.int64)
+                scope_frame["_n_unknown"] = pd.Series(dtype=np.int64)
+                scope_frame["_n_other_position"] = pd.Series(dtype=np.int64)
             record_runtime_timing(
                 "detector.duplicates_exact.scope.prepare_frame",
                 (perf_counter() - scope_prepare_started) * 1000.0,
@@ -1903,12 +2093,17 @@ class DuplicatesExactDetector(Detector):
                 baseline_degraded=scope_degraded,
                 null_samples=null_samples,
             )
+            if scope_status != self.SCOPE_STATUS_AVAILABLE:
+                scope_inferential_status = "unavailable"
+                scope_inferential_reason = self.INFERENTIAL_REASON_SCOPE_UNAVAILABLE
             if scope_inferential_status != "reference_model_inference":
                 LOGGER.info(
-                    "duplicates_exact scope=%s status=%s reason=%s baseline_source=%s baseline_degraded=%s",
+                    "duplicates_exact scope=%s status=%s reason=%s scope_status=%s scope_reason=%s baseline_source=%s baseline_degraded=%s",
                     scope,
                     scope_inferential_status,
                     scope_inferential_reason,
+                    scope_status,
+                    scope_reason,
                     effective_baseline_source,
                     scope_degraded,
                 )
@@ -1926,6 +2121,8 @@ class DuplicatesExactDetector(Detector):
             overview["scope"] = scope
             overview["n_used"] = int(n_scope)
             overview["N_used"] = int(n_population)
+            overview["scope_status"] = scope_status
+            overview["scope_reason"] = scope_reason
             overview["inferential_status"] = scope_inferential_status
             overview["inferential_reason"] = scope_inferential_reason
             overview_frames.append(overview)
@@ -1982,6 +2179,8 @@ class DuplicatesExactDetector(Detector):
                 grouped["population_probability"] = grouped["population_count"] / denom
             grouped["expected_count"] = grouped["population_probability"] * float(n_scope)
             grouped["scope"] = scope
+            grouped["scope_status"] = scope_status
+            grouped["scope_reason"] = scope_reason
             grouped["inferential_status"] = scope_inferential_status
             grouped["inferential_reason"] = scope_inferential_reason
             if scope_inferential_status == "reference_model_inference":
@@ -2036,6 +2235,8 @@ class DuplicatesExactDetector(Detector):
                 grouped[
                     [
                         "scope",
+                        "scope_status",
+                        "scope_reason",
                         "inferential_status",
                         "inferential_reason",
                         "canonical_name",
@@ -2061,6 +2262,8 @@ class DuplicatesExactDetector(Detector):
                 per_name_display[
                     [
                         "scope",
+                        "scope_status",
+                        "scope_reason",
                         "inferential_status",
                         "inferential_reason",
                         "canonical_name",
@@ -2089,6 +2292,8 @@ class DuplicatesExactDetector(Detector):
             temporal = self._temporal_metrics_by_name(scope_frame, key_column, rng=rng)
             if not temporal.empty:
                 temporal["scope"] = scope
+                temporal["scope_status"] = scope_status
+                temporal["scope_reason"] = scope_reason
                 temporal["inferential_status"] = scope_inferential_status
                 temporal["inferential_reason"] = scope_inferential_reason
                 if scope_inferential_status != "reference_model_inference":
@@ -2113,6 +2318,8 @@ class DuplicatesExactDetector(Detector):
                     "uncertainty_model": self.collision_uncertainty_mode,
                     "n_used": int(n_scope),
                     "N_used": int(n_population),
+                    "scope_status": scope_status,
+                    "scope_reason": scope_reason,
                     "metric_primary": self.collision_primary_metric,
                     "metrics_reported": ",".join(self.collision_metrics),
                     "baseline_degraded": scope_degraded,
@@ -2351,6 +2558,8 @@ class DuplicatesExactDetector(Detector):
                                 "baseline_model": self.collision_baseline_model,
                                 "baseline_source": effective_baseline_source,
                                 "baseline_degraded": bool(scope_degraded),
+                                "scope_status": scope_status,
+                                "scope_reason": scope_reason,
                                 "is_low_power": low_power,
                                 "inference_status": (
                                     "tested"
@@ -2486,6 +2695,8 @@ class DuplicatesExactDetector(Detector):
                                         "shrink_k": float(shrink_k),
                                         "prior_level": str(prior_level),
                                         "is_low_power": bool(low_power_position),
+                                        "scope_status": scope_status,
+                                        "scope_reason": scope_reason,
                                         "inference_status": position_inference_status,
                                         "inferential_status": position_inference_status,
                                         "inferential_reason": position_inferential_reason,
@@ -2515,6 +2726,8 @@ class DuplicatesExactDetector(Detector):
                 primary_scope_stratification = effective_scope_stratification
                 primary_scope_inferential_status = scope_inferential_status
                 primary_scope_inferential_reason = scope_inferential_reason
+                primary_scope_status = scope_status
+                primary_scope_reason = scope_reason
                 primary_scope_low_power = bool(
                     primary_scope_unique_count < self.low_power_min_unique_names
                     or float(expected_metrics.get(self.collision_primary_metric, 0.0))
@@ -2928,6 +3141,8 @@ class DuplicatesExactDetector(Detector):
             "bh_fdr_q": float(self.bh_fdr_q),
             "primary_low_power": bool(primary_scope_low_power),
             "collision_scope_primary": self.collision_scope_primary,
+            "scope_status": primary_scope_status,
+            "scope_reason": primary_scope_reason,
             "n_used": int(primary_scope_n_used),
             "N_used": int(primary_scope_n_population),
             "baseline_degraded": bool(primary_scope_degraded),
@@ -2951,6 +3166,23 @@ class DuplicatesExactDetector(Detector):
                 "inferential_status": primary_scope_inferential_status,
                 "inferential_reason": primary_scope_inferential_reason,
             },
+            "scope_availability": [
+                {
+                    "scope": scope_name,
+                    "scope_status": str(
+                        scope_availability.get(scope_name, {}).get(
+                            "scope_status", self.SCOPE_STATUS_UNAVAILABLE
+                        )
+                    ),
+                    "scope_reason": str(
+                        scope_availability.get(scope_name, {}).get(
+                            "scope_reason",
+                            self.SCOPE_REASON_UNAVAILABLE_NO_ROWS_AFTER_FILTERING,
+                        )
+                    ),
+                }
+                for scope_name in scope_names
+            ],
         }
         record_runtime_timing(
             "detector.duplicates_exact.assemble_outputs",

@@ -91,6 +91,15 @@ def default_detectors(config: AppConfig) -> list[Detector]:
                 config.name_analysis.position_claim_min_rows_per_position
             ),
             contextual_baseline_path=config.name_analysis.contextual_baseline_path,
+            historical_reference_reports_dir=(
+                config.name_analysis.historical_reference_reports_dir
+            ),
+            historical_reference_loo_path=config.name_analysis.historical_reference_loo_path,
+            historical_reference_channel=config.name_analysis.historical_reference_channel,
+            historical_reference_target_report_id=(
+                config.name_analysis.historical_reference_target_report_id
+            ),
+            input_source_file=config.input.source_file,
             contextual_committee=hearing_committee,
             contextual_chamber=hearing_chamber,
             nickname_map_path=config.names.nickname_map_path,

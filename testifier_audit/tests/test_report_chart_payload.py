@@ -1210,6 +1210,10 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
         "stratification_leakage_control",
         "stratification_weight_uncertainty",
         "stratification_endogeneity_uncontrolled",
+        "historical_reference_channel",
+        "historical_reference_report_count",
+        "historical_reference_excluded_target",
+        "historical_reference_target_report_id",
         "inferential_key_mode",
     ):
         assert column in runtime_row
@@ -2825,6 +2829,93 @@ def test_duplicates_per_name_chart_prefers_mode_aware_rows_when_available() -> N
     assert str(by_mode["strict"]["last_seen"]).strip()
     assert str(by_mode["loose"]["first_seen"]).strip()
     assert str(by_mode["loose"]["last_seen"]).strip()
+
+
+def test_duplicate_historical_baseline_label_and_provenance_are_present_in_payload() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                    "n_total": [5],
+                    "n_pro": [2],
+                    "n_con": [3],
+                    "pro_rate": [0.4],
+                    "pro_rate_wilson_low": [0.2],
+                    "pro_rate_wilson_high": [0.8],
+                    "is_low_power": [False],
+                    "n_unique_names": [4],
+                    "unique_ratio": [0.8],
+                }
+            ),
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "baseline_source": "historical_hearing_loo",
+                        "baseline_model": "multinomial",
+                        "metric_primary": "repeated_group_rows",
+                        "historical_reference_channel": "cohort_loo",
+                        "historical_reference_report_count": 12,
+                        "historical_reference_excluded_target": True,
+                        "historical_reference_target_report_id": "ESSB6346-20260224-0800",
+                    }
+                ]
+            ),
+            "duplicates_exact.collision_overview": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "observed": 4.0,
+                        "expected": 1.0,
+                        "expected_p05": 0.0,
+                        "expected_p50": 1.0,
+                        "expected_p95": 2.0,
+                        "z_score": 1.8,
+                        "p_value": 0.03,
+                        "n_used": 5,
+                        "N_used": 120,
+                    }
+                ]
+            ),
+            "duplicates_exact.collision_by_bucket": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "bucket_minutes": 30,
+                        "n_bucket": 5,
+                        "n_used": 5,
+                        "N_used": 120,
+                        "n_unique_names": 4,
+                        "n_pro": 2,
+                        "n_con": 3,
+                        "observed": 4.0,
+                        "expected": 1.0,
+                        "expected_p05": 0.0,
+                        "expected_p95": 2.0,
+                        "z_score": 1.8,
+                        "p_value": 0.03,
+                        "excess": 3.0,
+                        "baseline_model": "multinomial",
+                        "baseline_source": "historical_hearing_loo",
+                        "baseline_degraded": False,
+                        "is_low_power": False,
+                    }
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+    contract = payload["controls"]["duplicate_statistical_contract"]
+    assert contract["baseline_label"] == "Historical hearing leave-one-out baseline"
+    runtime_row = payload["controls"]["methodology"]["duplicate_runtime"][0]
+    assert runtime_row["baseline_label"] == "Historical hearing leave-one-out baseline"
+    assert runtime_row["historical_reference_channel"] == "cohort_loo"
+    assert runtime_row["historical_reference_report_count"] == 12
+    assert runtime_row["historical_reference_excluded_target"] is True
 
 
 def test_payload_values_are_json_safe_scalars() -> None:

@@ -76,7 +76,7 @@ class NameAnalysisConfig(BaseModel):
     )
     collision_key_mode: Literal["strict", "medium", "loose", "nickname"] = "strict"
     collision_baseline_source: Literal[
-        "vrdb_full_histogram", "vrdb_full_keys", "hearing_empirical"
+        "vrdb_full_histogram", "vrdb_full_keys", "hearing_empirical", "historical_hearing_loo"
     ] = "hearing_empirical"
     collision_baseline_model: Literal["multinomial", "hypergeometric"] = "multinomial"
     collision_uncertainty_mode: Literal["monte_carlo", "analytic_only"] = "monte_carlo"
@@ -107,6 +107,10 @@ class NameAnalysisConfig(BaseModel):
     position_interval_draws: int = Field(default=5000, ge=100)
     position_claim_min_rows_per_position: int = Field(default=25, ge=1)
     contextual_baseline_path: str | None = None
+    historical_reference_reports_dir: str | None = None
+    historical_reference_loo_path: str | None = None
+    historical_reference_channel: Literal["cohort_loo", "global_loo", "selected"] = "cohort_loo"
+    historical_reference_target_report_id: str | None = None
 
 
 class InputConfig(BaseModel):
@@ -216,6 +220,14 @@ def load_config(path: Path) -> AppConfig:
     )
     config.name_analysis.contextual_baseline_path = _resolve_optional_path(
         config.name_analysis.contextual_baseline_path,
+        base_dir,
+    )
+    config.name_analysis.historical_reference_reports_dir = _resolve_optional_path(
+        config.name_analysis.historical_reference_reports_dir,
+        base_dir,
+    )
+    config.name_analysis.historical_reference_loo_path = _resolve_optional_path(
+        config.name_analysis.historical_reference_loo_path,
         base_dir,
     )
     config.input.db_url = (

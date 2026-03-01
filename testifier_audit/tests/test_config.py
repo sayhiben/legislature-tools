@@ -27,6 +27,8 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
         },
         "name_analysis": {
             "contextual_baseline_path": "contextual_baseline.csv",
+            "historical_reference_reports_dir": "reports",
+            "historical_reference_loo_path": "cross_hearing_baseline_loo.json",
         },
         "input": {
             "hearing_metadata_path": "hearing.yaml",
@@ -37,6 +39,8 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
         "bucket_minutes,shrink_k\n30,30.0\n",
         encoding="utf-8",
     )
+    (tmp_path / "reports").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "cross_hearing_baseline_loo.json").write_text("{}", encoding="utf-8")
     config_path.write_text(yaml.safe_dump(config_data), encoding="utf-8")
 
     cfg = load_config(config_path)
@@ -44,6 +48,8 @@ def test_load_config_resolves_relative_paths(tmp_path: Path) -> None:
     assert Path(cfg.names.nickname_map_path).is_absolute()
     assert Path(cfg.input.hearing_metadata_path or "").is_absolute()
     assert Path(cfg.name_analysis.contextual_baseline_path or "").is_absolute()
+    assert Path(cfg.name_analysis.historical_reference_reports_dir or "").is_absolute()
+    assert Path(cfg.name_analysis.historical_reference_loo_path or "").is_absolute()
 
 
 def test_load_config_resolves_configs_prefixed_paths_from_configs_dir(tmp_path: Path) -> None:

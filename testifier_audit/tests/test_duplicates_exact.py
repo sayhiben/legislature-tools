@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -32,6 +33,50 @@ def _build_submission_frame(name_counts: dict[str, int]) -> pd.DataFrame:
             row_id += 1
         offset += int(count) + 1
     return pd.DataFrame(rows)
+
+
+def _write_historical_loo_fixture(
+    *,
+    reports_dir: Path,
+    target_report_id: str,
+    comparison_rows_by_report: dict[str, list[dict[str, object]]],
+    comparison_report_ids: list[str] | None = None,
+) -> Path:
+    requested_ids = (
+        list(comparison_report_ids)
+        if comparison_report_ids is not None
+        else list(comparison_rows_by_report.keys())
+    )
+    target_summary_dir = reports_dir / target_report_id / "summary"
+    target_summary_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": 2,
+        "target_report_id": target_report_id,
+        "report_id": target_report_id,
+        "selected_channel": "cohort_loo",
+        "channels": {
+            "cohort_loo": {
+                "available": True,
+                "comparison_report_ids": requested_ids,
+            },
+            "global_loo": {
+                "available": True,
+                "comparison_report_ids": requested_ids,
+            },
+        },
+        "comparison_report_ids": requested_ids,
+        "excluded_report_ids": [],
+    }
+    loo_path = target_summary_dir / "cross_hearing_baseline_loo.json"
+    loo_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    for report_id, rows in comparison_rows_by_report.items():
+        report_table_dir = reports_dir / report_id / "tables"
+        report_table_dir.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(rows).to_parquet(
+            report_table_dir / "duplicates_exact__per_name_tests.parquet",
+            index=False,
+        )
+    return loo_path
 
 
 def _build_top_name_timing_frame() -> pd.DataFrame:
@@ -842,6 +887,228 @@ def test_stratification_request_degrades_when_registry_baseline_unavailable() ->
     assert not primary_sensitivity.empty
     assert set(primary_sensitivity["stratification_requested"]) == {"birth_decade"}
     assert set(primary_sensitivity["stratification_effective"]) == {"none"}
+
+
+def test_historical_hearing_loo_baseline_excludes_target_hearing_by_construction(
+    tmp_path: Path,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2})
+    reports_dir = tmp_path / "reports"
+    target_report_id = "TARGET-001"
+    _write_historical_loo_fixture(
+        reports_dir=reports_dir,
+        target_report_id=target_report_id,
+        comparison_report_ids=[target_report_id, "COMP-A", "COMP-B"],
+        comparison_rows_by_report={
+            target_report_id: [
+                {"scope": "full_hearing", "canonical_name": "TARGET|ONLY", "observed_count": 500}
+            ],
+            "COMP-A": [
+                {"scope": "full_hearing", "canonical_name": "DOE|JANE", "observed_count": 4},
+                {"scope": "full_hearing", "canonical_name": "SMITH|JOHN", "observed_count": 1},
+            ],
+            "COMP-B": [
+                {"scope": "full_hearing", "canonical_name": "DOE|JANE", "observed_count": 1},
+                {"scope": "full_hearing", "canonical_name": "LEE|AVA", "observed_count": 3},
+            ],
+        },
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="historical_hearing_loo",
+        collision_uncertainty_mode="analytic_only",
+        historical_reference_reports_dir=str(reports_dir),
+        historical_reference_target_report_id=target_report_id,
+    )
+    result = detector.run(df=frame, features={})
+    methods = result.tables["collision_methods"]
+    primary = methods[methods["scope"] == detector.collision_scope_primary].reset_index(drop=True)
+    assert not primary.empty
+    assert str(primary.loc[0, "baseline_source"]) == "historical_hearing_loo"
+    assert int(primary.loc[0, "N_used"]) == 9
+    assert bool(primary.loc[0, "historical_reference_excluded_target"]) is True
+    assert int(primary.loc[0, "historical_reference_report_count"]) == 2
+
+    summary = result.summary
+    assert str(summary.get("baseline_source")) == "historical_hearing_loo"
+    assert int(summary.get("N_used", 0)) == 9
+    assert bool(summary.get("historical_reference_excluded_target")) is True
+    assert int(summary.get("historical_reference_report_count", 0)) == 2
+
+
+def test_historical_hearing_loo_stratification_uses_out_of_sample_weights(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 1})
+    reports_dir = tmp_path / "reports"
+    target_report_id = "TARGET-STRAT"
+    _write_historical_loo_fixture(
+        reports_dir=reports_dir,
+        target_report_id=target_report_id,
+        comparison_rows_by_report={
+            "COMP-A": [
+                {"scope": "full_hearing", "canonical_name": "DOE|JANE", "observed_count": 1},
+                {"scope": "full_hearing", "canonical_name": "SMITH|JOHN", "observed_count": 4},
+            ],
+            "COMP-B": [
+                {"scope": "full_hearing", "canonical_name": "SMITH|JOHN", "observed_count": 3},
+                {"scope": "full_hearing", "canonical_name": "DOE|JANE", "observed_count": 1},
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_stratum_frequencies",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {"name_key": "DOE|JANE", "stratum": "1980s", "n_registry_rows": 900},
+                {"name_key": "DOE|JANE", "stratum": "1990s", "n_registry_rows": 100},
+                {"name_key": "SMITH|JOHN", "stratum": "1980s", "n_registry_rows": 100},
+                {"name_key": "SMITH|JOHN", "stratum": "1990s", "n_registry_rows": 900},
+            ]
+        ),
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="historical_hearing_loo",
+        collision_baseline_model="multinomial",
+        collision_stratification="birth_decade",
+        collision_baseline_failure_policy="fail",
+        collision_uncertainty_mode="monte_carlo",
+        monte_carlo_draws=200,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        historical_reference_reports_dir=str(reports_dir),
+        historical_reference_target_report_id=target_report_id,
+        voter_db_url="postgresql://example",
+    )
+    result = detector.run(df=frame, features={})
+    methods = result.tables["collision_methods"]
+    primary = methods[methods["scope"] == detector.collision_scope_primary].reset_index(drop=True)
+    assert not primary.empty
+    assert str(primary.loc[0, "baseline_source"]) == "historical_hearing_loo"
+    assert (
+        str(primary.loc[0, "stratification_weight_source"])
+        == detector.STRATIFICATION_WEIGHT_SOURCE_HISTORICAL_LOO
+    )
+    assert (
+        str(primary.loc[0, "stratification_leakage_control"])
+        == detector.STRATIFICATION_LEAKAGE_CONTROL_LEAVE_ONE_HEARING_OUT
+    )
+    assert bool(primary.loc[0, "stratification_endogeneity_uncontrolled"]) is False
+    assert (
+        str(primary.loc[0, "inferential_reason"])
+        != detector.INFERENTIAL_REASON_STRATIFICATION_ENDOGENEITY_UNCONTROLLED
+    )
+
+    summary = result.summary
+    assert (
+        str(summary.get("stratification_weight_source", ""))
+        == detector.STRATIFICATION_WEIGHT_SOURCE_HISTORICAL_LOO
+    )
+    assert (
+        str(summary.get("stratification_leakage_control", ""))
+        == detector.STRATIFICATION_LEAKAGE_CONTROL_LEAVE_ONE_HEARING_OUT
+    )
+    assert bool(summary.get("stratification_endogeneity_uncontrolled")) is False
+
+
+def test_detector_can_compare_vrdb_and_historical_reference_baselines(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 1})
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1],
+                "n_keys": [2000],
+                "N": [2000],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_matching_voter_keys",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "canonical_name": list(kwargs.get("key_values") or []),
+                "collision_key_strict": list(kwargs.get("key_values") or []),
+                "collision_key_medium": list(kwargs.get("key_values") or []),
+                "n_registry_rows": [1.0] * len(list(kwargs.get("key_values") or [])),
+            }
+        ),
+    )
+    vrdb_detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_baseline_failure_policy="fail",
+        collision_uncertainty_mode="analytic_only",
+        voter_db_url="postgresql://example",
+    )
+    vrdb_result = vrdb_detector.run(df=frame, features={})
+
+    reports_dir = tmp_path / "reports"
+    target_report_id = "TARGET-COMPARE"
+    _write_historical_loo_fixture(
+        reports_dir=reports_dir,
+        target_report_id=target_report_id,
+        comparison_rows_by_report={
+            "COMP-A": [
+                {"scope": "full_hearing", "canonical_name": "A|ONE", "observed_count": 1},
+                {"scope": "full_hearing", "canonical_name": "B|TWO", "observed_count": 1},
+                {"scope": "full_hearing", "canonical_name": "C|THREE", "observed_count": 1},
+            ],
+            "COMP-B": [
+                {"scope": "full_hearing", "canonical_name": "D|FOUR", "observed_count": 1},
+                {"scope": "full_hearing", "canonical_name": "E|FIVE", "observed_count": 1},
+                {"scope": "full_hearing", "canonical_name": "F|SIX", "observed_count": 1},
+            ],
+        },
+    )
+    historical_detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="historical_hearing_loo",
+        collision_uncertainty_mode="analytic_only",
+        historical_reference_reports_dir=str(reports_dir),
+        historical_reference_target_report_id=target_report_id,
+    )
+    historical_result = historical_detector.run(df=frame, features={})
+
+    vrdb_methods = vrdb_result.tables["collision_methods"]
+    vrdb_primary = vrdb_methods[vrdb_methods["scope"] == vrdb_detector.collision_scope_primary]
+    assert not vrdb_primary.empty
+    assert str(vrdb_primary.iloc[0]["baseline_source"]) == "vrdb_full_histogram"
+
+    historical_methods = historical_result.tables["collision_methods"]
+    historical_primary = historical_methods[
+        historical_methods["scope"] == historical_detector.collision_scope_primary
+    ]
+    assert not historical_primary.empty
+    assert str(historical_primary.iloc[0]["baseline_source"]) == "historical_hearing_loo"
+
+    vrdb_overview = vrdb_result.tables["collision_overview"]
+    historical_overview = historical_result.tables["collision_overview"]
+    vrdb_expected = float(
+        vrdb_overview[
+            (vrdb_overview["scope"] == vrdb_detector.collision_scope_primary)
+            & (vrdb_overview["metric"] == vrdb_detector.collision_primary_metric)
+        ]["expected"].iloc[0]
+    )
+    historical_expected = float(
+        historical_overview[
+            (historical_overview["scope"] == historical_detector.collision_scope_primary)
+            & (historical_overview["metric"] == historical_detector.collision_primary_metric)
+        ]["expected"].iloc[0]
+    )
+    assert not np.isclose(vrdb_expected, historical_expected)
 
 
 def test_birth_decade_stratification_updates_expectations_with_registry_mix(

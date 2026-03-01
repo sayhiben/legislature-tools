@@ -42,7 +42,12 @@ from testifier_audit.profiling import (
 )
 
 CollisionBaselineModel = Literal["multinomial", "hypergeometric"]
-CollisionBaselineSource = Literal["vrdb_full_histogram", "vrdb_full_keys", "hearing_empirical"]
+CollisionBaselineSource = Literal[
+    "vrdb_full_histogram",
+    "vrdb_full_keys",
+    "hearing_empirical",
+    "historical_hearing_loo",
+]
 CollisionScope = Literal["matched_only", "full_hearing", "unmatched_only"]
 TemporalNullMode = Literal["hearing_intensity", "hearing_intensity_by_position"]
 
@@ -148,11 +153,15 @@ class DuplicatesExactDetector(Detector):
     INFERENTIAL_REASON_SCOPE_UNAVAILABLE = "scope_unavailable"
     STRATIFICATION_WEIGHT_SOURCE_NONE = "none"
     STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING = "same_hearing_observed_counts"
+    STRATIFICATION_WEIGHT_SOURCE_HISTORICAL_LOO = "historical_leave_one_out_observed_counts"
     STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL = "registry_global_fallback"
     STRATIFICATION_LEAKAGE_CONTROL_NONE = "none"
+    STRATIFICATION_LEAKAGE_CONTROL_LEAVE_ONE_HEARING_OUT = "leave_one_hearing_out"
     STRATIFICATION_LEAKAGE_CONTROL_NOT_APPLICABLE = "not_applicable"
     STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED = "not_propagated"
     STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_APPLICABLE = "not_applicable"
+    HISTORICAL_REFERENCE_CHANNEL_COHORT = "cohort_loo"
+    HISTORICAL_REFERENCE_CHANNEL_GLOBAL = "global_loo"
     MATCH_MODE_ROLE_PRIMARY_INFERENTIAL = "primary_inferential"
     MATCH_MODE_ROLE_SENSITIVITY = "sensitivity_only"
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
@@ -233,6 +242,11 @@ class DuplicatesExactDetector(Detector):
         position_cluster_bootstrap_draws: int = 1000,
         position_claim_min_rows_per_position: int = 25,
         contextual_baseline_path: str | None = None,
+        historical_reference_reports_dir: str | None = "reports",
+        historical_reference_loo_path: str | None = None,
+        historical_reference_channel: str = "cohort_loo",
+        historical_reference_target_report_id: str | None = None,
+        input_source_file: str | None = None,
         contextual_committee: str = "",
         contextual_chamber: str = "",
         nickname_map_path: str | None = None,
@@ -268,7 +282,15 @@ class DuplicatesExactDetector(Detector):
         self.collision_key_mode = self.INFERENTIAL_KEY_MODE
         source = str(collision_baseline_source or "hearing_empirical").strip().lower()
         self.collision_baseline_source: CollisionBaselineSource = (
-            source if source in {"vrdb_full_histogram", "vrdb_full_keys", "hearing_empirical"} else "hearing_empirical"
+            source
+            if source
+            in {
+                "vrdb_full_histogram",
+                "vrdb_full_keys",
+                "hearing_empirical",
+                "historical_hearing_loo",
+            }
+            else "hearing_empirical"
         )
         model = str(collision_baseline_model or "multinomial").strip().lower()
         self.collision_baseline_model: CollisionBaselineModel = (
@@ -341,6 +363,23 @@ class DuplicatesExactDetector(Detector):
         self.position_cluster_bootstrap_draws = max(100, int(position_cluster_bootstrap_draws))
         self.position_claim_min_rows_per_position = max(1, int(position_claim_min_rows_per_position))
         self.contextual_baseline_path = str(contextual_baseline_path or "").strip()
+        self.historical_reference_reports_dir = str(historical_reference_reports_dir or "").strip()
+        self.historical_reference_loo_path = str(historical_reference_loo_path or "").strip()
+        historical_channel = str(historical_reference_channel or "").strip().lower()
+        self.historical_reference_channel = (
+            historical_channel
+            if historical_channel
+            in {
+                self.HISTORICAL_REFERENCE_CHANNEL_COHORT,
+                self.HISTORICAL_REFERENCE_CHANNEL_GLOBAL,
+                "selected",
+            }
+            else self.HISTORICAL_REFERENCE_CHANNEL_COHORT
+        )
+        self.historical_reference_target_report_id = (
+            str(historical_reference_target_report_id or "").strip()
+        )
+        self.input_source_file = str(input_source_file or "").strip()
         self.contextual_committee = str(contextual_committee or "").strip()
         self.contextual_chamber = str(contextual_chamber or "").strip()
         self.nickname_map_path = str(nickname_map_path or "").strip()
@@ -356,6 +395,8 @@ class DuplicatesExactDetector(Detector):
         source_norm = str(source or "").strip().lower()
         if source_norm in {"vrdb_full_histogram", "vrdb_full_keys"}:
             return "Statewide registry reference baseline"
+        if source_norm == "historical_hearing_loo":
+            return "Historical hearing leave-one-out baseline"
         if source_norm == "hearing_empirical":
             return "Same-hearing empirical baseline"
         return "Reference baseline"
@@ -438,6 +479,296 @@ class DuplicatesExactDetector(Detector):
         if null_samples.empty:
             return ("unavailable", cls.INFERENTIAL_REASON_NO_NULL_SAMPLES)
         return ("reference_model_inference", cls.INFERENTIAL_REASON_REFERENCE_MODEL_INFERENCE)
+
+    def _historical_reference_target_id(self) -> str:
+        if self.historical_reference_target_report_id:
+            return self.historical_reference_target_report_id
+        source_file = self.input_source_file
+        if source_file:
+            return Path(source_file).stem.strip()
+        return ""
+
+    def _historical_reference_reports_path(self) -> Path | None:
+        path_value = self.historical_reference_reports_dir
+        if path_value:
+            return Path(path_value).expanduser()
+
+        cwd = Path.cwd().resolve()
+        candidate_paths = [
+            cwd / "reports",
+            cwd.parent / "reports",
+        ]
+        for candidate in candidate_paths:
+            if candidate.exists():
+                return candidate
+        return candidate_paths[0]
+
+    def _historical_reference_loo_path_effective(self, target_report_id: str) -> Path | None:
+        explicit = self.historical_reference_loo_path
+        if explicit:
+            return Path(explicit).expanduser()
+        reports_dir = self._historical_reference_reports_path()
+        if reports_dir is None or not target_report_id:
+            return None
+        return (
+            reports_dir
+            / target_report_id
+            / "summary"
+            / "cross_hearing_baseline_loo.json"
+        )
+
+    @staticmethod
+    def _read_historical_reference_loo_payload(path: Path) -> dict[str, object]:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, OSError, json.JSONDecodeError):
+            return {}
+        return payload if isinstance(payload, dict) else {}
+
+    @staticmethod
+    def _historical_reference_channel_payload(
+        *,
+        payload: dict[str, object],
+        requested_channel: str,
+    ) -> tuple[str, dict[str, object]]:
+        channels_value = payload.get("channels")
+        channels = channels_value if isinstance(channels_value, dict) else {}
+        requested = str(requested_channel or "").strip().lower()
+        selected_channel = str(payload.get("selected_channel") or "").strip().lower()
+        top_level_ids = payload.get("comparison_report_ids")
+
+        def _channel_ids(channel_payload: object) -> list[str]:
+            if not isinstance(channel_payload, dict):
+                return []
+            ids = channel_payload.get("comparison_report_ids")
+            if not isinstance(ids, list):
+                return []
+            return [str(value).strip() for value in ids if str(value or "").strip()]
+
+        candidate_channels: list[str] = []
+        if requested in {DuplicatesExactDetector.HISTORICAL_REFERENCE_CHANNEL_COHORT, DuplicatesExactDetector.HISTORICAL_REFERENCE_CHANNEL_GLOBAL}:
+            candidate_channels.append(requested)
+        if selected_channel:
+            candidate_channels.append(selected_channel)
+        candidate_channels.extend(
+            [
+                DuplicatesExactDetector.HISTORICAL_REFERENCE_CHANNEL_COHORT,
+                DuplicatesExactDetector.HISTORICAL_REFERENCE_CHANNEL_GLOBAL,
+            ]
+        )
+
+        seen_channels: set[str] = set()
+        for channel in candidate_channels:
+            if channel in seen_channels:
+                continue
+            seen_channels.add(channel)
+            channel_payload = channels.get(channel)
+            channel_ids = _channel_ids(channel_payload)
+            if channel_ids:
+                return channel, channel_payload if isinstance(channel_payload, dict) else {}
+
+        if isinstance(top_level_ids, list):
+            ids = [str(value).strip() for value in top_level_ids if str(value or "").strip()]
+            if ids:
+                return "selected", {
+                    "comparison_report_ids": ids,
+                    "available": bool(payload.get("available")),
+                    "reason": str(payload.get("reason") or ""),
+                }
+
+        if requested in channels and isinstance(channels.get(requested), dict):
+            requested_payload = channels.get(requested)
+            return requested, (
+                requested_payload if isinstance(requested_payload, dict) else {}
+            )
+        if selected_channel in channels and isinstance(channels.get(selected_channel), dict):
+            selected_payload = channels.get(selected_channel)
+            return selected_channel, (
+                selected_payload if isinstance(selected_payload, dict) else {}
+            )
+        return requested or "selected", {}
+
+    @classmethod
+    def _historical_reference_comparison_ids(
+        cls,
+        *,
+        payload: dict[str, object],
+        requested_channel: str,
+        target_report_id: str,
+    ) -> tuple[str, list[str], bool]:
+        channel, channel_payload = cls._historical_reference_channel_payload(
+            payload=payload,
+            requested_channel=requested_channel,
+        )
+        ids_raw = channel_payload.get("comparison_report_ids") if isinstance(channel_payload, dict) else []
+        ids_list = ids_raw if isinstance(ids_raw, list) else []
+        excluded_raw = payload.get("excluded_report_ids")
+        excluded_ids = {
+            str(value).strip()
+            for value in (excluded_raw if isinstance(excluded_raw, list) else [])
+            if str(value or "").strip()
+        }
+        target = str(target_report_id or "").strip()
+        seen: set[str] = set()
+        comparison_ids: list[str] = []
+        excluded_target = False
+        for value in ids_list:
+            report_id = str(value or "").strip()
+            if not report_id:
+                continue
+            if report_id == target:
+                excluded_target = True
+                continue
+            if report_id in excluded_ids:
+                continue
+            if report_id in seen:
+                continue
+            seen.add(report_id)
+            comparison_ids.append(report_id)
+        return channel, comparison_ids, excluded_target
+
+    def _load_historical_reference_context(
+        self,
+        *,
+        scope_names: list[str],
+    ) -> dict[str, object]:
+        empty_context: dict[str, object] = {
+            "available": False,
+            "reason": "not_requested",
+            "target_report_id": "",
+            "loo_source_path": "",
+            "channel": "",
+            "comparison_report_ids": [],
+            "comparison_report_count": 0,
+            "comparison_reports_loaded": 0,
+            "comparison_reports_missing_table": 0,
+            "excluded_target": False,
+            "scope_name_counts": {},
+        }
+        if self.collision_baseline_source != "historical_hearing_loo":
+            return empty_context
+
+        target_report_id = self._historical_reference_target_id()
+        empty_context["target_report_id"] = target_report_id
+        if not target_report_id:
+            empty_context["reason"] = "target_report_id_missing"
+            return empty_context
+
+        loo_path = self._historical_reference_loo_path_effective(target_report_id)
+        if loo_path is None:
+            empty_context["reason"] = "loo_payload_path_unavailable"
+            return empty_context
+        empty_context["loo_source_path"] = str(loo_path)
+        payload = self._read_historical_reference_loo_payload(loo_path)
+        if not payload:
+            empty_context["reason"] = "loo_payload_unavailable"
+            return empty_context
+
+        channel, comparison_report_ids, excluded_target = self._historical_reference_comparison_ids(
+            payload=payload,
+            requested_channel=self.historical_reference_channel,
+            target_report_id=target_report_id,
+        )
+        empty_context["channel"] = channel
+        empty_context["comparison_report_ids"] = comparison_report_ids
+        empty_context["comparison_report_count"] = int(len(comparison_report_ids))
+        empty_context["excluded_target"] = bool(excluded_target)
+        if not comparison_report_ids:
+            empty_context["reason"] = "no_comparison_reports"
+            return empty_context
+
+        reports_dir = self._historical_reference_reports_path()
+        if reports_dir is None:
+            empty_context["reason"] = "reports_dir_missing"
+            return empty_context
+
+        scope_filter = {str(scope).strip() for scope in scope_names if str(scope).strip()}
+        scope_counts: dict[str, dict[str, float]] = {}
+        loaded_reports = 0
+        missing_tables = 0
+        for comparison_report_id in comparison_report_ids:
+            table_path = (
+                reports_dir
+                / comparison_report_id
+                / "tables"
+                / "duplicates_exact__per_name_tests.parquet"
+            )
+            if not table_path.exists():
+                missing_tables += 1
+                continue
+            try:
+                table = pd.read_parquet(
+                    table_path,
+                    columns=["scope", "canonical_name", "observed_count"],
+                )
+            except Exception:
+                missing_tables += 1
+                continue
+            if table.empty:
+                continue
+            table = table.copy()
+            table["scope"] = _safe_str_series(table.get("scope", pd.Series(dtype=str)))
+            table["canonical_name"] = _safe_str_series(
+                table.get("canonical_name", pd.Series(dtype=str))
+            )
+            table["observed_count"] = pd.to_numeric(
+                table.get("observed_count", pd.Series(dtype=float)),
+                errors="coerce",
+            ).fillna(0.0)
+            table = table[
+                (table["scope"].isin(scope_filter))
+                & (table["canonical_name"] != "")
+                & (table["observed_count"] > 0.0)
+            ].copy()
+            if table.empty:
+                loaded_reports += 1
+                continue
+            grouped = (
+                table.groupby(["scope", "canonical_name"], dropna=False)["observed_count"]
+                .sum()
+                .reset_index()
+            )
+            for row in grouped.itertuples(index=False):
+                scope_value = str(getattr(row, "scope", "") or "").strip()
+                name_key = str(getattr(row, "canonical_name", "") or "").strip()
+                if not scope_value or not name_key:
+                    continue
+                count_value = float(getattr(row, "observed_count", 0.0) or 0.0)
+                if count_value <= 0.0:
+                    continue
+                by_name = scope_counts.setdefault(scope_value, {})
+                by_name[name_key] = float(by_name.get(name_key, 0.0) + count_value)
+            loaded_reports += 1
+
+        normalized_scope_counts: dict[str, pd.Series] = {}
+        for scope, by_name in scope_counts.items():
+            if not by_name:
+                continue
+            series = pd.Series(by_name, dtype=float)
+            series = series[np.isfinite(series) & (series > 0.0)]
+            if series.empty:
+                continue
+            normalized_scope_counts[scope] = series.sort_index()
+
+        empty_context["comparison_reports_loaded"] = int(loaded_reports)
+        empty_context["comparison_reports_missing_table"] = int(missing_tables)
+        empty_context["scope_name_counts"] = normalized_scope_counts
+        empty_context["available"] = bool(normalized_scope_counts)
+        empty_context["reason"] = (
+            "ok"
+            if normalized_scope_counts
+            else "comparison_reports_missing_or_empty"
+        )
+        LOGGER.info(
+            "duplicates_exact historical baseline target=%s channel=%s comparators=%s loaded=%s missing_tables=%s scopes=%s",
+            target_report_id,
+            channel,
+            int(len(comparison_report_ids)),
+            int(loaded_reports),
+            int(missing_tables),
+            ",".join(sorted(normalized_scope_counts.keys())),
+        )
+        return empty_context
 
     @staticmethod
     def _duplicate_rows_for_subset(working: pd.DataFrame, key_column: str) -> tuple[int, int]:
@@ -1061,17 +1392,49 @@ class DuplicatesExactDetector(Detector):
     def _resolve_histogram(
         self,
         *,
+        scope: str,
         observed_counts: pd.Series,
         key_column: str,
-    ) -> tuple[pd.DataFrame, str, bool]:
+        historical_scope_name_counts: pd.Series | None = None,
+    ) -> tuple[pd.DataFrame, str, bool, pd.Series]:
         source = self.collision_baseline_source
         if source == "hearing_empirical":
-            return histogram_from_name_counts(observed_counts), "hearing_empirical", False
+            observed = observed_counts.astype(float)
+            return histogram_from_name_counts(observed), "hearing_empirical", False, observed
+
+        if source == "historical_hearing_loo":
+            historical_counts = (
+                historical_scope_name_counts.astype(float)
+                if isinstance(historical_scope_name_counts, pd.Series)
+                else pd.Series(dtype=float)
+            )
+            historical_counts = historical_counts[
+                np.isfinite(historical_counts) & (historical_counts > 0.0)
+            ]
+            if historical_counts.empty:
+                if self.collision_baseline_failure_policy == "fail":
+                    raise RuntimeError(
+                        "Historical leave-one-out baseline requested but no comparator per-name counts were available "
+                        f"for scope={scope!r}."
+                    )
+                observed = observed_counts.astype(float)
+                return histogram_from_name_counts(observed), "hearing_empirical", True, observed
+            hist = histogram_from_name_counts(historical_counts)
+            if hist.empty:
+                if self.collision_baseline_failure_policy == "fail":
+                    raise RuntimeError(
+                        "Historical leave-one-out baseline comparator histogram was empty "
+                        f"for scope={scope!r}."
+                    )
+                observed = observed_counts.astype(float)
+                return histogram_from_name_counts(observed), "hearing_empirical", True, observed
+            return hist, "historical_hearing_loo", False, historical_counts.sort_index()
 
         if not self.voter_db_url:
             if self.collision_baseline_failure_policy == "fail":
                 raise RuntimeError("collision baseline requires voter_registry.db_url but none was configured.")
-            return histogram_from_name_counts(observed_counts), "hearing_empirical", True
+            observed = observed_counts.astype(float)
+            return histogram_from_name_counts(observed), "hearing_empirical", True, observed
 
         try:
             if source == "vrdb_full_histogram":
@@ -1093,13 +1456,14 @@ class DuplicatesExactDetector(Detector):
                 hist = histogram_from_name_counts(observed_counts)
             if hist.empty:
                 raise RuntimeError(f"No rows available for baseline source={source}.")
-            return hist, source, False
+            return hist, source, False, pd.Series(dtype=float)
         except Exception as exc:
             if self.collision_baseline_failure_policy == "fail":
                 raise RuntimeError(
                     f"Failed computing collision baseline source={source}: {exc}"
                 ) from exc
-            return histogram_from_name_counts(observed_counts), "hearing_empirical", True
+            observed = observed_counts.astype(float)
+            return histogram_from_name_counts(observed), "hearing_empirical", True, observed
 
     @staticmethod
     def _global_stratum_weights(stratum_frequencies: pd.DataFrame) -> pd.Series:
@@ -1120,12 +1484,21 @@ class DuplicatesExactDetector(Detector):
         *,
         observed_counts: pd.Series,
         stratum_frequencies: pd.DataFrame,
+        weight_source_counts: pd.Series | None = None,
+        weight_source_label: str = STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING,
     ) -> tuple[pd.Series, str]:
         global_weights = self._global_stratum_weights(stratum_frequencies)
-        if observed_counts.empty or stratum_frequencies.empty:
+        if stratum_frequencies.empty:
+            return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
+        source_counts = (
+            weight_source_counts.astype(float)
+            if isinstance(weight_source_counts, pd.Series)
+            else observed_counts.astype(float)
+        )
+        if source_counts.empty:
             return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
         observed = (
-            observed_counts.rename_axis("name_key")
+            source_counts.rename_axis("name_key")
             .reset_index(name="observed_count")
             .assign(name_key=lambda frame: frame["name_key"].fillna("").astype(str).str.strip())
         )
@@ -1152,7 +1525,7 @@ class DuplicatesExactDetector(Detector):
             return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
         return (
             (by_stratum / total).sort_index(),
-            self.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING,
+            str(weight_source_label or self.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING),
         )
 
     def _mixture_probabilities_from_strata(
@@ -1160,6 +1533,8 @@ class DuplicatesExactDetector(Detector):
         *,
         observed_counts: pd.Series,
         stratum_frequencies: pd.DataFrame,
+        weight_source_counts: pd.Series | None = None,
+        weight_source_label: str = STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING,
     ) -> tuple[pd.Series, pd.Series, int, str]:
         if stratum_frequencies.empty:
             return (
@@ -1171,6 +1546,8 @@ class DuplicatesExactDetector(Detector):
         weights, weight_source = self._scope_stratum_weights(
             observed_counts=observed_counts,
             stratum_frequencies=stratum_frequencies,
+            weight_source_counts=weight_source_counts,
+            weight_source_label=weight_source_label,
         )
         if weights.empty:
             return pd.Series(dtype=float), weights, 0, weight_source
@@ -1494,9 +1871,22 @@ class DuplicatesExactDetector(Detector):
         key_values: list[str],
         observed_counts: pd.Series,
         effective_baseline_source: str,
+        baseline_name_counts: pd.Series | None = None,
     ) -> pd.Series:
         if effective_baseline_source == "hearing_empirical":
             return observed_counts.astype(float)
+        if effective_baseline_source == "historical_hearing_loo":
+            if isinstance(baseline_name_counts, pd.Series) and not baseline_name_counts.empty:
+                return (
+                    baseline_name_counts.astype(float)
+                    .reindex(pd.Index(key_values), fill_value=0.0)
+                    .astype(float)
+                )
+            if self.collision_baseline_failure_policy == "fail":
+                raise RuntimeError(
+                    "Historical leave-one-out per-name counts were unavailable for per-name population lookup."
+                )
+            return pd.Series(index=key_values, data=np.zeros(len(key_values), dtype=float))
         if not self.voter_db_url:
             if self.collision_baseline_failure_policy == "fail":
                 raise RuntimeError("voter_db_url is required for registry-derived per-name counts.")
@@ -2287,6 +2677,12 @@ class DuplicatesExactDetector(Detector):
                 )
             ),
         )
+        historical_reference_context = self._load_historical_reference_context(scope_names=scope_names)
+        historical_reference_scope_name_counts = historical_reference_context.get(
+            "scope_name_counts", {}
+        )
+        if not isinstance(historical_reference_scope_name_counts, dict):
+            historical_reference_scope_name_counts = {}
 
         normalization_version_value, normalization_hash = self._normalization_version_metadata()
         methods_rows: list[dict[str, object]] = []
@@ -2330,6 +2726,14 @@ class DuplicatesExactDetector(Detector):
             self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_APPLICABLE
         )
         primary_scope_stratification_endogeneity_uncontrolled = False
+        primary_scope_historical_reference_channel = ""
+        primary_scope_historical_reference_report_count = 0
+        primary_scope_historical_reference_reports_loaded = 0
+        primary_scope_historical_reference_missing_table = 0
+        primary_scope_historical_reference_excluded_target = False
+        primary_scope_historical_reference_target_report_id = ""
+        primary_scope_historical_reference_reason = ""
+        primary_scope_historical_reference_loo_source_path = ""
         primary_scope_inferential_status = "descriptive_only"
         primary_scope_inferential_reason = self.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE
         primary_scope_status = self.SCOPE_STATUS_UNAVAILABLE
@@ -2663,10 +3067,28 @@ class DuplicatesExactDetector(Detector):
                 grouped["time_span_minutes"] = (
                     (last_seen - first_seen).dt.total_seconds() / 60.0
                 ).fillna(0.0)
-            observed_counts = grouped.set_index("canonical_name")["observed_count"] if not grouped.empty else pd.Series(dtype=float)
-            histogram, effective_baseline_source, baseline_degraded = self._resolve_histogram(
+            observed_counts = (
+                grouped.set_index("canonical_name")["observed_count"]
+                if not grouped.empty
+                else pd.Series(dtype=float)
+            )
+            historical_scope_counts = (
+                historical_reference_scope_name_counts.get(scope)
+                if isinstance(historical_reference_scope_name_counts, dict)
+                else None
+            )
+            if not isinstance(historical_scope_counts, pd.Series):
+                historical_scope_counts = pd.Series(dtype=float)
+            (
+                histogram,
+                effective_baseline_source,
+                baseline_degraded,
+                baseline_name_counts,
+            ) = self._resolve_histogram(
+                scope=scope,
                 observed_counts=observed_counts,
                 key_column=key_column,
+                historical_scope_name_counts=historical_scope_counts,
             )
             n_population = int(
                 pd.to_numeric(histogram.get("N", pd.Series(dtype=float)), errors="coerce")
@@ -2689,6 +3111,7 @@ class DuplicatesExactDetector(Detector):
             stratified_sampling_keys: list[np.ndarray] = []
             stratified_sampling_probabilities: list[np.ndarray] = []
             effective_scope_stratification = effective_stratification
+            scope_stratification_degraded = bool(stratification_degraded)
             stratification_weight_source = self.STRATIFICATION_WEIGHT_SOURCE_NONE
             stratification_leakage_control = self.STRATIFICATION_LEAKAGE_CONTROL_NOT_APPLICABLE
             stratification_weight_uncertainty = (
@@ -2697,9 +3120,26 @@ class DuplicatesExactDetector(Detector):
             stratification_endogeneity_uncontrolled = False
             if (
                 effective_scope_stratification != "none"
+                and effective_baseline_source == "hearing_empirical"
+            ):
+                effective_scope_stratification = "none"
+                scope_stratification_degraded = True
+            if (
+                effective_scope_stratification != "none"
                 and effective_baseline_source != "hearing_empirical"
                 and not stratum_frequencies.empty
             ):
+                stratification_weight_counts = observed_counts.astype(float)
+                stratification_weight_label = self.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING
+                if (
+                    effective_baseline_source == "historical_hearing_loo"
+                    and isinstance(baseline_name_counts, pd.Series)
+                    and not baseline_name_counts.empty
+                ):
+                    stratification_weight_counts = baseline_name_counts.astype(float)
+                    stratification_weight_label = (
+                        self.STRATIFICATION_WEIGHT_SOURCE_HISTORICAL_LOO
+                    )
                 (
                     stratified_probabilities,
                     scope_stratum_weights,
@@ -2708,8 +3148,18 @@ class DuplicatesExactDetector(Detector):
                 ) = self._mixture_probabilities_from_strata(
                     observed_counts=observed_counts.astype(float),
                     stratum_frequencies=stratum_frequencies,
+                    weight_source_counts=stratification_weight_counts,
+                    weight_source_label=stratification_weight_label,
                 )
-                stratification_leakage_control = self.STRATIFICATION_LEAKAGE_CONTROL_NONE
+                if (
+                    stratification_weight_source
+                    == self.STRATIFICATION_WEIGHT_SOURCE_HISTORICAL_LOO
+                ):
+                    stratification_leakage_control = (
+                        self.STRATIFICATION_LEAKAGE_CONTROL_LEAVE_ONE_HEARING_OUT
+                    )
+                else:
+                    stratification_leakage_control = self.STRATIFICATION_LEAKAGE_CONTROL_NONE
                 stratification_weight_uncertainty = (
                     self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED
                 )
@@ -2739,7 +3189,7 @@ class DuplicatesExactDetector(Detector):
                         self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_APPLICABLE
                     )
                     stratification_endogeneity_uncontrolled = False
-                    stratification_degraded = True
+                    scope_stratification_degraded = True
 
             stratified_null_histogram = pd.DataFrame()
             if effective_scope_stratification != "none" and not stratified_probabilities.empty:
@@ -2827,7 +3277,7 @@ class DuplicatesExactDetector(Detector):
             )
             scope_degraded = bool(
                 baseline_degraded
-                or stratification_degraded
+                or scope_stratification_degraded
                 or (
                     requested_stratification != "none"
                     and effective_scope_stratification != requested_stratification
@@ -2936,6 +3386,7 @@ class DuplicatesExactDetector(Detector):
                     key_values=key_values,
                     observed_counts=observed_counts.astype(float),
                     effective_baseline_source=effective_baseline_source,
+                    baseline_name_counts=baseline_name_counts,
                 )
                 grouped["population_count"] = (
                     grouped["canonical_name"].map(population_counts).fillna(0.0).astype(float)
@@ -3122,6 +3573,51 @@ class DuplicatesExactDetector(Detector):
                     "stratification_weight_uncertainty": stratification_weight_uncertainty,
                     "stratification_endogeneity_uncontrolled": bool(
                         stratification_endogeneity_uncontrolled
+                    ),
+                    "historical_reference_channel": (
+                        str(historical_reference_context.get("channel") or "")
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else ""
+                    ),
+                    "historical_reference_report_count": (
+                        int(historical_reference_context.get("comparison_report_count") or 0)
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else 0
+                    ),
+                    "historical_reference_reports_loaded": (
+                        int(historical_reference_context.get("comparison_reports_loaded") or 0)
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else 0
+                    ),
+                    "historical_reference_missing_table_count": (
+                        int(
+                            historical_reference_context.get(
+                                "comparison_reports_missing_table"
+                            )
+                            or 0
+                        )
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else 0
+                    ),
+                    "historical_reference_excluded_target": (
+                        bool(historical_reference_context.get("excluded_target"))
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else False
+                    ),
+                    "historical_reference_target_report_id": (
+                        str(historical_reference_context.get("target_report_id") or "")
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else ""
+                    ),
+                    "historical_reference_reason": (
+                        str(historical_reference_context.get("reason") or "")
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else ""
+                    ),
+                    "historical_reference_loo_source_path": (
+                        str(historical_reference_context.get("loo_source_path") or "")
+                        if effective_baseline_source == "historical_hearing_loo"
+                        else ""
                     ),
                     "censored": bool(len(grouped) > self.per_name_display_limit),
                     "claim_class": self.COLLISION_CLAIM_CLASS,
@@ -3563,6 +4059,41 @@ class DuplicatesExactDetector(Detector):
                 primary_scope_stratification_endogeneity_uncontrolled = bool(
                     stratification_endogeneity_uncontrolled
                 )
+                if effective_baseline_source == "historical_hearing_loo":
+                    primary_scope_historical_reference_channel = str(
+                        historical_reference_context.get("channel") or ""
+                    )
+                    primary_scope_historical_reference_report_count = int(
+                        historical_reference_context.get("comparison_report_count") or 0
+                    )
+                    primary_scope_historical_reference_reports_loaded = int(
+                        historical_reference_context.get("comparison_reports_loaded") or 0
+                    )
+                    primary_scope_historical_reference_missing_table = int(
+                        historical_reference_context.get("comparison_reports_missing_table")
+                        or 0
+                    )
+                    primary_scope_historical_reference_excluded_target = bool(
+                        historical_reference_context.get("excluded_target")
+                    )
+                    primary_scope_historical_reference_target_report_id = str(
+                        historical_reference_context.get("target_report_id") or ""
+                    )
+                    primary_scope_historical_reference_reason = str(
+                        historical_reference_context.get("reason") or ""
+                    )
+                    primary_scope_historical_reference_loo_source_path = str(
+                        historical_reference_context.get("loo_source_path") or ""
+                    )
+                else:
+                    primary_scope_historical_reference_channel = ""
+                    primary_scope_historical_reference_report_count = 0
+                    primary_scope_historical_reference_reports_loaded = 0
+                    primary_scope_historical_reference_missing_table = 0
+                    primary_scope_historical_reference_excluded_target = False
+                    primary_scope_historical_reference_target_report_id = ""
+                    primary_scope_historical_reference_reason = ""
+                    primary_scope_historical_reference_loo_source_path = ""
                 primary_scope_inferential_status = scope_inferential_status
                 primary_scope_inferential_reason = scope_inferential_reason
                 primary_scope_status = scope_status
@@ -5139,6 +5670,26 @@ class DuplicatesExactDetector(Detector):
             "stratification_weight_uncertainty": primary_scope_stratification_weight_uncertainty,
             "stratification_endogeneity_uncontrolled": bool(
                 primary_scope_stratification_endogeneity_uncontrolled
+            ),
+            "historical_reference_channel": primary_scope_historical_reference_channel,
+            "historical_reference_report_count": int(
+                primary_scope_historical_reference_report_count
+            ),
+            "historical_reference_reports_loaded": int(
+                primary_scope_historical_reference_reports_loaded
+            ),
+            "historical_reference_missing_table_count": int(
+                primary_scope_historical_reference_missing_table
+            ),
+            "historical_reference_excluded_target": bool(
+                primary_scope_historical_reference_excluded_target
+            ),
+            "historical_reference_target_report_id": (
+                primary_scope_historical_reference_target_report_id
+            ),
+            "historical_reference_reason": primary_scope_historical_reference_reason,
+            "historical_reference_loo_source_path": (
+                primary_scope_historical_reference_loo_source_path
             ),
             "position_hearing_baseline_enabled": bool(self.position_hearing_baseline_enabled),
             "position_baseline_shrink_k": float(self.position_baseline_shrink_k),

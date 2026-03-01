@@ -28,16 +28,16 @@ Execution order is tracked here independently from ticket numbering.
 17. `DUP-017` (Done, 2026-03-01)
 18. `DUP-018` (Done, 2026-03-01)
 19. `DUP-019` (Done, 2026-03-01)
+20. `DUP-020` (Done, 2026-03-01)
 
 ### Current
-1. `DUP-020` (next in-progress target)
+1. `DUP-021` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-020`
-2. `DUP-021`
+1. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, **DUP-018**, and **DUP-019**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, **DUP-018**, **DUP-019**, and **DUP-020**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1551,3 +1551,98 @@ Work item: DUP-019 (P2)
   - report language explicitly states why unmatched-only is non-inferential.
   - dedicated unmatched-baseline extension path is now centralized via capability hook.
 - Next ticket in sequence: `DUP-020`.
+
+---
+
+## DUP-020 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-020 (P2)
+
+## What Was Implemented
+- Added historical hearing leave-one-out baseline mode for duplicate collision analysis:
+  - new baseline source value:
+    - `historical_hearing_loo`
+- Added config inputs and wiring for historical reference selection:
+  - `historical_reference_reports_dir`
+  - `historical_reference_loo_path`
+  - `historical_reference_channel` (`cohort_loo|global_loo|selected`)
+  - `historical_reference_target_report_id`
+- Implemented historical LOO comparator loading in `duplicates_exact`:
+  - reads LOO metadata from `cross_hearing_baseline_loo.json`
+  - resolves comparator report IDs from configured channel
+  - excludes target hearing by construction
+  - loads comparator tables from
+    `reports/<report-id>/tables/duplicates_exact__per_name_tests.parquet`
+  - aggregates out-of-sample comparator name counts for baseline histograms and per-name expectations.
+- Added explicit out-of-sample stratification provenance when historical baseline is active:
+  - `stratification_weight_source = historical_leave_one_out_observed_counts`
+  - `stratification_leakage_control = leave_one_hearing_out`
+  - `stratification_endogeneity_uncontrolled = false`
+- Preserved baseline failure-policy behavior:
+  - historical baseline can degrade to hearing-empirical under configured degrade policy
+  - if degraded in-scope, `effective_scope_stratification` is forced to `none` to avoid stale stratification claims.
+- Added historical provenance fields to detector/runtime payloads and methodology rows:
+  - `historical_reference_channel`
+  - `historical_reference_report_count`
+  - `historical_reference_reports_loaded`
+  - `historical_reference_missing_table_count`
+  - `historical_reference_excluded_target`
+  - `historical_reference_target_report_id`
+  - `historical_reference_reason`
+  - `historical_reference_loo_source_path`
+- Added report payload baseline label mapping:
+  - `historical_hearing_loo -> Historical hearing leave-one-out baseline`.
+
+## Tests Added/Updated
+- `tests/test_config.py`
+  - validated relative-path resolution for historical reference config paths.
+- `tests/test_duplicates_exact.py`
+  - `test_historical_hearing_loo_baseline_excludes_target_hearing_by_construction`
+  - `test_historical_hearing_loo_stratification_uses_out_of_sample_weights`
+  - `test_detector_can_compare_vrdb_and_historical_reference_baselines`
+- `tests/test_report_chart_payload.py`
+  - validated historical baseline label + provenance fields in duplicate runtime payload.
+- Validation runs:
+  - focused:
+    - `python -m pytest tests/test_duplicates_exact.py tests/test_report_chart_payload.py tests/test_config.py -q`
+  - full:
+    - `./testifier_audit/scripts/ci/test.sh`
+    - result: `374 passed` (warnings only).
+
+## Runtime / Report Validation (ESSB 6346)
+- Historical baseline config used:
+  - `output/configs/voter_registry_historical_loo.yaml`
+  - key values:
+    - `collision_baseline_source: historical_hearing_loo`
+    - `collision_stratification: birth_decade`
+    - `collision_baseline_failure_policy: degrade`
+- Run-all completed:
+  - log: `output/run_logs/dup020_essb6346_runall_historical.log`
+  - completion line:
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+  - detector evidence line:
+    - `duplicates_exact historical baseline target=ESSB6346-20260224-0800 channel=cohort_loo comparators=62 loaded=62 missing_tables=0 scopes=full_hearing`
+- Rerender completed:
+  - log: `output/run_logs/dup020_essb6346_rerender_historical.log`
+  - completion line:
+    - `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - duplicate baseline context text shows `Historical hearing leave-one-out baseline`
+    - sidebar/menu + global controls + bucket/theme interactions function at both viewports
+    - report-data requests returned `200`
+    - no JS console errors/warnings observed during validation run.
+
+## Issues Discovered During DUP-020
+- Bucket URL parameter normalization can be inconsistent in some UI transitions (state updates even when explicit `bucket=<value>` is not retained in URL).
+- This did not block DUP-020 acceptance because detector baseline lineage, exclusion logic, and out-of-sample stratification provenance were validated in tests and runtime outputs.
+
+## Remaining Work / Handoff
+- DUP-020 acceptance criteria are met:
+  - target hearing is excluded by construction for historical reference baseline.
+  - stratification weights are sourced out of sample in historical mode and lineage is emitted.
+  - VRDB and historical reference baselines are both executable and comparable.
+- Next ticket in sequence: `DUP-021`.

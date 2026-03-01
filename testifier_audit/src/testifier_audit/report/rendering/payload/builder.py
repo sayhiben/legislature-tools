@@ -536,6 +536,8 @@ def _duplicate_baseline_label_for_source(source: str) -> str:
     source_norm = _normalized_optional_string(source).strip().lower()
     if source_norm in {"vrdb_full_histogram", "vrdb_full_keys"}:
         return "Statewide registry reference baseline"
+    if source_norm == "historical_hearing_loo":
+        return "Historical hearing leave-one-out baseline"
     if source_norm == "hearing_empirical":
         return "Same-hearing empirical baseline"
     if source_norm:
@@ -1222,6 +1224,14 @@ def _build_interactive_chart_payload_v2(
             "stratification_leakage_control",
             "stratification_weight_uncertainty",
             "stratification_endogeneity_uncontrolled",
+            "historical_reference_channel",
+            "historical_reference_report_count",
+            "historical_reference_reports_loaded",
+            "historical_reference_missing_table_count",
+            "historical_reference_excluded_target",
+            "historical_reference_target_report_id",
+            "historical_reference_reason",
+            "historical_reference_loo_source_path",
             "censored",
             "claim_class",
             "inferential_status",
@@ -5513,6 +5523,14 @@ def _build_interactive_chart_payload_v2(
                 "stratification_leakage_control",
                 "stratification_weight_uncertainty",
                 "stratification_endogeneity_uncontrolled",
+                "historical_reference_channel",
+                "historical_reference_report_count",
+                "historical_reference_reports_loaded",
+                "historical_reference_missing_table_count",
+                "historical_reference_excluded_target",
+                "historical_reference_target_report_id",
+                "historical_reference_reason",
+                "historical_reference_loo_source_path",
                 "inferential_status",
                 "inferential_reason",
                 "family_id",

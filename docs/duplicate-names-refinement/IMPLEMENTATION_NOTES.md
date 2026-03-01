@@ -2160,3 +2160,32 @@ Scope: Align DUP-007 status language across ticket/memo/notes after warning-hygi
 - No engineering-scope drift identified.
 - No additional DUP coding work items are currently queued.
 - Current blocker remains external review decision for DUP-007.
+
+---
+
+## DUP-007 Verification Sweep (No Engineering Drift)
+
+Date: 2026-03-01  
+Scope: Re-validate ESSB 6346 runtime behavior after documentation alignment sweep.
+
+## What Was Run
+- Rerender:
+  - `output/dup007/essb6346_report_rerender_20260301_v4.log`
+- Playwright MCP against:
+  - `http://127.0.0.1:8781/report.html`
+  - local server log:
+    - `output/dup007/http_server_8781_v1.log`
+
+## Validation Results
+- Desktop + mobile checks completed:
+  - bucket switch (`30m -> 60m`) and URL sync (`?bucket=60`)
+  - mobile global controls collapse/expand
+  - side menu visibility toggle
+- Diagnostics:
+  - `report_data` requests returned `200`
+  - console error limited to expected static-server `favicon.ico` `404`
+
+## Current State
+- No new engineering regressions observed in this sweep.
+- No acceptance-criteria drift identified in DUP work-item markdown.
+- Remaining open item is unchanged: DUP-007 reviewer/policy sign-off.

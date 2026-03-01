@@ -189,3 +189,15 @@ Operational rollout should remain blocked until review explicitly accepts the ob
   - inferential-evaluable scenarios are judged against operating targets;
   - descriptive-only/non-evaluable scenarios are treated as coverage limits rather than inferential misses.
 - No additional detector code changes are currently required to satisfy existing DUP-007 implementation deliverables.
+
+## 2026-03-01 Addendum (Verification Sweep)
+- Completed another ESSB 6346 rerender + Playwright MCP sweep:
+  - rerender log: `output/dup007/essb6346_report_rerender_20260301_v4.log`
+  - server log: `output/dup007/http_server_8781_v1.log`
+- Reconfirmed expected behavior:
+  - bucket URL sync and mobile control/menu interactions work;
+  - all report-data fetches returned `200`;
+  - console remains limited to expected local `favicon.ico` `404`.
+- Conclusion unchanged:
+  - no new engineering regression detected;
+  - DUP-007 remains pending reviewer/policy sign-off.

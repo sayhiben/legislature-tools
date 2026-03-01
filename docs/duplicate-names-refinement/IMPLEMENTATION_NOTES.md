@@ -2066,3 +2066,73 @@ Scope: Refresh canonical `output/dup007` artifacts with inferential-evaluability
   - expanded cohort (`output/dup007_expanded`): inferential-evaluable city fallback scenarios meet operating targets.
 - Remaining open item is policy/review sign-off, not additional detector coding:
   - decide whether descriptive-only/non-evaluable scenarios are acceptable for rollout with caveats, or require additional inferential coverage before closure.
+
+---
+
+## DUP-007 Warning Hygiene + ESSB 6346 Validation Refresh
+
+Date: 2026-03-01  
+Scope: Remove recurring non-fatal NumPy warning in DUP-007 backtest summaries, refresh deterministic artifacts, and re-run ESSB 6346 generation/rerender/Playwright validation.
+
+## What Changed (Code)
+- Added warning-safe numeric median helper:
+  - `testifier_audit/src/testifier_audit/backtests/vrdb_collision_backtest.py`
+    - new `safe_numeric_median(...)` helper that drops `NaN` values before median computation.
+- Updated DUP-007 scenario summary aggregation to use warning-safe medians:
+  - `testifier_audit/scripts/tests/backtest_vrdb_collision_module.py`
+    - replaced direct `.median()` calls for:
+      - `median_full_tail_prob_pairs`
+      - `median_full_tail_prob_max_name`
+      - `median_full_pairs_ratio`
+      - `median_small_bucket_alert_share`
+      - `median_bucket_low_power_share`
+- Added regression coverage:
+  - `testifier_audit/tests/test_vrdb_collision_backtest.py`
+    - verifies all-`NaN` median path returns `NaN` without `Mean of empty slice`.
+    - verifies numeric median behavior on mixed values.
+
+## Verification
+- Targeted unit tests:
+  - `python -m pytest testifier_audit/tests/test_vrdb_collision_backtest.py -q`
+  - result: pass (`15 passed`).
+- DUP-007 baseline rerun (parity settings):
+  - `output/dup007/backtest_run_20260301_warning_v5.log`
+  - cohort parity restored (`manifest_rows=12`, `case_result_rows=84`).
+  - log is warning-clean (0 lines; no `RuntimeWarning` output at `WARNING` level).
+- DUP-007 expanded rerun (support settings):
+  - `output/dup007_expanded/backtest_run_20260301_warning_v3.log`
+  - settings parity maintained (`manifest_rows=20`, `case_result_rows=140`).
+  - log is warning-clean (0 lines; no `RuntimeWarning` output at `WARNING` level).
+
+## ESSB 6346 Exercise (Generation + Rerender + Playwright MCP)
+- Unified report generation completed:
+  - final successful log: `output/dup007/essb6346_report_generation_20260301_v4.log`
+  - command path used `run_unified_report.sh --skip-imports` to avoid import churn while validating report build path.
+  - output confirmed:
+    - `reports/ESSB6346-20260224-0800/report.html`
+- Additional operational note:
+  - initial generation attempts surfaced path/import execution issues:
+    - `output/dup007/essb6346_report_generation_20260301_v3.log`
+  - this did not block final generation completion.
+- Rerender pass completed:
+  - `output/dup007/essb6346_report_rerender_20260301_v3.log`
+  - known warning remains reproducible:
+    - `UserWarning: DataFrame columns are not unique, some columns will be omitted.`
+- Playwright MCP validation completed:
+  - served via `python -m http.server 8780 --directory reports/ESSB6346-20260224-0800`
+  - desktop viewport: `1728x1117`
+  - mobile viewport: `390x844`
+  - verified interactions:
+    - bucket sync (`30m -> 60m`, URL `?bucket=60`)
+    - theme toggle (`Light` / `Dark`)
+    - mobile global controls collapse/expand
+    - menu show/hide
+  - diagnostics:
+    - all `report_data` requests returned `200`
+    - console error limited to expected static-server `favicon.ico` `404`
+
+## Batch Outcome / Remaining Work
+- DUP-007 engineering artifacts and validation are refreshed and warning-hardened.
+- No new acceptance-criteria drift identified in `DUP-007.md` or memo framing; status remains review-gated.
+- Remaining work is unchanged:
+  - policy/reviewer sign-off decision for DUP-007 evaluability treatment.

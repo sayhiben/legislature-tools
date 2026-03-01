@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 import pandas as pd
 import pytest
 
@@ -9,6 +11,7 @@ from testifier_audit.backtests.vrdb_collision_backtest import (
     filter_probability_rows,
     required_geo_targets,
     required_geo_target_keys,
+    safe_numeric_median,
     select_historical_case_families,
     slice_rows_for_case,
     split_case_ids,
@@ -261,3 +264,17 @@ def test_threshold_feasibility_scan_reports_feasible_range() -> None:
     assert result["feasible_count"] == 3
     assert result["feasible_min_threshold"] == pytest.approx(0.3)
     assert result["feasible_max_threshold"] == pytest.approx(0.6)
+
+
+def test_safe_numeric_median_returns_nan_without_empty_slice_warning() -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        median = safe_numeric_median(pd.Series([float("nan"), float("nan")]))
+
+    assert pd.isna(median)
+    assert not any("Mean of empty slice" in str(entry.message) for entry in caught)
+
+
+def test_safe_numeric_median_returns_numeric_median() -> None:
+    median = safe_numeric_median(pd.Series(["1", "2", "3", None]))
+    assert median == pytest.approx(2.0)

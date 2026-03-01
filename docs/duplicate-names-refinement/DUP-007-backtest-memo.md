@@ -155,3 +155,30 @@ Operational rollout should remain blocked until review explicitly accepts the ob
 - Policy interpretation tracked in work-item/implementation notes:
   - non-evaluable descriptive-only scenarios are tracked as inferential-coverage limits, not inferential false-positive misses.
   - inferential target compliance is assessed only for evaluable scenarios.
+
+## 2026-03-01 Addendum (Warning Hygiene + ESSB Validation Refresh)
+- Implemented warning-safe median aggregation for DUP-007 scenario summaries:
+  - `testifier_audit/src/testifier_audit/backtests/vrdb_collision_backtest.py`
+    - added `safe_numeric_median(...)`.
+  - `testifier_audit/scripts/tests/backtest_vrdb_collision_module.py`
+    - replaced direct median calls for scenario summary numeric medians.
+- Added regression tests in:
+  - `testifier_audit/tests/test_vrdb_collision_backtest.py`
+  - test confirms all-`NaN` median path returns `NaN` without `Mean of empty slice`.
+- Refreshed deterministic artifact sets:
+  - baseline rerun:
+    - `output/dup007/backtest_run_20260301_warning_v5.log`
+    - summary parity retained (`manifest_rows=12`, `case_result_rows=84`)
+  - expanded rerun:
+    - `output/dup007_expanded/backtest_run_20260301_warning_v3.log`
+    - summary parity retained (`manifest_rows=20`, `case_result_rows=140`)
+  - both warning logs are clean at `WARNING` level.
+- ESSB 6346 validation loop rerun:
+  - unified generation:
+    - `output/dup007/essb6346_report_generation_20260301_v4.log`
+  - rerender:
+    - `output/dup007/essb6346_report_rerender_20260301_v3.log`
+  - Playwright MCP desktop/mobile checks completed; data requests all `200`; only expected `favicon.ico` `404` in console.
+- Memo conclusion remains unchanged:
+  - DUP-007 engineering evidence is refreshed and reproducible.
+  - rollout remains pending policy/reviewer sign-off on inferential evaluability treatment.

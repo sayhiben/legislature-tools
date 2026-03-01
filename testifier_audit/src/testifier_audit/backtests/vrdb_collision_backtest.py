@@ -654,6 +654,13 @@ def threshold_feasibility_scan(
     }
 
 
+def safe_numeric_median(values: Sequence[object] | pd.Series) -> float:
+    series = pd.to_numeric(pd.Series(values), errors="coerce").dropna()
+    if series.empty:
+        return float("nan")
+    return float(series.median())
+
+
 def synthetic_case_frame(
     *,
     probability_rows: pd.DataFrame,

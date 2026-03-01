@@ -24,6 +24,7 @@ from testifier_audit.backtests.vrdb_collision_backtest import (  # noqa: E402
     filter_probability_rows,
     load_backoff_rows,
     load_probability_rows_for_scenarios,
+    safe_numeric_median,
     select_historical_case_families,
     slice_rows_for_case,
     split_case_ids,
@@ -736,22 +737,20 @@ def _scenario_summary(
                 ),
                 "inferential_operating_evaluable": bool(inferential_evaluable),
                 "inferential_operating_targets_met": bool(inferential_meets_targets),
-                "median_full_tail_prob_pairs": float(
-                    working.loc[working["has_metrics"], "full_tail_prob_pairs"].median()
+                "median_full_tail_prob_pairs": safe_numeric_median(
+                    working.loc[working["has_metrics"], "full_tail_prob_pairs"]
                 ),
-                "median_full_tail_prob_max_name": float(
-                    working.loc[working["has_metrics"], "full_tail_prob_max_name"].median()
+                "median_full_tail_prob_max_name": safe_numeric_median(
+                    working.loc[working["has_metrics"], "full_tail_prob_max_name"]
                 ),
-                "median_full_pairs_ratio": float(
-                    working.loc[working["has_metrics"], "full_pairs_ratio"].median()
+                "median_full_pairs_ratio": safe_numeric_median(
+                    working.loc[working["has_metrics"], "full_pairs_ratio"]
                 ),
-                "median_small_bucket_alert_share": float(
-                    pd.to_numeric(working.loc[working["has_metrics"], "small_bucket_alert_share"], errors="coerce")
-                    .median()
+                "median_small_bucket_alert_share": safe_numeric_median(
+                    working.loc[working["has_metrics"], "small_bucket_alert_share"]
                 ),
-                "median_bucket_low_power_share": float(
-                    pd.to_numeric(working.loc[working["has_metrics"], "bucket_low_power_share"], errors="coerce")
-                    .median()
+                "median_bucket_low_power_share": safe_numeric_median(
+                    working.loc[working["has_metrics"], "bucket_low_power_share"]
                 ),
                 "max_fallback_steps": int(
                     pd.to_numeric(working.loc[working["has_metrics"], "fallback_steps_max"], errors="coerce")

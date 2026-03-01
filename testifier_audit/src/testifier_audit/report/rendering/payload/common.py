@@ -61,6 +61,8 @@ def _records_from_frame(
     if not selected:
         return []
     working = frame[selected].copy()
+    if working.columns.duplicated().any():
+        working = working.loc[:, ~working.columns.duplicated(keep="first")]
     if max_rows is not None:
         working = working.head(max_rows)
     for column in working.columns:

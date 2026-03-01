@@ -140,27 +140,39 @@ def fit_model_expected_pro_rate(
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("error", category=PerfectSeparationWarning)
-            fit_result = sm.GLM(
-                y,
-                x_fit,
-                family=sm.families.Binomial(),
-                freq_weights=weights,
-            ).fit(maxiter=250, disp=0)
-            fit_method = "glm"
-    except Exception:
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=PerfectSeparationWarning)
+            warnings.filterwarnings(
+                "error",
+                category=RuntimeWarning,
+                module=r"statsmodels\.genmod\.families\..*",
+            )
+            with np.errstate(over="raise", divide="raise", invalid="raise"):
                 fit_result = sm.GLM(
                     y,
                     x_fit,
                     family=sm.families.Binomial(),
                     freq_weights=weights,
-                ).fit_regularized(
-                    alpha=1e-4,
-                    L1_wt=0.0,
-                    maxiter=500,
+                ).fit(maxiter=250, disp=0)
+            fit_method = "glm"
+    except Exception:
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=PerfectSeparationWarning)
+                warnings.filterwarnings(
+                    "ignore",
+                    category=RuntimeWarning,
+                    module=r"statsmodels\.genmod\.families\..*",
                 )
+                with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+                    fit_result = sm.GLM(
+                        y,
+                        x_fit,
+                        family=sm.families.Binomial(),
+                        freq_weights=weights,
+                    ).fit_regularized(
+                        alpha=1e-4,
+                        L1_wt=0.0,
+                        maxiter=500,
+                    )
                 fit_method = "glm_regularized"
         except Exception:
             diagnostics["model_fit_method"] = "unavailable_fit_failure"
@@ -179,7 +191,14 @@ def fit_model_expected_pro_rate(
         hour_harmonics=int(model_hour_harmonics),
     )
 
-    predictions = fit_result.predict(x_full)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=RuntimeWarning,
+            module=r"statsmodels\.genmod\.families\..*",
+        )
+        with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+            predictions = fit_result.predict(x_full)
     predictions = pd.to_numeric(predictions, errors="coerce").clip(lower=1e-6, upper=1.0 - 1e-6)
     expected.loc[x_full.index] = predictions
     model_available.loc[x_full.index] = predictions.notna()

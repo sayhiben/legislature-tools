@@ -111,8 +111,9 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         how_to_read=(
             "Interpret bucket values as duplicate-name collision burden: rows (or distinct names) "
             "in the bucket whose normalized name keys repeat anywhere in the hearing timeline. "
-            "Reference-baseline expectation uses volume-share scaling from hearing-level collision "
-            "totals, and deviation is signed (observed minus expected)."
+            "Reference-baseline expectation differs by selected unit: rows use report-layer "
+            "proportional-share scaling, names use report-layer occupancy from hearing "
+            "multiplicities when available; deviation is signed (observed minus expected)."
         ),
         what_to_look_for=(
             "Buckets where duplicate-name collision burden is persistently higher than expected "

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import numpy as np
@@ -823,9 +824,16 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert abs(float(rows_row["duplicate_rows"]) - 3.0) < 1e-9
     assert abs(float(rows_row["expected_duplicate_rows"]) - 0.25) < 1e-9
     assert abs(float(rows_row["excess_duplicate_rows"]) - 2.75) < 1e-9
+    assert rows_row["report_baseline_family"] == "report_proportional_share"
+    assert rows_row["report_baseline_method"] == "row_volume_share"
+    assert rows_row["detector_baseline_family"] == "detector_self_referential"
+    assert rows_row["detector_baseline_family_label"] == "Detector self-referential baseline"
     assert abs(float(names_row["duplicate_rows"]) - 2.0) < 1e-9
-    assert abs(float(names_row["expected_duplicate_rows"]) - 0.1) < 1e-9
-    assert abs(float(names_row["excess_duplicate_rows"]) - 1.9) < 1e-9
+    assert abs(float(names_row["expected_duplicate_rows"]) - 0.2419810348) < 1e-9
+    assert abs(float(names_row["excess_duplicate_rows"]) - 1.7580189652) < 1e-9
+    assert names_row["report_baseline_family"] == "report_occupancy_multiplicity"
+    assert names_row["unit_expected_names_method"] == "occupancy_without_replacement"
+    assert names_row["detector_baseline_family"] == "detector_self_referential"
     assert "unit_observed_rows" in rows_row
     assert "unit_expected_rows" in rows_row
     assert "unit_deviation_rows" in rows_row
@@ -1105,6 +1113,110 @@ def test_duplicates_exact_bucket_concentration_keeps_signed_deviation() -> None:
     assert rows_row["duplicate_rows"] == 0.0
     assert rows_row["expected_duplicate_rows"] == 0.25
     assert rows_row["excess_duplicate_rows"] == -0.25
+
+
+def test_duplicates_exact_names_anywhere_uses_occupancy_expectation() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "collision_key_mode": "strict",
+                        "metric_primary": "repeated_group_rows",
+                        "n_used": 6,
+                        "N_used": 1000,
+                    }
+                ]
+            ),
+            "duplicates_exact.collision_by_bucket": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "bucket_minutes": 30,
+                        "n_bucket": 2,
+                        "n_used": 6,
+                        "N_used": 1000,
+                        "n_unique_names": 2,
+                        "n_pro": 1,
+                        "n_con": 1,
+                        "observed": 2.0,
+                        "expected": 1.0,
+                        "excess": 1.0,
+                    },
+                ]
+            ),
+            "duplicates_exact.per_name_duplicates_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "total_repeated_rows": 3,
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "B",
+                        "canonical_name": "B",
+                        "total_repeated_rows": 2,
+                    },
+                ]
+            ),
+            "duplicates_exact.per_name_submission_timing_by_mode": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:01:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "A",
+                        "canonical_name": "A",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:02:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "B",
+                        "canonical_name": "B",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:03:00Z"),
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "match_mode": "strict",
+                        "name_key": "B",
+                        "canonical_name": "B",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:04:00Z"),
+                    },
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+
+    rows = payload["charts"]["duplicates_exact_bucket_concentration"]
+    names_row = next(row for row in rows if row["metric"] == "names_anywhere")
+    expected = (1.0 - (math.comb(3, 2) / math.comb(6, 2))) + (
+        1.0 - (math.comb(4, 2) / math.comb(6, 2))
+    )
+    assert abs(float(names_row["expected_duplicate_rows"]) - expected) < 1e-9
+    assert names_row["unit_expected_names_method"] == "occupancy_without_replacement"
+    assert names_row["report_baseline_family"] == "report_occupancy_multiplicity"
 
 
 def test_payload_masks_duplicate_inferential_fields_when_status_unavailable() -> None:
@@ -1565,8 +1677,10 @@ def test_duplicates_exact_bucket_concentration_emits_scope_mode_unit_rows() -> N
     assert abs(float(loose_rows["expected_duplicate_rows"]) - 2.4) < 1e-9
     assert abs(float(loose_rows["excess_duplicate_rows"]) - 0.6) < 1e-9
     assert strict_names["duplicate_rows"] == 2.0
-    assert abs(float(strict_names["expected_duplicate_rows"]) - 0.8) < 1e-9
-    assert abs(float(strict_names["excess_duplicate_rows"]) - 1.2) < 1e-9
+    assert abs(float(strict_names["expected_duplicate_rows"]) - 1.3333333333333335) < 1e-9
+    assert abs(float(strict_names["excess_duplicate_rows"]) - 0.6666666666666665) < 1e-9
+    assert strict_names["report_baseline_family"] == "report_occupancy_multiplicity"
+    assert strict_names["unit_expected_names_method"] == "occupancy_without_replacement"
 
 
 def test_duplicates_exact_chart_limits_and_null_distribution_visibility_contract() -> None:

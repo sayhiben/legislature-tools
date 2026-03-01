@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -197,6 +198,80 @@ def _duplicate_scope_available_mask(frame: pd.DataFrame) -> pd.Series:
         return pd.Series(dtype=bool)
     status_norm = frame["scope_status"].fillna("").astype(str).str.strip().str.lower()
     return status_norm == "available"
+
+
+def _duplicate_detector_baseline_family_for_source(source: str) -> str:
+    source_norm = _normalized_optional_string(source).strip().lower()
+    if source_norm in {"vrdb_full_histogram", "vrdb_full_keys"}:
+        return "vrdb_collision_null"
+    if source_norm == "hearing_empirical":
+        return "detector_self_referential"
+    if source_norm:
+        return "detector_collision_null"
+    return "detector_collision_null"
+
+
+def _duplicate_detector_baseline_family_label(family: str) -> str:
+    family_norm = _normalized_optional_string(family).strip().lower()
+    if family_norm == "vrdb_collision_null":
+        return "VRDB collision-null baseline"
+    if family_norm == "detector_self_referential":
+        return "Detector self-referential baseline"
+    if family_norm == "detector_collision_null":
+        return "Detector collision baseline"
+    return "Detector baseline"
+
+
+def _log_choose_scalar(n: int, k: int) -> float:
+    if k < 0 or k > n:
+        return float("-inf")
+    return math.lgamma(float(n) + 1.0) - math.lgamma(float(k) + 1.0) - math.lgamma(
+        float(n - k) + 1.0
+    )
+
+
+def _expected_distinct_names_from_occupancy(
+    *,
+    n_rows: int,
+    n_population: int,
+    count_values: np.ndarray,
+    name_frequencies: np.ndarray,
+    cache: dict[int, float],
+) -> float:
+    n = int(max(int(n_rows), 0))
+    n_pop = int(max(int(n_population), 0))
+    if n <= 0 or n_pop <= 0:
+        return 0.0
+    if count_values.size == 0 or name_frequencies.size == 0:
+        return 0.0
+    n = min(n, n_pop)
+    cached = cache.get(n)
+    if cached is not None:
+        return float(cached)
+    log_den = _log_choose_scalar(n_pop, n)
+    if not math.isfinite(log_den):
+        return 0.0
+    expected = 0.0
+    for raw_count, raw_frequency in zip(count_values, name_frequencies, strict=False):
+        count = int(max(int(raw_count), 0))
+        frequency = float(raw_frequency)
+        if count <= 0 or not math.isfinite(frequency) or frequency <= 0.0:
+            continue
+        absent_population = n_pop - count
+        if absent_population < 0:
+            present_probability = 1.0
+        elif n > absent_population:
+            present_probability = 1.0
+        else:
+            log_absent = _log_choose_scalar(absent_population, n) - log_den
+            absent_probability = (
+                math.exp(log_absent) if math.isfinite(log_absent) and log_absent > -745.0 else 0.0
+            )
+            present_probability = 1.0 - absent_probability
+        expected += frequency * max(0.0, min(1.0, present_probability))
+    expected = float(max(expected, 0.0))
+    cache[n] = expected
+    return expected
 
 
 def _total_submissions_from_counts_per_minute(counts_per_minute: pd.DataFrame) -> int | None:
@@ -1492,6 +1567,9 @@ def _build_interactive_chart_payload_v2(
                 "global_duplicated_names",
             ]
         )
+        dup_exact_name_multiplicities = pd.DataFrame(
+            columns=["scope", "match_mode", "name_key", "name_count"]
+        )
         if not dup_exact_per_name_by_mode.empty:
             total_repeated_rows = pd.to_numeric(
                 dup_exact_per_name_by_mode.get(
@@ -1506,6 +1584,18 @@ def _build_interactive_chart_payload_v2(
             )
             per_name_global = per_name_global[per_name_global["_name_key"].str.len() > 0]
             if not per_name_global.empty:
+                dup_exact_name_multiplicities = (
+                    per_name_global[
+                        ["scope", "match_mode", "_name_key", "_global_duplicated_rows"]
+                    ]
+                    .rename(
+                        columns={
+                            "_name_key": "name_key",
+                            "_global_duplicated_rows": "name_count",
+                        }
+                    )
+                    .copy()
+                )
                 dup_exact_global_totals = (
                     per_name_global.groupby(["scope", "match_mode"], dropna=False)
                     .agg(
@@ -1526,6 +1616,39 @@ def _build_interactive_chart_payload_v2(
                 )
                 .reset_index()
             )
+            timing_name_multiplicities = (
+                dup_exact_per_name_timing_by_mode[
+                    dup_exact_per_name_timing_by_mode["name_key"].astype(str).str.len() > 0
+                ]
+                .groupby(["scope", "match_mode", "name_key"], dropna=False)
+                .size()
+                .rename("name_count_timing")
+                .reset_index()
+            )
+            if dup_exact_name_multiplicities.empty:
+                dup_exact_name_multiplicities = timing_name_multiplicities.rename(
+                    columns={"name_count_timing": "name_count"}
+                )
+            elif not timing_name_multiplicities.empty:
+                dup_exact_name_multiplicities = (
+                    dup_exact_name_multiplicities.merge(
+                        timing_name_multiplicities,
+                        on=["scope", "match_mode", "name_key"],
+                        how="outer",
+                    )
+                    .assign(
+                        name_count=lambda frame: pd.to_numeric(
+                            frame.get("name_count", pd.Series(dtype=float)),
+                            errors="coerce",
+                        ).fillna(
+                            pd.to_numeric(
+                                frame.get("name_count_timing", pd.Series(dtype=float)),
+                                errors="coerce",
+                            )
+                        )
+                    )
+                    .drop(columns=["name_count_timing"], errors="ignore")
+                )
             if dup_exact_global_totals.empty:
                 dup_exact_global_totals = timing_global.rename(
                     columns={
@@ -1688,6 +1811,7 @@ def _build_interactive_chart_payload_v2(
 
         expected_rows = pd.Series(np.nan, index=dup_exact_bucket.index, dtype=float)
         expected_names = pd.Series(np.nan, index=dup_exact_bucket.index, dtype=float)
+        expected_names_method = pd.Series("", index=dup_exact_bucket.index, dtype=str)
         valid_total_mask = total_rows_in_scope > 0
         valid_rows_mask = valid_total_mask & global_rows_available
         valid_names_mask = valid_total_mask & global_names_available
@@ -1697,12 +1821,111 @@ def _build_interactive_chart_payload_v2(
                 * global_rows_numeric.loc[valid_rows_mask]
                 / total_rows_in_scope.loc[valid_rows_mask]
             )
-        if bool(valid_names_mask.any()):
-            expected_names.loc[valid_names_mask] = (
-                n_rows_numeric.loc[valid_names_mask]
-                * global_names_numeric.loc[valid_names_mask]
-                / total_rows_in_scope.loc[valid_names_mask]
+
+        occupancy_profiles: dict[tuple[str, str], dict[str, np.ndarray]] = {}
+        if not dup_exact_name_multiplicities.empty:
+            multiplicities = dup_exact_name_multiplicities.copy()
+            multiplicities["scope"] = (
+                multiplicities.get("scope", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .replace("", primary_dup_scope)
             )
+            multiplicities["match_mode"] = (
+                multiplicities.get("match_mode", pd.Series(dtype=str))
+                .fillna(primary_dup_match_mode)
+                .map(lambda value: _normalize_report_match_mode(value, default="strict"))
+                .astype(str)
+            )
+            multiplicities["name_key"] = (
+                multiplicities.get("name_key", pd.Series(dtype=str)).fillna("").astype(str).str.strip()
+            )
+            multiplicities = multiplicities[multiplicities["name_key"].str.len() > 0]
+            multiplicities["name_count"] = pd.to_numeric(
+                multiplicities.get("name_count", pd.Series(dtype=float)),
+                errors="coerce",
+            ).fillna(0.0)
+            multiplicities = multiplicities[multiplicities["name_count"] > 0.0]
+            if not multiplicities.empty:
+                # Occupancy baseline profile: duplicated-name multiplicity distribution per scope/match mode.
+                for (scope_value, match_mode_value), group in multiplicities.groupby(
+                    ["scope", "match_mode"], dropna=False
+                ):
+                    frequency = (
+                        group["name_count"]
+                        .round()
+                        .astype(int)
+                        .value_counts(dropna=False)
+                        .sort_index()
+                    )
+                    if frequency.empty:
+                        continue
+                    occupancy_profiles[(str(scope_value), str(match_mode_value))] = {
+                        "count_values": frequency.index.to_numpy(dtype=int, copy=False),
+                        "name_frequencies": frequency.to_numpy(dtype=float, copy=False),
+                    }
+                if occupancy_profiles:
+                    LOGGER.debug(
+                        "duplicates_exact payload occupancy profiles prepared: %s",
+                        len(occupancy_profiles),
+                    )
+
+        if bool(valid_names_mask.any()):
+            occupancy_cache: dict[tuple[str, str, int], dict[int, float]] = {}
+            occupancy_inputs = pd.DataFrame(
+                {
+                    "scope": dup_exact_bucket.get("scope", pd.Series(dtype=str)).fillna("").astype(str),
+                    "match_mode": (
+                        dup_exact_bucket.get("match_mode", pd.Series(dtype=str))
+                        .fillna(primary_dup_match_mode)
+                        .map(lambda value: _normalize_report_match_mode(value, default="strict"))
+                        .astype(str)
+                    ),
+                    "n_bucket": pd.to_numeric(n_rows_numeric, errors="coerce").fillna(0.0),
+                    "n_population": pd.to_numeric(total_rows_in_scope, errors="coerce").fillna(0.0),
+                },
+                index=dup_exact_bucket.index,
+            ).loc[valid_names_mask]
+            if not occupancy_inputs.empty and occupancy_profiles:
+                occupancy_inputs["n_bucket_int"] = (
+                    occupancy_inputs["n_bucket"].round().astype(int).clip(lower=0)
+                )
+                occupancy_inputs["n_population_int"] = (
+                    occupancy_inputs["n_population"].round().astype(int).clip(lower=0)
+                )
+                occupancy_inputs = occupancy_inputs[occupancy_inputs["n_population_int"] > 0]
+                for (
+                    scope_value,
+                    match_mode_value,
+                    n_population_value,
+                    n_bucket_value,
+                ), group in occupancy_inputs.groupby(
+                    ["scope", "match_mode", "n_population_int", "n_bucket_int"], dropna=False
+                ):
+                    profile = occupancy_profiles.get((str(scope_value), str(match_mode_value)))
+                    if profile is None:
+                        continue
+                    cache_key = (str(scope_value), str(match_mode_value), int(n_population_value))
+                    per_n_cache = occupancy_cache.setdefault(cache_key, {})
+                    expected_value = _expected_distinct_names_from_occupancy(
+                        n_rows=int(n_bucket_value),
+                        n_population=int(n_population_value),
+                        count_values=profile["count_values"],
+                        name_frequencies=profile["name_frequencies"],
+                        cache=per_n_cache,
+                    )
+                    expected_names.loc[group.index] = expected_value
+                    expected_names_method.loc[group.index] = "occupancy_without_replacement"
+            unresolved_names_mask = valid_names_mask & expected_names.isna()
+            if bool(unresolved_names_mask.any()):
+                expected_names.loc[unresolved_names_mask] = (
+                    n_rows_numeric.loc[unresolved_names_mask]
+                    * global_names_numeric.loc[unresolved_names_mask]
+                    / total_rows_in_scope.loc[unresolved_names_mask]
+                )
+                expected_names_method.loc[unresolved_names_mask] = (
+                    "row_share_fallback_missing_multiplicity"
+                )
 
         expected_rows = expected_rows.fillna(
             pd.to_numeric(
@@ -1711,9 +1934,13 @@ def _build_interactive_chart_payload_v2(
             )
         ).fillna(0.0)
         expected_names = expected_names.fillna(0.0)
+        expected_names_method = expected_names_method.where(
+            expected_names_method.str.len() > 0, "row_share_fallback_missing_multiplicity"
+        )
 
         dup_exact_bucket["unit_expected_rows"] = expected_rows
         dup_exact_bucket["unit_expected_names"] = expected_names
+        dup_exact_bucket["unit_expected_names_method"] = expected_names_method
         dup_exact_bucket["unit_deviation_rows"] = (
             dup_exact_bucket["unit_observed_rows"] - dup_exact_bucket["unit_expected_rows"]
         )
@@ -1726,6 +1953,13 @@ def _build_interactive_chart_payload_v2(
         rows_unit["duplicate_rows"] = rows_unit["unit_observed_rows"]
         rows_unit["expected_duplicate_rows"] = rows_unit["unit_expected_rows"]
         rows_unit["excess_duplicate_rows"] = rows_unit["unit_deviation_rows"]
+        rows_unit["report_baseline_family"] = "report_proportional_share"
+        rows_unit["report_baseline_label"] = "Report-layer proportional-share baseline"
+        rows_unit["report_baseline_method"] = "row_volume_share"
+        rows_unit["report_baseline_method_label"] = (
+            "Report expected rows use row-volume share "
+            "(bucket rows * hearing duplicated-row share)."
+        )
         rows_unit["duplicate_row_rate"] = (
             rows_unit["duplicate_rows"] / rows_unit["n_rows"]
         ).where(rows_unit["n_rows"] > 0, 0.0)
@@ -1735,12 +1969,59 @@ def _build_interactive_chart_payload_v2(
         names_unit["duplicate_rows"] = names_unit["unit_observed_names"]
         names_unit["expected_duplicate_rows"] = names_unit["unit_expected_names"]
         names_unit["excess_duplicate_rows"] = names_unit["unit_deviation_names"]
+        names_unit["report_baseline_family"] = names_unit["unit_expected_names_method"].map(
+            lambda value: (
+                "report_occupancy_multiplicity"
+                if str(value).strip().lower() == "occupancy_without_replacement"
+                else "report_proportional_share_fallback"
+            )
+        )
+        names_unit["report_baseline_label"] = names_unit["report_baseline_family"].map(
+            lambda family: (
+                "Report-layer occupancy baseline"
+                if family == "report_occupancy_multiplicity"
+                else "Report-layer proportional-share fallback baseline"
+            )
+        )
+        names_unit["report_baseline_method"] = names_unit["unit_expected_names_method"]
+        names_unit["report_baseline_method_label"] = names_unit["unit_expected_names_method"].map(
+            lambda method: (
+                "Report expected names use occupancy "
+                "(sum over names: 1 - C(N-c, n) / C(N, n))."
+                if str(method).strip().lower() == "occupancy_without_replacement"
+                else "Report expected names fell back to row-volume share "
+                "(multiplicity profile unavailable)."
+            )
+        )
         names_unit["duplicate_row_rate"] = (
             names_unit["duplicate_rows"] / names_unit["n_rows"]
         ).where(names_unit["n_rows"] > 0, 0.0)
 
         dup_exact_bucket = pd.concat([rows_unit, names_unit], ignore_index=True, sort=False)
         dup_exact_bucket = _attach_duplicate_scope_metadata(dup_exact_bucket)
+        dup_exact_bucket["detector_baseline_family"] = (
+            dup_exact_bucket.get("baseline_source", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .map(_duplicate_detector_baseline_family_for_source)
+        )
+        dup_exact_bucket["detector_baseline_family_label"] = dup_exact_bucket[
+            "detector_baseline_family"
+        ].map(_duplicate_detector_baseline_family_label)
+        dup_exact_bucket["detector_baseline_label"] = (
+            dup_exact_bucket.get("baseline_label", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+        )
+        dup_exact_bucket["detector_baseline_label"] = dup_exact_bucket[
+            "detector_baseline_label"
+        ].where(
+            dup_exact_bucket["detector_baseline_label"].str.len() > 0,
+            dup_exact_bucket.get("baseline_source", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .map(_duplicate_baseline_label_for_source),
+        )
 
         numeric_columns = [
             "n_rows",
@@ -3395,7 +3676,15 @@ def _build_interactive_chart_payload_v2(
             "unit_deviation_rows",
             "unit_observed_names",
             "unit_expected_names",
+            "unit_expected_names_method",
             "unit_deviation_names",
+            "report_baseline_family",
+            "report_baseline_label",
+            "report_baseline_method",
+            "report_baseline_method_label",
+            "detector_baseline_family",
+            "detector_baseline_family_label",
+            "detector_baseline_label",
             "n_used",
             "N_used",
             "baseline_model",
@@ -4072,6 +4361,27 @@ def _build_interactive_chart_payload_v2(
                 methodology["caveats"].append(
                     "Duplicate-collision scope unavailable during runtime: "
                     f"{scope_name} ({scope_reason})."
+                )
+        if "dup_exact_bucket" in locals() and isinstance(dup_exact_bucket, pd.DataFrame):
+            names_methods = (
+                dup_exact_bucket.get("unit_expected_names_method", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.lower()
+            )
+            uses_occupancy = bool((names_methods == "occupancy_without_replacement").any())
+            if uses_occupancy:
+                methodology["caveats"].append(
+                    "Duplicate bucket expected lines are report-layer baselines: "
+                    "rows use proportional-share scaling, names use occupancy from "
+                    "hearing multiplicities. Detector diagnostics/tables use the detector "
+                    "collision baseline listed in methods (VRDB sources denote sidecar collision-null baselines)."
+                )
+            else:
+                methodology["caveats"].append(
+                    "Duplicate names expected lines used row-share fallback because occupancy "
+                    "multiplicity profiles were unavailable in this payload build."
                 )
         methodology["duplicate_runtime"] = _records_from_frame(
             dup_exact_methods,

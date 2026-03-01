@@ -12,9 +12,10 @@ Execution order is tracked here independently from ticket numbering.
 1. `DUP-001` (Done, 2026-02-28)
 2. `DUP-008` (Done, 2026-02-28)
 3. `DUP-009` (Done, 2026-02-28)
+4. `DUP-010` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-010` (next in-progress target)
+1. `DUP-002` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
 1. `DUP-010`
@@ -37,7 +38,7 @@ Execution order is tracked here independently from ticket numbering.
 18. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, and **DUP-009**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, and **DUP-010**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -228,3 +229,72 @@ Work item: DUP-009 (P0)
 ## Remaining Work / Handoff
 - Move to `DUP-010` (report-layer baseline math + baseline-family separation).
 - Preserve DUP-009 scope-availability semantics when introducing additional baseline families and labels.
+
+---
+
+## DUP-010 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-010 (P0)
+
+## What Was Implemented
+- Replaced report-layer `names_anywhere` expectation with occupancy-based math that uses hearing multiplicities:
+  - expected distinct names in a bucket now uses
+    `sum(1 - C(N-c, n) / C(N, n))` across duplicated-name multiplicities per scope/match mode
+  - retained explicit fallback path (`row_share_fallback_missing_multiplicity`) when multiplicity profiles are unavailable
+- Preserved `rows_anywhere` as report-layer proportional-share expectation and made it explicit in labels/metadata.
+- Added explicit baseline-family metadata on duplicate bucket chart rows:
+  - report-layer fields:
+    - `report_baseline_family`
+    - `report_baseline_label`
+    - `report_baseline_method`
+    - `report_baseline_method_label`
+    - `unit_expected_names_method`
+  - detector-side context fields:
+    - `detector_baseline_family`
+    - `detector_baseline_family_label`
+    - `detector_baseline_label`
+- Updated duplicate chart UX labeling:
+  - expected series label now renders as `Expected (report baseline)` (not generic/unlabeled expected duplicates)
+  - duplicate chart note now states report baseline and detector baseline context together
+  - names unit note shows occupancy method; rows unit shows proportional-share method
+- Updated explanatory/report copy to align with new semantics:
+  - duplicate analysis registry “how to read” text now distinguishes rows vs names baseline logic
+  - duplicate chart help docs now document report baseline split and detector/VRDB distinction
+  - column docs updated for expected-fields semantics and new baseline metadata fields
+- Added additional methodology caveat text documenting separation between report-layer expected lines and detector/VRDB collision baselines.
+
+## Tests Added/Updated
+- `tests/test_report_chart_payload.py`
+  - updated existing expected values where `names_anywhere` switched from linear share to occupancy
+  - added hand-checkable occupancy test (`N=6, n=2, counts=[3,2]`) to validate exact expectation
+  - added assertions for baseline-family metadata and method fields in duplicate bucket rows
+- Focused suites passed:
+  - `tests/test_report_chart_payload.py`
+  - `tests/test_analysis_registry.py`
+  - `tests/test_report_render_helpers.py`
+- Full suite passed via `./testifier_audit/scripts/ci/test.sh`:
+  - `329 passed` (warnings only; no failures)
+
+## Runtime / Report Validation
+- ESSB 6346 exercised in both run modes:
+  - unified run: `scripts/report/run_unified_report.sh`
+  - rerender: `python -m testifier_audit.cli report ...`
+- Playwright MCP validation completed for:
+  - desktop `1728x1117`
+  - mobile `390x844`
+- Verified:
+  - duplicate unit toggle updates baseline note correctly:
+    - rows => proportional-share wording
+    - names => occupancy wording
+  - duplicate declaration content still includes baseline/inferential/gating disclosures from DUP-001
+  - no console errors/warnings
+  - no failed data requests (data/chart fetches all `200`)
+
+## Issues Discovered During Implementation
+- Relative path invocation for `run_unified_report.sh` failed in this environment (`Submissions CSV not found`) while absolute paths succeeded.
+- Multiplicity-aware occupancy requires per-name counts; fallback labeling was kept explicit when those counts are unavailable in payload build inputs.
+
+## Remaining Work / Handoff
+- Move to `DUP-002`.
+- Keep DUP-010 baseline-family naming consistent when subsequent tickets modify duplicate chart/table presentation logic.

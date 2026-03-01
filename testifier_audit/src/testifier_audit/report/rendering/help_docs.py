@@ -881,10 +881,26 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             volume_desc="Stacked Pro/Con row counts in each bucket (desaturated context bars).",
             extra=[
                 {
-                    "label": "Reference baseline expectation",
+                    "label": "Report baseline (rows unit)",
                     "description": (
-                        "Volume-share reference expectation for the selected unit "
-                        "(bucket rows * global duplicated-anywhere share)."
+                        "Rows unit uses report-layer proportional-share expectation "
+                        "(bucket rows * global duplicated-row share)."
+                    ),
+                },
+                {
+                    "label": "Report baseline (names unit)",
+                    "description": (
+                        "Names unit uses report-layer occupancy expectation from duplicated-name "
+                        "multiplicities (sum of 1 - C(N-c, n)/C(N, n)); if multiplicities are "
+                        "missing, payload falls back to row-share and marks the method."
+                    ),
+                },
+                {
+                    "label": "Detector baseline context",
+                    "description": (
+                        "Detector diagnostics/tables keep detector collision baseline labels. "
+                        "VRDB-labeled sources indicate sidecar collision-null baselines, which "
+                        "are distinct from report-layer expected lines in this chart."
                     ),
                 },
             ],

@@ -3690,6 +3690,61 @@ export async function runReportApp() {
           " tested).";
       }
     }
+    if (mount.chartId === "duplicates_exact_bucket_concentration") {
+      const reportBaselineLabel = firstNonEmptyString(
+        sorted.map((row) =>
+          row && row.report_baseline_label ? String(row.report_baseline_label) : ""
+        )
+      );
+      const reportBaselineMethodLabel = firstNonEmptyString(
+        sorted.map((row) =>
+          row && row.report_baseline_method_label ? String(row.report_baseline_method_label) : ""
+        )
+      );
+      const detectorBaselineFamilyLabel = firstNonEmptyString(
+        sorted.map((row) =>
+          row && row.detector_baseline_family_label
+            ? String(row.detector_baseline_family_label)
+            : ""
+        )
+      );
+      const detectorBaselineLabel = firstNonEmptyString(
+        sorted.map((row) =>
+          row && (row.detector_baseline_label || row.baseline_label)
+            ? String(row.detector_baseline_label || row.baseline_label)
+            : ""
+        )
+      );
+      const ensurePeriod = (value) => {
+        const trimmed = String(value || "").trim();
+        if (!trimmed) {
+          return "";
+        }
+        return /[.!?]$/.test(trimmed) ? trimmed : trimmed + ".";
+      };
+      const duplicateBaselineNotes = [];
+      if (reportBaselineLabel) {
+        duplicateBaselineNotes.push("Report baseline: " + reportBaselineLabel + ".");
+      }
+      if (reportBaselineMethodLabel) {
+        duplicateBaselineNotes.push(ensurePeriod(reportBaselineMethodLabel));
+      }
+      if (detectorBaselineFamilyLabel || detectorBaselineLabel) {
+        const detectorLabelParts = [];
+        if (detectorBaselineFamilyLabel) {
+          detectorLabelParts.push(detectorBaselineFamilyLabel);
+        }
+        if (detectorBaselineLabel) {
+          detectorLabelParts.push(detectorBaselineLabel);
+        }
+        duplicateBaselineNotes.push(
+          "Detector baseline context: " + detectorLabelParts.join(" - ") + "."
+        );
+      }
+      if (duplicateBaselineNotes.length) {
+        mount.customChartNote = duplicateBaselineNotes.join(" ");
+      }
+    }
 
     const barData = barField
       ? sorted.map((row) => [row.__time, toFiniteNumberOrNull(row[barField])])

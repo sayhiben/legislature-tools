@@ -150,8 +150,9 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
         "for the selected unit."
     ),
     "expected_duplicate_rows": (
-        "Volume-share expected duplicated-anywhere count for the selected unit "
-        "in this bucket."
+        "Expected duplicated-anywhere count for the selected unit in this bucket "
+        "(rows use report proportional-share baseline; names use report occupancy baseline "
+        "when multiplicity profiles are available)."
     ),
     "excess_duplicate_rows": (
         "Signed deviation from expected for the selected unit "
@@ -161,7 +162,7 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
         "Observed row count in this bucket where the name is duplicated anywhere in the timeline."
     ),
     "unit_expected_rows": (
-        "Expected duplicated-anywhere row count from volume share "
+        "Expected duplicated-anywhere row count from report proportional-share baseline "
         "(bucket rows * global duplicated-row share)."
     ),
     "unit_deviation_rows": "Signed row deviation from expected (unit_observed_rows - unit_expected_rows).",
@@ -170,13 +171,27 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
         "anywhere in the timeline."
     ),
     "unit_expected_names": (
-        "Expected duplicated-anywhere distinct-name count from row-volume share "
-        "(bucket rows * global duplicated-name share)."
+        "Expected duplicated-anywhere distinct-name count from report occupancy baseline "
+        "(sum over names of 1 - C(N-c, n)/C(N, n)); falls back to row-volume share when "
+        "multiplicity profiles are unavailable."
+    ),
+    "unit_expected_names_method": (
+        "Method used for unit_expected_names (occupancy_without_replacement or "
+        "row_share_fallback_missing_multiplicity)."
     ),
     "unit_deviation_names": (
         "Signed distinct-name deviation from expected "
         "(unit_observed_names - unit_expected_names)."
     ),
+    "report_baseline_family": (
+        "Report-layer baseline family used for the current row/metric."
+    ),
+    "report_baseline_label": "Human-readable label for the report-layer baseline family.",
+    "report_baseline_method": "Report-layer baseline method identifier for this row.",
+    "report_baseline_method_label": "Human-readable explanation of the report-layer baseline method.",
+    "detector_baseline_family": "Detector baseline family (for example VRDB collision-null).",
+    "detector_baseline_family_label": "Human-readable detector baseline family label.",
+    "detector_baseline_label": "Detector baseline label propagated from duplicate runtime metadata.",
     "off_hours": "Count of records in configured off-hours period.",
     "on_hours": "Count of records in configured on-hours period.",
     "off_hours_ratio": "Fraction of all records submitted during off-hours.",

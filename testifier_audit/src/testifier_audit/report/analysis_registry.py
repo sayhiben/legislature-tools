@@ -120,7 +120,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         what_to_look_for=(
             "Buckets where duplicate-name collision burden is persistently higher than expected "
             "under the selected baseline across neighboring windows, then verify whether those "
-            "intervals also show position-specific deviance or concentrated repeated names."
+            "intervals also show position imbalance signals or concentrated repeated names."
         ),
         common_benign_causes=(
             "Common names and legitimate coordinated outreach can elevate collision burden."

@@ -20,24 +20,24 @@ Execution order is tracked here independently from ticket numbering.
 9. `DUP-007` (Implemented, 2026-02-28; review sign-off pending)
 10. `DUP-006` (Implemented, 2026-02-28; analyst sign-off pending)
 11. `DUP-011` (Done, 2026-02-28)
+12. `DUP-012` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-012` (next in-progress target)
+1. `DUP-013` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-012`
-2. `DUP-013`
-3. `DUP-014`
-4. `DUP-015`
-5. `DUP-016`
-6. `DUP-017`
-7. `DUP-018`
-8. `DUP-019`
-9. `DUP-020`
-10. `DUP-021`
+1. `DUP-013`
+2. `DUP-014`
+3. `DUP-015`
+4. `DUP-016`
+5. `DUP-017`
+6. `DUP-018`
+7. `DUP-019`
+8. `DUP-020`
+9. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, and **DUP-011**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, and **DUP-012**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -948,4 +948,77 @@ Work item: DUP-011 (P1)
 
 ## Remaining Work / Handoff
 - DUP-011 acceptance criteria are satisfied at detector, payload, and report levels (including ESSB runtime evidence and live Playwright validation).
-- Next ticket in sequence is `DUP-012`.
+- Next ticket in sequence is `DUP-013`.
+
+---
+
+## DUP-012 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-012 (P1)
+
+## What Was Implemented
+- Repaired duplicate position-concentration inference to remove sign-adaptive one-sided testing:
+  - replaced legacy one-sided p-value logic with a two-sided permutation test on `|rate_difference|`.
+  - added explicit test metadata:
+    - `permutation_test_id=position_rate_difference_permutation_abs_two_sided_v1`
+    - `permutation_test_sidedness=two_sided_abs_effect`
+    - `permutation_p_value_two_sided`
+- Replaced naive rate-difference interval path with cluster-aware bootstrap by name key:
+  - new cluster bootstrap helper samples name-key clusters with replacement.
+  - outputs:
+    - `rate_difference_interval_low`
+    - `rate_difference_interval_high`
+    - `rate_difference_interval_method=position_rate_difference_cluster_bootstrap_v1`
+    - `rate_difference_interval_draws`
+- Updated family-level gating/multiplicity handling for position follow-up:
+  - position-family adjusted values now use the two-sided permutation p-value path.
+  - family significance summary now uses `is_significant` from adjusted p-values.
+- Updated report-facing language for the position analysis:
+  - duplicate position deviance text now frames output as a position imbalance signal, not proof of manipulation.
+  - position tooltip label updated to two-sided permutation wording (`Permutation p (two-sided |Δ|)`).
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - added regression to assert two-sided absolute-effect permutation behavior and removal of one-sided field.
+  - added cluster-bootstrap interval regression to ensure finite ordered intervals and bounded effective draw counts.
+- Focused validation run:
+  - `python -m pytest tests/test_duplicates_exact.py tests/test_report_chart_payload.py tests/test_analysis_registry.py tests/test_report_render_helpers.py`
+  - result: `78 passed` (warnings only; no failures)
+
+## Runtime / Report Validation (ESSB 6346)
+- Full recompute executed:
+  - command:
+    - `TESTIFIER_AUDIT_DB_URL=postgresql://legislature:legislature@localhost:55432/legislature python -m testifier_audit.cli run-all --csv ../data/raw/ESSB6346-20260224-0800.csv --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup012_essb6346_runall_csv.log`
+  - completion evidence:
+    - `Duplicate evidence matrix built: bucket_variants=7 scenario_rows=28`
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Rerender completed:
+  - command:
+    - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup012_essb6346_rerender.log`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - bucket controls, theme controls, and menu behavior remain stable after DUP-012 changes.
+    - duplicate hypothesis-family callout shows `E_position_follow_up` with expected metadata.
+    - report-data analysis requests returned `200` across loaded sections.
+    - only console error observed was local static-server `favicon.ico` `404`.
+
+## Issues Discovered During DUP-012
+- Cluster bootstrap with cluster-level resampling can produce degenerate draws (all selected weight on one side), so effective draw count can be lower than requested draw count.
+- Mitigation:
+  - preserved explicit `rate_difference_interval_draws` output.
+  - regression assertions were adjusted to check bounded effective draws rather than forcing exact draw parity.
+- ESSB 6346 position deviance chart can be data-sparse for some bucket selections/inferential states, so tooltip-level text is not always visible in every viewport/bucket combination during manual QA.
+
+## Remaining Work / Handoff
+- DUP-012 acceptance criteria are met:
+  - directionally valid p-values (two-sided, fixed test definition)
+  - cluster-aware intervals
+  - report language scoped to position imbalance signals
+- Next ticket in sequence is `DUP-013`.

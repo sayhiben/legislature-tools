@@ -1057,8 +1057,8 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         "duplicates_exact_position_bucket_deviance": timebar(
             summary=(
                 "Position-level observed versus reference-baseline duplicate-name collision counts "
-                "over time, split by "
-                "position and metric."
+                "over time, split by position and metric. Treat this as a position imbalance signal, "
+                "not proof of manipulation."
             ),
             primary_label="Observed collision count",
             primary_desc=(

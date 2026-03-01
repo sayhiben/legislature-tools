@@ -6901,14 +6901,26 @@ export async function runReportApp() {
                 "]"
             );
           }
+          const intervalMethod = String(row.raw.rate_difference_interval_method || "").trim();
+          if (intervalMethod) {
+            lines.push(
+              "<strong>Rate difference interval method:</strong> " + escapeHtml(intervalMethod)
+            );
+          }
           const rateRatio = toFiniteNumberOrNull(row.raw.rate_ratio);
           if (rateRatio !== null) {
             lines.push("<strong>Rate ratio:</strong> " + formatTooltipValue(rateRatio));
           }
-          const permP = toFiniteNumberOrNull(row.raw.permutation_p_value_one_sided);
+          const permP = toFiniteNumberOrNull(row.raw.permutation_p_value_two_sided);
           if (permP !== null) {
-            lines.push("<strong>Permutation p (one-sided):</strong> " + formatTooltipValue(permP));
+            lines.push(
+              "<strong>Permutation p (two-sided |&Delta;|):</strong> " +
+                formatTooltipValue(permP)
+            );
           }
+          lines.push(
+            "<strong>Interpretation:</strong> position imbalance signal only; not proof of manipulation."
+          );
           return lines.join("<br/>");
         },
       },

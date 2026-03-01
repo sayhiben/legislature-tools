@@ -33,7 +33,6 @@ from testifier_audit.names.normalization import normalization_version, normaliza
 from testifier_audit.names.stat_tests import (
     benjamini_hochberg,
     binomial_tail_p_value,
-    bootstrap_rate_difference,
     hypergeometric_tail_p_value,
 )
 from testifier_audit.profiling import (
@@ -119,6 +118,8 @@ class DuplicatesExactDetector(Detector):
     INFERENTIAL_REASON_LOW_POWER = "low_power_support"
     INFERENTIAL_REASON_SCOPE_UNAVAILABLE = "scope_unavailable"
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
+    POSITION_RATE_DIFF_INTERVAL_METHOD_ID = "position_rate_difference_cluster_bootstrap_v1"
+    POSITION_PERMUTATION_TEST_ID = "position_rate_difference_permutation_abs_two_sided_v1"
     POSITION_CLAIM_REASON_ELIGIBLE = "eligible"
     POSITION_CLAIM_REASON_UNSUPPORTED_MODEL = "unsupported_collision_baseline_model"
     POSITION_CLAIM_REASON_NO_POSITION_ROWS = "no_position_rows"
@@ -179,6 +180,7 @@ class DuplicatesExactDetector(Detector):
         position_baseline_shrink_k: float = 30.0,
         position_interval_nominal: float = 0.95,
         position_interval_draws: int = 5000,
+        position_cluster_bootstrap_draws: int = 1000,
         position_claim_min_rows_per_position: int = 25,
         contextual_baseline_path: str | None = None,
         contextual_committee: str = "",
@@ -259,6 +261,7 @@ class DuplicatesExactDetector(Detector):
             nominal = 0.95
         self.position_interval_nominal = float(min(max(nominal, 1e-6), 1.0 - 1e-6))
         self.position_interval_draws = max(100, int(position_interval_draws))
+        self.position_cluster_bootstrap_draws = max(100, int(position_cluster_bootstrap_draws))
         self.position_claim_min_rows_per_position = max(1, int(position_claim_min_rows_per_position))
         self.contextual_baseline_path = str(contextual_baseline_path or "").strip()
         self.contextual_committee = str(contextual_committee or "").strip()
@@ -467,6 +470,69 @@ class DuplicatesExactDetector(Detector):
         if int(position_metrics["interval_draws_effective"].fillna(0).max()) <= 0:
             return False, self.POSITION_CLAIM_REASON_INTERVAL_UNAVAILABLE
         return True, self.POSITION_CLAIM_REASON_ELIGIBLE
+
+    def _cluster_bootstrap_rate_difference(
+        self,
+        *,
+        pro_counts_observed: np.ndarray,
+        con_counts_observed: np.ndarray,
+        rng: np.random.Generator,
+        n_bootstrap_draws: int | None = None,
+    ) -> tuple[float, float, float, int]:
+        n_keys = int(len(pro_counts_observed))
+        if n_keys <= 0:
+            return 0.0, 0.0, 0.0, 0
+
+        pro_counts = np.asarray(pro_counts_observed, dtype=np.int64)
+        con_counts = np.asarray(con_counts_observed, dtype=np.int64)
+        pro_total_observed = int(pro_counts.sum())
+        con_total_observed = int(con_counts.sum())
+        if pro_total_observed <= 0 or con_total_observed <= 0:
+            return 0.0, 0.0, 0.0, 0
+
+        observed_pro_dup_rows = int(pro_counts[pro_counts >= 2].sum())
+        observed_con_dup_rows = int(con_counts[con_counts >= 2].sum())
+        observed = float(observed_pro_dup_rows / pro_total_observed) - float(
+            observed_con_dup_rows / con_total_observed
+        )
+
+        draws = (
+            self.position_cluster_bootstrap_draws
+            if n_bootstrap_draws is None
+            else min(int(n_bootstrap_draws), int(self.position_cluster_bootstrap_draws))
+        )
+        draws = max(0, int(draws))
+        if draws <= 0:
+            return observed, observed, observed, 0
+
+        deltas = np.empty(draws, dtype=float)
+        draws_effective = 0
+        for draw_idx in range(draws):
+            # Cluster bootstrap by name key: sample name-key clusters with replacement,
+            # then recompute position duplicate-row rates from the reweighted clusters.
+            sampled_indices = rng.integers(0, n_keys, size=n_keys, endpoint=False)
+            weights = np.bincount(sampled_indices, minlength=n_keys).astype(np.int64, copy=False)
+            boot_pro_counts = pro_counts * weights
+            boot_con_counts = con_counts * weights
+            boot_pro_total = int(boot_pro_counts.sum())
+            boot_con_total = int(boot_con_counts.sum())
+            if boot_pro_total <= 0 or boot_con_total <= 0:
+                deltas[draw_idx] = np.nan
+                continue
+            boot_pro_dup_rows = int(boot_pro_counts[boot_pro_counts >= 2].sum())
+            boot_con_dup_rows = int(boot_con_counts[boot_con_counts >= 2].sum())
+            deltas[draw_idx] = float(boot_pro_dup_rows / boot_pro_total) - float(
+                boot_con_dup_rows / boot_con_total
+            )
+            draws_effective += 1
+
+        valid = deltas[np.isfinite(deltas)]
+        if valid.size <= 0:
+            return observed, observed, observed, 0
+        quantile_low, quantile_high = self._position_interval_bounds()
+        ci_low = float(np.quantile(valid, quantile_low))
+        ci_high = float(np.quantile(valid, quantile_high))
+        return observed, ci_low, ci_high, int(draws_effective)
 
     @staticmethod
     def _vectorized_binomial_tail_p_values(
@@ -1219,18 +1285,16 @@ class DuplicatesExactDetector(Detector):
                 con_perm_rate = con_perm_dup_rows / con_total
                 perm_values[draw_idx] = pro_perm_rate - con_perm_rate
 
-            perm_series = perm_values
-            if observed_diff >= 0:
-                p_value = float((np.sum(perm_series >= observed_diff) + 1) / (perm_series.size + 1))
-            else:
-                p_value = float((np.sum(perm_series <= observed_diff) + 1) / (perm_series.size + 1))
-            effect, ci_low, ci_high = bootstrap_rate_difference(
-                successes_a=pro_dup_rows,
-                total_a=pro_total,
-                successes_b=con_dup_rows,
-                total_b=con_total,
-                n_boot=4000,
+            perm_series = np.asarray(perm_values, dtype=float)
+            observed_abs_effect = float(abs(observed_diff))
+            p_value_two_sided = float(
+                (np.sum(np.abs(perm_series) >= observed_abs_effect) + 1) / (perm_series.size + 1)
+            )
+            effect, ci_low, ci_high, interval_draws_effective = self._cluster_bootstrap_rate_difference(
+                pro_counts_observed=pro_counts_observed,
+                con_counts_observed=con_counts_observed,
                 rng=rng,
+                n_bootstrap_draws=self.position_cluster_bootstrap_draws,
             )
             has_result = True
             return pd.DataFrame(
@@ -1247,8 +1311,13 @@ class DuplicatesExactDetector(Detector):
                         "rate_difference": float(effect),
                         "rate_difference_ci_low": float(ci_low),
                         "rate_difference_ci_high": float(ci_high),
+                        "rate_difference_interval_method": self.POSITION_RATE_DIFF_INTERVAL_METHOD_ID,
+                        "rate_difference_interval_draws": int(interval_draws_effective),
                         "rate_ratio": float(observed_rr) if np.isfinite(observed_rr) else 0.0,
-                        "permutation_p_value_one_sided": float(p_value),
+                        "permutation_test_id": self.POSITION_PERMUTATION_TEST_ID,
+                        "permutation_test_sidedness": "two_sided_abs_effect",
+                        "permutation_statistic_abs_rate_difference": observed_abs_effect,
+                        "permutation_p_value_two_sided": float(p_value_two_sided),
                         "n_permutations": int(permutations_effective),
                     }
                 ]
@@ -4055,8 +4124,29 @@ class DuplicatesExactDetector(Detector):
             )
             legacy_position_tests["eligible_by_gate"] = bool(position_gate_passes)
             legacy_position_tests["gate_reason"] = position_gate_reason
-            if not position_gate_passes and "permutation_p_value_one_sided" in legacy_position_tests.columns:
-                legacy_position_tests["permutation_p_value_one_sided"] = np.nan
+            legacy_position_tests["adjusted_p_value"] = np.nan
+            legacy_position_tests["is_significant"] = False
+            if "permutation_p_value_two_sided" in legacy_position_tests.columns:
+                if position_gate_passes:
+                    position_adjusted = self._adjust_p_values(
+                        legacy_position_tests["permutation_p_value_two_sided"],
+                        method=self.ADJUSTMENT_METHOD_HOLM,
+                    )
+                    legacy_position_tests["adjusted_p_value"] = pd.to_numeric(
+                        position_adjusted, errors="coerce"
+                    )
+                    legacy_position_tests["is_significant"] = (
+                        pd.to_numeric(
+                            legacy_position_tests["adjusted_p_value"], errors="coerce"
+                        )
+                        .le(float(self.bh_fdr_q))
+                        .fillna(False)
+                        .astype(bool)
+                    )
+                else:
+                    legacy_position_tests["permutation_p_value_two_sided"] = np.nan
+                    legacy_position_tests["adjusted_p_value"] = np.nan
+                    legacy_position_tests["is_significant"] = False
 
         for scope_name in scope_names:
             scope_key = str(scope_name).strip()
@@ -4188,12 +4278,9 @@ class DuplicatesExactDetector(Detector):
                         .sum()
                     ),
                     "n_significant": int(
-                        pd.to_numeric(
-                            legacy_position_tests.get("permutation_p_value_one_sided", pd.Series(dtype=float)),
-                            errors="coerce",
-                        )
-                        .le(float(self.bh_fdr_q))
+                        legacy_position_tests.get("is_significant", pd.Series(dtype=bool))
                         .fillna(False)
+                        .astype(bool)
                         .astype(int)
                         .sum()
                     ),

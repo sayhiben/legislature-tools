@@ -1181,6 +1181,83 @@ def test_position_duplicate_metrics_emit_interval_contract_and_are_order_stable(
     )
 
 
+def test_position_permutation_test_uses_two_sided_absolute_effect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    detector = DuplicatesExactDetector(
+        top_n=10,
+        bucket_minutes=[5],
+        position_permutation_draws=3,
+        position_cluster_bootstrap_draws=200,
+    )
+    working = pd.DataFrame(
+        {
+            "id": [1, 2, 3, 4],
+            "canonical_name": ["A|X", "A|X", "C|X", "D|X"],
+            "position_normalized": ["Pro", "Pro", "Con", "Con"],
+        }
+    )
+
+    class _FakePermutationRng:
+        def __init__(self, permutations: list[list[int]]) -> None:
+            self._permutations = [np.asarray(values, dtype=np.int64) for values in permutations]
+            self._cursor = 0
+
+        def permutation(self, _n: int) -> np.ndarray:
+            values = self._permutations[self._cursor]
+            self._cursor += 1
+            return values
+
+    monkeypatch.setattr(
+        detector,
+        "_cluster_bootstrap_rate_difference",
+        lambda **_kwargs: (1.0, 0.7, 1.0, 123),
+    )
+    rng = _FakePermutationRng(
+        permutations=[
+            [0, 1, 2, 3],  # +1.0
+            [0, 2, 1, 3],  # 0.0
+            [2, 3, 0, 1],  # -1.0
+        ]
+    )
+
+    position_tests = detector._position_permutation_test(
+        working,
+        "canonical_name",
+        rng=rng,  # type: ignore[arg-type]
+        n_permutations=3,
+    )
+    assert not position_tests.empty
+    row = position_tests.iloc[0]
+
+    assert "permutation_p_value_one_sided" not in position_tests.columns
+    assert float(row["permutation_p_value_two_sided"]) == pytest.approx(0.75)
+    assert str(row["permutation_test_sidedness"]) == "two_sided_abs_effect"
+    assert str(row["permutation_test_id"]) == detector.POSITION_PERMUTATION_TEST_ID
+    assert str(row["rate_difference_interval_method"]) == detector.POSITION_RATE_DIFF_INTERVAL_METHOD_ID
+    assert int(row["rate_difference_interval_draws"]) == 123
+
+
+def test_cluster_bootstrap_rate_difference_is_finite_and_respects_draw_limit() -> None:
+    detector = DuplicatesExactDetector(
+        top_n=10,
+        bucket_minutes=[5],
+        position_cluster_bootstrap_draws=250,
+        random_seed=31,
+    )
+    observed, ci_low, ci_high, draws_effective = detector._cluster_bootstrap_rate_difference(
+        pro_counts_observed=np.asarray([3, 1, 0, 0], dtype=np.int64),
+        con_counts_observed=np.asarray([0, 0, 3, 1], dtype=np.int64),
+        rng=np.random.default_rng(31),
+        n_bootstrap_draws=120,
+    )
+    assert np.isfinite(observed)
+    assert np.isfinite(ci_low)
+    assert np.isfinite(ci_high)
+    assert ci_low <= ci_high
+    assert 0 < draws_effective <= 120
+
+
 def test_position_claim_is_gated_when_position_support_is_insufficient() -> None:
     frame = _build_position_interval_frame(n_rows_per_position=12, include_unknown=True)
     detector = DuplicatesExactDetector(

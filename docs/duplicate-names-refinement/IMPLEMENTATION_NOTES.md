@@ -24,20 +24,20 @@ Execution order is tracked here independently from ticket numbering.
 13. `DUP-013` (Done, 2026-02-28)
 14. `DUP-014` (Done, 2026-03-01)
 15. `DUP-015` (Done, 2026-03-01)
+16. `DUP-016` (Done, 2026-03-01)
 
 ### Current
-1. `DUP-016` (next in-progress target)
+1. `DUP-017` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-016`
-2. `DUP-017`
-3. `DUP-018`
-4. `DUP-019`
-5. `DUP-020`
-6. `DUP-021`
+1. `DUP-017`
+2. `DUP-018`
+3. `DUP-019`
+4. `DUP-020`
+5. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, and **DUP-015**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, and **DUP-016**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1289,3 +1289,73 @@ Work item: DUP-015 (P1)
   - seed lineage is emitted in duplicate and sidecar provenance outputs.
   - determinism regressions are covered by targeted tests and full CI.
 - Next ticket in sequence is `DUP-016`.
+
+---
+
+## DUP-016 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-016 (P2)
+
+## What Was Implemented
+- Implemented `DUP-016` using **Option A (near-term correctness)**:
+  - keep rounded stratified-hypergeometric paths expectation-only and explicitly non-inferential.
+- Added a new inferential guard reason in `duplicates_exact`:
+  - `stratified_hypergeometric_rounding_inference_disabled`
+- Updated scope inferential resolution logic so that when all of the following are true:
+  - `collision_baseline_model == "hypergeometric"`
+  - effective stratification is active (`!= "none"`)
+  - stratified mixture probabilities are present
+  - then inferential status is forced to `unavailable` with the new guard reason.
+- This guarantees no calibrated inferential output can be emitted from the rounded probability-to-histogram stratified-hypergeometric path, even if future code introduces non-empty null samples for that branch.
+- Preserved expectation outputs for those scopes/buckets while continuing to suppress inferential fields (`p_value`, `z_score`, interval fields) under non-inferential status.
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - `test_stratified_hypergeometric_rounding_path_is_explicitly_non_inferential`
+    - verifies active stratified hypergeometric path reports `unavailable` with guard reason.
+  - `test_stratified_hypergeometric_rounding_guard_blocks_inference_even_if_null_exists`
+    - monkeypatches hypergeometric null sampler to return non-empty rows and verifies inferential guard still blocks inference.
+- Focused validation:
+  - `python -m pytest tests/test_duplicates_exact.py -q`
+  - `python -m pytest tests/test_report_chart_payload.py tests/test_analysis_registry.py tests/test_report_render_helpers.py -q`
+  - all passed.
+
+## Runtime / Report Validation (ESSB 6346)
+- Run-all executed with DB URL set:
+  - command:
+    - `TESTIFIER_AUDIT_DB_URL=postgresql://legislature:legislature@localhost:55432/legislature python -m testifier_audit.cli run-all --csv ../data/raw/ESSB6346-20260224-0800.csv --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup016_essb6346_runall_csv.log`
+  - completion evidence:
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Rerender completed:
+  - command:
+    - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup016_essb6346_rerender.log`
+  - completion evidence:
+    - `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - sidebar show/hide behavior.
+    - mobile global-controls expand/collapse behavior.
+    - bucket switch (`30m`/`1h`) with URL/state update.
+    - theme toggle behavior (`Light`/`Dark`).
+    - report-data requests returned `200`.
+    - only console error was expected local static-server `favicon.ico` `404`.
+
+## Issues Discovered During DUP-016
+- Initial `run-all` invocation failed because `voter_registry_enabled.yaml` uses postgres input mode and requires `input.db_url` (`TESTIFIER_AUDIT_DB_URL`), even when CSV path is provided.
+- Mitigation:
+  - reran with `TESTIFIER_AUDIT_DB_URL` set; run completed successfully.
+- No functional regressions were observed in duplicate payload/render contract checks under the new inferential guard.
+
+## Remaining Work / Handoff
+- DUP-016 acceptance criteria are met:
+  - rounded stratified-hypergeometric path is explicitly quarantined from inferential use.
+  - mode-guard regression tests protect against accidental re-enablement.
+  - expectation-only outputs remain available with inferential suppression.
+- Next ticket in sequence is `DUP-017`.

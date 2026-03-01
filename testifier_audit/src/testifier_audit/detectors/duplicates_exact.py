@@ -134,6 +134,9 @@ class DuplicatesExactDetector(Detector):
     INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE = "self_referential_baseline"
     INFERENTIAL_REASON_DEGRADED_TO_SELF_REFERENTIAL = "degraded_to_self_referential_baseline"
     INFERENTIAL_REASON_NO_NULL_SAMPLES = "analytic_only_no_null_samples"
+    INFERENTIAL_REASON_HYPERGEOMETRIC_STRATIFIED_ROUNDING_DISABLED = (
+        "stratified_hypergeometric_rounding_inference_disabled"
+    )
     INFERENTIAL_REASON_LOW_POWER = "low_power_support"
     INFERENTIAL_REASON_SCOPE_UNAVAILABLE = "scope_unavailable"
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
@@ -350,6 +353,7 @@ class DuplicatesExactDetector(Detector):
         baseline_source: str,
         baseline_degraded: bool,
         null_samples: pd.DataFrame,
+        uses_rounded_hypergeometric_approximation: bool = False,
     ) -> tuple[str, str]:
         source_norm = str(baseline_source or "").strip().lower()
         if source_norm == "hearing_empirical":
@@ -361,6 +365,11 @@ class DuplicatesExactDetector(Detector):
             return (
                 "descriptive_only",
                 cls.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE,
+            )
+        if uses_rounded_hypergeometric_approximation:
+            return (
+                "unavailable",
+                cls.INFERENTIAL_REASON_HYPERGEOMETRIC_STRATIFIED_ROUNDING_DISABLED,
             )
         if null_samples.empty:
             return ("unavailable", cls.INFERENTIAL_REASON_NO_NULL_SAMPLES)
@@ -2668,6 +2677,11 @@ class DuplicatesExactDetector(Detector):
                     )
             else:
                 null_samples = pd.DataFrame()
+            uses_rounded_hypergeometric_approximation = bool(
+                self.collision_baseline_model == "hypergeometric"
+                and effective_scope_stratification != "none"
+                and not stratified_probabilities.empty
+            )
             scope_degraded = bool(
                 baseline_degraded
                 or stratification_degraded
@@ -2680,6 +2694,7 @@ class DuplicatesExactDetector(Detector):
                 baseline_source=effective_baseline_source,
                 baseline_degraded=scope_degraded,
                 null_samples=null_samples,
+                uses_rounded_hypergeometric_approximation=uses_rounded_hypergeometric_approximation,
             )
             if scope_status != self.SCOPE_STATUS_AVAILABLE:
                 scope_inferential_status = "unavailable"

@@ -450,6 +450,143 @@ def test_analytic_only_null_path_reports_unavailable_and_suppresses_inference(
     assert primary_buckets["z_score"].isna().all()
 
 
+def test_stratified_hypergeometric_rounding_path_is_explicitly_non_inferential(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 3, "BROWN|AVA": 2})
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1, 2, 3],
+                "n_keys": [120, 30, 10],
+                "N": [210, 210, 210],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_stratum_frequencies",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_key": [
+                    "DOE|JANE",
+                    "SMITH|JOHN",
+                    "BROWN|AVA",
+                    "LEE|ALICE",
+                ],
+                "stratum": ["1980s", "1980s", "1990s", "1990s"],
+                "n_registry_rows": [40, 50, 30, 20],
+            }
+        ),
+    )
+
+    detector = DuplicatesExactDetector(
+        top_n=25,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_baseline_model="hypergeometric",
+        collision_uncertainty_mode="monte_carlo",
+        collision_stratification="birth_decade",
+        voter_db_url="postgresql://example",
+        monte_carlo_draws=400,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+    )
+    result = detector.run(df=frame, features={})
+    primary_scope = detector.collision_scope_primary
+
+    methods = result.tables["collision_methods"]
+    primary_methods = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_methods.empty
+    assert str(primary_methods.loc[0, "inferential_status"]) == "unavailable"
+    assert (
+        str(primary_methods.loc[0, "inferential_reason"])
+        == detector.INFERENTIAL_REASON_HYPERGEOMETRIC_STRATIFIED_ROUNDING_DISABLED
+    )
+
+    overview = result.tables["collision_overview"]
+    primary_overview = overview[overview["scope"] == primary_scope].copy()
+    assert not primary_overview.empty
+    assert primary_overview["p_value"].isna().all()
+    assert primary_overview["z_score"].isna().all()
+
+
+def test_stratified_hypergeometric_rounding_guard_blocks_inference_even_if_null_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 3, "BROWN|AVA": 2})
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1, 2, 3],
+                "n_keys": [120, 30, 10],
+                "N": [210, 210, 210],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_stratum_frequencies",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_key": [
+                    "DOE|JANE",
+                    "SMITH|JOHN",
+                    "BROWN|AVA",
+                    "LEE|ALICE",
+                ],
+                "stratum": ["1980s", "1980s", "1990s", "1990s"],
+                "n_registry_rows": [40, 50, 30, 20],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "simulate_collision_null_from_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "pairs": [1.0, 2.0, 3.0],
+                "excess_rows": [0.5, 1.0, 1.5],
+                "repeated_group_rows": [2.0, 3.0, 4.0],
+            }
+        ),
+    )
+
+    detector = DuplicatesExactDetector(
+        top_n=25,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_baseline_model="hypergeometric",
+        collision_uncertainty_mode="monte_carlo",
+        collision_stratification="birth_decade",
+        voter_db_url="postgresql://example",
+        monte_carlo_draws=400,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+    )
+    result = detector.run(df=frame, features={})
+    primary_scope = detector.collision_scope_primary
+
+    methods = result.tables["collision_methods"]
+    primary_methods = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_methods.empty
+    assert str(primary_methods.loc[0, "inferential_status"]) == "unavailable"
+    assert (
+        str(primary_methods.loc[0, "inferential_reason"])
+        == detector.INFERENTIAL_REASON_HYPERGEOMETRIC_STRATIFIED_ROUNDING_DISABLED
+    )
+
+    overview = result.tables["collision_overview"]
+    primary_overview = overview[overview["scope"] == primary_scope].copy()
+    assert not primary_overview.empty
+    assert primary_overview["p_value"].isna().all()
+    assert primary_overview["z_score"].isna().all()
+
+
 def test_duplicates_exact_emits_scope_phase_runtime_profile_keys() -> None:
     frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2, "BROWN|AVA": 1})
     detector = DuplicatesExactDetector(

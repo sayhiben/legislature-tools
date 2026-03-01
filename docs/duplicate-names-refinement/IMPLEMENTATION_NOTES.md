@@ -1800,6 +1800,8 @@ Scope: Documentation/state consistency pass after DUP-021 completion.
   - `DUP-006` analyst sign-off pending.
   - `DUP-007` review sign-off pending.
 - No acceptance-criteria drift identified in remaining work-item markdown files during this sweep.
+- Historical note:
+  - `DUP-006` was closed later on 2026-03-01; only `DUP-007` remains open now.
 
 ## Handoff State
 - Next action is review sign-off closure for `DUP-007`, or creation of a new `DUP-xxx` ticket if additional engineering scope is added.
@@ -1974,6 +1976,8 @@ Scope: Complete code-level threshold-feasibility instrumentation for DUP-007, re
 - Engineering implementation for DUP-007 instrumentation is complete and tested.
 - Evidence remains blocker-confirming; acceptance criterion for historical-control false-positive behavior is still not met.
 - Next step is non-coding review sign-off decision on rollout policy for DUP-007.
+- Historical note:
+  - this interpretation was superseded by the inferential-evaluability refinement sections below.
 
 ---
 

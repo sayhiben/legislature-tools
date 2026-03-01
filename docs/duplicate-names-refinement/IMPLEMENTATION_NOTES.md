@@ -35,6 +35,8 @@ Execution order is tracked here independently from ticket numbering.
 1. Engineering implementation queue clear through `DUP-021`
 2. Non-coding sign-off holds still tracked:
    - `DUP-007` review sign-off pending
+3. Latest implementation commit for DUP-007 engineering/doc refresh:
+   - `85e80071` (`dup-007: fix empty-slice warnings and refresh sign-off evidence`)
 
 ### Planned next order (subject to reprioritization)
 1. No additional DUP engineering work items currently queued.
@@ -2136,3 +2138,25 @@ Scope: Remove recurring non-fatal NumPy warning in DUP-007 backtest summaries, r
 - No new acceptance-criteria drift identified in `DUP-007.md` or memo framing; status remains review-gated.
 - Remaining work is unchanged:
   - policy/reviewer sign-off decision for DUP-007 evaluability treatment.
+
+---
+
+## DUP-007 Documentation Consistency Sweep
+
+Date: 2026-03-01  
+Scope: Align DUP-007 status language across ticket/memo/notes after warning-hygiene refresh commit.
+
+## What Changed
+- Clarified DUP-007 status wording in work item:
+  - now explicitly “review sign-off pending on evaluability policy.”
+- Clarified review-outcome language in work item:
+  - inferential-evaluable scenarios meet targets;
+  - non-evaluable scenarios are coverage-policy review points.
+- Added explicit current sign-off status section in memo:
+  - engineering implementation complete;
+  - remaining dependency is policy/reviewer acceptance.
+
+## Outcome
+- No engineering-scope drift identified.
+- No additional DUP coding work items are currently queued.
+- Current blocker remains external review decision for DUP-007.

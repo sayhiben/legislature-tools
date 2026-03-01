@@ -182,3 +182,10 @@ Operational rollout should remain blocked until review explicitly accepts the ob
 - Memo conclusion remains unchanged:
   - DUP-007 engineering evidence is refreshed and reproducible.
   - rollout remains pending policy/reviewer sign-off on inferential evaluability treatment.
+
+## Current Sign-off Status (2026-03-01)
+- Engineering implementation for DUP-007 is complete.
+- Remaining open question is policy-level reviewer acceptance of evaluability treatment:
+  - inferential-evaluable scenarios are judged against operating targets;
+  - descriptive-only/non-evaluable scenarios are treated as coverage limits rather than inferential misses.
+- No additional detector code changes are currently required to satisfy existing DUP-007 implementation deliverables.

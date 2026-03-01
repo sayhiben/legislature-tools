@@ -138,6 +138,35 @@ def _duplicate_inferential_status_for_source(source: str) -> str:
     return "reference_model_inference"
 
 
+def _duplicate_default_inferential_reason_for_status(status: str) -> str:
+    status_norm = str(status or "").strip().lower()
+    if status_norm == "descriptive_only":
+        return "self_referential_baseline"
+    if status_norm == "unavailable":
+        return "analytic_only_no_null_samples"
+    if status_norm in {"reference_model_inference", "tested"}:
+        return "reference_model_inference_available"
+    return "status_not_specified"
+
+
+def _duplicate_inferential_supported_mask(
+    frame: pd.DataFrame,
+    *,
+    status_column: str = "inferential_status",
+    fallback_status_column: str | None = "inference_status",
+) -> pd.Series:
+    if frame.empty:
+        return pd.Series(dtype=bool)
+    if status_column in frame.columns:
+        status_series = frame[status_column].fillna("").astype(str)
+    elif fallback_status_column and fallback_status_column in frame.columns:
+        status_series = frame[fallback_status_column].fillna("").astype(str)
+    else:
+        return pd.Series(False, index=frame.index, dtype=bool)
+    status_norm = status_series.str.strip().str.lower()
+    return status_norm.isin({"reference_model_inference", "tested"})
+
+
 def _total_submissions_from_counts_per_minute(counts_per_minute: pd.DataFrame) -> int | None:
     if counts_per_minute.empty:
         return None
@@ -648,6 +677,7 @@ def _build_interactive_chart_payload_v2(
             "censored",
             "claim_class",
             "inferential_status",
+            "inferential_reason",
             "estimand_primary",
             "non_goals",
             "baseline_semantics",
@@ -681,6 +711,21 @@ def _build_interactive_chart_payload_v2(
                 .str.len()
                 > 0,
                 dup_exact_methods["baseline_source"].map(_duplicate_inferential_status_for_source),
+            )
+        )
+        dup_exact_methods["inferential_reason"] = (
+            dup_exact_methods.get("inferential_reason", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_methods.get("inferential_reason", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_methods["inferential_status"].map(
+                    _duplicate_default_inferential_reason_for_status
+                ),
             )
         )
     dup_exact_summary_raw = detector_summaries.get("duplicates_exact", {})
@@ -739,6 +784,15 @@ def _build_interactive_chart_payload_v2(
         primary_dup_inferential_status = _duplicate_inferential_status_for_source(
             primary_dup_baseline_source
         )
+    primary_dup_inferential_reason = (
+        str(dup_exact_methods.get("inferential_reason", pd.Series(dtype=str)).iloc[0]).strip()
+        if not dup_exact_methods.empty
+        else str(dup_exact_summary.get("inferential_reason") or "").strip()
+    )
+    if not primary_dup_inferential_reason:
+        primary_dup_inferential_reason = _duplicate_default_inferential_reason_for_status(
+            primary_dup_inferential_status
+        )
     duplicate_scope_options = sorted(
         {
             str(value).strip()
@@ -766,6 +820,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
     )
@@ -784,6 +839,7 @@ def _build_interactive_chart_payload_v2(
         "baseline_source",
         "baseline_label",
         "inferential_status",
+        "inferential_reason",
         "claim_class",
     ]
     if not dup_exact_methods.empty:
@@ -801,6 +857,7 @@ def _build_interactive_chart_payload_v2(
                     "baseline_source": primary_dup_baseline_source,
                     "baseline_label": primary_dup_baseline_label,
                     "inferential_status": primary_dup_inferential_status,
+                    "inferential_reason": primary_dup_inferential_reason,
                     "claim_class": dup_claim_class,
                 }
             ]
@@ -813,6 +870,7 @@ def _build_interactive_chart_payload_v2(
                     "baseline_source": primary_dup_baseline_source,
                     "baseline_label": primary_dup_baseline_label,
                     "inferential_status": primary_dup_inferential_status,
+                    "inferential_reason": primary_dup_inferential_reason,
                     "claim_class": dup_claim_class,
                 }
             ]
@@ -833,7 +891,13 @@ def _build_interactive_chart_payload_v2(
             how="left",
             suffixes=("", "_scope_meta"),
         )
-        for column in ("baseline_source", "baseline_label", "inferential_status", "claim_class"):
+        for column in (
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "inferential_reason",
+            "claim_class",
+        ):
             fallback_column = f"{column}_scope_meta"
             if fallback_column not in working.columns:
                 continue
@@ -882,6 +946,22 @@ def _build_interactive_chart_payload_v2(
             working["inferential_status"] = working["baseline_source"].map(
                 _duplicate_inferential_status_for_source
             )
+        if "inferential_reason" in working.columns:
+            working["inferential_reason"] = (
+                working["inferential_reason"]
+                .fillna("")
+                .astype(str)
+                .where(
+                    working["inferential_reason"].fillna("").astype(str).str.len() > 0,
+                    working["inferential_status"].map(
+                        _duplicate_default_inferential_reason_for_status
+                    ),
+                )
+            )
+        else:
+            working["inferential_reason"] = working["inferential_status"].map(
+                _duplicate_default_inferential_reason_for_status
+            )
         if "claim_class" in working.columns:
             working["claim_class"] = (
                 working["claim_class"]
@@ -894,6 +974,13 @@ def _build_interactive_chart_payload_v2(
         return working
 
     dup_exact_collision_overview = _attach_duplicate_scope_metadata(dup_exact_collision_overview)
+    non_inferential_overview = ~_duplicate_inferential_supported_mask(
+        dup_exact_collision_overview
+    )
+    if bool(non_inferential_overview.any()):
+        for inferential_column in ("expected_p05", "expected_p50", "expected_p95", "z_score", "p_value"):
+            if inferential_column in dup_exact_collision_overview.columns:
+                dup_exact_collision_overview.loc[non_inferential_overview, inferential_column] = np.nan
     dup_exact_metric_diagnostics = dup_exact_collision_overview[
         dup_exact_collision_overview["scope"].astype(str).str.len() > 0
     ].copy()
@@ -925,10 +1012,16 @@ def _build_interactive_chart_payload_v2(
             "is_low_power",
             "inference_status",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
     )
     dup_exact_collision_bucket = _attach_duplicate_scope_metadata(dup_exact_collision_bucket)
+    non_inferential_bucket = ~_duplicate_inferential_supported_mask(dup_exact_collision_bucket)
+    if bool(non_inferential_bucket.any()):
+        for inferential_column in ("expected_p05", "expected_p95", "z_score", "p_value"):
+            if inferential_column in dup_exact_collision_bucket.columns:
+                dup_exact_collision_bucket.loc[non_inferential_bucket, inferential_column] = np.nan
     dup_exact_per_name_by_mode = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_duplicates_by_mode"), pd.DataFrame()),
         [
@@ -1501,6 +1594,8 @@ def _build_interactive_chart_payload_v2(
         table_map.get(_table_key("duplicates_exact", "per_name_anomalies"), pd.DataFrame()),
         [
             "scope",
+            "inferential_status",
+            "inferential_reason",
             "match_mode",
             "display_name",
             "canonical_name",
@@ -1540,6 +1635,8 @@ def _build_interactive_chart_payload_v2(
         if not dup_exact_per_name_anomalies.empty:
             anomaly_columns = [
                 "scope",
+                "inferential_status",
+                "inferential_reason",
                 "match_mode",
                 "canonical_name",
                 "display_name",
@@ -1572,6 +1669,8 @@ def _build_interactive_chart_payload_v2(
             table_map.get(_table_key("duplicates_exact", "per_name_display"), pd.DataFrame()),
             [
                 "scope",
+                "inferential_status",
+                "inferential_reason",
                 "display_name",
                 "canonical_name",
                 "observed_count",
@@ -1614,6 +1713,7 @@ def _build_interactive_chart_payload_v2(
     dup_exact_per_name["is_significant"] = (
         pd.to_numeric(is_significant_series, errors="coerce").fillna(0).astype(bool)
     )
+    dup_exact_per_name["is_significant"] = dup_exact_per_name["is_significant"].astype("object")
     dup_exact_per_name["within_5m_pairs"] = pd.to_numeric(
         dup_exact_per_name.get(
             "within_5m_pairs",
@@ -1635,6 +1735,17 @@ def _build_interactive_chart_payload_v2(
         "temporal_p_value_min_gap", pd.Series(pd.NA, index=dup_exact_per_name.index)
     )
     dup_exact_per_name = _attach_duplicate_scope_metadata(dup_exact_per_name)
+    non_inferential_per_name = ~_duplicate_inferential_supported_mask(dup_exact_per_name)
+    if bool(non_inferential_per_name.any()):
+        for inferential_column in (
+            "p_value",
+            "q_value",
+            "is_significant",
+            "temporal_p_value_within_5m",
+            "temporal_p_value_min_gap",
+        ):
+            if inferential_column in dup_exact_per_name.columns:
+                dup_exact_per_name.loc[non_inferential_per_name, inferential_column] = pd.NA
     dup_exact_top_name_timing = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "top_name_timing_by_mode"), pd.DataFrame()),
         [
@@ -1716,6 +1827,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
     )
@@ -1738,6 +1850,7 @@ def _build_interactive_chart_payload_v2(
         dup_exact_null_distribution["baseline_source"] = primary_dup_baseline_source
         dup_exact_null_distribution["baseline_label"] = primary_dup_baseline_label
         dup_exact_null_distribution["inferential_status"] = primary_dup_inferential_status
+        dup_exact_null_distribution["inferential_reason"] = primary_dup_inferential_reason
         dup_exact_null_distribution["claim_class"] = dup_claim_class
     dup_exact_swing_impact = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "swing_impact_scenarios"), pd.DataFrame()),
@@ -1752,6 +1865,7 @@ def _build_interactive_chart_payload_v2(
         dup_exact_swing_impact["baseline_source"] = primary_dup_baseline_source
         dup_exact_swing_impact["baseline_label"] = primary_dup_baseline_label
         dup_exact_swing_impact["inferential_status"] = primary_dup_inferential_status
+        dup_exact_swing_impact["inferential_reason"] = primary_dup_inferential_reason
         dup_exact_swing_impact["claim_class"] = dup_claim_class
 
     org_blank_rates = _with_expected_columns(
@@ -3111,6 +3225,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
             "baseline_degraded",
             "n_pro",
@@ -3135,6 +3250,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
         max_rows=50,
@@ -3203,6 +3319,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
         max_rows=100_000,
@@ -3232,6 +3349,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
         max_rows=100_000,
@@ -3253,6 +3371,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
         max_rows=100_000,
@@ -3285,6 +3404,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
         max_rows=100_000,
@@ -3304,6 +3424,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
         max_rows=25_000,
@@ -3318,6 +3439,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source",
             "baseline_label",
             "inferential_status",
+            "inferential_reason",
             "claim_class",
         ],
         max_rows=20,
@@ -3772,6 +3894,7 @@ def _build_interactive_chart_payload_v2(
                 "collision_key_mode",
                 "stratification",
                 "inferential_status",
+                "inferential_reason",
                 "claim_class",
                 "estimand_primary",
                 "non_goals",
@@ -3806,6 +3929,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source": primary_dup_baseline_source,
             "baseline_label": primary_dup_baseline_label,
             "inferential_status": primary_dup_inferential_status,
+            "inferential_reason": primary_dup_inferential_reason,
             "gating": duplicate_gating_text,
         }
         for chart_id in _DUPLICATE_CHART_IDS
@@ -3815,6 +3939,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_source": primary_dup_baseline_source,
             "baseline_label": primary_dup_baseline_label,
             "inferential_status": primary_dup_inferential_status,
+            "inferential_reason": primary_dup_inferential_reason,
             "gating": duplicate_gating_text,
         }
         for table_name in _DUPLICATE_TABLE_NAMES
@@ -3827,6 +3952,7 @@ def _build_interactive_chart_payload_v2(
         "baseline_source": primary_dup_baseline_source,
         "baseline_label": primary_dup_baseline_label,
         "inferential_status": primary_dup_inferential_status,
+        "inferential_reason": primary_dup_inferential_reason,
         "gating": duplicate_gating_text,
         "interpretation_callout": (
             "Treat this detector as a collision-burden screen: values above reference-baseline "

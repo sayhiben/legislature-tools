@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 from hashlib import sha1
 from pathlib import Path
@@ -69,6 +70,7 @@ _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
     },
 )
 _TOP_NAME_TIMING_TOP_N = 200
+LOGGER = logging.getLogger(__name__)
 
 
 def _safe_str_series(series: pd.Series) -> pd.Series:
@@ -103,6 +105,11 @@ class DuplicatesExactDetector(Detector):
         "reference model; not the data-generating process"
     )
     COLLISION_CLAIM_CLASS = "collision_signal"
+    INFERENTIAL_REASON_REFERENCE_MODEL_INFERENCE = "reference_model_inference_available"
+    INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE = "self_referential_baseline"
+    INFERENTIAL_REASON_DEGRADED_TO_SELF_REFERENTIAL = "degraded_to_self_referential_baseline"
+    INFERENTIAL_REASON_NO_NULL_SAMPLES = "analytic_only_no_null_samples"
+    INFERENTIAL_REASON_LOW_POWER = "low_power_support"
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
     POSITION_CLAIM_REASON_ELIGIBLE = "eligible"
     POSITION_CLAIM_REASON_UNSUPPORTED_MODEL = "unsupported_collision_baseline_model"
@@ -238,10 +245,35 @@ class DuplicatesExactDetector(Detector):
 
     @classmethod
     def _scope_inferential_status(cls, baseline_source: str) -> str:
+        status, _reason = cls._scope_inferential_metadata(
+            baseline_source=baseline_source,
+            baseline_degraded=False,
+            null_samples=pd.DataFrame({"pairs": [0.0]}),
+        )
+        return status
+
+    @classmethod
+    def _scope_inferential_metadata(
+        cls,
+        *,
+        baseline_source: str,
+        baseline_degraded: bool,
+        null_samples: pd.DataFrame,
+    ) -> tuple[str, str]:
         source_norm = str(baseline_source or "").strip().lower()
         if source_norm == "hearing_empirical":
-            return "descriptive_only"
-        return "reference_model_inference"
+            if baseline_degraded:
+                return (
+                    "descriptive_only",
+                    cls.INFERENTIAL_REASON_DEGRADED_TO_SELF_REFERENTIAL,
+                )
+            return (
+                "descriptive_only",
+                cls.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE,
+            )
+        if null_samples.empty:
+            return ("unavailable", cls.INFERENTIAL_REASON_NO_NULL_SAMPLES)
+        return ("reference_model_inference", cls.INFERENTIAL_REASON_REFERENCE_MODEL_INFERENCE)
 
     @staticmethod
     def _duplicate_rows_for_subset(working: pd.DataFrame, key_column: str) -> tuple[int, int]:
@@ -1451,6 +1483,8 @@ class DuplicatesExactDetector(Detector):
         primary_scope_n_population = 0
         primary_scope_low_power = True
         primary_scope_stratification = "none"
+        primary_scope_inferential_status = "descriptive_only"
+        primary_scope_inferential_reason = self.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE
         position_claim_eligible = False
         position_claim_reason = self.POSITION_CLAIM_REASON_NO_POSITION_ROWS
         requested_stratification = self.collision_stratification
@@ -1856,15 +1890,44 @@ class DuplicatesExactDetector(Detector):
                     )
             else:
                 null_samples = pd.DataFrame()
+            scope_degraded = bool(
+                baseline_degraded
+                or stratification_degraded
+                or (
+                    requested_stratification != "none"
+                    and effective_scope_stratification != requested_stratification
+                )
+            )
+            scope_inferential_status, scope_inferential_reason = self._scope_inferential_metadata(
+                baseline_source=effective_baseline_source,
+                baseline_degraded=scope_degraded,
+                null_samples=null_samples,
+            )
+            if scope_inferential_status != "reference_model_inference":
+                LOGGER.info(
+                    "duplicates_exact scope=%s status=%s reason=%s baseline_source=%s baseline_degraded=%s",
+                    scope,
+                    scope_inferential_status,
+                    scope_inferential_reason,
+                    effective_baseline_source,
+                    scope_degraded,
+                )
             overview = summarize_collision_observed_vs_null(
                 observed=observed_metrics,
                 expected=expected_metrics,
                 null_samples=null_samples,
                 metrics=self.collision_metrics,
             )
+            if scope_inferential_status != "reference_model_inference":
+                # Descriptive-only/unavailable scopes intentionally suppress inferential fields.
+                for inferential_column in ("expected_p05", "expected_p50", "expected_p95", "z_score", "p_value"):
+                    if inferential_column in overview.columns:
+                        overview[inferential_column] = np.nan
             overview["scope"] = scope
             overview["n_used"] = int(n_scope)
             overview["N_used"] = int(n_population)
+            overview["inferential_status"] = scope_inferential_status
+            overview["inferential_reason"] = scope_inferential_reason
             overview_frames.append(overview)
 
             stratified_sensitivity_frames.append(
@@ -1918,51 +1981,63 @@ class DuplicatesExactDetector(Detector):
                 denom = float(max(n_population, 1))
                 grouped["population_probability"] = grouped["population_count"] / denom
             grouped["expected_count"] = grouped["population_probability"] * float(n_scope)
-            if grouped.empty:
-                grouped["p_value"] = pd.Series(dtype=float)
-            elif self.per_name_significance_model == "hypergeometric_tail":
-                if _uses_default_hypergeometric_tail():
-                    grouped["p_value"] = self._vectorized_hypergeometric_tail_p_values(
-                        observed_successes=grouped["observed_count"],
-                        population_size=int(max(n_population, 0)),
-                        population_successes=grouped["population_count"],
-                        sample_size=int(n_scope),
-                    )
-                else:
-                    grouped["p_value"] = grouped.apply(
-                        lambda row: hypergeometric_tail_p_value(
-                            observed_successes=int(row["observed_count"]),
-                            population_size=int(max(n_population, 0)),
-                            population_successes=int(max(row["population_count"], 0)),
-                            sample_size=int(n_scope),
-                        ),
-                        axis=1,
-                    )
-            else:
-                if _uses_default_binomial_tail():
-                    grouped["p_value"] = self._vectorized_binomial_tail_p_values(
-                        observed_successes=grouped["observed_count"],
-                        total_trials=int(n_scope),
-                        success_probabilities=grouped["population_probability"],
-                    )
-                else:
-                    grouped["p_value"] = grouped.apply(
-                        lambda row: binomial_tail_p_value(
-                            observed_successes=int(row["observed_count"]),
-                            total_trials=int(n_scope),
-                            success_probability=float(max(min(row["population_probability"], 1.0), 0.0)),
-                        ),
-                        axis=1,
-                    )
-            grouped["q_value"] = benjamini_hochberg(grouped["p_value"]).fillna(1.0)
-            grouped["is_significant"] = grouped["q_value"] <= self.bh_fdr_q
-            grouped["tested"] = True
             grouped["scope"] = scope
+            grouped["inferential_status"] = scope_inferential_status
+            grouped["inferential_reason"] = scope_inferential_reason
+            if scope_inferential_status == "reference_model_inference":
+                if grouped.empty:
+                    grouped["p_value"] = pd.Series(dtype=float)
+                elif self.per_name_significance_model == "hypergeometric_tail":
+                    if _uses_default_hypergeometric_tail():
+                        grouped["p_value"] = self._vectorized_hypergeometric_tail_p_values(
+                            observed_successes=grouped["observed_count"],
+                            population_size=int(max(n_population, 0)),
+                            population_successes=grouped["population_count"],
+                            sample_size=int(n_scope),
+                        )
+                    else:
+                        grouped["p_value"] = grouped.apply(
+                            lambda row: hypergeometric_tail_p_value(
+                                observed_successes=int(row["observed_count"]),
+                                population_size=int(max(n_population, 0)),
+                                population_successes=int(max(row["population_count"], 0)),
+                                sample_size=int(n_scope),
+                            ),
+                            axis=1,
+                        )
+                else:
+                    if _uses_default_binomial_tail():
+                        grouped["p_value"] = self._vectorized_binomial_tail_p_values(
+                            observed_successes=grouped["observed_count"],
+                            total_trials=int(n_scope),
+                            success_probabilities=grouped["population_probability"],
+                        )
+                    else:
+                        grouped["p_value"] = grouped.apply(
+                            lambda row: binomial_tail_p_value(
+                                observed_successes=int(row["observed_count"]),
+                                total_trials=int(n_scope),
+                                success_probability=float(
+                                    max(min(row["population_probability"], 1.0), 0.0)
+                                ),
+                            ),
+                            axis=1,
+                        )
+                grouped["q_value"] = benjamini_hochberg(grouped["p_value"]).fillna(1.0)
+                grouped["is_significant"] = grouped["q_value"] <= self.bh_fdr_q
+                grouped["tested"] = True
+            else:
+                grouped["p_value"] = np.nan
+                grouped["q_value"] = np.nan
+                grouped["is_significant"] = pd.Series(pd.NA, index=grouped.index, dtype="object")
+                grouped["tested"] = False
             grouped = grouped.sort_values(["q_value", "p_value", "observed_count"], ascending=[True, True, False])
             per_name_tests_frames.append(
                 grouped[
                     [
                         "scope",
+                        "inferential_status",
+                        "inferential_reason",
                         "canonical_name",
                         "display_name",
                         "observed_count",
@@ -1986,6 +2061,8 @@ class DuplicatesExactDetector(Detector):
                 per_name_display[
                     [
                         "scope",
+                        "inferential_status",
+                        "inferential_reason",
                         "canonical_name",
                         "display_name",
                         "observed_count",
@@ -2012,19 +2089,20 @@ class DuplicatesExactDetector(Detector):
             temporal = self._temporal_metrics_by_name(scope_frame, key_column, rng=rng)
             if not temporal.empty:
                 temporal["scope"] = scope
+                temporal["inferential_status"] = scope_inferential_status
+                temporal["inferential_reason"] = scope_inferential_reason
+                if scope_inferential_status != "reference_model_inference":
+                    for temporal_column in (
+                        "temporal_p_value_min_gap",
+                        "temporal_p_value_within_5m",
+                        "temporal_p_value_within_15m",
+                    ):
+                        if temporal_column in temporal.columns:
+                            temporal[temporal_column] = np.nan
                 temporal_frames.append(temporal)
             record_runtime_timing(
                 "detector.duplicates_exact.scope.temporal_metrics",
                 (perf_counter() - temporal_started) * 1000.0,
-            )
-
-            scope_degraded = bool(
-                baseline_degraded
-                or stratification_degraded
-                or (
-                    requested_stratification != "none"
-                    and effective_scope_stratification != requested_stratification
-                )
             )
             methods_rows.append(
                 {
@@ -2044,9 +2122,8 @@ class DuplicatesExactDetector(Detector):
                     "stratification": effective_scope_stratification,
                     "censored": bool(len(grouped) > self.per_name_display_limit),
                     "claim_class": self.COLLISION_CLAIM_CLASS,
-                    "inferential_status": self._scope_inferential_status(
-                        effective_baseline_source
-                    ),
+                    "inferential_status": scope_inferential_status,
+                    "inferential_reason": scope_inferential_reason,
                     "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
                     "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
                     "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
@@ -2054,7 +2131,7 @@ class DuplicatesExactDetector(Detector):
             )
 
             scope_bucket_scan_started = perf_counter()
-            metric_summary_by_n: dict[int, dict[str, dict[str, float]]] = {}
+            metric_summary_by_n: dict[int, dict[str, object]] = {}
             scope_all_name_counts = scope_frame.groupby(key_column, dropna=False).size().astype(float)
             scope_all_histogram = histogram_from_name_counts(scope_all_name_counts)
             scope_position_histograms: dict[str, pd.DataFrame] = {}
@@ -2199,28 +2276,59 @@ class DuplicatesExactDetector(Detector):
                             null_samples=null_for_n,
                             metrics=self.collision_metrics,
                         )
+                        bucket_null_available = bool(not null_for_n.empty)
                         metric_summary_by_n[n_bucket] = {
-                            row.metric: {
-                                "expected": float(row.expected),
-                                "expected_p05": float(row.expected_p05),
-                                "expected_p95": float(row.expected_p95),
-                                "p_value": float(row.p_value),
-                                "z_score": float(row.z_score),
-                            }
-                            for row in summary_for_n.itertuples(index=False)
+                            "__null_samples_available": bucket_null_available,
+                            **{
+                                row.metric: {
+                                    "expected": float(row.expected),
+                                    "expected_p05": float(row.expected_p05),
+                                    "expected_p95": float(row.expected_p95),
+                                    "p_value": float(row.p_value),
+                                    "z_score": float(row.z_score),
+                                }
+                                for row in summary_for_n.itertuples(index=False)
+                            },
                         }
                     n_unique = int(group_frame[key_column].nunique())
                     n_pro = int((group_frame["position_normalized"] == "Pro").sum())
                     n_con = int((group_frame["position_normalized"] == "Con").sum())
-                    expected_primary_bucket = metric_summary_by_n[n_bucket].get(self.collision_primary_metric, {}).get("expected", 0.0)
+                    summary_for_bucket = metric_summary_by_n[n_bucket]
+                    expected_primary_entry = summary_for_bucket.get(self.collision_primary_metric, {})
+                    expected_primary_bucket = (
+                        float(expected_primary_entry.get("expected", 0.0))
+                        if isinstance(expected_primary_entry, dict)
+                        else 0.0
+                    )
                     low_power = bool(
                         n_unique < self.low_power_min_unique_names
                         or expected_primary_bucket < self.low_power_min_expected_duplicates
                     )
                     for metric in self.collision_metrics:
                         metric_obs = float(metric_values.get(metric, 0.0))
-                        summary_entry = metric_summary_by_n[n_bucket].get(metric, {})
+                        summary_entry_raw = summary_for_bucket.get(metric, {})
+                        summary_entry = (
+                            summary_entry_raw if isinstance(summary_entry_raw, dict) else {}
+                        )
                         metric_exp = float(summary_entry.get("expected", 0.0))
+                        metric_inferential_status = scope_inferential_status
+                        metric_inferential_reason = scope_inferential_reason
+                        if metric_inferential_status == "reference_model_inference":
+                            if low_power:
+                                metric_inferential_status = "descriptive_only"
+                                metric_inferential_reason = self.INFERENTIAL_REASON_LOW_POWER
+                            elif not bool(summary_for_bucket.get("__null_samples_available", False)):
+                                metric_inferential_status = "unavailable"
+                                metric_inferential_reason = self.INFERENTIAL_REASON_NO_NULL_SAMPLES
+                        metric_p05 = float(summary_entry.get("expected_p05", metric_exp))
+                        metric_p95 = float(summary_entry.get("expected_p95", metric_exp))
+                        metric_z = float(summary_entry.get("z_score", 0.0))
+                        metric_p = float(summary_entry.get("p_value", 1.0))
+                        if metric_inferential_status != "reference_model_inference":
+                            metric_p05 = np.nan
+                            metric_p95 = np.nan
+                            metric_z = np.nan
+                            metric_p = np.nan
                         bucket_frames.append(
                             {
                                 "scope": scope,
@@ -2235,16 +2343,22 @@ class DuplicatesExactDetector(Detector):
                                 "n_con": int(n_con),
                                 "observed": metric_obs,
                                 "expected": metric_exp,
-                                "expected_p05": float(summary_entry.get("expected_p05", metric_exp)),
-                                "expected_p95": float(summary_entry.get("expected_p95", metric_exp)),
-                                "z_score": float(summary_entry.get("z_score", 0.0)),
-                                "p_value": float(summary_entry.get("p_value", 1.0)),
+                                "expected_p05": metric_p05,
+                                "expected_p95": metric_p95,
+                                "z_score": metric_z,
+                                "p_value": metric_p,
                                 "excess": float(metric_obs - metric_exp),
                                 "baseline_model": self.collision_baseline_model,
                                 "baseline_source": effective_baseline_source,
                                 "baseline_degraded": bool(scope_degraded),
                                 "is_low_power": low_power,
-                                "inference_status": "descriptive_only" if low_power else "tested",
+                                "inference_status": (
+                                    "tested"
+                                    if metric_inferential_status == "reference_model_inference"
+                                    else metric_inferential_status
+                                ),
+                                "inferential_status": metric_inferential_status,
+                                "inferential_reason": metric_inferential_reason,
                             }
                         )
                     if self.position_hearing_baseline_enabled and not scope_all_histogram.empty:
@@ -2338,6 +2452,17 @@ class DuplicatesExactDetector(Detector):
                                     n_side_unique < self.low_power_min_unique_names
                                     or expected_primary < self.low_power_min_expected_duplicates
                                 )
+                                position_inference_status = (
+                                    "descriptive_only" if low_power_position else "tested"
+                                )
+                                position_inferential_reason = (
+                                    self.INFERENTIAL_REASON_LOW_POWER
+                                    if low_power_position
+                                    else self.INFERENTIAL_REASON_REFERENCE_MODEL_INFERENCE
+                                )
+                                if scope_inferential_status != "reference_model_inference":
+                                    position_inference_status = scope_inferential_status
+                                    position_inferential_reason = scope_inferential_reason
                                 deviance = float(observed_primary - expected_primary)
                                 position_bucket_frames.append(
                                     {
@@ -2361,9 +2486,9 @@ class DuplicatesExactDetector(Detector):
                                         "shrink_k": float(shrink_k),
                                         "prior_level": str(prior_level),
                                         "is_low_power": bool(low_power_position),
-                                        "inference_status": (
-                                            "descriptive_only" if low_power_position else "tested"
-                                        ),
+                                        "inference_status": position_inference_status,
+                                        "inferential_status": position_inference_status,
+                                        "inferential_reason": position_inferential_reason,
                                     }
                                 )
             record_runtime_timing(
@@ -2377,12 +2502,19 @@ class DuplicatesExactDetector(Detector):
                 primary_scope_unique_count = int(observed_metrics["n_unique_names"])
                 primary_scope_repeated = float(observed_metrics["repeated_group_rows"])
                 primary_scope_pairs = float(observed_metrics["pairs"])
-                primary_scope_significant = int(grouped["is_significant"].sum())
+                primary_scope_significant = int(
+                    pd.to_numeric(grouped.get("is_significant", pd.Series(dtype=float)), errors="coerce")
+                    .fillna(0.0)
+                    .astype(float)
+                    .sum()
+                )
                 primary_scope_baseline_source = effective_baseline_source
                 primary_scope_degraded = bool(scope_degraded)
                 primary_scope_n_used = int(n_scope)
                 primary_scope_n_population = int(n_population)
                 primary_scope_stratification = effective_scope_stratification
+                primary_scope_inferential_status = scope_inferential_status
+                primary_scope_inferential_reason = scope_inferential_reason
                 primary_scope_low_power = bool(
                     primary_scope_unique_count < self.low_power_min_unique_names
                     or float(expected_metrics.get(self.collision_primary_metric, 0.0))
@@ -2443,7 +2575,18 @@ class DuplicatesExactDetector(Detector):
                         "observed_count": "n",
                     }
                 ).copy()
-                legacy_per_name_anomalies["inference_status"] = "tested"
+                if "inferential_status" in legacy_per_name_anomalies.columns:
+                    legacy_per_name_anomalies["inference_status"] = legacy_per_name_anomalies[
+                        "inferential_status"
+                    ]
+                else:
+                    legacy_per_name_anomalies["inference_status"] = scope_inferential_status
+                if "inferential_reason" in legacy_per_name_anomalies.columns:
+                    legacy_per_name_anomalies["inference_reason"] = legacy_per_name_anomalies[
+                        "inferential_reason"
+                    ]
+                else:
+                    legacy_per_name_anomalies["inference_reason"] = scope_inferential_reason
                 legacy_top_repeated = legacy_per_name_anomalies[
                     legacy_per_name_anomalies["n"] >= 2
                 ][["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"]].copy()
@@ -2796,9 +2939,8 @@ class DuplicatesExactDetector(Detector):
             "position_claim_eligible": bool(position_claim_eligible),
             "position_claim_reason": str(position_claim_reason),
             "claim_class": self.COLLISION_CLAIM_CLASS,
-            "inferential_status": self._scope_inferential_status(
-                primary_scope_baseline_source
-            ),
+            "inferential_status": primary_scope_inferential_status,
+            "inferential_reason": primary_scope_inferential_reason,
             "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
             "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
             "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
@@ -2806,6 +2948,8 @@ class DuplicatesExactDetector(Detector):
                 "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
                 "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
                 "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
+                "inferential_status": primary_scope_inferential_status,
+                "inferential_reason": primary_scope_inferential_reason,
             },
         }
         record_runtime_timing(

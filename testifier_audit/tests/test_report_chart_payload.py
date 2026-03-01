@@ -833,6 +833,9 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert "unit_deviation_names" in rows_row
     assert all(row.get("baseline_label") == "Same-hearing empirical baseline" for row in diagnostics)
     assert all(row.get("inferential_status") == "descriptive_only" for row in diagnostics)
+    assert all(row.get("inferential_reason") == "self_referential_baseline" for row in diagnostics)
+    assert all(row.get("p_value") is None for row in diagnostics)
+    assert all(row.get("z_score") is None for row in diagnostics)
 
     timing_exact_rows = payload["charts"]["duplicates_exact_top_name_timing_exact"]
     assert timing_exact_rows
@@ -858,6 +861,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert timing_required.issubset(set(timing_exact_rows[0].keys()))
     assert all(row.get("baseline_label") == "Same-hearing empirical baseline" for row in timing_exact_rows)
     assert all(row.get("inferential_status") == "descriptive_only" for row in timing_exact_rows)
+    assert all(row.get("inferential_reason") == "self_referential_baseline" for row in timing_exact_rows)
 
     controls = payload["controls"]
     assert controls["duplicate_collision_scope_default"] == "matched_only"
@@ -870,6 +874,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert duplicate_contract["claim_class"] == "collision_signal"
     assert duplicate_contract["baseline_label"] == "Same-hearing empirical baseline"
     assert duplicate_contract["inferential_status"] == "descriptive_only"
+    assert duplicate_contract["inferential_reason"] == "self_referential_baseline"
     assert "duplicates_exact_metric_diagnostics" in duplicate_contract["chart_declarations"]
     assert "collision_overview" in duplicate_contract["table_declarations"]
 
@@ -979,6 +984,138 @@ def test_duplicates_exact_bucket_concentration_keeps_signed_deviation() -> None:
     assert rows_row["duplicate_rows"] == 0.0
     assert rows_row["expected_duplicate_rows"] == 0.25
     assert rows_row["excess_duplicate_rows"] == -0.25
+
+
+def test_payload_masks_duplicate_inferential_fields_when_status_unavailable() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                    "n_total": [6],
+                    "n_pro": [3],
+                    "n_con": [3],
+                    "pro_rate": [0.5],
+                    "pro_rate_wilson_low": [0.2],
+                    "pro_rate_wilson_high": [0.8],
+                    "is_low_power": [False],
+                    "n_unique_names": [3],
+                    "unique_ratio": [0.5],
+                }
+            ),
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_label": "Statewide registry reference baseline",
+                        "baseline_model": "multinomial",
+                        "uncertainty_model": "analytic_only",
+                        "n_used": 6,
+                        "N_used": 1000,
+                        "metric_primary": "repeated_group_rows",
+                        "metrics_reported": "repeated_group_rows,excess_rows,pairs",
+                        "baseline_degraded": False,
+                        "fallback_policy": "fail",
+                        "collision_key_mode": "strict",
+                        "normalization_version_hash": "abc123",
+                        "stratification": "none",
+                        "censored": False,
+                        "claim_class": "collision_signal",
+                        "inferential_status": "unavailable",
+                        "inferential_reason": "analytic_only_no_null_samples",
+                        "estimand_primary": (
+                            "name-key collision burden relative to reference baseline"
+                        ),
+                        "non_goals": (
+                            "cannot infer identity, intent, IP-based behavior, or per-person "
+                            "duplication from the public dataset"
+                        ),
+                        "baseline_semantics": "reference model; not the data-generating process",
+                    }
+                ]
+            ),
+            "duplicates_exact.collision_overview": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "observed": 4.0,
+                        "expected": 1.5,
+                        "expected_p05": 0.8,
+                        "expected_p50": 1.5,
+                        "expected_p95": 2.2,
+                        "z_score": 2.4,
+                        "p_value": 0.01,
+                        "n_used": 6,
+                        "N_used": 1000,
+                    }
+                ]
+            ),
+            "duplicates_exact.collision_by_bucket": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "repeated_group_rows",
+                        "bucket_start": pd.Timestamp("2026-02-01T00:00:00Z"),
+                        "bucket_minutes": 5,
+                        "n_bucket": 6,
+                        "n_used": 6,
+                        "N_used": 1000,
+                        "n_unique_names": 3,
+                        "n_pro": 3,
+                        "n_con": 3,
+                        "observed": 4.0,
+                        "expected": 1.5,
+                        "expected_p05": 0.8,
+                        "expected_p95": 2.2,
+                        "z_score": 2.4,
+                        "p_value": 0.01,
+                        "excess": 2.5,
+                        "baseline_model": "multinomial",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_degraded": False,
+                        "is_low_power": False,
+                        "inference_status": "tested",
+                    }
+                ]
+            ),
+            "duplicates_exact.per_name_display": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "display_name": "DOE, JANE",
+                        "canonical_name": "DOE|JANE",
+                        "observed_count": 3,
+                        "n_pro": 2,
+                        "n_con": 1,
+                        "time_span_minutes": 4.0,
+                        "expected_count": 1.0,
+                        "p_value": 0.02,
+                        "q_value": 0.03,
+                        "is_significant": True,
+                        "display_truncated": False,
+                    }
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+
+    diagnostics = payload["charts"]["duplicates_exact_metric_diagnostics"]
+    assert diagnostics
+    assert diagnostics[0]["inferential_status"] == "unavailable"
+    assert diagnostics[0]["inferential_reason"] == "analytic_only_no_null_samples"
+    assert diagnostics[0]["p_value"] is None
+    assert diagnostics[0]["z_score"] is None
+
+    per_name = payload["charts"]["duplicates_exact_per_name_anomalies"]
+    assert per_name
+    assert per_name[0]["inferential_status"] == "unavailable"
+    assert per_name[0]["inferential_reason"] == "analytic_only_no_null_samples"
+    assert per_name[0]["p_value"] is None
+    assert per_name[0]["q_value"] is None
+    assert per_name[0]["is_significant"] is None
 
 
 def test_payload_preserves_duplicate_bucket_options_when_one_minute_rows_dominate() -> None:

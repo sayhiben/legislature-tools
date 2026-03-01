@@ -142,8 +142,18 @@ def test_collision_baseline_failure_policy_fail_and_degrade() -> None:
     assert bool(primary_methods.loc[0, "baseline_degraded"]) is True
     assert str(primary_methods.loc[0, "baseline_source"]) == "hearing_empirical"
     assert str(primary_methods.loc[0, "fallback_policy"]) == "degrade"
+    assert str(primary_methods.loc[0, "inferential_status"]) == "descriptive_only"
+    assert (
+        str(primary_methods.loc[0, "inferential_reason"])
+        == degraded.INFERENTIAL_REASON_DEGRADED_TO_SELF_REFERENTIAL
+    )
     assert bool(degraded_result.summary["baseline_degraded"]) is True
     assert str(degraded_result.summary["baseline_source"]) == "hearing_empirical"
+    assert str(degraded_result.summary["inferential_status"]) == "descriptive_only"
+    assert (
+        str(degraded_result.summary["inferential_reason"])
+        == degraded.INFERENTIAL_REASON_DEGRADED_TO_SELF_REFERENTIAL
+    )
 
     fail_fast = DuplicatesExactDetector(
         top_n=25,
@@ -175,12 +185,15 @@ def test_duplicate_statistical_contract_is_emitted_in_summary_and_methods() -> N
     assert summary["statistical_contract"]["estimand_primary"] == detector.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY
     assert summary["statistical_contract"]["non_goals"] == detector.STATISTICAL_CONTRACT_NON_GOALS
     assert summary["statistical_contract"]["baseline_semantics"] == detector.STATISTICAL_CONTRACT_BASELINE_SEMANTICS
+    assert summary["statistical_contract"]["inferential_status"] == summary["inferential_status"]
+    assert summary["statistical_contract"]["inferential_reason"] == summary["inferential_reason"]
 
     methods = result.tables["collision_methods"]
     required_columns = {
         "baseline_label",
         "claim_class",
         "inferential_status",
+        "inferential_reason",
         "estimand_primary",
         "non_goals",
         "baseline_semantics",
@@ -198,6 +211,109 @@ def test_duplicate_statistical_contract_is_emitted_in_summary_and_methods() -> N
     assert methods["inferential_status"].astype(str).isin(
         {"descriptive_only", "reference_model_inference"}
     ).all()
+
+
+def test_self_referential_baseline_suppresses_inferential_fields() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 3, "BROWN|AVA": 2})
+    detector = DuplicatesExactDetector(
+        top_n=25,
+        bucket_minutes=[5],
+        collision_baseline_source="hearing_empirical",
+        collision_uncertainty_mode="monte_carlo",
+        monte_carlo_draws=400,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+    )
+    result = detector.run(df=frame, features={})
+    primary_scope = detector.collision_scope_primary
+
+    methods = result.tables["collision_methods"]
+    primary_methods = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_methods.empty
+    assert str(primary_methods.loc[0, "inferential_status"]) == "descriptive_only"
+    assert (
+        str(primary_methods.loc[0, "inferential_reason"])
+        == detector.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE
+    )
+
+    overview = result.tables["collision_overview"]
+    primary_overview = overview[overview["scope"] == primary_scope].copy()
+    assert not primary_overview.empty
+    assert primary_overview["p_value"].isna().all()
+    assert primary_overview["z_score"].isna().all()
+
+    per_name = result.tables["per_name_tests"]
+    primary_per_name = per_name[per_name["scope"] == primary_scope].copy()
+    assert not primary_per_name.empty
+    assert primary_per_name["p_value"].isna().all()
+    assert primary_per_name["q_value"].isna().all()
+    assert primary_per_name["is_significant"].isna().all()
+    assert not primary_per_name["tested"].astype(bool).any()
+
+    buckets = result.tables["collision_by_bucket"]
+    primary_buckets = buckets[buckets["scope"] == primary_scope].copy()
+    assert not primary_buckets.empty
+    assert set(primary_buckets["inference_status"].astype(str)) == {"descriptive_only"}
+    assert primary_buckets["p_value"].isna().all()
+    assert primary_buckets["z_score"].isna().all()
+
+
+def test_analytic_only_null_path_reports_unavailable_and_suppresses_inference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 3, "BROWN|AVA": 2})
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1],
+                "n_keys": [50_000],
+                "N": [50_000],
+            }
+        ),
+    )
+    detector = DuplicatesExactDetector(
+        top_n=25,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_uncertainty_mode="analytic_only",
+        voter_db_url="postgresql://example",
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+    )
+    result = detector.run(df=frame, features={})
+    primary_scope = detector.collision_scope_primary
+
+    methods = result.tables["collision_methods"]
+    primary_methods = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_methods.empty
+    assert str(primary_methods.loc[0, "inferential_status"]) == "unavailable"
+    assert (
+        str(primary_methods.loc[0, "inferential_reason"])
+        == detector.INFERENTIAL_REASON_NO_NULL_SAMPLES
+    )
+
+    overview = result.tables["collision_overview"]
+    primary_overview = overview[overview["scope"] == primary_scope].copy()
+    assert not primary_overview.empty
+    assert primary_overview["p_value"].isna().all()
+    assert primary_overview["z_score"].isna().all()
+
+    per_name = result.tables["per_name_tests"]
+    primary_per_name = per_name[per_name["scope"] == primary_scope].copy()
+    assert not primary_per_name.empty
+    assert primary_per_name["p_value"].isna().all()
+    assert primary_per_name["q_value"].isna().all()
+    assert primary_per_name["is_significant"].isna().all()
+    assert not primary_per_name["tested"].astype(bool).any()
+
+    buckets = result.tables["collision_by_bucket"]
+    primary_buckets = buckets[buckets["scope"] == primary_scope].copy()
+    assert not primary_buckets.empty
+    assert set(primary_buckets["inference_status"].astype(str)) == {"unavailable"}
+    assert primary_buckets["p_value"].isna().all()
+    assert primary_buckets["z_score"].isna().all()
 
 
 def test_duplicates_exact_emits_scope_phase_runtime_profile_keys() -> None:
@@ -276,11 +392,24 @@ def test_per_name_display_limit_does_not_censor_tested_totals(
             index=p_values.index if isinstance(p_values, pd.Series) else None,
         ),
     )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1],
+                "n_keys": [10_000],
+                "N": [10_000],
+            }
+        ),
+    )
 
     detector = DuplicatesExactDetector(
         top_n=100,
         bucket_minutes=[30],
-        collision_uncertainty_mode="analytic_only",
+        collision_uncertainty_mode="monte_carlo",
+        collision_baseline_source="vrdb_full_histogram",
+        voter_db_url="postgresql://example",
         per_name_display_limit=display_limit,
     )
     result = detector.run(df=frame, features={})

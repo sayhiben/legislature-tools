@@ -94,6 +94,9 @@ class NameAnalysisConfig(BaseModel):
     monte_carlo_draws: int = Field(default=20_000, ge=100)
     position_permutation_draws: int = Field(default=10_000, ge=100)
     temporal_permutation_draws: int = Field(default=5_000, ge=100)
+    temporal_null_mode: Literal["hearing_intensity", "hearing_intensity_by_position"] = (
+        "hearing_intensity"
+    )
     bh_fdr_q: float = Field(default=0.10, gt=0.0, lt=1.0)
     low_power_min_unique_names: int = Field(default=25, ge=1)
     low_power_min_expected_duplicates: float = Field(default=5.0, ge=0.0)

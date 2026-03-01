@@ -21,23 +21,23 @@ Execution order is tracked here independently from ticket numbering.
 10. `DUP-006` (Implemented, 2026-02-28; analyst sign-off pending)
 11. `DUP-011` (Done, 2026-02-28)
 12. `DUP-012` (Done, 2026-02-28)
+13. `DUP-013` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-013` (next in-progress target)
+1. `DUP-014` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-013`
-2. `DUP-014`
-3. `DUP-015`
-4. `DUP-016`
-5. `DUP-017`
-6. `DUP-018`
-7. `DUP-019`
-8. `DUP-020`
-9. `DUP-021`
+1. `DUP-014`
+2. `DUP-015`
+3. `DUP-016`
+4. `DUP-017`
+5. `DUP-018`
+6. `DUP-019`
+7. `DUP-020`
+8. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, and **DUP-012**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, and **DUP-013**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1021,4 +1021,83 @@ Work item: DUP-012 (P1)
   - directionally valid p-values (two-sided, fixed test definition)
   - cluster-aware intervals
   - report language scoped to position imbalance signals
-- Next ticket in sequence is `DUP-013`.
+- Next ticket in sequence is `DUP-014`.
+
+---
+
+## DUP-013 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-013 (P1)
+
+## What Was Implemented
+- Added explicit temporal null configuration and detector metadata:
+  - new config field: `name_analysis.temporal_null_mode`
+  - supported modes:
+    - `hearing_intensity`
+    - `hearing_intensity_by_position`
+  - wired config into detector registry and defaults in:
+    - `configs/default.yaml`
+    - `configs/voter_registry_enabled.yaml`
+- Upgraded temporal null generation path:
+  - preserved hearing-intensity null (`hearing_intensity`) using hearing-wide timestamp resampling.
+  - added position-conditioned null (`hearing_intensity_by_position`) that resamples within hearing-wide position pools.
+- Tightened temporal inferential execution to Family C discoveries:
+  - temporal inferential p-values are only computed for names that pass the per-name follow-up screen.
+  - non-gated names retain descriptive timing metrics but inferential temporal fields remain null.
+- Added explicit conditioned-null downgrade behavior:
+  - if a name fully occupies a conditioning stratum (no non-self rows available), temporal inferential output for that row is downgraded:
+    - `gate_reason=temporal_null_not_supportable`
+    - `inferential_reason=temporal_null_not_supportable`
+    - inferential status set to `descriptive_only`
+- Added temporal output metadata fields to `temporal_burst_signals`:
+  - `temporal_null_model`
+  - `temporal_null_supported`
+  - `temporal_null_support_reason`
+  - `temporal_inferential_name_gate_passed`
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - added regression confirming temporal inferential p-values are computed only for names in the inferential name gate.
+  - added regression confirming position-conditioned null rows downgrade to descriptive-only when conditioning strata are exhausted.
+- Focused validation run:
+  - `python -m pytest tests/test_duplicates_exact.py tests/test_report_chart_payload.py tests/test_analysis_registry.py tests/test_report_render_helpers.py`
+  - result: `80 passed` (warnings only; no failures)
+
+## Runtime / Report Validation (ESSB 6346)
+- Full recompute executed:
+  - command:
+    - `TESTIFIER_AUDIT_DB_URL=postgresql://legislature:legislature@localhost:55432/legislature python -m testifier_audit.cli run-all --csv ../data/raw/ESSB6346-20260224-0800.csv --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup013_essb6346_runall_csv.log`
+  - completion evidence:
+    - `Duplicate evidence matrix built: bucket_variants=7 scenario_rows=28`
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Rerender completed:
+  - command:
+    - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup013_essb6346_rerender.log`
+- Artifact check on generated temporal table:
+  - `tables/duplicates_exact__temporal_burst_signals.parquet` includes new temporal-null metadata fields.
+  - ESSB rows in this run showed supported conditioned-null inferential rows with populated temporal q-values.
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - report renders with expected duplicate-family content and controls.
+    - report-data shard requests returned `200`.
+    - only console error was local static-server `favicon.ico` `404`.
+
+## Issues Discovered During DUP-013
+- Position-conditioned null support can be structurally unavailable for names that saturate a conditioning stratum.
+- Mitigation:
+  - explicit downgrade metadata/reasoning added (`temporal_null_not_supportable`).
+  - inferential outputs are suppressed for unsupported rows while preserving descriptive timing summaries.
+
+## Remaining Work / Handoff
+- DUP-013 acceptance criteria are met:
+  - temporal inferential outputs gated to per-name Family C discoveries
+  - temporal families carry adjusted q-values when eligible, else descriptive-only labeling
+  - temporal null explicitly preserves hearing-wide intensity and supports position-conditioned resampling mode
+- Next ticket in sequence is `DUP-014`.

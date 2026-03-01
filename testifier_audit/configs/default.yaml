@@ -58,6 +58,7 @@ name_analysis:
   monte_carlo_draws: 20000
   position_permutation_draws: 10000
   temporal_permutation_draws: 5000
+  temporal_null_mode: "hearing_intensity"
   bh_fdr_q: 0.10
   low_power_min_unique_names: 25
   low_power_min_expected_duplicates: 5.0

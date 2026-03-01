@@ -44,6 +44,7 @@ from testifier_audit.profiling import (
 CollisionBaselineModel = Literal["multinomial", "hypergeometric"]
 CollisionBaselineSource = Literal["vrdb_full_histogram", "vrdb_full_keys", "hearing_empirical"]
 CollisionScope = Literal["matched_only", "full_hearing", "unmatched_only"]
+TemporalNullMode = Literal["hearing_intensity", "hearing_intensity_by_position"]
 
 _KEY_TO_COLUMN = {
     "strict": "collision_key_strict",
@@ -120,6 +121,11 @@ class DuplicatesExactDetector(Detector):
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
     POSITION_RATE_DIFF_INTERVAL_METHOD_ID = "position_rate_difference_cluster_bootstrap_v1"
     POSITION_PERMUTATION_TEST_ID = "position_rate_difference_permutation_abs_two_sided_v1"
+    TEMPORAL_NULL_MODE_HEARING_INTENSITY = "hearing_intensity"
+    TEMPORAL_NULL_MODE_HEARING_INTENSITY_BY_POSITION = "hearing_intensity_by_position"
+    TEMPORAL_NULL_SUPPORT_REASON_SUPPORTED = "supported"
+    TEMPORAL_NULL_SUPPORT_REASON_NAME_NOT_GATED = "name_not_family_c_discovery"
+    TEMPORAL_NULL_SUPPORT_REASON_POSITION_POOL_SPARSE = "position_pool_sparse"
     POSITION_CLAIM_REASON_ELIGIBLE = "eligible"
     POSITION_CLAIM_REASON_UNSUPPORTED_MODEL = "unsupported_collision_baseline_model"
     POSITION_CLAIM_REASON_NO_POSITION_ROWS = "no_position_rows"
@@ -144,10 +150,12 @@ class DuplicatesExactDetector(Detector):
     GATE_REASON_SECONDARY_BUCKET_METRIC = "secondary_bucket_metric"
     GATE_REASON_NO_FAMILY_C_DISCOVERIES = "no_family_c_discoveries"
     GATE_REASON_NAME_NOT_FAMILY_C_DISCOVERY = "name_not_family_c_discovery"
+    GATE_REASON_TEMPORAL_NULL_UNSUPPORTED = "temporal_null_not_supportable"
     INFERENTIAL_REASON_SECONDARY_SCOPE_METRIC = "secondary_scope_metric_descriptive"
     INFERENTIAL_REASON_SECONDARY_BUCKET_METRIC = "secondary_bucket_metric_descriptive"
     INFERENTIAL_REASON_FAMILY_A_GATE_NOT_PASSED = "family_a_gate_not_passed"
     INFERENTIAL_REASON_FAMILY_C_GATE_NOT_PASSED = "family_c_gate_not_passed"
+    INFERENTIAL_REASON_TEMPORAL_NULL_UNSUPPORTED = "temporal_null_not_supportable"
 
     def __init__(
         self,
@@ -172,6 +180,7 @@ class DuplicatesExactDetector(Detector):
         monte_carlo_draws: int = 20_000,
         position_permutation_draws: int = 10_000,
         temporal_permutation_draws: int = 5_000,
+        temporal_null_mode: str = "hearing_intensity",
         bh_fdr_q: float = 0.10,
         low_power_min_unique_names: int = 25,
         low_power_min_expected_duplicates: float = 5.0,
@@ -250,6 +259,13 @@ class DuplicatesExactDetector(Detector):
         self.monte_carlo_draws = max(100, int(monte_carlo_draws))
         self.position_permutation_draws = max(100, int(position_permutation_draws))
         self.temporal_permutation_draws = max(100, int(temporal_permutation_draws))
+        temporal_null_mode_normalized = str(temporal_null_mode or "").strip().lower()
+        if temporal_null_mode_normalized not in {
+            self.TEMPORAL_NULL_MODE_HEARING_INTENSITY,
+            self.TEMPORAL_NULL_MODE_HEARING_INTENSITY_BY_POSITION,
+        }:
+            temporal_null_mode_normalized = self.TEMPORAL_NULL_MODE_HEARING_INTENSITY
+        self.temporal_null_mode: TemporalNullMode = temporal_null_mode_normalized
         self.bh_fdr_q = float(min(max(bh_fdr_q, 0.0), 1.0))
         self.low_power_min_unique_names = max(1, int(low_power_min_unique_names))
         self.low_power_min_expected_duplicates = float(max(low_power_min_expected_duplicates, 0.0))
@@ -1343,20 +1359,34 @@ class DuplicatesExactDetector(Detector):
         key_column: str,
         *,
         rng: np.random.Generator,
+        inferential_name_gate: set[str] | None = None,
     ) -> pd.DataFrame:
         started = perf_counter()
         rows: list[dict[str, object]] = []
         draws = 0
         cached_sample_sizes = 0
+        cached_conditioned_signatures = 0
+        conditioned_downgraded_rows = 0
         try:
             if working.empty:
                 return pd.DataFrame()
+            gate_names: set[str] | None = None
+            if inferential_name_gate is not None:
+                gate_names = {
+                    str(value).strip()
+                    for value in inferential_name_gate
+                    if str(value).strip()
+                }
             all_times = pd.to_datetime(working["timestamp"], errors="coerce").dropna().to_numpy(
                 dtype="datetime64[m]"
             )
             if all_times.size == 0:
                 return pd.DataFrame()
             all_minutes = all_times.astype("datetime64[m]").astype(np.int64)
+            position_series = _safe_str_series(
+                working.get("position_normalized", pd.Series(dtype=str))
+            ).replace("", "Unknown")
+            working = working.assign(_position_key=position_series)
             draws = min(self.temporal_permutation_draws, 1000)
             if draws <= 0:
                 return pd.DataFrame()
@@ -1377,6 +1407,22 @@ class DuplicatesExactDetector(Detector):
                 return pd.DataFrame()
 
             temporal_null_cache: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+            conditioned_temporal_null_cache: dict[
+                tuple[tuple[str, int], ...],
+                tuple[np.ndarray, np.ndarray, np.ndarray],
+            ] = {}
+            all_minutes_by_position: dict[str, np.ndarray] = {}
+            for position_value, position_frame in working.groupby("_position_key", dropna=False):
+                normalized_position = str(position_value).strip() or "Unknown"
+                position_minutes = pd.to_datetime(
+                    position_frame["timestamp"], errors="coerce"
+                ).dropna()
+                if position_minutes.empty:
+                    all_minutes_by_position[normalized_position] = np.empty(0, dtype=np.int64)
+                    continue
+                all_minutes_by_position[normalized_position] = position_minutes.to_numpy(
+                    dtype="datetime64[m]"
+                ).astype(np.int64)
 
             def _cached_temporal_null(sample_size: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
                 cached = temporal_null_cache.get(sample_size)
@@ -1400,6 +1446,56 @@ class DuplicatesExactDetector(Detector):
                 temporal_null_cache[sample_size] = out
                 return out
 
+            def _signature_key(position_counts: dict[str, int]) -> tuple[tuple[str, int], ...]:
+                return tuple(
+                    sorted(
+                        (
+                            str(position).strip() or "Unknown",
+                            int(count),
+                        )
+                        for position, count in position_counts.items()
+                        if int(count) > 0
+                    )
+                )
+
+            def _cached_conditioned_temporal_null(
+                position_counts: dict[str, int],
+            ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+                signature = _signature_key(position_counts)
+                cached = conditioned_temporal_null_cache.get(signature)
+                if cached is not None:
+                    return cached
+                min_gap_null = np.empty(draws, dtype=np.int64)
+                within_5_null = np.empty(draws, dtype=np.int64)
+                within_15_null = np.empty(draws, dtype=np.int64)
+                for draw_idx in range(draws):
+                    sampled_chunks: list[np.ndarray] = []
+                    for position_value, requested_count in signature:
+                        pool = all_minutes_by_position.get(position_value, np.empty(0, dtype=np.int64))
+                        sampled_chunks.append(
+                            np.asarray(
+                                rng.choice(pool, size=int(requested_count), replace=False),
+                                dtype=np.int64,
+                            )
+                        )
+                    sampled = (
+                        np.sort(np.concatenate(sampled_chunks))
+                        if sampled_chunks
+                        else np.empty(0, dtype=np.int64)
+                    )
+                    sampled_gaps = np.diff(sampled)
+                    if sampled_gaps.size:
+                        min_gap_null[draw_idx] = int(sampled_gaps.min())
+                        within_5_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 5))
+                        within_15_null[draw_idx] = int(np.count_nonzero(sampled_gaps <= 15))
+                    else:
+                        min_gap_null[draw_idx] = 0
+                        within_5_null[draw_idx] = 0
+                        within_15_null[draw_idx] = 0
+                out = (min_gap_null, within_5_null, within_15_null)
+                conditioned_temporal_null_cache[signature] = out
+                return out
+
             for key, group in working.groupby(key_column, dropna=False):
                 times = pd.to_datetime(group["timestamp"], errors="coerce").dropna().to_numpy(
                     dtype="datetime64[m]"
@@ -1413,24 +1509,74 @@ class DuplicatesExactDetector(Detector):
                 within_15 = int(np.sum(gaps <= 15))
                 span_minutes = int(minutes.max() - minutes.min()) if minutes.size else 0
 
+                canonical_name = str(key).strip()
                 sample_size = int(len(minutes))
-                min_gap_null, within_5_null, within_15_null = _cached_temporal_null(sample_size)
-                p_value_min_gap = (
-                    float((np.sum(min_gap_null <= min_gap) + 1) / (draws + 1)) if draws else 1.0
+                inferential_gate_passed = (
+                    True if gate_names is None else canonical_name in gate_names
                 )
-                p_value_within_5 = (
-                    float((np.sum(within_5_null >= within_5) + 1) / (draws + 1))
-                    if draws
-                    else 1.0
+                temporal_null_conditioning_supported = True
+                temporal_null_support_reason = self.TEMPORAL_NULL_SUPPORT_REASON_SUPPORTED
+                min_gap_null = np.empty(0, dtype=np.int64)
+                within_5_null = np.empty(0, dtype=np.int64)
+                within_15_null = np.empty(0, dtype=np.int64)
+                if self.temporal_null_mode == self.TEMPORAL_NULL_MODE_HEARING_INTENSITY_BY_POSITION:
+                    position_counts = (
+                        _safe_str_series(group.get("_position_key", pd.Series(dtype=str)))
+                        .replace("", "Unknown")
+                        .value_counts(dropna=False)
+                        .astype(int)
+                        .to_dict()
+                    )
+                    for position_value, requested_count in position_counts.items():
+                        pool_size = int(
+                            len(
+                                all_minutes_by_position.get(
+                                    str(position_value).strip() or "Unknown",
+                                    np.empty(0, dtype=np.int64),
+                                )
+                            )
+                        )
+                        # Require at least one non-self row in each conditioning stratum;
+                        # otherwise the conditioned null has no alternative support.
+                        if pool_size <= int(requested_count):
+                            temporal_null_conditioning_supported = False
+                            temporal_null_support_reason = (
+                                self.TEMPORAL_NULL_SUPPORT_REASON_POSITION_POOL_SPARSE
+                            )
+                            conditioned_downgraded_rows += 1
+                            break
+                    if temporal_null_conditioning_supported:
+                        min_gap_null, within_5_null, within_15_null = (
+                            _cached_conditioned_temporal_null(position_counts)
+                        )
+                else:
+                    min_gap_null, within_5_null, within_15_null = _cached_temporal_null(
+                        sample_size
+                    )
+
+                temporal_null_supported = (
+                    inferential_gate_passed and temporal_null_conditioning_supported
                 )
-                p_value_within_15 = (
-                    float((np.sum(within_15_null >= within_15) + 1) / (draws + 1))
-                    if draws
-                    else 1.0
-                )
+                if not inferential_gate_passed:
+                    temporal_null_support_reason = self.TEMPORAL_NULL_SUPPORT_REASON_NAME_NOT_GATED
+
+                p_value_min_gap = np.nan
+                p_value_within_5 = np.nan
+                p_value_within_15 = np.nan
+                draws_effective = 0
+                if temporal_null_supported and draws:
+                    p_value_min_gap = float((np.sum(min_gap_null <= min_gap) + 1) / (draws + 1))
+                    p_value_within_5 = float(
+                        (np.sum(within_5_null >= within_5) + 1) / (draws + 1)
+                    )
+                    p_value_within_15 = float(
+                        (np.sum(within_15_null >= within_15) + 1) / (draws + 1)
+                    )
+                    draws_effective = draws
+
                 rows.append(
                     {
-                        "canonical_name": str(key),
+                        "canonical_name": canonical_name,
                         "min_gap_minutes": min_gap,
                         "within_5m_pairs": within_5,
                         "within_15m_pairs": within_15,
@@ -1438,10 +1584,21 @@ class DuplicatesExactDetector(Detector):
                         "temporal_p_value_min_gap": p_value_min_gap,
                         "temporal_p_value_within_5m": p_value_within_5,
                         "temporal_p_value_within_15m": p_value_within_15,
-                        "temporal_permutation_draws": draws,
+                        "temporal_permutation_draws": int(draws_effective),
+                        "temporal_null_model": self.temporal_null_mode,
+                        "temporal_null_supported": bool(temporal_null_supported),
+                        "temporal_null_support_reason": temporal_null_support_reason,
+                        "temporal_inferential_name_gate_passed": bool(inferential_gate_passed),
                     }
                 )
             cached_sample_sizes = int(len(temporal_null_cache))
+            cached_conditioned_signatures = int(len(conditioned_temporal_null_cache))
+            if conditioned_downgraded_rows > 0:
+                LOGGER.info(
+                    "duplicates_exact temporal conditioned-null downgrade rows=%s mode=%s",
+                    int(conditioned_downgraded_rows),
+                    self.temporal_null_mode,
+                )
             return pd.DataFrame(rows)
         finally:
             record_runtime_timing(
@@ -1456,6 +1613,14 @@ class DuplicatesExactDetector(Detector):
             record_runtime_counter(
                 "simulation.duplicates_exact_temporal_null.cached_sample_sizes",
                 max(int(cached_sample_sizes), 0),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_temporal_null.cached_conditioned_signatures",
+                max(int(cached_conditioned_signatures), 0),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_temporal_null.conditioned_downgraded_rows",
+                max(int(conditioned_downgraded_rows), 0),
             )
             record_runtime_counter(
                 "simulation.duplicates_exact_temporal_null.output_rows",
@@ -2462,8 +2627,27 @@ class DuplicatesExactDetector(Detector):
                 (perf_counter() - per_name_started) * 1000.0,
             )
 
+            temporal_inferential_gate: set[str] = set()
+            if scope_inferential_status == "reference_model_inference" and not grouped.empty:
+                temporal_significant = grouped[
+                    grouped.get("is_significant", pd.Series(dtype=bool))
+                    .fillna(False)
+                    .astype(bool)
+                ]
+                temporal_inferential_gate = {
+                    str(value).strip()
+                    for value in temporal_significant.get(
+                        "canonical_name", pd.Series(dtype=str)
+                    ).tolist()
+                    if str(value).strip()
+                }
             temporal_started = perf_counter()
-            temporal = self._temporal_metrics_by_name(scope_frame, key_column, rng=rng)
+            temporal = self._temporal_metrics_by_name(
+                scope_frame,
+                key_column,
+                rng=rng,
+                inferential_name_gate=temporal_inferential_gate,
+            )
             if not temporal.empty:
                 temporal["scope"] = scope
                 temporal["scope_status"] = scope_status
@@ -3961,6 +4145,13 @@ class DuplicatesExactDetector(Detector):
                 ("n_tests_in_family", 0),
                 ("eligible_by_gate", False),
                 ("gate_reason", self.GATE_REASON_FAMILY_A_NOT_TESTED),
+                ("temporal_null_model", self.temporal_null_mode),
+                ("temporal_null_supported", False),
+                (
+                    "temporal_null_support_reason",
+                    self.TEMPORAL_NULL_SUPPORT_REASON_NAME_NOT_GATED,
+                ),
+                ("temporal_inferential_name_gate_passed", False),
                 ("temporal_q_value_min_gap", np.nan),
                 ("temporal_q_value_within_5m", np.nan),
                 ("temporal_q_value_within_15m", np.nan),
@@ -3972,6 +4163,28 @@ class DuplicatesExactDetector(Detector):
                     temporal_burst[metadata_column] = default_value
             temporal_burst["family_id"] = self.FAMILY_ID_TEMPORAL
             temporal_burst["adjustment_method"] = self.ADJUSTMENT_METHOD_BH
+            temporal_burst["temporal_null_model"] = (
+                temporal_burst.get("temporal_null_model", pd.Series(dtype=str))
+                .fillna(self.temporal_null_mode)
+                .astype(str)
+            )
+            temporal_burst["temporal_null_supported"] = (
+                temporal_burst.get("temporal_null_supported", pd.Series(dtype=bool))
+                .fillna(False)
+                .astype(bool)
+            )
+            temporal_burst["temporal_null_support_reason"] = (
+                temporal_burst.get("temporal_null_support_reason", pd.Series(dtype=str))
+                .fillna(self.TEMPORAL_NULL_SUPPORT_REASON_NAME_NOT_GATED)
+                .astype(str)
+            )
+            temporal_burst["temporal_inferential_name_gate_passed"] = (
+                temporal_burst.get(
+                    "temporal_inferential_name_gate_passed", pd.Series(dtype=bool)
+                )
+                .fillna(False)
+                .astype(bool)
+            )
 
             significant_name_lookup: dict[str, set[str]] = {}
             if not per_name_tests.empty:
@@ -4022,10 +4235,14 @@ class DuplicatesExactDetector(Detector):
                     .str.lower()
                     == "reference_model_inference"
                 )
+                scope_null_supported = temporal_burst.loc[
+                    scope_index, "temporal_null_supported"
+                ].fillna(False).astype(bool)
                 scope_eligible = (
                     pd.Series(scope_gate_passes, index=scope_index, dtype=bool)
                     & scope_name_eligible
                     & scope_inferential_supported
+                    & scope_null_supported
                 )
                 n_scope_tests = int(scope_eligible.sum())
                 temporal_burst.loc[scope_index, "n_tests"] = n_scope_tests
@@ -4044,6 +4261,13 @@ class DuplicatesExactDetector(Detector):
                 scope_gate_reason_series.loc[
                     (~scope_eligible) & scope_gate_passes & (~scope_inferential_supported)
                 ] = self.GATE_REASON_SCOPE_NOT_INFERENTIAL
+                scope_gate_reason_series.loc[
+                    (~scope_eligible)
+                    & scope_gate_passes
+                    & scope_name_eligible
+                    & scope_inferential_supported
+                    & (~scope_null_supported)
+                ] = self.GATE_REASON_TEMPORAL_NULL_UNSUPPORTED
                 temporal_burst.loc[scope_index, "gate_reason"] = scope_gate_reason_series
 
                 for p_column, q_column, significant_column in (
@@ -4096,12 +4320,22 @@ class DuplicatesExactDetector(Detector):
                     temporal_burst.loc[scope_index[downgraded], "inferential_status"] = (
                         "descriptive_only"
                     )
-                    if scope_gate_passes:
-                        temporal_burst.loc[scope_index[downgraded], "inferential_reason"] = (
-                            self.INFERENTIAL_REASON_FAMILY_C_GATE_NOT_PASSED
-                        )
-                    else:
-                        temporal_burst.loc[scope_index[downgraded], "inferential_reason"] = (
+                    downgraded_due_null = downgraded & scope_name_eligible & scope_inferential_supported & (
+                        ~scope_null_supported
+                    )
+                    if bool(downgraded_due_null.any()):
+                        temporal_burst.loc[
+                            scope_index[downgraded_due_null], "inferential_reason"
+                        ] = self.INFERENTIAL_REASON_TEMPORAL_NULL_UNSUPPORTED
+                    remaining_downgraded = downgraded & (~downgraded_due_null)
+                    if bool(remaining_downgraded.any()) and scope_gate_passes:
+                        temporal_burst.loc[
+                            scope_index[remaining_downgraded], "inferential_reason"
+                        ] = self.INFERENTIAL_REASON_FAMILY_C_GATE_NOT_PASSED
+                    elif bool(remaining_downgraded.any()):
+                        temporal_burst.loc[
+                            scope_index[remaining_downgraded], "inferential_reason"
+                        ] = (
                             self.INFERENTIAL_REASON_FAMILY_A_GATE_NOT_PASSED
                         )
 

@@ -1588,3 +1588,144 @@ def test_hypothesis_family_metadata_opens_downstream_when_family_a_significant(
     ].reset_index(drop=True)
     assert not scoped_scope.empty
     assert int(scoped_scope.loc[0, "n_significant"]) == 1
+
+
+def test_temporal_metrics_only_compute_inferential_p_values_for_name_gate() -> None:
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        temporal_permutation_draws=250,
+        temporal_null_mode="hearing_intensity",
+        random_seed=5,
+    )
+    frame = _build_submission_frame({"ALPHA|A": 3, "BETA|B": 3})
+    temporal = detector._temporal_metrics_by_name(
+        frame,
+        "canonical_name",
+        rng=np.random.default_rng(5),
+        inferential_name_gate={"ALPHA|A"},
+    ).sort_values("canonical_name").reset_index(drop=True)
+
+    assert not temporal.empty
+    alpha_row = temporal[temporal["canonical_name"].astype(str) == "ALPHA|A"].iloc[0]
+    beta_row = temporal[temporal["canonical_name"].astype(str) == "BETA|B"].iloc[0]
+
+    assert bool(alpha_row["temporal_inferential_name_gate_passed"]) is True
+    assert bool(alpha_row["temporal_null_supported"]) is True
+    assert np.isfinite(float(alpha_row["temporal_p_value_min_gap"]))
+    assert int(alpha_row["temporal_permutation_draws"]) > 0
+
+    assert bool(beta_row["temporal_inferential_name_gate_passed"]) is False
+    assert bool(beta_row["temporal_null_supported"]) is False
+    assert str(beta_row["temporal_null_support_reason"]) == (
+        detector.TEMPORAL_NULL_SUPPORT_REASON_NAME_NOT_GATED
+    )
+    assert pd.isna(beta_row["temporal_p_value_min_gap"])
+    assert int(beta_row["temporal_permutation_draws"]) == 0
+
+
+def test_temporal_conditioned_null_downgrades_when_position_pool_is_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = pd.DataFrame(
+        [
+            {
+                "id": 1,
+                "canonical_name": "ALPHA|A",
+                "name_display": "ALPHA, A",
+                "position_normalized": "Pro",
+                "timestamp": pd.Timestamp("2026-02-01 10:00:00"),
+                "minute_bucket": pd.Timestamp("2026-02-01 10:00:00"),
+            },
+            {
+                "id": 2,
+                "canonical_name": "ALPHA|A",
+                "name_display": "ALPHA, A",
+                "position_normalized": "Pro",
+                "timestamp": pd.Timestamp("2026-02-01 10:02:00"),
+                "minute_bucket": pd.Timestamp("2026-02-01 10:02:00"),
+            },
+            {
+                "id": 3,
+                "canonical_name": "BETA|B",
+                "name_display": "BETA, B",
+                "position_normalized": "Con",
+                "timestamp": pd.Timestamp("2026-02-01 10:04:00"),
+                "minute_bucket": pd.Timestamp("2026-02-01 10:04:00"),
+            },
+            {
+                "id": 4,
+                "canonical_name": "BETA|B",
+                "name_display": "BETA, B",
+                "position_normalized": "Con",
+                "timestamp": pd.Timestamp("2026-02-01 10:06:00"),
+                "minute_bucket": pd.Timestamp("2026-02-01 10:06:00"),
+            },
+        ]
+    )
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1],
+                "n_keys": [50_000],
+                "N": [50_000],
+            }
+        ),
+    )
+
+    def _low_null(**kwargs) -> pd.DataFrame:
+        draws = max(10, int(kwargs.get("max_draws", kwargs.get("draws", 50))))
+        return pd.DataFrame(
+            {
+                "pairs": np.zeros(draws, dtype=float),
+                "excess_rows": np.zeros(draws, dtype=float),
+                "repeated_group_rows": np.zeros(draws, dtype=float),
+            }
+        )
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "simulate_collision_null_from_histogram",
+        _low_null,
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "binomial_tail_p_value",
+        lambda **kwargs: 0.0,
+    )
+
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_uncertainty_mode="monte_carlo",
+        voter_db_url="postgresql://example",
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        monte_carlo_draws=400,
+        temporal_null_mode="hearing_intensity_by_position",
+        temporal_permutation_draws=250,
+    )
+    result = detector.run(df=frame, features={})
+
+    temporal = result.tables["temporal_burst_signals"]
+    assert not temporal.empty
+    assert set(temporal["temporal_null_model"].astype(str)) == {
+        detector.TEMPORAL_NULL_MODE_HEARING_INTENSITY_BY_POSITION
+    }
+
+    unsupported = temporal[
+        temporal["gate_reason"].astype(str) == detector.GATE_REASON_TEMPORAL_NULL_UNSUPPORTED
+    ].copy()
+    assert not unsupported.empty
+    assert unsupported["temporal_null_supported"].astype(bool).eq(False).all()
+    assert unsupported["eligible_by_gate"].astype(bool).eq(False).all()
+    assert unsupported["inferential_status"].astype(str).eq("descriptive_only").all()
+    assert unsupported["inferential_reason"].astype(str).eq(
+        detector.INFERENTIAL_REASON_TEMPORAL_NULL_UNSUPPORTED
+    ).all()
+    assert unsupported["temporal_p_value_min_gap"].isna().all()
+    assert unsupported["temporal_q_value_min_gap"].isna().all()

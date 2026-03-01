@@ -78,6 +78,7 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             monte_carlo_draws=config.name_analysis.monte_carlo_draws,
             position_permutation_draws=config.name_analysis.position_permutation_draws,
             temporal_permutation_draws=config.name_analysis.temporal_permutation_draws,
+            temporal_null_mode=config.name_analysis.temporal_null_mode,
             bh_fdr_q=config.name_analysis.bh_fdr_q,
             low_power_min_unique_names=config.name_analysis.low_power_min_unique_names,
             low_power_min_expected_duplicates=config.name_analysis.low_power_min_expected_duplicates,

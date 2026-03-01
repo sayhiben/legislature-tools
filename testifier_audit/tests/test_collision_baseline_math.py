@@ -12,6 +12,7 @@ from testifier_audit.names.collision_baseline import (
     histogram_from_name_counts,
     histogram_from_probabilities,
     simulate_collision_null_from_histogram,
+    summarize_collision_observed_vs_null,
 )
 from testifier_audit.profiling import RuntimeProfiler, activate_runtime_profiler
 
@@ -167,6 +168,53 @@ def test_collision_simulation_emits_runtime_profile_events() -> None:
     assert "simulation.collision_null_from_histogram" in timings
     assert timings["simulation.collision_null_from_histogram"]["calls"] == 1
     assert counters["simulation.collision_null_from_histogram.draws_effective"] == 25
+
+
+def test_collision_simulation_precision_target_can_stop_before_draw_cap() -> None:
+    histogram = _hist_from_counts([120, 80, 60, 40, 20, 10, 5, 2, 1, 1])
+    samples = simulate_collision_null_from_histogram(
+        n_rows=120,
+        histogram=histogram,
+        draws=2000,
+        max_draws=2000,
+        min_draws=40,
+        target_p_mcse=0.005,
+        decision_p_threshold=0.05,
+        rng=np.random.default_rng(44),
+        baseline_model="multinomial",
+        tail_observed={
+            "pairs": 1e9,
+            "excess_rows": 1e9,
+            "repeated_group_rows": 1e9,
+        },
+    )
+    assert not samples.empty
+    assert 40 <= len(samples) < 2000
+
+
+def test_summarize_collision_observed_vs_null_emits_precision_metadata() -> None:
+    null_samples = pd.DataFrame(
+        {
+            "pairs": [0.0, 0.0, 1.0, 2.0, 3.0],
+            "excess_rows": [0.0, 1.0, 1.0, 2.0, 2.0],
+            "repeated_group_rows": [0.0, 1.0, 2.0, 2.0, 3.0],
+        }
+    )
+    summary = summarize_collision_observed_vs_null(
+        observed={"pairs": 2.0, "excess_rows": 2.0, "repeated_group_rows": 2.0},
+        expected={"pairs": 1.0, "excess_rows": 1.0, "repeated_group_rows": 1.0},
+        null_samples=null_samples,
+    )
+    assert not summary.empty
+    for column in (
+        "monte_carlo_draws_effective",
+        "monte_carlo_quantile_resolution",
+        "monte_carlo_p_value_mcse",
+        "monte_carlo_p_value_ci_low",
+        "monte_carlo_p_value_ci_high",
+    ):
+        assert column in summary.columns
+    assert (summary["monte_carlo_draws_effective"].astype(int) == len(null_samples)).all()
 
 
 def test_collision_simulation_heavy_calls_use_parallel_executor(

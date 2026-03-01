@@ -1368,6 +1368,11 @@ def _build_interactive_chart_payload_v2(
             "expected_p95",
             "z_score",
             "p_value",
+            "monte_carlo_draws_effective",
+            "monte_carlo_quantile_resolution",
+            "monte_carlo_p_value_mcse",
+            "monte_carlo_p_value_ci_low",
+            "monte_carlo_p_value_ci_high",
             "n_used",
             "N_used",
             "baseline_source",
@@ -1630,7 +1635,17 @@ def _build_interactive_chart_payload_v2(
         dup_exact_collision_overview
     )
     if bool(non_inferential_overview.any()):
-        for inferential_column in ("expected_p05", "expected_p50", "expected_p95", "z_score", "p_value"):
+        for inferential_column in (
+            "expected_p05",
+            "expected_p50",
+            "expected_p95",
+            "z_score",
+            "p_value",
+            "monte_carlo_quantile_resolution",
+            "monte_carlo_p_value_mcse",
+            "monte_carlo_p_value_ci_low",
+            "monte_carlo_p_value_ci_high",
+        ):
             if inferential_column in dup_exact_collision_overview.columns:
                 dup_exact_collision_overview.loc[non_inferential_overview, inferential_column] = np.nan
     dup_exact_metric_diagnostics = dup_exact_collision_overview[
@@ -1658,6 +1673,11 @@ def _build_interactive_chart_payload_v2(
             "expected_p95",
             "z_score",
             "p_value",
+            "monte_carlo_draws_effective",
+            "monte_carlo_quantile_resolution",
+            "monte_carlo_p_value_mcse",
+            "monte_carlo_p_value_ci_low",
+            "monte_carlo_p_value_ci_high",
             "excess",
             "baseline_model",
             "baseline_source",
@@ -1681,7 +1701,16 @@ def _build_interactive_chart_payload_v2(
     dup_exact_collision_bucket = _attach_duplicate_scope_metadata(dup_exact_collision_bucket)
     non_inferential_bucket = ~_duplicate_inferential_supported_mask(dup_exact_collision_bucket)
     if bool(non_inferential_bucket.any()):
-        for inferential_column in ("expected_p05", "expected_p95", "z_score", "p_value"):
+        for inferential_column in (
+            "expected_p05",
+            "expected_p95",
+            "z_score",
+            "p_value",
+            "monte_carlo_quantile_resolution",
+            "monte_carlo_p_value_mcse",
+            "monte_carlo_p_value_ci_low",
+            "monte_carlo_p_value_ci_high",
+        ):
             if inferential_column in dup_exact_collision_bucket.columns:
                 dup_exact_collision_bucket.loc[non_inferential_bucket, inferential_column] = np.nan
     dup_exact_per_name_by_mode = _with_expected_columns(

@@ -25,6 +25,16 @@ _COLLISION_NULL_PARALLEL_MIN_DRAWS = 512
 _COLLISION_NULL_PARALLEL_MIN_ROWS = 200
 _COLLISION_NULL_PARALLEL_CHUNK_SIZE = 128
 _COLLISION_NULL_PARALLEL_MAX_WORKERS = 8
+_COLLISION_NULL_MIN_DRAWS = 128
+_COLLISION_NULL_TARGET_P_MCSE = 0.01
+_COLLISION_NULL_DECISION_P_THRESHOLD = 0.05
+_COLLISION_NULL_DECISION_CONFIDENCE = 0.95
+
+_CONFIDENCE_Z = {
+    0.90: 1.6448536269514722,
+    0.95: 1.959963984540054,
+    0.99: 2.5758293035489004,
+}
 
 
 def _safe_float(value: float) -> float:
@@ -368,6 +378,110 @@ def _draw_chunk_plan(total_draws: int, chunk_size: int) -> list[int]:
     return plan
 
 
+def _z_for_confidence(confidence_level: float) -> float:
+    if not math.isfinite(confidence_level):
+        return _CONFIDENCE_Z[0.95]
+    level = float(min(max(confidence_level, 0.0), 1.0))
+    return float(_CONFIDENCE_Z.get(level, _CONFIDENCE_Z[0.95]))
+
+
+def _wilson_interval(
+    *,
+    successes: int,
+    trials: int,
+    confidence_level: float,
+) -> tuple[float, float]:
+    n = int(max(int(trials), 0))
+    if n <= 0:
+        return (0.0, 1.0)
+    k = int(min(max(int(successes), 0), n))
+    p = float(k) / float(n)
+    z = _z_for_confidence(confidence_level)
+    z2_over_n = (z * z) / float(n)
+    denominator = 1.0 + z2_over_n
+    center = (p + (z2_over_n / 2.0)) / denominator
+    half_width = (
+        z
+        * math.sqrt((p * (1.0 - p) / float(n)) + ((z * z) / (4.0 * float(n) * float(n))))
+        / denominator
+    )
+    low = max(0.0, min(1.0, center - half_width))
+    high = max(0.0, min(1.0, center + half_width))
+    return (float(low), float(high))
+
+
+def _tail_probability_precision(
+    *,
+    null_values: np.ndarray,
+    observed: float,
+    decision_p_threshold: float = _COLLISION_NULL_DECISION_P_THRESHOLD,
+    confidence_level: float = _COLLISION_NULL_DECISION_CONFIDENCE,
+) -> dict[str, float | int | bool]:
+    values = np.asarray(null_values, dtype=float)
+    values = values[np.isfinite(values)]
+    n_draws = int(values.size)
+    if n_draws <= 0 or not math.isfinite(observed):
+        return {
+            "n_draws": int(n_draws),
+            "exceedances": 0,
+            "p_value_estimate": 1.0,
+            "p_value_mcse": np.nan,
+            "p_value_ci_low": np.nan,
+            "p_value_ci_high": np.nan,
+            "quantile_resolution": np.nan,
+            "ci_separated_from_threshold": False,
+        }
+    exceedances = int(np.sum(values >= float(observed)))
+    p_value = float((exceedances + 1) / (n_draws + 1))
+    mcse = float(math.sqrt(max(p_value * (1.0 - p_value), 0.0) / float(n_draws)))
+    ci_low, ci_high = _wilson_interval(
+        successes=exceedances,
+        trials=n_draws,
+        confidence_level=confidence_level,
+    )
+    threshold = float(min(max(decision_p_threshold, 0.0), 1.0))
+    separated = bool(ci_high < threshold or ci_low > threshold)
+    return {
+        "n_draws": int(n_draws),
+        "exceedances": int(exceedances),
+        "p_value_estimate": p_value,
+        "p_value_mcse": mcse,
+        "p_value_ci_low": float(ci_low),
+        "p_value_ci_high": float(ci_high),
+        "quantile_resolution": float(1.0 / float(n_draws + 1)),
+        "ci_separated_from_threshold": separated,
+    }
+
+
+def _target_precision_draw_count(
+    *,
+    draws_requested: int,
+    max_draws: int,
+    min_draws: int,
+    target_p_mcse: float,
+    decision_p_threshold: float,
+) -> tuple[int, int]:
+    requested = int(max(int(draws_requested), 0))
+    hard_cap = int(max(int(max_draws), 0))
+    if requested <= 0 or hard_cap <= 0:
+        return (0, 0)
+    draw_cap = int(min(requested, hard_cap))
+    if draw_cap <= 0:
+        return (0, 0)
+    minimum = int(min(draw_cap, max(int(min_draws), 0)))
+    if minimum <= 0:
+        minimum = int(min(draw_cap, _COLLISION_NULL_MIN_DRAWS))
+
+    target = float(target_p_mcse)
+    if not math.isfinite(target) or target <= 0.0:
+        return (draw_cap, minimum)
+    threshold = float(min(max(decision_p_threshold, 0.0), 1.0))
+    variance = threshold * (1.0 - threshold)
+    required = int(math.ceil(variance / (target * target))) if variance > 0.0 else minimum
+    required = int(max(required, minimum))
+    return (int(min(draw_cap, required)), minimum)
+
+
 def _simulate_collision_chunk(
     args: tuple[int, np.ndarray, np.ndarray, int, np.ndarray],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -403,16 +517,24 @@ def simulate_collision_null_from_histogram(
     baseline_model: Literal["multinomial", "hypergeometric"] = "multinomial",
     n_population: int | None = None,
     max_draws: int = 1000,
+    min_draws: int = _COLLISION_NULL_MIN_DRAWS,
+    target_p_mcse: float = float("nan"),
+    decision_p_threshold: float = _COLLISION_NULL_DECISION_P_THRESHOLD,
+    decision_confidence_level: float = _COLLISION_NULL_DECISION_CONFIDENCE,
+    tail_observed: dict[str, float] | None = None,
 ) -> pd.DataFrame:
     started = perf_counter()
     samples = pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
     n = int(max(int(n_rows), 0))
     n_draws = int(max(int(draws), 0))
-    limited_draws = 0
+    target_draws = 0
+    minimum_draws = 0
+    draws_effective = 0
     parallel_enabled = False
     parallel_worker_count = 1
     parallel_chunk_count = 0
     parallel_fallback = False
+    stop_reason = "not_started"
     try:
         if n <= 0 or n_draws <= 0:
             return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
@@ -425,8 +547,14 @@ def simulate_collision_null_from_histogram(
             # Hypergeometric mode currently uses analytic expectations only.
             return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
 
-        limited_draws = int(min(max_draws, n_draws))
-        if limited_draws <= 0:
+        target_draws, minimum_draws = _target_precision_draw_count(
+            draws_requested=n_draws,
+            max_draws=max_draws,
+            min_draws=min_draws,
+            target_p_mcse=target_p_mcse,
+            decision_p_threshold=decision_p_threshold,
+        )
+        if target_draws <= 0:
             return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
 
         class_prob = (name_count * n_keys) / float(n_pop)
@@ -437,7 +565,7 @@ def simulate_collision_null_from_histogram(
 
         n_key_buckets = np.asarray(np.rint(n_keys), dtype=np.int64)
         draw_plan = _draw_chunk_plan(
-            total_draws=limited_draws,
+            total_draws=target_draws,
             chunk_size=_COLLISION_NULL_PARALLEL_CHUNK_SIZE,
         )
         if not draw_plan:
@@ -454,14 +582,24 @@ def simulate_collision_null_from_histogram(
         parallel_worker_count = int(max(parallel_worker_cap, 1))
         parallel_enabled = bool(
             n >= _COLLISION_NULL_PARALLEL_MIN_ROWS
-            and limited_draws >= _COLLISION_NULL_PARALLEL_MIN_DRAWS
+            and target_draws >= _COLLISION_NULL_PARALLEL_MIN_DRAWS
             and parallel_worker_count > 1
         )
+
+        observed_by_metric: dict[str, float] = {}
+        for metric, value in (tail_observed or {}).items():
+            metric_name = str(metric or "").strip().lower()
+            if metric_name not in COLLISION_METRICS:
+                continue
+            numeric_value = float(value)
+            if not math.isfinite(numeric_value):
+                continue
+            observed_by_metric[metric_name] = numeric_value
 
         seed_value = int(rng.integers(0, np.iinfo(np.uint64).max, dtype=np.uint64))
         seed_sequence = np.random.SeedSequence(seed_value)
         child_sequences = seed_sequence.spawn(parallel_chunk_count)
-        tasks: list[tuple[int, np.ndarray, np.ndarray, int, np.ndarray]] = [
+        chunk_tasks: list[tuple[int, np.ndarray, np.ndarray, int, np.ndarray]] = [
             (
                 int(n),
                 class_prob,
@@ -472,16 +610,67 @@ def simulate_collision_null_from_histogram(
             for idx, draw_count in enumerate(draw_plan)
         ]
 
-        chunk_results: list[tuple[np.ndarray, np.ndarray, np.ndarray]]
-        if parallel_enabled:
-            try:
-                with ProcessPoolExecutor(max_workers=parallel_worker_count) as executor:
-                    chunk_results = list(executor.map(_simulate_collision_chunk, tasks))
-            except Exception:
-                parallel_fallback = True
-                chunk_results = [_simulate_collision_chunk(task) for task in tasks]
+        chunk_results: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+        if observed_by_metric:
+            stop_reason = "max_draws_reached"
+            exceedance_counts = {metric: 0 for metric in observed_by_metric}
+            for task in chunk_tasks:
+                chunk = _simulate_collision_chunk(task)
+                chunk_results.append(chunk)
+                chunk_size = int(len(chunk[0]))
+                draws_effective += chunk_size
+                if chunk_size <= 0:
+                    continue
+                if "pairs" in exceedance_counts:
+                    exceedance_counts["pairs"] += int(np.sum(chunk[0] >= observed_by_metric["pairs"]))
+                if "excess_rows" in exceedance_counts:
+                    exceedance_counts["excess_rows"] += int(
+                        np.sum(chunk[1] >= observed_by_metric["excess_rows"])
+                    )
+                if "repeated_group_rows" in exceedance_counts:
+                    exceedance_counts["repeated_group_rows"] += int(
+                        np.sum(chunk[2] >= observed_by_metric["repeated_group_rows"])
+                    )
+                if draws_effective < minimum_draws:
+                    continue
+                resolved = True
+                for metric_name in observed_by_metric:
+                    k = int(exceedance_counts.get(metric_name, 0))
+                    p_estimate = float((k + 1) / (draws_effective + 1))
+                    mcse = float(
+                        math.sqrt(max(p_estimate * (1.0 - p_estimate), 0.0) / float(draws_effective))
+                    )
+                    ci_low, ci_high = _wilson_interval(
+                        successes=k,
+                        trials=draws_effective,
+                        confidence_level=decision_confidence_level,
+                    )
+                    threshold = float(min(max(decision_p_threshold, 0.0), 1.0))
+                    ci_separated = bool(ci_high < threshold or ci_low > threshold)
+                    mcse_resolved = bool(
+                        math.isfinite(target_p_mcse) and target_p_mcse > 0.0 and mcse <= target_p_mcse
+                    )
+                    if not (mcse_resolved or ci_separated):
+                        resolved = False
+                        break
+                if resolved:
+                    stop_reason = "precision_resolved"
+                    break
+            parallel_enabled = False
+            parallel_worker_count = 1
+            parallel_chunk_count = int(len(chunk_results))
         else:
-            chunk_results = [_simulate_collision_chunk(task) for task in tasks]
+            if parallel_enabled:
+                try:
+                    with ProcessPoolExecutor(max_workers=parallel_worker_count) as executor:
+                        chunk_results = list(executor.map(_simulate_collision_chunk, chunk_tasks))
+                except Exception:
+                    parallel_fallback = True
+                    chunk_results = [_simulate_collision_chunk(task) for task in chunk_tasks]
+            else:
+                chunk_results = [_simulate_collision_chunk(task) for task in chunk_tasks]
+            draws_effective = int(sum(len(chunk[0]) for chunk in chunk_results))
+            stop_reason = "target_draws_reached"
 
         if not chunk_results:
             return pd.DataFrame(columns=["pairs", "excess_rows", "repeated_group_rows"])
@@ -495,6 +684,17 @@ def simulate_collision_null_from_histogram(
                 "repeated_group_rows": repeated_rows,
             }
         )
+        samples.attrs["monte_carlo_precision"] = {
+            "draws_requested": int(n_draws),
+            "draws_target": int(target_draws),
+            "draws_effective": int(draws_effective),
+            "min_draws": int(minimum_draws),
+            "target_p_mcse": float(target_p_mcse),
+            "decision_p_threshold": float(decision_p_threshold),
+            "decision_confidence_level": float(decision_confidence_level),
+            "stopped_early": bool(draws_effective < target_draws),
+            "stop_reason": str(stop_reason),
+        }
         return samples
     finally:
         record_runtime_timing(
@@ -512,7 +712,11 @@ def simulate_collision_null_from_histogram(
         )
         record_runtime_counter(
             "simulation.collision_null_from_histogram.draws_effective",
-            max(int(limited_draws), 0),
+            int(max(int(draws_effective), 0)),
+        )
+        record_runtime_counter(
+            "simulation.collision_null_from_histogram.draws_target",
+            int(max(int(target_draws), 0)),
         )
         record_runtime_counter(
             "simulation.collision_null_from_histogram.output_samples",
@@ -542,6 +746,8 @@ def summarize_collision_observed_vs_null(
     expected: dict[str, float],
     null_samples: pd.DataFrame,
     metrics: tuple[str, ...] | list[str] | None = None,
+    decision_p_threshold: float = _COLLISION_NULL_DECISION_P_THRESHOLD,
+    decision_confidence_level: float = _COLLISION_NULL_DECISION_CONFIDENCE,
 ) -> pd.DataFrame:
     metric_list = _normalize_metric_list(metrics)
     rows: list[dict[str, float | str]] = []
@@ -559,6 +765,12 @@ def summarize_collision_observed_vs_null(
                     "expected_p95": expected_value,
                     "z_score": 0.0,
                     "p_value": 1.0,
+                    "monte_carlo_draws_effective": 0,
+                    "monte_carlo_quantile_resolution": np.nan,
+                    "monte_carlo_p_value_mcse": np.nan,
+                    "monte_carlo_p_value_ci_low": np.nan,
+                    "monte_carlo_p_value_ci_high": np.nan,
+                    "monte_carlo_p_value_ci_separated_from_threshold": False,
                 }
             )
             continue
@@ -574,12 +786,24 @@ def summarize_collision_observed_vs_null(
                     "expected_p95": expected_value,
                     "z_score": 0.0,
                     "p_value": 1.0,
+                    "monte_carlo_draws_effective": 0,
+                    "monte_carlo_quantile_resolution": np.nan,
+                    "monte_carlo_p_value_mcse": np.nan,
+                    "monte_carlo_p_value_ci_low": np.nan,
+                    "monte_carlo_p_value_ci_high": np.nan,
+                    "monte_carlo_p_value_ci_separated_from_threshold": False,
                 }
             )
             continue
         mean_value = float(np.mean(values))
         std_value = float(np.std(values, ddof=1)) if values.size > 1 else 0.0
         z_score = (observed_value - mean_value) / std_value if std_value > 0 else 0.0
+        precision = _tail_probability_precision(
+            null_values=values,
+            observed=observed_value,
+            decision_p_threshold=decision_p_threshold,
+            confidence_level=decision_confidence_level,
+        )
         rows.append(
             {
                 "metric": metric,
@@ -589,7 +813,15 @@ def summarize_collision_observed_vs_null(
                 "expected_p50": float(np.quantile(values, 0.50)),
                 "expected_p95": float(np.quantile(values, 0.95)),
                 "z_score": _safe_float(z_score),
-                "p_value": empirical_p_value_one_sided(values, observed_value),
+                "p_value": float(precision["p_value_estimate"]),
+                "monte_carlo_draws_effective": int(precision["n_draws"]),
+                "monte_carlo_quantile_resolution": float(precision["quantile_resolution"]),
+                "monte_carlo_p_value_mcse": float(precision["p_value_mcse"]),
+                "monte_carlo_p_value_ci_low": float(precision["p_value_ci_low"]),
+                "monte_carlo_p_value_ci_high": float(precision["p_value_ci_high"]),
+                "monte_carlo_p_value_ci_separated_from_threshold": bool(
+                    precision["ci_separated_from_threshold"]
+                ),
             }
         )
     return pd.DataFrame(rows)

@@ -22,22 +22,22 @@ Execution order is tracked here independently from ticket numbering.
 11. `DUP-011` (Done, 2026-02-28)
 12. `DUP-012` (Done, 2026-02-28)
 13. `DUP-013` (Done, 2026-02-28)
+14. `DUP-014` (Done, 2026-03-01)
 
 ### Current
-1. `DUP-014` (next in-progress target)
+1. `DUP-015` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-014`
-2. `DUP-015`
-3. `DUP-016`
-4. `DUP-017`
-5. `DUP-018`
-6. `DUP-019`
-7. `DUP-020`
-8. `DUP-021`
+1. `DUP-015`
+2. `DUP-016`
+3. `DUP-017`
+4. `DUP-018`
+5. `DUP-019`
+6. `DUP-020`
+7. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, and **DUP-013**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, and **DUP-014**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1101,3 +1101,86 @@ Work item: DUP-013 (P1)
   - temporal families carry adjusted q-values when eligible, else descriptive-only labeling
   - temporal null explicitly preserves hearing-wide intensity and supports position-conditioned resampling mode
 - Next ticket in sequence is `DUP-014`.
+
+---
+
+## DUP-014 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-014 (P1)
+
+## What Was Implemented
+- Replaced `sqrt(n)`-scaled draw budgeting with precision-targeted simulation controls in duplicate collision Monte Carlo paths.
+- Added precision-aware draw targeting and optional sequential stopping in collision null simulation:
+  - stop when `p` MCSE target is met, or
+  - stop when Wilson CI is clearly above/below the configured decision threshold.
+- Added duplicate detector configuration knobs for precision and decision-threshold stopping:
+  - `monte_carlo_min_draws`
+  - `monte_carlo_target_p_mcse`
+  - `monte_carlo_decision_p_threshold`
+  - `monte_carlo_decision_confidence_level`
+- Preserved interval behavior for position concentration bootstrap/permutation paths by disabling precision early-stop on the interval draw path.
+- Propagated Monte Carlo precision metadata to duplicate outputs:
+  - `monte_carlo_draws_effective`
+  - `monte_carlo_quantile_resolution`
+  - `monte_carlo_p_value_mcse`
+  - `monte_carlo_p_value_ci_low`
+  - `monte_carlo_p_value_ci_high`
+  - `monte_carlo_p_value_ci_separated_from_threshold` (available on collision summary rows)
+- Added analogous precision metadata to VRDB collision sidecar outputs for pair-tail probabilities:
+  - `tail_prob_pairs_mcse`
+  - `tail_prob_pairs_ci_low`
+  - `tail_prob_pairs_ci_high`
+  - `monte_carlo_quantile_resolution`
+- Updated duplicate report payload builder to carry/normalize the new precision fields and apply inferential masking consistently in descriptive-only paths.
+
+## Tests Added/Updated
+- `tests/test_collision_baseline_math.py`
+  - added precision-stop regression for collision simulation draw targeting.
+  - added summary metadata regression validating MC precision fields.
+- `tests/test_duplicates_exact.py`
+  - updated draw budget assertions to enforce no row-count scaling heuristic.
+  - added regression for duplicate collision precision fields in outputs.
+- `tests/test_vrdb_collision_null.py`
+  - added assertions for VRDB pair-tail precision metadata.
+- Focused validation:
+  - `python -m pytest tests/test_collision_baseline_math.py tests/test_vrdb_collision_null.py tests/test_report_chart_payload.py tests/test_duplicates_exact.py -q`
+  - result: passed (warnings only).
+- Full suite validation:
+  - `./testifier_audit/scripts/ci/test.sh`
+  - result: `362 passed` (warnings only; no failures).
+
+## Runtime / Report Validation (ESSB 6346)
+- Rerender completed successfully:
+  - command:
+    - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup014_essb6346_rerender.log`
+  - completion evidence:
+    - `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Run-all execution attempts and diagnostics captured:
+  - `output/run_logs/dup014_essb6346_runall.log`
+  - `output/run_logs/dup014_essb6346_runall_skip_imports.log`
+  - `output/run_logs/dup014_essb6346_runall_skip_imports_rerun.log`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - sidebar/toggle controls function on both breakpoints.
+    - bucket changes persist and update URL state.
+    - theme toggles render correctly.
+    - report-data requests returned `200`.
+    - only console error was local static-server `favicon.ico` `404`.
+
+## Issues Discovered During DUP-014
+- Unified run import/recompute path remained long-running during several ESSB 6346 attempts (not a correctness failure in DUP-014 logic, but affected runtime validation cadence).
+- Mitigation:
+  - captured run logs for traceability.
+  - completed rerender + Playwright report validation to verify DUP-014 payload/render behavior against ESSB 6346 artifacts.
+
+## Remaining Work / Handoff
+- DUP-014 acceptance criteria are met:
+  - draw counts are no longer driven by the previous row-scaled heuristic.
+  - MC-derived outputs now include precision metadata.
+  - small-hearing under-simulation risk from `sqrt(n)` budgeting has been removed.
+- Next ticket in sequence is `DUP-015`.

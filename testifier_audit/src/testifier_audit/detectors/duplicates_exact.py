@@ -178,6 +178,10 @@ class DuplicatesExactDetector(Detector):
         per_name_display_limit: int = 1000,
         exclude_non_person_from_inference: bool = True,
         monte_carlo_draws: int = 20_000,
+        monte_carlo_min_draws: int = 128,
+        monte_carlo_target_p_mcse: float = 0.01,
+        monte_carlo_decision_p_threshold: float = 0.05,
+        monte_carlo_decision_confidence_level: float = 0.95,
         position_permutation_draws: int = 10_000,
         temporal_permutation_draws: int = 5_000,
         temporal_null_mode: str = "hearing_intensity",
@@ -257,6 +261,19 @@ class DuplicatesExactDetector(Detector):
         self.per_name_display_limit = max(10, int(per_name_display_limit))
         self.exclude_non_person_from_inference = bool(exclude_non_person_from_inference)
         self.monte_carlo_draws = max(100, int(monte_carlo_draws))
+        self.monte_carlo_min_draws = max(1, int(monte_carlo_min_draws))
+        target_mcse = float(monte_carlo_target_p_mcse)
+        if not math.isfinite(target_mcse) or target_mcse <= 0.0:
+            target_mcse = 0.01
+        self.monte_carlo_target_p_mcse = target_mcse
+        threshold = float(monte_carlo_decision_p_threshold)
+        if not math.isfinite(threshold):
+            threshold = 0.05
+        self.monte_carlo_decision_p_threshold = float(min(max(threshold, 0.0), 1.0))
+        confidence = float(monte_carlo_decision_confidence_level)
+        if not math.isfinite(confidence):
+            confidence = 0.95
+        self.monte_carlo_decision_confidence_level = float(min(max(confidence, 0.0), 1.0))
         self.position_permutation_draws = max(100, int(position_permutation_draws))
         self.temporal_permutation_draws = max(100, int(temporal_permutation_draws))
         temporal_null_mode_normalized = str(temporal_null_mode or "").strip().lower()
@@ -359,15 +376,12 @@ class DuplicatesExactDetector(Detector):
         return duplicate_rows, int(valid_subset_ids.size)
 
     def _collision_monte_carlo_draw_budget(self, *, n_rows: int, hard_cap: int) -> int:
-        requested = int(min(max(int(self.monte_carlo_draws), 0), max(int(hard_cap), 0)))
-        n = int(max(int(n_rows), 0))
-        if requested <= 0 or n <= 1:
+        if int(max(int(n_rows), 0)) <= 1:
             return 0
-        if n <= 3:
-            return int(min(requested, 64))
-        scale = min(1.0, max(0.20, math.sqrt(float(n) / 400.0)))
-        budget = int(round(float(requested) * scale))
-        return int(min(requested, max(48, budget)))
+        requested = int(min(max(int(self.monte_carlo_draws), 0), max(int(hard_cap), 0)))
+        if requested <= 0:
+            return 0
+        return int(requested)
 
     def _bucket_monte_carlo_draw_budget(
         self,
@@ -384,7 +398,7 @@ class DuplicatesExactDetector(Detector):
             return 0
         if float(expected_primary_metric) < self.low_power_min_expected_duplicates:
             return 0
-        return self._collision_monte_carlo_draw_budget(n_rows=n, hard_cap=hard_cap)
+        return int(min(max(int(self.monte_carlo_draws), 0), max(int(hard_cap), 0)))
 
     def _position_interval_bounds(self) -> tuple[float, float]:
         alpha = 1.0 - float(self.position_interval_nominal)
@@ -435,6 +449,8 @@ class DuplicatesExactDetector(Detector):
                 baseline_model="multinomial",
                 n_population=n_population if (n_population or 0) > 0 else None,
                 max_draws=self.position_interval_draws,
+                min_draws=self.position_interval_draws,
+                target_p_mcse=float("nan"),
             )
             repeated_rows = (
                 pd.to_numeric(
@@ -1105,10 +1121,13 @@ class DuplicatesExactDetector(Detector):
         stratum_keys: list[np.ndarray],
         stratum_probabilities: list[np.ndarray],
         max_draws: int,
+        tail_observed: dict[str, float] | None = None,
     ) -> pd.DataFrame:
         started = perf_counter()
         output = pd.DataFrame(columns=list(COLLISION_METRICS))
-        limited_draws = 0
+        target_draws = 0
+        draws_effective = 0
+        stop_reason = "not_started"
         try:
             n = int(max(int(n_rows), 0))
             n_draws = int(max(int(draws), 0))
@@ -1120,15 +1139,45 @@ class DuplicatesExactDetector(Detector):
                 or not stratum_probabilities
             ):
                 return pd.DataFrame(columns=list(COLLISION_METRICS))
-            limited_draws = int(min(max_draws, n_draws))
-            if limited_draws <= 0:
+            draw_cap = int(min(max(int(max_draws), 0), max(int(n_draws), 0)))
+            if draw_cap <= 0:
+                return pd.DataFrame(columns=list(COLLISION_METRICS))
+            target_draws = int(draw_cap)
+            minimum_draws = int(min(draw_cap, max(int(self.monte_carlo_min_draws), 1)))
+            if math.isfinite(self.monte_carlo_target_p_mcse) and self.monte_carlo_target_p_mcse > 0.0:
+                threshold = float(
+                    min(max(float(self.monte_carlo_decision_p_threshold), 0.0), 1.0)
+                )
+                variance = threshold * (1.0 - threshold)
+                required = (
+                    int(math.ceil(variance / (self.monte_carlo_target_p_mcse**2)))
+                    if variance > 0.0
+                    else minimum_draws
+                )
+                target_draws = int(min(draw_cap, max(required, minimum_draws)))
+            if target_draws <= 0:
                 return pd.DataFrame(columns=list(COLLISION_METRICS))
 
-            pairs = np.zeros(limited_draws, dtype=float)
-            excess_rows = np.zeros(limited_draws, dtype=float)
-            repeated_rows = np.zeros(limited_draws, dtype=float)
+            pairs = np.zeros(target_draws, dtype=float)
+            excess_rows = np.zeros(target_draws, dtype=float)
+            repeated_rows = np.zeros(target_draws, dtype=float)
+            observed_by_metric: dict[str, float] = {}
+            for metric, value in (tail_observed or {}).items():
+                metric_name = str(metric).strip().lower()
+                if metric_name not in COLLISION_METRICS:
+                    continue
+                try:
+                    numeric_value = float(value)
+                except (TypeError, ValueError):
+                    continue
+                if not math.isfinite(numeric_value):
+                    continue
+                observed_by_metric[metric_name] = numeric_value
+            exceedances = {metric: 0 for metric in observed_by_metric}
+            stop_reason = "target_draws_reached"
 
-            for draw_idx in range(limited_draws):
+            for draw_idx in range(target_draws):
+                draws_effective = int(draw_idx + 1)
                 sampled_by_stratum = rng.multinomial(n, stratum_weights)
                 sampled_key_chunks: list[np.ndarray] = []
                 for idx, draw_count in enumerate(sampled_by_stratum):
@@ -1156,6 +1205,75 @@ class DuplicatesExactDetector(Detector):
                 excess_rows[draw_idx] = float(over_one.sum())
                 repeated_rows[draw_idx] = float(occupancy[occupancy >= 2.0].sum())
 
+                if observed_by_metric:
+                    if "pairs" in exceedances:
+                        exceedances["pairs"] += int(pairs[draw_idx] >= observed_by_metric["pairs"])
+                    if "excess_rows" in exceedances:
+                        exceedances["excess_rows"] += int(
+                            excess_rows[draw_idx] >= observed_by_metric["excess_rows"]
+                        )
+                    if "repeated_group_rows" in exceedances:
+                        exceedances["repeated_group_rows"] += int(
+                            repeated_rows[draw_idx] >= observed_by_metric["repeated_group_rows"]
+                        )
+                    if draws_effective < minimum_draws:
+                        continue
+                    resolved = True
+                    for metric_name in observed_by_metric:
+                        k = int(exceedances.get(metric_name, 0))
+                        p_estimate = float((k + 1) / (draws_effective + 1))
+                        mcse = float(
+                            math.sqrt(
+                                max(p_estimate * (1.0 - p_estimate), 0.0)
+                                / float(max(draws_effective, 1))
+                            )
+                        )
+                        confidence = float(
+                            min(max(float(self.monte_carlo_decision_confidence_level), 0.0), 1.0)
+                        )
+                        if confidence == 0.90:
+                            z = 1.6448536269514722
+                        elif confidence == 0.99:
+                            z = 2.5758293035489004
+                        else:
+                            z = 1.959963984540054
+                        p_raw = float(k) / float(max(draws_effective, 1))
+                        z2_over_n = (z * z) / float(max(draws_effective, 1))
+                        denominator = 1.0 + z2_over_n
+                        center = (p_raw + (z2_over_n / 2.0)) / denominator
+                        half = (
+                            z
+                            * math.sqrt(
+                                (
+                                    p_raw * (1.0 - p_raw) / float(max(draws_effective, 1))
+                                )
+                                + ((z * z) / (4.0 * float(max(draws_effective, 1)) ** 2))
+                            )
+                            / denominator
+                        )
+                        ci_low = max(0.0, center - half)
+                        ci_high = min(1.0, center + half)
+                        threshold = float(
+                            min(max(float(self.monte_carlo_decision_p_threshold), 0.0), 1.0)
+                        )
+                        ci_separated = bool(ci_high < threshold or ci_low > threshold)
+                        mcse_resolved = bool(
+                            math.isfinite(self.monte_carlo_target_p_mcse)
+                            and self.monte_carlo_target_p_mcse > 0.0
+                            and mcse <= self.monte_carlo_target_p_mcse
+                        )
+                        if not (ci_separated or mcse_resolved):
+                            resolved = False
+                            break
+                    if resolved:
+                        stop_reason = "precision_resolved"
+                        pairs = pairs[:draws_effective]
+                        excess_rows = excess_rows[:draws_effective]
+                        repeated_rows = repeated_rows[:draws_effective]
+                        break
+
+            if draws_effective <= 0:
+                draws_effective = int(target_draws)
             output = pd.DataFrame(
                 {
                     "pairs": pairs,
@@ -1164,6 +1282,19 @@ class DuplicatesExactDetector(Detector):
                 },
                 columns=list(COLLISION_METRICS),
             )
+            output.attrs["monte_carlo_precision"] = {
+                "draws_requested": int(n_draws),
+                "draws_target": int(target_draws),
+                "draws_effective": int(draws_effective),
+                "min_draws": int(minimum_draws),
+                "target_p_mcse": float(self.monte_carlo_target_p_mcse),
+                "decision_p_threshold": float(self.monte_carlo_decision_p_threshold),
+                "decision_confidence_level": float(
+                    self.monte_carlo_decision_confidence_level
+                ),
+                "stopped_early": bool(draws_effective < target_draws),
+                "stop_reason": str(stop_reason),
+            }
             return output
         finally:
             record_runtime_timing(
@@ -1181,7 +1312,11 @@ class DuplicatesExactDetector(Detector):
             )
             record_runtime_counter(
                 "simulation.duplicates_exact_stratified_collision_null.draws_effective",
-                max(int(limited_draws), 0),
+                int(max(draws_effective, 0)),
+            )
+            record_runtime_counter(
+                "simulation.duplicates_exact_stratified_collision_null.draws_target",
+                int(max(target_draws, 0)),
             )
             record_runtime_counter(
                 "simulation.duplicates_exact_stratified_collision_null.output_samples",
@@ -1845,7 +1980,8 @@ class DuplicatesExactDetector(Detector):
         baseline_model: CollisionBaselineModel,
         n_population: int | None,
         max_draws: int,
-        cache: dict[tuple[int, str, int, int, str], pd.DataFrame],
+        tail_observed: dict[str, float] | None,
+        cache: dict[tuple[int, str, int, int, str, str], pd.DataFrame],
         histogram_digest_cache: dict[int, str],
     ) -> pd.DataFrame:
         normalized_rows = int(max(int(n_rows), 0))
@@ -1859,12 +1995,32 @@ class DuplicatesExactDetector(Detector):
         if histogram_digest is None:
             histogram_digest = self._histogram_digest(histogram)
             histogram_digest_cache[histogram_id] = histogram_digest
+        normalized_tail_observed: dict[str, float] = {}
+        for metric, value in (tail_observed or {}).items():
+            metric_name = str(metric).strip().lower()
+            if metric_name not in COLLISION_METRICS:
+                continue
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(numeric_value):
+                continue
+            normalized_tail_observed[metric_name] = numeric_value
+        if normalized_tail_observed:
+            tail_signature = "|".join(
+                f"{metric}:{normalized_tail_observed[metric]:.8f}"
+                for metric in sorted(normalized_tail_observed)
+            )
+        else:
+            tail_signature = "__none__"
         cache_key = (
             normalized_rows,
             str(baseline_model),
             normalized_population,
             normalized_max_draws,
             histogram_digest,
+            tail_signature,
         )
         cached = cache.get(cache_key)
         if cached is not None:
@@ -1885,6 +2041,11 @@ class DuplicatesExactDetector(Detector):
             baseline_model=baseline_model,
             n_population=normalized_population if normalized_population > 0 else None,
             max_draws=normalized_max_draws,
+            min_draws=self.monte_carlo_min_draws,
+            target_p_mcse=self.monte_carlo_target_p_mcse,
+            decision_p_threshold=self.monte_carlo_decision_p_threshold,
+            decision_confidence_level=self.monte_carlo_decision_confidence_level,
+            tail_observed=normalized_tail_observed or None,
         )
         cache[cache_key] = null_samples.copy()
         return null_samples
@@ -1993,7 +2154,7 @@ class DuplicatesExactDetector(Detector):
         with profile_runtime_block("detector.duplicates_exact.load_contextual_baseline"):
             contextual_baseline = self._load_contextual_baseline()
         contextual_shrink_cache: dict[tuple[int, int, int], tuple[float, str]] = {}
-        null_simulation_cache: dict[tuple[int, str, int, int, str], pd.DataFrame] = {}
+        null_simulation_cache: dict[tuple[int, str, int, int, str, str], pd.DataFrame] = {}
         histogram_digest_cache: dict[int, str] = {}
 
         with profile_runtime_block("detector.duplicates_exact.prepare_stratification"):
@@ -2387,6 +2548,7 @@ class DuplicatesExactDetector(Detector):
                             stratum_keys=stratified_sampling_keys,
                             stratum_probabilities=stratified_sampling_probabilities,
                             max_draws=scope_max_draws,
+                            tail_observed=observed_metrics,
                         )
                     else:
                         if stratified_null_histogram.empty:
@@ -2402,6 +2564,7 @@ class DuplicatesExactDetector(Detector):
                             baseline_model="multinomial",
                             n_population=n_population if n_population > 0 else None,
                             max_draws=scope_max_draws,
+                            tail_observed=observed_metrics,
                             cache=null_simulation_cache,
                             histogram_digest_cache=histogram_digest_cache,
                         )
@@ -2414,6 +2577,7 @@ class DuplicatesExactDetector(Detector):
                         baseline_model=self.collision_baseline_model,
                         n_population=n_population if n_population > 0 else None,
                         max_draws=scope_max_draws,
+                        tail_observed=observed_metrics,
                         cache=null_simulation_cache,
                         histogram_digest_cache=histogram_digest_cache,
                     )
@@ -2454,7 +2618,17 @@ class DuplicatesExactDetector(Detector):
             )
             if scope_inferential_status != "reference_model_inference":
                 # Descriptive-only/unavailable scopes intentionally suppress inferential fields.
-                for inferential_column in ("expected_p05", "expected_p50", "expected_p95", "z_score", "p_value"):
+                for inferential_column in (
+                    "expected_p05",
+                    "expected_p50",
+                    "expected_p95",
+                    "z_score",
+                    "p_value",
+                    "monte_carlo_quantile_resolution",
+                    "monte_carlo_p_value_mcse",
+                    "monte_carlo_p_value_ci_low",
+                    "monte_carlo_p_value_ci_high",
+                ):
                     if inferential_column in overview.columns:
                         overview[inferential_column] = np.nan
             overview["scope"] = scope
@@ -2783,6 +2957,7 @@ class DuplicatesExactDetector(Detector):
                                         stratum_keys=stratified_sampling_keys,
                                         stratum_probabilities=stratified_sampling_probabilities,
                                         max_draws=bucket_max_draws,
+                                        tail_observed=None,
                                     )
                                 else:
                                     null_for_n = self._simulate_collision_null_cached(
@@ -2800,6 +2975,7 @@ class DuplicatesExactDetector(Detector):
                                         baseline_model="multinomial",
                                         n_population=n_population if n_population > 0 else None,
                                         max_draws=bucket_max_draws,
+                                        tail_observed=None,
                                         cache=null_simulation_cache,
                                         histogram_digest_cache=histogram_digest_cache,
                                     )
@@ -2829,6 +3005,7 @@ class DuplicatesExactDetector(Detector):
                                     baseline_model=self.collision_baseline_model,
                                     n_population=n_population if n_population > 0 else None,
                                     max_draws=bucket_max_draws,
+                                    tail_observed=None,
                                     cache=null_simulation_cache,
                                     histogram_digest_cache=histogram_digest_cache,
                                 )
@@ -2852,6 +3029,21 @@ class DuplicatesExactDetector(Detector):
                                     "expected_p95": float(row.expected_p95),
                                     "p_value": float(row.p_value),
                                     "z_score": float(row.z_score),
+                                    "monte_carlo_draws_effective": int(
+                                        getattr(row, "monte_carlo_draws_effective", 0)
+                                    ),
+                                    "monte_carlo_quantile_resolution": float(
+                                        getattr(row, "monte_carlo_quantile_resolution", np.nan)
+                                    ),
+                                    "monte_carlo_p_value_mcse": float(
+                                        getattr(row, "monte_carlo_p_value_mcse", np.nan)
+                                    ),
+                                    "monte_carlo_p_value_ci_low": float(
+                                        getattr(row, "monte_carlo_p_value_ci_low", np.nan)
+                                    ),
+                                    "monte_carlo_p_value_ci_high": float(
+                                        getattr(row, "monte_carlo_p_value_ci_high", np.nan)
+                                    ),
                                 }
                                 for row in summary_for_n.itertuples(index=False)
                             },
@@ -2890,11 +3082,22 @@ class DuplicatesExactDetector(Detector):
                         metric_p95 = float(summary_entry.get("expected_p95", metric_exp))
                         metric_z = float(summary_entry.get("z_score", 0.0))
                         metric_p = float(summary_entry.get("p_value", 1.0))
+                        metric_mc_draws = int(summary_entry.get("monte_carlo_draws_effective", 0))
+                        metric_quantile_resolution = float(
+                            summary_entry.get("monte_carlo_quantile_resolution", np.nan)
+                        )
+                        metric_p_mcse = float(summary_entry.get("monte_carlo_p_value_mcse", np.nan))
+                        metric_p_ci_low = float(summary_entry.get("monte_carlo_p_value_ci_low", np.nan))
+                        metric_p_ci_high = float(summary_entry.get("monte_carlo_p_value_ci_high", np.nan))
                         if metric_inferential_status != "reference_model_inference":
                             metric_p05 = np.nan
                             metric_p95 = np.nan
                             metric_z = np.nan
                             metric_p = np.nan
+                            metric_quantile_resolution = np.nan
+                            metric_p_mcse = np.nan
+                            metric_p_ci_low = np.nan
+                            metric_p_ci_high = np.nan
                         bucket_frames.append(
                             {
                                 "scope": scope,
@@ -2913,6 +3116,11 @@ class DuplicatesExactDetector(Detector):
                                 "expected_p95": metric_p95,
                                 "z_score": metric_z,
                                 "p_value": metric_p,
+                                "monte_carlo_draws_effective": int(metric_mc_draws),
+                                "monte_carlo_quantile_resolution": metric_quantile_resolution,
+                                "monte_carlo_p_value_mcse": metric_p_mcse,
+                                "monte_carlo_p_value_ci_low": metric_p_ci_low,
+                                "monte_carlo_p_value_ci_high": metric_p_ci_high,
                                 "excess": float(metric_obs - metric_exp),
                                 "baseline_model": self.collision_baseline_model,
                                 "baseline_source": effective_baseline_source,
@@ -3617,6 +3825,10 @@ class DuplicatesExactDetector(Detector):
                 "expected_p95",
                 "z_score",
                 "p_value",
+                "monte_carlo_quantile_resolution",
+                "monte_carlo_p_value_mcse",
+                "monte_carlo_p_value_ci_low",
+                "monte_carlo_p_value_ci_high",
             ):
                 if inferential_column in collision_overview.columns:
                     collision_overview.loc[secondary_scope_rows, inferential_column] = np.nan
@@ -3993,7 +4205,16 @@ class DuplicatesExactDetector(Detector):
             collision_by_bucket.loc[
                 secondary_bucket_with_inference, "inferential_reason"
             ] = self.INFERENTIAL_REASON_SECONDARY_BUCKET_METRIC
-            for inferential_column in ("expected_p05", "expected_p95", "z_score", "p_value"):
+            for inferential_column in (
+                "expected_p05",
+                "expected_p95",
+                "z_score",
+                "p_value",
+                "monte_carlo_quantile_resolution",
+                "monte_carlo_p_value_mcse",
+                "monte_carlo_p_value_ci_low",
+                "monte_carlo_p_value_ci_high",
+            ):
                 if inferential_column in collision_by_bucket.columns:
                     collision_by_bucket.loc[secondary_bucket_metric, inferential_column] = np.nan
 
@@ -4070,6 +4291,10 @@ class DuplicatesExactDetector(Detector):
                         "expected_p95",
                         "z_score",
                         "p_value",
+                        "monte_carlo_quantile_resolution",
+                        "monte_carlo_p_value_mcse",
+                        "monte_carlo_p_value_ci_low",
+                        "monte_carlo_p_value_ci_high",
                         "adjusted_p_value",
                     ):
                         if inferential_column in collision_by_bucket.columns:

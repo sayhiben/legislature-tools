@@ -722,7 +722,7 @@ def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
     assert len(frame) not in set(simulated_n_rows)
 
 
-def test_collision_monte_carlo_draw_budget_scales_with_bucket_size() -> None:
+def test_collision_monte_carlo_draw_budget_is_not_row_scaled() -> None:
     detector = DuplicatesExactDetector(
         top_n=20,
         bucket_minutes=[5],
@@ -730,17 +730,8 @@ def test_collision_monte_carlo_draw_budget_scales_with_bucket_size() -> None:
     )
     assert detector._collision_monte_carlo_draw_budget(n_rows=0, hard_cap=250) == 0
     assert detector._collision_monte_carlo_draw_budget(n_rows=1, hard_cap=250) == 0
-    assert detector._collision_monte_carlo_draw_budget(n_rows=2, hard_cap=250) == 64
-    assert detector._collision_monte_carlo_draw_budget(n_rows=4, hard_cap=250) == 50
-    assert detector._collision_monte_carlo_draw_budget(n_rows=100, hard_cap=250) == 125
+    assert detector._collision_monte_carlo_draw_budget(n_rows=2, hard_cap=250) == 250
     assert detector._collision_monte_carlo_draw_budget(n_rows=400, hard_cap=250) == 250
-
-    budgets = [
-        detector._collision_monte_carlo_draw_budget(n_rows=n_rows, hard_cap=250)
-        for n_rows in (2, 5, 10, 20, 40, 80, 100, 200)
-    ]
-    assert budgets[1:] == sorted(budgets[1:])
-    assert all(48 <= value <= 250 for value in budgets[1:])
 
 
 def test_bucket_monte_carlo_draw_budget_skips_guaranteed_low_power() -> None:
@@ -767,7 +758,7 @@ def test_bucket_monte_carlo_draw_budget_skips_guaranteed_low_power() -> None:
         )
         == 0
     )
-    expected = detector._collision_monte_carlo_draw_budget(n_rows=40, hard_cap=250)
+    expected = 250
     assert (
         detector._bucket_monte_carlo_draw_budget(
             n_rows=40,
@@ -776,6 +767,57 @@ def test_bucket_monte_carlo_draw_budget_skips_guaranteed_low_power() -> None:
         )
         == expected
     )
+
+
+def test_collision_outputs_include_monte_carlo_precision_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 5, "SMITH|JOHN": 5, "BROWN|AVA": 4})
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1, 2, 3],
+                "n_keys": [1200, 300, 100],
+                "N": [2100, 2100, 2100],
+            }
+        ),
+    )
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_uncertainty_mode="monte_carlo",
+        voter_db_url="postgresql://example",
+        monte_carlo_draws=800,
+        monte_carlo_min_draws=64,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        random_seed=11,
+    )
+    result = detector.run(df=frame, features={})
+
+    overview = result.tables["collision_overview"]
+    primary_scope = detector.collision_scope_primary
+    primary_row = overview[
+        (overview["scope"].astype(str) == primary_scope)
+        & (overview["metric"].astype(str) == detector.PRIMARY_SCOPE_ENDPOINT_METRIC)
+    ].reset_index(drop=True)
+    assert not primary_row.empty
+    assert int(primary_row.loc[0, "monte_carlo_draws_effective"]) > 0
+    assert np.isfinite(float(primary_row.loc[0, "monte_carlo_p_value_mcse"]))
+    ci_low = float(primary_row.loc[0, "monte_carlo_p_value_ci_low"])
+    ci_high = float(primary_row.loc[0, "monte_carlo_p_value_ci_high"])
+    assert 0.0 <= ci_low <= ci_high <= 1.0
+
+    by_bucket = result.tables["collision_by_bucket"]
+    bucket_primary = by_bucket[
+        (by_bucket["scope"].astype(str) == primary_scope)
+        & (by_bucket["metric"].astype(str) == detector.PRIMARY_SCOPE_ENDPOINT_METRIC)
+    ].reset_index(drop=True)
+    assert not bucket_primary.empty
+    assert int(bucket_primary.loc[0, "monte_carlo_draws_effective"]) > 0
 
 
 def test_low_power_bucket_skips_bucket_level_null_simulation(
@@ -1343,7 +1385,7 @@ def test_collision_null_simulation_cache_reuses_histogram_draws(
         }
     )
     rng = np.random.default_rng(9)
-    cache: dict[tuple[int, str, int, int, str], pd.DataFrame] = {}
+    cache: dict[tuple[int, str, int, int, str, str], pd.DataFrame] = {}
     digest_cache: dict[int, str] = {}
 
     first = detector._simulate_collision_null_cached(
@@ -1354,6 +1396,7 @@ def test_collision_null_simulation_cache_reuses_histogram_draws(
         baseline_model="multinomial",
         n_population=14,
         max_draws=250,
+        tail_observed=None,
         cache=cache,
         histogram_digest_cache=digest_cache,
     )
@@ -1365,6 +1408,7 @@ def test_collision_null_simulation_cache_reuses_histogram_draws(
         baseline_model="multinomial",
         n_population=14,
         max_draws=250,
+        tail_observed=None,
         cache=cache,
         histogram_digest_cache=digest_cache,
     )

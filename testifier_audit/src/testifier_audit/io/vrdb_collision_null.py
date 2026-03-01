@@ -72,6 +72,26 @@ def _safe_int(value: object, default: int = 0) -> int:
     return int(max(int(_safe_float(value, float(default))), 0))
 
 
+def _wilson_interval(successes: int, trials: int) -> tuple[float, float]:
+    n = int(max(int(trials), 0))
+    if n <= 0:
+        return (0.0, 1.0)
+    k = int(min(max(int(successes), 0), n))
+    p = float(k) / float(n)
+    z = 1.959963984540054
+    z2_over_n = (z * z) / float(n)
+    denominator = 1.0 + z2_over_n
+    center = (p + (z2_over_n / 2.0)) / denominator
+    half = (
+        z
+        * np.sqrt((p * (1.0 - p) / float(n)) + ((z * z) / (4.0 * float(n) * float(n))))
+        / denominator
+    )
+    low = max(0.0, min(1.0, center - half))
+    high = max(0.0, min(1.0, center + half))
+    return (float(low), float(high))
+
+
 def _stable_seed(*parts: object) -> int:
     payload = "|".join(_safe_text(value) for value in parts)
     digest = sha1(payload.encode("utf-8")).hexdigest()
@@ -359,6 +379,10 @@ def _empty_slice_row(
         "expected_pairs_p95": 0.0,
         "expected_pairs_p99": 0.0,
         "tail_prob_pairs": 1.0,
+        "tail_prob_pairs_mcse": np.nan,
+        "tail_prob_pairs_ci_low": np.nan,
+        "tail_prob_pairs_ci_high": np.nan,
+        "monte_carlo_quantile_resolution": np.nan,
         "expected_max_name_count_mean": np.nan,
         "expected_max_name_count_p95": np.nan,
         "expected_max_name_count_p99": np.nan,
@@ -595,17 +619,33 @@ def compute_vrdb_collision_null_for_slices(
         draws_effective = int(len(pairs_samples))
 
         if draws_effective > 0:
+            exceedances = int(np.sum(pairs_samples >= observed_pairs))
+            tail_prob_pairs = float((exceedances + 1) / (draws_effective + 1))
+            tail_prob_pairs_mcse = float(
+                np.sqrt(
+                    max(tail_prob_pairs * (1.0 - tail_prob_pairs), 0.0)
+                    / float(max(draws_effective, 1))
+                )
+            )
+            tail_prob_pairs_ci_low, tail_prob_pairs_ci_high = _wilson_interval(
+                exceedances,
+                draws_effective,
+            )
+            monte_carlo_quantile_resolution = float(1.0 / float(draws_effective + 1))
             expected_pairs_mean = float(np.mean(pairs_samples))
             expected_pairs_median = float(np.quantile(pairs_samples, 0.50))
             expected_pairs_p95 = float(np.quantile(pairs_samples, 0.95))
             expected_pairs_p99 = float(np.quantile(pairs_samples, 0.99))
-            tail_prob_pairs = float(empirical_p_value_one_sided(pairs_samples, observed_pairs))
         else:
             expected_pairs_mean = expected_pairs_analytic
             expected_pairs_median = expected_pairs_analytic
             expected_pairs_p95 = expected_pairs_analytic
             expected_pairs_p99 = expected_pairs_analytic
             tail_prob_pairs = 1.0
+            tail_prob_pairs_mcse = np.nan
+            tail_prob_pairs_ci_low = np.nan
+            tail_prob_pairs_ci_high = np.nan
+            monte_carlo_quantile_resolution = np.nan
 
         # Max-repeat references can be expensive for very large category sets, so we
         # compute them only when the baseline category count is manageable.
@@ -662,6 +702,10 @@ def compute_vrdb_collision_null_for_slices(
                 "expected_pairs_p95": expected_pairs_p95,
                 "expected_pairs_p99": expected_pairs_p99,
                 "tail_prob_pairs": tail_prob_pairs,
+                "tail_prob_pairs_mcse": tail_prob_pairs_mcse,
+                "tail_prob_pairs_ci_low": tail_prob_pairs_ci_low,
+                "tail_prob_pairs_ci_high": tail_prob_pairs_ci_high,
+                "monte_carlo_quantile_resolution": monte_carlo_quantile_resolution,
                 "expected_max_name_count_mean": expected_max_mean,
                 "expected_max_name_count_p95": expected_max_p95,
                 "expected_max_name_count_p99": expected_max_p99,

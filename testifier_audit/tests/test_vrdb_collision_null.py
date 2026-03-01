@@ -99,6 +99,8 @@ def test_vrdb_collision_null_simulation_matches_multinomial_expectation() -> Non
     assert relative_error < 0.20
     assert 0.0 <= float(row["tail_prob_pairs"]) <= 1.0
     assert int(row["monte_carlo_draws_effective"]) == 1200
+    assert np.isfinite(float(row["tail_prob_pairs_mcse"]))
+    assert 0.0 <= float(row["tail_prob_pairs_ci_low"]) <= float(row["tail_prob_pairs_ci_high"]) <= 1.0
 
 
 def test_vrdb_collision_null_bucket_expectation_is_not_linear_rescale() -> None:

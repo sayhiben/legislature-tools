@@ -15,29 +15,29 @@ Execution order is tracked here independently from ticket numbering.
 4. `DUP-010` (Done, 2026-02-28)
 5. `DUP-002` (Done, 2026-02-28)
 6. `DUP-003` (Done, 2026-02-28)
+7. `DUP-004` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-004` (next in-progress target)
+1. `DUP-005` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-004`
-2. `DUP-005`
-3. `DUP-007`
-4. `DUP-006`
-5. `DUP-011`
-6. `DUP-012`
-7. `DUP-013`
-8. `DUP-014`
-9. `DUP-015`
-10. `DUP-016`
-11. `DUP-017`
-12. `DUP-018`
-13. `DUP-019`
-14. `DUP-020`
-15. `DUP-021`
+1. `DUP-005`
+2. `DUP-007`
+3. `DUP-006`
+4. `DUP-011`
+5. `DUP-012`
+6. `DUP-013`
+7. `DUP-014`
+8. `DUP-015`
+9. `DUP-016`
+10. `DUP-017`
+11. `DUP-018`
+12. `DUP-019`
+13. `DUP-020`
+14. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, and **DUP-003**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, and **DUP-004**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -466,3 +466,99 @@ Work item: DUP-003 (P0)
 ## Remaining Work / Handoff
 - Move to `DUP-004` (dedicated VRDB collision-null engine per analysis slice).
 - Reuse DUP-003 artifacts as the sole probability/backoff source for DUP-004 slice-level expectation calculations.
+
+---
+
+## DUP-004 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-004 (P0)
+
+## What Was Implemented
+- Added a dedicated VRDB collision-null engine module:
+  - `src/testifier_audit/io/vrdb_collision_null.py`
+  - key functionality:
+    - `compute_vrdb_collision_null_for_slices(...)` for per-slice collision-null computation
+    - `load_vrdb_probability_artifacts(...)` and `write_vrdb_collision_null_tables(...)` helpers
+- Implemented per-slice null-model computation with slice-local `N`:
+  - observed outputs:
+    - `observed_pairs`
+    - `n_unique_names`
+    - `observed_max_name_count`
+  - expected outputs:
+    - `expected_pairs_analytic`
+    - `expected_pairs_closed_form` (`C(N,2) * Σ p_i^2`)
+    - Monte Carlo summary metrics:
+      - `expected_pairs_mean`
+      - `expected_pairs_median`
+      - `expected_pairs_p95`
+      - `expected_pairs_p99`
+      - `tail_prob_pairs`
+    - optional max-repeat reference metrics with availability flags
+  - inferential metadata:
+    - `inferential_status`
+    - `inferential_reason`
+    - Monte Carlo draw accounting fields
+- Added additive evidence-family labeling to all outputs:
+  - `evidence_family = "vrdb_collision_null"`
+- Implemented expected-per-name outputs:
+  - top observed names per slice with:
+    - `observed_count`
+    - `expected_count`
+    - `overrun_count`
+    - `expected_share`
+- Added runtime logging per slice for traceability during ESSB execution.
+
+## Tests Added/Updated
+- Added `tests/test_vrdb_collision_null.py` with coverage for DUP-004 acceptance criteria:
+  - closed-form toy-case expected-pairs check
+  - simulation parity check vs multinomial expectation
+  - regression proving bucket expectations are not derived by linear rescale from full-hearing expectation
+  - geography backoff resolution check (requested vs effective geography)
+- Verification runs:
+  - focused suite: `python -m pytest tests/test_vrdb_collision_null.py -q` passed
+  - lint: `./testifier_audit/scripts/ci/lint.sh` passed
+  - full suite: `./testifier_audit/scripts/ci/test.sh` passed:
+    - `339 passed` (warnings only; no failures)
+
+## Runtime / Report Validation (ESSB 6346)
+- Unified run executed:
+  - `scripts/report/run_unified_report.sh --skip-imports ...ESSB6346-20260224-0800.csv ...20260202_VRDB_Extract.txt ...ESSB6346-20260224-0800.hearing.yaml`
+  - log captured at:
+    - `output/run_logs/dup004_essb6346_unified.log`
+- Rerender executed:
+  - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 ...`
+  - log captured at:
+    - `output/run_logs/dup004_essb6346_rerender.log`
+- Direct DUP-004 engine exercise against ESSB slices completed:
+  - used DUP-003 probability/backoff artifacts from `output/dup003/`
+  - computed full hearing + 60-minute slices
+  - logs captured at:
+    - `output/run_logs/dup004_essb6346_null_engine.log`
+  - outputs written:
+    - `output/dup004/essb6346_vrdb_collision_metrics.csv`
+    - `output/dup004/essb6346_vrdb_collision_expected_names.csv`
+  - observed summary from run:
+    - `probability_rows=4,974,281` (state/full-name/all-registrants slice of artifact)
+    - `metrics_rows=136`
+    - `expected_name_rows=2,040`
+    - full-hearing row: `n_rows=129,971`, `observed_pairs=64,758`, `expected_pairs_analytic=2,369.304`
+- Playwright MCP checks completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - sidebar/menu toggle
+    - global controls expand/collapse on mobile
+    - bucket-switch propagation across chart note/caveat surfaces
+    - theme toggle behavior
+    - report-data shard requests all `200`
+  - only console error observed: expected local `favicon.ico` `404`.
+
+## Issues Discovered During Implementation
+- ESSB time parsing in the ad hoc engine-exercise script produced a pandas warning about format inference.
+  - impact was limited to runtime validation scripting and did not affect committed module behavior.
+- Some burst charts intentionally fall back to `60m` when requested `30m` is unavailable; this is expected and surfaced explicitly in chart notes.
+
+## Remaining Work / Handoff
+- Move to `DUP-005` (integrate VRDB collision metrics as additive sidecar evidence family).
+- Keep DUP-004 outputs additive and isolated; do not replace existing detector outputs when wiring report/payload integration.

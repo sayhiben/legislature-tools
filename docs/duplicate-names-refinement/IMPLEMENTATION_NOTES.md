@@ -2054,3 +2054,11 @@ Scope: Refresh canonical `output/dup007` artifacts with inferential-evaluability
 - `output/dup007` should be treated as a reproducible low-support baseline reference set.
 - `output/dup007_expanded` remains the inferential-operating evidence set for policy review.
 - DUP-007 remains open pending reviewer sign-off on evaluability policy.
+
+## DUP-007 Current Decision Snapshot (2026-03-01)
+- Engineering status: complete for this work item’s implementation scope (pipeline, instrumentation, memo artifacts, rerender/Playwright validation).
+- Evidence status:
+  - baseline cohort (`output/dup007`): reproducible but non-evaluable under inferential support gate.
+  - expanded cohort (`output/dup007_expanded`): inferential-evaluable city fallback scenarios meet operating targets.
+- Remaining open item is policy/review sign-off, not additional detector coding:
+  - decide whether descriptive-only/non-evaluable scenarios are acceptable for rollout with caveats, or require additional inferential coverage before closure.

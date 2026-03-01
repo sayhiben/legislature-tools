@@ -147,3 +147,11 @@ Operational rollout should remain blocked until review explicitly accepts the ob
 - Practical readout:
   - treat `output/dup007` as a reproducible low-support baseline reference.
   - use `output/dup007_expanded` for inferential-operating target assessment.
+
+## Current Decision Frame
+- For rollout review, use this order of evidence:
+  1. `output/dup007` to confirm reproducibility and baseline behavior under the historical 6/2 cohort.
+  2. `output/dup007_expanded` to evaluate inferential operating targets with minimum support for holdout controls.
+- Policy interpretation tracked in work-item/implementation notes:
+  - non-evaluable descriptive-only scenarios are tracked as inferential-coverage limits, not inferential false-positive misses.
+  - inferential target compliance is assessed only for evaluable scenarios.

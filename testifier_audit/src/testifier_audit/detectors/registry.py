@@ -6,6 +6,7 @@ from testifier_audit.detectors.bursts import BurstsDetector
 from testifier_audit.detectors.duplicates_exact import DuplicatesExactDetector
 from testifier_audit.detectors.off_hours import OffHoursDetector
 from testifier_audit.detectors.org_anomalies import OrganizationAnomaliesDetector
+from testifier_audit.detectors.vrdb_collision_evidence import VrdbCollisionEvidenceDetector
 from testifier_audit.detectors.voter_registry_match import VoterRegistryMatchDetector
 from testifier_audit.io.hearing_metadata import load_hearing_metadata
 
@@ -97,6 +98,15 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             voter_db_url=config.voter_registry.db_url,
             voter_table_name=config.voter_registry.table_name,
             voter_active_only=config.voter_registry.active_only,
+        ),
+        VrdbCollisionEvidenceDetector(
+            bucket_minutes=bucket_minutes,
+            monte_carlo_draws=min(int(config.name_analysis.monte_carlo_draws), 400),
+            top_name_limit=min(int(config.name_analysis.per_name_display_limit), 50),
+            baseline_variant="all_registrants",
+            name_key_type="full_name_key",
+            requested_geo_level="state",
+            requested_geo_value="WA",
         ),
         BurstsDetector(
             window_minutes=sorted(set(config.windows.scan_window_minutes + bucket_minutes)),

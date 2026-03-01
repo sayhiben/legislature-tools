@@ -2327,6 +2327,104 @@ def _build_interactive_chart_payload_v2(
         dup_exact_swing_impact["inferential_reason"] = primary_dup_inferential_reason
         dup_exact_swing_impact["claim_class"] = dup_claim_class
 
+    vrdb_collision_metrics = _with_expected_columns(
+        table_map.get(_table_key("vrdb_collision_evidence", "slice_metrics"), pd.DataFrame()),
+        [
+            "evidence_family",
+            "slice_id",
+            "slice_type",
+            "bucket_start",
+            "bucket_minutes",
+            "n_rows",
+            "n_unique_names",
+            "baseline_variant",
+            "requested_geo_level",
+            "requested_geo_value",
+            "effective_geo_level",
+            "effective_geo_value",
+            "fallback_steps",
+            "backoff_reason",
+            "observed_pairs",
+            "expected_pairs_analytic",
+            "expected_pairs_mean",
+            "expected_pairs_median",
+            "expected_pairs_p95",
+            "expected_pairs_p99",
+            "tail_prob_pairs",
+            "observed_max_name_count",
+            "expected_max_name_count_mean",
+            "expected_max_name_count_p95",
+            "expected_max_name_count_p99",
+            "tail_prob_max_name",
+            "max_count_reference_available",
+            "max_count_reference_reason",
+            "inferential_status",
+            "inferential_reason",
+            "effective_denominator",
+            "vrdb_version",
+            "normalization_version",
+            "top_overrun_names",
+        ],
+    )
+    if not vrdb_collision_metrics.empty:
+        vrdb_collision_metrics["bucket_minutes"] = pd.to_numeric(
+            vrdb_collision_metrics.get("bucket_minutes", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0).astype(int)
+        vrdb_collision_metrics["bucket_start"] = pd.to_datetime(
+            vrdb_collision_metrics.get("bucket_start", pd.Series(dtype=object)),
+            errors="coerce",
+        )
+    vrdb_collision_overrun = _with_expected_columns(
+        table_map.get(_table_key("vrdb_collision_evidence", "top_overrun_names"), pd.DataFrame()),
+        [
+            "slice_id",
+            "slice_type",
+            "bucket_start",
+            "bucket_minutes",
+            "name_key",
+            "observed_count",
+            "expected_count",
+            "overrun_count",
+            "expected_share",
+            "baseline_variant",
+            "effective_geo_level",
+            "effective_geo_value",
+            "rank",
+        ],
+    )
+    if not vrdb_collision_overrun.empty:
+        vrdb_collision_overrun["bucket_minutes"] = pd.to_numeric(
+            vrdb_collision_overrun.get("bucket_minutes", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0).astype(int)
+        vrdb_collision_overrun["bucket_start"] = pd.to_datetime(
+            vrdb_collision_overrun.get("bucket_start", pd.Series(dtype=object)),
+            errors="coerce",
+        )
+        vrdb_collision_overrun["overrun_count"] = pd.to_numeric(
+            vrdb_collision_overrun.get("overrun_count", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+        vrdb_collision_overrun = vrdb_collision_overrun.sort_values(
+            ["slice_id", "overrun_count", "observed_count", "name_key"],
+            ascending=[True, False, False, True],
+        )
+    vrdb_collision_bucket = vrdb_collision_metrics[
+        pd.to_numeric(
+            vrdb_collision_metrics.get("bucket_minutes", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+        > 0.0
+    ].copy()
+    vrdb_collision_full = vrdb_collision_metrics[
+        pd.to_numeric(
+            vrdb_collision_metrics.get("bucket_minutes", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0.0)
+        <= 0.0
+    ].copy()
+
     org_blank_rates = _with_expected_columns(
         table_map.get(
             _table_key("org_anomalies", "organization_blank_rate_by_bucket"), pd.DataFrame()
@@ -3916,6 +4014,95 @@ def _build_interactive_chart_payload_v2(
     charts["duplicates_exact_top_names"] = charts["duplicates_exact_per_name_anomalies"]
     charts["duplicates_exact_position_switch"] = charts["duplicates_exact_per_name_anomalies"]
 
+    charts["vrdb_collision_evidence_pairs"] = _records_from_frame(
+        vrdb_collision_bucket.sort_values(["bucket_minutes", "bucket_start", "slice_id"]),
+        columns=[
+            "slice_id",
+            "slice_type",
+            "bucket_start",
+            "bucket_minutes",
+            "n_rows",
+            "n_unique_names",
+            "baseline_variant",
+            "requested_geo_level",
+            "requested_geo_value",
+            "effective_geo_level",
+            "effective_geo_value",
+            "observed_pairs",
+            "expected_pairs_analytic",
+            "expected_pairs_mean",
+            "expected_pairs_median",
+            "expected_pairs_p95",
+            "expected_pairs_p99",
+            "tail_prob_pairs",
+            "inferential_status",
+            "inferential_reason",
+            "top_overrun_names",
+            "normalization_version",
+            "vrdb_version",
+        ],
+        max_rows=100_000,
+    )
+    charts["vrdb_collision_evidence_max_name_count"] = _records_from_frame(
+        vrdb_collision_bucket.sort_values(["bucket_minutes", "bucket_start", "slice_id"]),
+        columns=[
+            "slice_id",
+            "slice_type",
+            "bucket_start",
+            "bucket_minutes",
+            "n_rows",
+            "baseline_variant",
+            "effective_geo_level",
+            "effective_geo_value",
+            "observed_max_name_count",
+            "expected_max_name_count_mean",
+            "expected_max_name_count_p95",
+            "expected_max_name_count_p99",
+            "tail_prob_max_name",
+            "max_count_reference_available",
+            "max_count_reference_reason",
+            "inferential_status",
+            "inferential_reason",
+            "normalization_version",
+            "vrdb_version",
+        ],
+        max_rows=100_000,
+    )
+    vrdb_overrun_chart = vrdb_collision_overrun.copy()
+    if not vrdb_overrun_chart.empty and not vrdb_collision_full.empty:
+        full_slice_ids = {
+            str(value).strip()
+            for value in vrdb_collision_full.get("slice_id", pd.Series(dtype=str)).tolist()
+            if str(value).strip()
+        }
+        full_overrun = vrdb_overrun_chart[
+            vrdb_overrun_chart.get("slice_id", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .isin(full_slice_ids)
+        ]
+        if not full_overrun.empty:
+            vrdb_overrun_chart = full_overrun
+    charts["vrdb_collision_evidence_overrun_names"] = _records_from_frame(
+        vrdb_overrun_chart.head(100),
+        columns=[
+            "slice_id",
+            "slice_type",
+            "bucket_start",
+            "bucket_minutes",
+            "name_key",
+            "observed_count",
+            "expected_count",
+            "overrun_count",
+            "expected_share",
+            "rank",
+            "baseline_variant",
+            "effective_geo_level",
+            "effective_geo_value",
+        ],
+        max_rows=100,
+    )
+
     charts["org_anomalies_blank_rate"] = _records_from_frame(
         org_blank_rates.sort_values(["bucket_minutes", "bucket_start"]),
         columns=[
@@ -4144,6 +4331,10 @@ def _build_interactive_chart_payload_v2(
         "bursts": _extract_bucket_options(bursts_significant, bursts_tests),
         "off_hours": _extract_bucket_options(off_hours_window_control),
         "duplicates_exact": _extract_bucket_options(dup_exact_bucket),
+        "vrdb_collision_evidence": _extract_bucket_options(
+            vrdb_collision_bucket,
+            vrdb_collision_overrun,
+        ),
         "org_anomalies": _extract_bucket_options(org_blank_rates, org_position_rates),
         "voter_registry_match": _extract_bucket_options(voter_bucket, voter_bucket_position),
     }
@@ -4275,6 +4466,8 @@ def _build_interactive_chart_payload_v2(
         "off_hours_primary_residual_timeline",
         "duplicates_exact_bucket_concentration",
         "duplicates_exact_position_bucket_deviance",
+        "vrdb_collision_evidence_pairs",
+        "vrdb_collision_evidence_max_name_count",
         "org_anomalies_blank_rate",
         "org_anomalies_position_rates",
         "voter_registry_match_rates",

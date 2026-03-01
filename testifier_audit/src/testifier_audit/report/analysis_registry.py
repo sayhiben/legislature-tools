@@ -39,6 +39,7 @@ class AnalysisDefinition:
 ANALYSES_TO_PERFORM: tuple[str, ...] = (
     "bursts",
     "duplicates_exact",
+    "vrdb_collision_evidence",
     "org_anomalies",
     "voter_registry_match",
     "off_hours",
@@ -126,6 +127,31 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         expected_metric_keys=("top_name_max_records", "dedup_drop_fraction", "window_top_dup_fraction"),
     ),
     AnalysisDefinition(
+        id="vrdb_collision_evidence",
+        title="VRDB Collision Sidecar",
+        detector="vrdb_collision_evidence",
+        hero_chart_id="vrdb_collision_evidence_pairs",
+        detail_chart_ids=(
+            "vrdb_collision_evidence_max_name_count",
+            "vrdb_collision_evidence_overrun_names",
+        ),
+        how_to_read=(
+            "Read this section as additive VRDB collision-null evidence: observed duplicate-name "
+            "collisions in each time slice versus expected collisions under the selected VRDB "
+            "reference distribution."
+        ),
+        what_to_look_for=(
+            "Persistent adjacent slices where observed pair-collisions or max repeated-name counts "
+            "remain above VRDB expectations, then compare with other evidence families rather than "
+            "replacing them."
+        ),
+        common_benign_causes=(
+            "Legitimate coordination and population-level name concentration can raise collision "
+            "counts without implying duplicate people."
+        ),
+        expected_metric_keys=("observed_pairs", "expected_pairs_mean", "tail_prob_pairs"),
+    ),
+    AnalysisDefinition(
         id="org_anomalies",
         title="Organization Field Anomalies",
         detector="org_anomalies",
@@ -184,6 +210,7 @@ _ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
     "bursts": ("window_signals", 95),
     "off_hours": ("window_signals", 86),
     "duplicates_exact": ("identity_forensics", 88),
+    "vrdb_collision_evidence": ("identity_forensics", 83),
     "org_anomalies": ("field_quality", 78),
     "voter_registry_match": ("external_enrichment", 65),
 }

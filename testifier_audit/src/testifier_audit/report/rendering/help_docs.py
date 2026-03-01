@@ -59,6 +59,21 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
                 "still does not identify individuals or intent."
             ),
         ],
+        "vrdb_collision_evidence": [
+            (
+                "Prioritize adjacent windows where observed pair collisions remain "
+                "above VRDB expected p95 or p99 levels, not single-window excursions."
+            ),
+            (
+                "Use max-name-count traces with pair-collision traces together; "
+                "agreement across both strengthens follow-up priority."
+            ),
+            (
+                "Treat top-overrun names as directional diagnostics and confirm "
+                "whether the same periods are elevated in the duplicate and voter "
+                "evidence families."
+            ),
+        ],
         "org_anomalies": [
             (
                 "Start with sustained changes in overall blank-organization rate "
@@ -139,6 +154,17 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
                 "expectation across adjacent windows"
             ),
             "extended_low": "name-key collision burden near or below reference-baseline expectation",
+        },
+        "vrdb_collision_evidence": {
+            "primary_metric": "VRDB-based collision-null pair and max-repeat expectations",
+            "momentary_high": "a narrow window with concentrated repeated-name collisions",
+            "momentary_low": "a short dip in collisions relative to expected baseline mix",
+            "extended_high": (
+                "persistent collision overrun across neighboring windows under the VRDB null"
+            ),
+            "extended_low": (
+                "sustained collision rates tracking or below VRDB null expectations"
+            ),
         },
         "org_anomalies": {
             "primary_metric": "blank organization rate overall and by position",

@@ -359,6 +359,121 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(cross_hearing["analysis_metric_map"], dict)
 
 
+def test_payload_includes_vrdb_collision_sidecar_charts_when_tables_are_present() -> None:
+    table_map = {
+        "artifacts.counts_per_minute": pd.DataFrame(
+            {
+                "minute_bucket": pd.to_datetime(
+                    [
+                        "2026-02-01T00:00:00Z",
+                        "2026-02-01T00:01:00Z",
+                    ]
+                ),
+                "n_total": [12, 10],
+                "n_pro": [6, 5],
+                "n_con": [6, 5],
+                "pro_rate": [0.5, 0.5],
+                "pro_rate_wilson_low": [0.3, 0.3],
+                "pro_rate_wilson_high": [0.7, 0.7],
+                "is_low_power": [False, False],
+            }
+        ),
+        "vrdb_collision_evidence.slice_metrics": pd.DataFrame(
+            {
+                "slice_id": [
+                    "full_hearing",
+                    "bucket_60m:2026-02-01T00:00:00+0000",
+                    "bucket_60m:2026-02-01T01:00:00+0000",
+                ],
+                "slice_type": ["full_hearing", "bucket_60m", "bucket_60m"],
+                "bucket_start": pd.to_datetime(
+                    [None, "2026-02-01T00:00:00Z", "2026-02-01T01:00:00Z"]
+                ),
+                "bucket_minutes": [0, 60, 60],
+                "n_rows": [22, 12, 10],
+                "n_unique_names": [7, 4, 4],
+                "baseline_variant": ["all_registrants", "all_registrants", "all_registrants"],
+                "requested_geo_level": ["state", "state", "state"],
+                "requested_geo_value": ["WA", "WA", "WA"],
+                "effective_geo_level": ["state", "state", "state"],
+                "effective_geo_value": ["WA", "WA", "WA"],
+                "observed_pairs": [16.0, 9.0, 7.0],
+                "expected_pairs_analytic": [3.2, 1.8, 1.4],
+                "expected_pairs_mean": [3.4, 1.9, 1.5],
+                "expected_pairs_median": [3.3, 1.8, 1.4],
+                "expected_pairs_p95": [5.1, 2.9, 2.4],
+                "expected_pairs_p99": [6.1, 3.6, 3.1],
+                "tail_prob_pairs": [0.001, 0.002, 0.01],
+                "observed_max_name_count": [6.0, 4.0, 3.0],
+                "expected_max_name_count_mean": [2.1, 1.4, 1.3],
+                "expected_max_name_count_p95": [3.0, 2.0, 1.9],
+                "expected_max_name_count_p99": [4.0, 2.6, 2.4],
+                "tail_prob_max_name": [0.004, 0.01, 0.03],
+                "max_count_reference_available": [True, True, True],
+                "max_count_reference_reason": ["", "", ""],
+                "inferential_status": [
+                    "reference_model_inference",
+                    "reference_model_inference",
+                    "reference_model_inference",
+                ],
+                "inferential_reason": [
+                    "reference_model_inference_available",
+                    "reference_model_inference_available",
+                    "reference_model_inference_available",
+                ],
+                "top_overrun_names": ["gamma, beta", "gamma, beta", "gamma"],
+                "normalization_version": ["name_norm_v1", "name_norm_v1", "name_norm_v1"],
+                "vrdb_version": ["vrdb_extract_v4", "vrdb_extract_v4", "vrdb_extract_v4"],
+            }
+        ),
+        "vrdb_collision_evidence.top_overrun_names": pd.DataFrame(
+            {
+                "slice_id": ["full_hearing", "bucket_60m:2026-02-01T00:00:00+0000"],
+                "slice_type": ["full_hearing", "bucket_60m"],
+                "bucket_start": pd.to_datetime(["2026-02-01T00:00:00Z", "2026-02-01T00:00:00Z"]),
+                "bucket_minutes": [0, 60],
+                "name_key": ["gamma", "gamma"],
+                "observed_count": [6.0, 4.0],
+                "expected_count": [0.7, 0.4],
+                "overrun_count": [5.3, 3.6],
+                "expected_share": [0.01, 0.01],
+                "baseline_variant": ["all_registrants", "all_registrants"],
+                "effective_geo_level": ["state", "state"],
+                "effective_geo_value": ["WA", "WA"],
+                "rank": [1, 1],
+            }
+        ),
+    }
+    detector_summaries = {"vrdb_collision_evidence": {"enabled": True, "active": True}}
+
+    payload = _build_interactive_chart_payload_v2(
+        table_map=table_map,
+        detector_summaries=detector_summaries,
+    )
+
+    sidecar_pairs = payload["charts"]["vrdb_collision_evidence_pairs"]
+    sidecar_max = payload["charts"]["vrdb_collision_evidence_max_name_count"]
+    sidecar_overrun = payload["charts"]["vrdb_collision_evidence_overrun_names"]
+    assert len(sidecar_pairs) == 2
+    assert len(sidecar_max) == 2
+    assert len(sidecar_overrun) == 1
+    assert sidecar_pairs[0]["bucket_minutes"] == 60
+    assert sidecar_pairs[0]["expected_pairs_mean"] > 0
+    assert sidecar_max[0]["observed_max_name_count"] >= sidecar_max[0]["expected_max_name_count_mean"]
+    assert sidecar_overrun[0]["slice_id"] == "full_hearing"
+
+    analysis_map = {entry["id"]: entry for entry in payload["analysis_catalog"]}
+    sidecar_analysis = analysis_map["vrdb_collision_evidence"]
+    assert sidecar_analysis["status"] == "ready"
+    assert sidecar_analysis["hero_chart_id"] == "vrdb_collision_evidence_pairs"
+    assert sidecar_analysis["bucket_options"] == EXPECTED_BASELINE_BUCKETS
+    assert len(sidecar_analysis["what_to_look_for_details"]) >= 1
+
+    absolute_time = payload["controls"]["zoom_sync_groups"]["absolute_time"]
+    assert "vrdb_collision_evidence_pairs" in absolute_time
+    assert "vrdb_collision_evidence_max_name_count" in absolute_time
+
+
 def test_payload_color_semantics_cover_key_chart_families() -> None:
     payload = _build_interactive_chart_payload_v2(
         table_map={

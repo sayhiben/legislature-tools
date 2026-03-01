@@ -16,28 +16,28 @@ Execution order is tracked here independently from ticket numbering.
 5. `DUP-002` (Done, 2026-02-28)
 6. `DUP-003` (Done, 2026-02-28)
 7. `DUP-004` (Done, 2026-02-28)
+8. `DUP-005` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-005` (next in-progress target)
+1. `DUP-007` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-005`
-2. `DUP-007`
-3. `DUP-006`
-4. `DUP-011`
-5. `DUP-012`
-6. `DUP-013`
-7. `DUP-014`
-8. `DUP-015`
-9. `DUP-016`
-10. `DUP-017`
-11. `DUP-018`
-12. `DUP-019`
-13. `DUP-020`
-14. `DUP-021`
+1. `DUP-007`
+2. `DUP-006`
+3. `DUP-011`
+4. `DUP-012`
+5. `DUP-013`
+6. `DUP-014`
+7. `DUP-015`
+8. `DUP-016`
+9. `DUP-017`
+10. `DUP-018`
+11. `DUP-019`
+12. `DUP-020`
+13. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, and **DUP-004**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, and **DUP-005**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -562,3 +562,102 @@ Work item: DUP-004 (P0)
 ## Remaining Work / Handoff
 - Move to `DUP-005` (integrate VRDB collision metrics as additive sidecar evidence family).
 - Keep DUP-004 outputs additive and isolated; do not replace existing detector outputs when wiring report/payload integration.
+
+---
+
+## DUP-005 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-005 (P0)
+
+## What Was Implemented
+- Added a new additive detector:
+  - `src/testifier_audit/detectors/vrdb_collision_evidence.py`
+  - detector id: `vrdb_collision_evidence`
+  - outputs:
+    - `slice_metrics`
+    - `top_overrun_names`
+- Kept existing duplicate detector outputs and contracts unchanged:
+  - no column replacement in `duplicates_exact`
+  - no threshold changes in existing analyses
+- Wired sidecar into detector orchestration:
+  - `src/testifier_audit/detectors/registry.py`
+  - sidecar runs with bounded Monte Carlo draws and coarse bucket defaults for runtime control
+- Added separate report analysis section (not merged into duplicate section):
+  - `src/testifier_audit/report/analysis_registry.py`
+  - analysis id: `vrdb_collision_evidence`
+  - hero chart: `vrdb_collision_evidence_pairs`
+  - detail charts:
+    - `vrdb_collision_evidence_max_name_count`
+    - `vrdb_collision_evidence_overrun_names`
+- Added payload integration and controls:
+  - `src/testifier_audit/report/rendering/payload/builder.py`
+  - sidecar tables now flow into chart payloads and analysis catalog
+  - sidecar bucket options and absolute-time zoom sync participation added
+- Added report help/interpretation content for the new sidecar section:
+  - `src/testifier_audit/report/rendering/help_docs.py`
+- Added frontend renderer wiring:
+  - `src/testifier_audit/report/static/report/modules/charts/default_renderer_registry.js`
+  - time-bar-line rendering for:
+    - `vrdb_collision_evidence_pairs`
+    - `vrdb_collision_evidence_max_name_count`
+  - tabular/simple-bar rendering for:
+    - `vrdb_collision_evidence_overrun_names`
+
+## Tests Added/Updated
+- Added detector tests:
+  - `tests/test_vrdb_collision_evidence_detector.py`
+    - missing-artifact graceful disable path
+    - artifact-backed slice metric + overrun output path
+- Updated report payload contract coverage:
+  - `tests/test_report_chart_payload.py`
+    - sidecar charts, catalog status, bucket options, and absolute-time zoom sync assertions
+- Updated registry coverage:
+  - `tests/test_analysis_registry.py`
+    - sidecar analysis id/title/chart ids/group/priority assertions
+- Validation runs:
+  - focused:
+    - `python -m pytest tests/test_vrdb_collision_evidence_detector.py tests/test_analysis_registry.py tests/test_report_chart_payload.py -q`
+  - targeted integration:
+    - `python -m pytest tests/test_report_render_helpers.py tests/test_pipeline_integration.py -q`
+  - full suite:
+    - `./testifier_audit/scripts/ci/test.sh` passed (`342 passed`)
+  - lint:
+    - `./testifier_audit/scripts/ci/lint.sh` passed
+
+## Runtime / Report Validation (ESSB 6346)
+- Unified run executed (skip-import mode):
+  - `CI_SKIP_INSTALL=1 ./testifier_audit/scripts/report/run_unified_report.sh --skip-imports /Users/sayhiben/dev/legislature-tools/data/raw/ESSB6346-20260224-0800.csv /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt /Users/sayhiben/dev/legislature-tools/data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup005_essb6346_unified.log`
+- Rerender executed:
+  - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup005_essb6346_rerender.log`
+- Sidecar execution evidence from unified log:
+  - detector scope includes `vrdb_collision_evidence`
+  - sidecar summary log includes:
+    - `rows=129971`
+    - `slices=544`
+    - `buckets=[30, 60, 120, 240, 480, 720, 1440]`
+    - `probabilities=4974281`
+- Playwright MCP checks completed:
+  - desktop: `1728x1117`
+  - mobile: `390x844`
+  - verified:
+    - separate “VRDB Collision Sidecar” analysis section present
+    - bucket switching updates sidecar charts and loads sidecar bucket shards
+    - global controls and sidebar behave on desktop/mobile
+    - report-data requests for sidecar/base/bucket shards return `200`
+  - only console error observed: expected local `favicon.ico` `404`.
+
+## Issues Discovered During Implementation
+- Relative paths passed to `run_unified_report.sh` failed after the script changed to the `testifier_audit/` project root.
+  - mitigation: use absolute paths for ESSB runtime validation commands.
+- Running `lint.sh` and `test.sh` in parallel caused editable-install race conditions in this environment.
+  - mitigation: run CI scripts sequentially.
+- Report artifact rerendering naturally dirties `reports/ESSB6346-20260224-0800/`; keep these generated changes out of source commits unless report artifacts are explicitly requested.
+
+## Remaining Work / Handoff
+- Move to `DUP-007`.
+- Preserve `vrdb_collision_evidence` as additive sidecar evidence; avoid back-merging into existing duplicate output schemas unless explicitly required by later tickets.

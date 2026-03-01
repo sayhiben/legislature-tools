@@ -111,6 +111,32 @@ export const DEFAULT_TIME_BAR_LINE_OVERRIDES = Object.freeze({
     lineAxisName: "Collision count",
     barAxisName: "Positioned rows",
   },
+  vrdb_collision_evidence_pairs: {
+    timeField: "bucket_start",
+    barField: "n_rows",
+    lineField: "observed_pairs",
+    lineSeriesName: "Observed pair collisions",
+    extraLines: [
+      { field: "expected_pairs_mean", name: "Expected pairs (mean)" },
+      { field: "expected_pairs_p95", name: "Expected pairs (p95)" },
+      { field: "expected_pairs_p99", name: "Expected pairs (p99)" },
+    ],
+    lineAxisName: "Pair collisions",
+    barAxisName: "Rows in bucket",
+  },
+  vrdb_collision_evidence_max_name_count: {
+    timeField: "bucket_start",
+    barField: "n_rows",
+    lineField: "observed_max_name_count",
+    lineSeriesName: "Observed max repeated-name count",
+    extraLines: [
+      { field: "expected_max_name_count_mean", name: "Expected max count (mean)" },
+      { field: "expected_max_name_count_p95", name: "Expected max count (p95)" },
+      { field: "expected_max_name_count_p99", name: "Expected max count (p99)" },
+    ],
+    lineAxisName: "Max repeated-name count",
+    barAxisName: "Rows in bucket",
+  },
   org_anomalies_position_rates: {
     timeField: "bucket_start",
     barField: null,
@@ -188,6 +214,7 @@ const BASE_CHART_RENDERER_IDS = Object.freeze([
   "duplicates_exact_metric_diagnostics",
   "duplicates_exact_null_distribution",
   "duplicates_exact_swing_impact",
+  "vrdb_collision_evidence_overrun_names",
   "voter_registry_match_by_position",
   "voter_registry_linkage_by_position_rows",
   "voter_registry_linkage_by_position_unique",
@@ -326,6 +353,16 @@ export function buildDefaultChartRendererRegistry(deps) {
   registry.register("duplicates_exact_swing_impact", (mount, rows) =>
     renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share", {
       observedSeriesName: "Scenario pro share",
+    })
+  );
+  registry.register("vrdb_collision_evidence_overrun_names", (mount, rows) =>
+    renderSimpleBar(mount, rows, "name_key", "observed_count", "observed count", {
+      expectedField: "expected_count",
+      expectedSeriesName: "Expected count",
+      pageStateKey: "vrdbCollisionOverrunNamesPage",
+      pageSize: 10,
+      maxPages: 10,
+      pageLabel: "Names",
     })
   );
   registry.register("voter_registry_match_by_position", (mount, rows) =>

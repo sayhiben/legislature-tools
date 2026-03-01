@@ -34,6 +34,16 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     assert "duplicates_exact_temporal_burst" not in duplicates_exact["detail_chart_ids"]
     assert "duplicates_exact_top_name_timing_medium" not in duplicates_exact["detail_chart_ids"]
     assert "duplicates_exact_top_name_timing_loose" not in duplicates_exact["detail_chart_ids"]
+    vrdb_sidecar = next(entry for entry in definitions if entry["id"] == "vrdb_collision_evidence")
+    assert vrdb_sidecar["title"] == "VRDB Collision Sidecar"
+    assert vrdb_sidecar["hero_chart_id"] == "vrdb_collision_evidence_pairs"
+    assert vrdb_sidecar["detail_chart_ids"] == [
+        "vrdb_collision_evidence_max_name_count",
+        "vrdb_collision_evidence_overrun_names",
+    ]
+    assert "additive vrdb collision-null evidence" in vrdb_sidecar["how_to_read"].lower()
+    assert vrdb_sidecar["group"] == "identity_forensics"
+    assert vrdb_sidecar["priority"] == 83
     off_hours = next(entry for entry in definitions if entry["id"] == "off_hours")
     assert "off_hours_model_fit_diagnostics" not in off_hours["detail_chart_ids"]
     org = next(entry for entry in definitions if entry["id"] == "org_anomalies")

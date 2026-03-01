@@ -88,6 +88,9 @@ _DUPLICATE_DEFAULT_INFERENTIAL_GATING = (
     "Low-power rows/windows are descriptive-only; inferential claims require supportable rows and "
     "an inferential status other than descriptive-only or unavailable."
 )
+_DUPLICATE_INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED = (
+    "unmatched_scope_registry_baseline_unsupported"
+)
 _DUPLICATE_CHART_IDS: tuple[str, ...] = (
     "duplicates_exact_bucket_concentration",
     "duplicates_exact_metric_diagnostics",
@@ -556,6 +559,18 @@ def _duplicate_default_inferential_reason_for_status(status: str) -> str:
     if status_norm in {"reference_model_inference", "tested"}:
         return "reference_model_inference_available"
     return "status_not_specified"
+
+
+def _duplicate_inferential_reason_label(reason: str) -> str:
+    reason_norm = _normalized_optional_string(reason).strip().lower()
+    if reason_norm == _DUPLICATE_INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED:
+        return (
+            "Unmatched-only scope is descriptive-only under registry baselines until a "
+            "dedicated unmatched reference baseline is implemented."
+        )
+    if not reason_norm:
+        return ""
+    return reason_norm.replace("_", " ")
 
 
 def _duplicate_default_scope_reason_for_status(scope_status: str) -> str:
@@ -5429,6 +5444,26 @@ def _build_interactive_chart_payload_v2(
                     "Duplicate-collision scope unavailable during runtime: "
                     f"{scope_name} ({scope_reason})."
                 )
+        unmatched_scope_rows = dup_exact_methods[
+            dup_exact_methods.get("scope", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .eq("unmatched_only")
+            & dup_exact_methods.get("inferential_reason", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .eq(_DUPLICATE_INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED)
+        ].copy()
+        if not unmatched_scope_rows.empty:
+            methodology["caveats"].append(
+                _duplicate_inferential_reason_label(
+                    _DUPLICATE_INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED
+                )
+            )
         if "dup_exact_bucket" in locals() and isinstance(dup_exact_bucket, pd.DataFrame):
             names_methods = (
                 dup_exact_bucket.get("unit_expected_names_method", pd.Series(dtype=str))

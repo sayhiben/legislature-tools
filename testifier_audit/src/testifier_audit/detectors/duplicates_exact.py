@@ -141,6 +141,9 @@ class DuplicatesExactDetector(Detector):
     INFERENTIAL_REASON_STRATIFICATION_ENDOGENEITY_UNCONTROLLED = (
         "stratification_endogeneity_uncontrolled"
     )
+    INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED = (
+        "unmatched_scope_registry_baseline_unsupported"
+    )
     INFERENTIAL_REASON_LOW_POWER = "low_power_support"
     INFERENTIAL_REASON_SCOPE_UNAVAILABLE = "scope_unavailable"
     STRATIFICATION_WEIGHT_SOURCE_NONE = "none"
@@ -358,8 +361,9 @@ class DuplicatesExactDetector(Detector):
         return "Reference baseline"
 
     @classmethod
-    def _scope_inferential_status(cls, baseline_source: str) -> str:
+    def _scope_inferential_status(cls, baseline_source: str, *, scope: str = "full_hearing") -> str:
         status, _reason = cls._scope_inferential_metadata(
+            scope=scope,
             baseline_source=baseline_source,
             baseline_degraded=False,
             null_samples=pd.DataFrame({"pairs": [0.0]}),
@@ -367,14 +371,39 @@ class DuplicatesExactDetector(Detector):
         return status
 
     @classmethod
+    def _scope_registry_baseline_inference_supported(
+        cls,
+        *,
+        scope: str,
+        baseline_source: str,
+        unmatched_scope_baseline_available: bool = False,
+    ) -> tuple[bool, str]:
+        scope_norm = str(scope or "").strip().lower()
+        source_norm = str(baseline_source or "").strip().lower()
+        if (
+            scope_norm == "unmatched_only"
+            and source_norm in {"vrdb_full_histogram", "vrdb_full_keys"}
+            and not bool(unmatched_scope_baseline_available)
+        ):
+            # Future hook: allow inferential outputs once a dedicated unmatched-population
+            # baseline is implemented and wired into this capability check.
+            return (
+                False,
+                cls.INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED,
+            )
+        return (True, cls.INFERENTIAL_REASON_REFERENCE_MODEL_INFERENCE)
+
+    @classmethod
     def _scope_inferential_metadata(
         cls,
         *,
+        scope: str,
         baseline_source: str,
         baseline_degraded: bool,
         null_samples: pd.DataFrame,
         uses_rounded_hypergeometric_approximation: bool = False,
         stratification_endogeneity_uncontrolled: bool = False,
+        unmatched_scope_baseline_available: bool = False,
     ) -> tuple[str, str]:
         source_norm = str(baseline_source or "").strip().lower()
         if source_norm == "hearing_empirical":
@@ -387,6 +416,15 @@ class DuplicatesExactDetector(Detector):
                 "descriptive_only",
                 cls.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE,
             )
+        registry_inference_supported, unsupported_reason = (
+            cls._scope_registry_baseline_inference_supported(
+                scope=scope,
+                baseline_source=source_norm,
+                unmatched_scope_baseline_available=unmatched_scope_baseline_available,
+            )
+        )
+        if not registry_inference_supported:
+            return ("descriptive_only", unsupported_reason)
         if uses_rounded_hypergeometric_approximation:
             return (
                 "unavailable",
@@ -2796,6 +2834,7 @@ class DuplicatesExactDetector(Detector):
                 )
             )
             scope_inferential_status, scope_inferential_reason = self._scope_inferential_metadata(
+                scope=scope,
                 baseline_source=effective_baseline_source,
                 baseline_degraded=scope_degraded,
                 null_samples=null_samples,
@@ -4252,19 +4291,20 @@ class DuplicatesExactDetector(Detector):
                 per_name_tests.loc[scope_index, "gate_reason"] = scope_gate_reason_series
 
                 if n_scope_tests > 0:
+                    scope_eligible_index = scope_index[scope_eligible.to_numpy(dtype=bool)]
                     scope_adjusted = self._adjust_p_values(
-                        per_name_tests.loc[scope_eligible, "p_value"],
+                        per_name_tests.loc[scope_eligible_index, "p_value"],
                         method=self.ADJUSTMENT_METHOD_BH,
                     )
-                    per_name_tests.loc[scope_eligible, "q_value"] = scope_adjusted
-                    per_name_tests.loc[scope_eligible, "adjusted_p_value"] = scope_adjusted
-                    per_name_tests.loc[scope_eligible, "is_significant"] = (
+                    per_name_tests.loc[scope_eligible_index, "q_value"] = scope_adjusted
+                    per_name_tests.loc[scope_eligible_index, "adjusted_p_value"] = scope_adjusted
+                    per_name_tests.loc[scope_eligible_index, "is_significant"] = (
                         pd.to_numeric(scope_adjusted, errors="coerce")
                         .astype(float)
                         .le(float(self.bh_fdr_q))
                         .astype("object")
                     )
-                    per_name_tests.loc[scope_eligible, "tested"] = True
+                    per_name_tests.loc[scope_eligible_index, "tested"] = True
 
                 non_eligible = ~scope_eligible
                 if bool(non_eligible.any()):
@@ -4506,12 +4546,13 @@ class DuplicatesExactDetector(Detector):
                 ] = scope_gate_reason_series.loc[scope_primary_rows]
 
                 if n_scope_tests > 0:
+                    scope_eligible_index = scope_index[scope_eligible.to_numpy(dtype=bool)]
                     scope_adjusted = self._adjust_p_values(
-                        collision_by_bucket.loc[scope_eligible, "p_value"],
+                        collision_by_bucket.loc[scope_eligible_index, "p_value"],
                         method=self.ADJUSTMENT_METHOD_BH,
                     )
-                    collision_by_bucket.loc[scope_eligible, "adjusted_p_value"] = scope_adjusted
-                    collision_by_bucket.loc[scope_eligible, "is_significant"] = (
+                    collision_by_bucket.loc[scope_eligible_index, "adjusted_p_value"] = scope_adjusted
+                    collision_by_bucket.loc[scope_eligible_index, "is_significant"] = (
                         pd.to_numeric(scope_adjusted, errors="coerce")
                         .astype(float)
                         .le(float(self.bh_fdr_q))

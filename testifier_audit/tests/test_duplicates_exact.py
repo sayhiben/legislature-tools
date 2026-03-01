@@ -364,6 +364,87 @@ def test_requested_scope_with_no_rows_after_filtering_is_unavailable() -> None:
     assert int(matched.loc[0, "n_used"]) == 0
 
 
+def test_unmatched_scope_under_registry_baseline_is_descriptive_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame(
+        {
+            "DOE|JANE": 4,
+            "SMITH|JOHN": 3,
+            "BROWN|AVA": 2,
+            "LEE|ALICE": 2,
+        }
+    )
+    assignments = pd.DataFrame(
+        [
+            {"canonical_name": "DOE|JANE", "primary_outcome": "unmatched"},
+            {"canonical_name": "SMITH|JOHN", "primary_outcome": "unmatched"},
+            {"canonical_name": "BROWN|AVA", "primary_outcome": "matched_unique"},
+            {"canonical_name": "LEE|ALICE", "primary_outcome": "matched_unique"},
+        ]
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1, 2, 3],
+                "n_keys": [150_000, 30_000, 8_000],
+                "N": [234_000, 234_000, 234_000],
+            }
+        ),
+    )
+    detector = DuplicatesExactDetector(
+        top_n=25,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_scope_primary="unmatched_only",
+        collision_scope_overlays=["full_hearing"],
+        collision_uncertainty_mode="monte_carlo",
+        voter_db_url="postgresql://example",
+        monte_carlo_draws=400,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+    )
+    result = detector.run(
+        df=frame,
+        features={"voter_registry_match.match_assignments": assignments},
+    )
+
+    methods = result.tables["collision_methods"]
+    unmatched = methods[methods["scope"] == "unmatched_only"].reset_index(drop=True)
+    full_hearing = methods[methods["scope"] == "full_hearing"].reset_index(drop=True)
+    assert not unmatched.empty
+    assert not full_hearing.empty
+    assert str(unmatched.loc[0, "scope_status"]) == detector.SCOPE_STATUS_AVAILABLE
+    assert str(unmatched.loc[0, "inferential_status"]) == "descriptive_only"
+    assert (
+        str(unmatched.loc[0, "inferential_reason"])
+        == detector.INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED
+    )
+    assert str(full_hearing.loc[0, "inferential_status"]) == "reference_model_inference"
+
+    overview = result.tables["collision_overview"]
+    unmatched_overview = overview[overview["scope"] == "unmatched_only"].copy()
+    assert not unmatched_overview.empty
+    assert unmatched_overview["p_value"].isna().all()
+    assert unmatched_overview["z_score"].isna().all()
+
+    per_name = result.tables["per_name_tests"]
+    unmatched_per_name = per_name[per_name["scope"] == "unmatched_only"].copy()
+    assert not unmatched_per_name.empty
+    assert unmatched_per_name["p_value"].isna().all()
+    assert unmatched_per_name["q_value"].isna().all()
+    assert not unmatched_per_name["tested"].astype(bool).any()
+
+    assert str(result.summary["collision_scope_primary"]) == "unmatched_only"
+    assert str(result.summary["inferential_status"]) == "descriptive_only"
+    assert (
+        str(result.summary["inferential_reason"])
+        == detector.INFERENTIAL_REASON_UNMATCHED_SCOPE_BASELINE_UNSUPPORTED
+    )
+
+
 def test_self_referential_baseline_suppresses_inferential_fields() -> None:
     frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 3, "BROWN|AVA": 2})
     detector = DuplicatesExactDetector(

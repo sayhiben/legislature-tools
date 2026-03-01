@@ -27,17 +27,17 @@ Execution order is tracked here independently from ticket numbering.
 16. `DUP-016` (Done, 2026-03-01)
 17. `DUP-017` (Done, 2026-03-01)
 18. `DUP-018` (Done, 2026-03-01)
+19. `DUP-019` (Done, 2026-03-01)
 
 ### Current
-1. `DUP-019` (next in-progress target)
+1. `DUP-020` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-019`
-2. `DUP-020`
-3. `DUP-021`
+1. `DUP-020`
+2. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, and **DUP-018**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, **DUP-018**, and **DUP-019**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1479,4 +1479,75 @@ Work item: DUP-018 (P2)
   - inferential key is explicit and stable (`strict`).
   - nickname/loose mode is explicitly labeled sensitivity-only in controls/declarations.
   - UI no longer presents strict/loose as unlabeled interchangeable match semantics.
-- Next ticket in sequence: `DUP-019`.
+- Next ticket in sequence: `DUP-020`.
+
+---
+
+## DUP-019 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-019 (P2)
+
+## What Was Implemented
+- Added unmatched-scope inferential suppression in `duplicates_exact`:
+  - new inferential reason:
+    - `unmatched_scope_registry_baseline_unsupported`
+  - for `scope=unmatched_only` with registry baselines (`vrdb_full_histogram` / `vrdb_full_keys`), inferential status is forced to `descriptive_only`.
+- Added future dedicated-baseline hook point:
+  - `_scope_registry_baseline_inference_supported(...)` centralizes whether registry-baseline inference is supported for a scope.
+  - current unmatched behavior is intentionally conservative until a dedicated unmatched baseline is implemented.
+- Added report-language propagation:
+  - methodology caveat now explicitly states unmatched-only is descriptive-only until a dedicated unmatched reference baseline exists.
+  - duplicate declaration notes now include inferential-reason text in addition to inferential status.
+- Fixed two latent scope-indexing defects discovered while exercising unmatched scope:
+  - per-name family adjustment used scope-local boolean masks directly against full frame (`loc[scope_eligible, ...]`), which can fail on non-contiguous scope indexes.
+  - bucket family adjustment had the same pattern.
+  - both now resolve explicit `scope_eligible_index` lists before DataFrame updates.
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - added `test_unmatched_scope_under_registry_baseline_is_descriptive_only`
+- `tests/test_report_chart_payload.py`
+  - added `test_unmatched_registry_scope_reason_is_propagated_to_contract_and_methodology`
+- Focused validation passed:
+  - `python -m pytest tests/test_duplicates_exact.py tests/test_report_chart_payload.py -q`
+  - `python -m pytest tests/test_report_render_helpers.py tests/test_analysis_registry.py tests/test_expected_duplicate_rate_fixtures.py -q`
+- Full suite validation passed:
+  - `./testifier_audit/scripts/ci/test.sh`
+  - result: `370 passed` (warnings only)
+
+## Runtime / Report Validation (ESSB 6346)
+- Run-all completed with unmatched overlay config:
+  - config: `output/configs/voter_registry_unmatched_scope.yaml`
+    - `collision_scope_primary: "full_hearing"`
+    - `collision_scope_overlays: ["unmatched_only"]`
+  - log: `output/run_logs/dup019_essb6346_runall_unmatched.log`
+  - completion evidence:
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800-dup019/report.html`
+  - detector runtime evidence:
+    - `scope=unmatched_only status=descriptive_only reason=unmatched_scope_registry_baseline_unsupported`
+- Rerender completed:
+  - log: `output/run_logs/dup019_essb6346_rerender_unmatched.log`
+  - completion evidence:
+    - `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800-dup019/report.html`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - duplicate scope options include `full_hearing` + `unmatched_only`
+    - switching to `unmatched_only` updates URL (`dup_scope=unmatched_only`)
+    - report text contains dedicated unmatched-baseline caveat and unmatched descriptive-only reason messaging
+    - report-data requests returned `200`
+    - only expected local static-server `favicon.ico` `404` console error observed
+
+## Issues Discovered During DUP-019
+- Config schema currently does not allow `collision_scope_primary="unmatched_only"` (allowed literals remain `full_hearing|matched_only`), so unmatched scope was exercised via overlay for ESSB run validation.
+- This does not block DUP-019 intent because inferential suppression is enforced for all `unmatched_only` scope rows regardless of primary/overlay role.
+
+## Remaining Work / Handoff
+- DUP-019 acceptance criteria are met:
+  - unmatched-only under registry baseline is descriptive-only.
+  - inferential p/q/z/significance remain suppressed for unmatched-only rows.
+  - report language explicitly states why unmatched-only is non-inferential.
+  - dedicated unmatched-baseline extension path is now centralized via capability hook.
+- Next ticket in sequence: `DUP-020`.

@@ -1396,6 +1396,135 @@ def test_duplicate_scope_controls_exclude_unavailable_scopes_and_surface_reasons
     )
 
 
+def test_unmatched_registry_scope_reason_is_propagated_to_contract_and_methodology() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "unmatched_only",
+                        "scope_status": "available",
+                        "scope_reason": "available",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_label": "Statewide registry reference baseline",
+                        "baseline_model": "multinomial",
+                        "uncertainty_model": "monte_carlo",
+                        "n_used": 18,
+                        "N_used": 200000,
+                        "metric_primary": "repeated_group_rows",
+                        "metrics_reported": "repeated_group_rows,excess_rows,pairs",
+                        "baseline_degraded": False,
+                        "fallback_policy": "degrade",
+                        "collision_key_mode": "strict",
+                        "inferential_key_mode": "strict",
+                        "normalization_version_hash": "abc123",
+                        "stratification": "none",
+                        "censored": False,
+                        "claim_class": "collision_signal",
+                        "inferential_status": "descriptive_only",
+                        "inferential_reason": "unmatched_scope_registry_baseline_unsupported",
+                        "estimand_primary": "name-key collision burden relative to reference baseline",
+                        "non_goals": "cannot infer identity, intent, IP-based behavior, or per-person duplication from the public dataset",
+                        "baseline_semantics": "reference model; not the data-generating process",
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "scope_status": "available",
+                        "scope_reason": "available",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_label": "Statewide registry reference baseline",
+                        "baseline_model": "multinomial",
+                        "uncertainty_model": "monte_carlo",
+                        "n_used": 60,
+                        "N_used": 200000,
+                        "metric_primary": "repeated_group_rows",
+                        "metrics_reported": "repeated_group_rows,excess_rows,pairs",
+                        "baseline_degraded": False,
+                        "fallback_policy": "degrade",
+                        "collision_key_mode": "strict",
+                        "inferential_key_mode": "strict",
+                        "normalization_version_hash": "def456",
+                        "stratification": "none",
+                        "censored": False,
+                        "claim_class": "collision_signal",
+                        "inferential_status": "reference_model_inference",
+                        "inferential_reason": "reference_model_inference_available",
+                        "estimand_primary": "name-key collision burden relative to reference baseline",
+                        "non_goals": "cannot infer identity, intent, IP-based behavior, or per-person duplication from the public dataset",
+                        "baseline_semantics": "reference model; not the data-generating process",
+                    },
+                ]
+            ),
+            "duplicates_exact.collision_overview": pd.DataFrame(
+                [
+                    {
+                        "scope": "unmatched_only",
+                        "scope_status": "available",
+                        "scope_reason": "available",
+                        "metric": "repeated_group_rows",
+                        "observed": 8.0,
+                        "expected": 4.0,
+                        "expected_p05": 2.0,
+                        "expected_p50": 4.0,
+                        "expected_p95": 6.0,
+                        "z_score": 1.7,
+                        "p_value": 0.04,
+                        "n_used": 18,
+                        "N_used": 200000,
+                        "inferential_status": "descriptive_only",
+                        "inferential_reason": "unmatched_scope_registry_baseline_unsupported",
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "scope_status": "available",
+                        "scope_reason": "available",
+                        "metric": "repeated_group_rows",
+                        "observed": 8.0,
+                        "expected": 3.5,
+                        "expected_p05": 2.0,
+                        "expected_p50": 3.5,
+                        "expected_p95": 5.0,
+                        "z_score": 2.2,
+                        "p_value": 0.01,
+                        "n_used": 60,
+                        "N_used": 200000,
+                        "inferential_status": "reference_model_inference",
+                        "inferential_reason": "reference_model_inference_available",
+                    },
+                ]
+            ),
+        },
+        detector_summaries={
+            "duplicates_exact": {
+                "collision_scope_primary": "unmatched_only",
+                "scope_status": "available",
+                "scope_reason": "available",
+                "inferential_status": "descriptive_only",
+                "inferential_reason": "unmatched_scope_registry_baseline_unsupported",
+            }
+        },
+    )
+
+    controls = payload["controls"]
+    contract = controls["duplicate_statistical_contract"]
+    assert contract["inferential_status"] == "descriptive_only"
+    assert contract["inferential_reason"] == "unmatched_scope_registry_baseline_unsupported"
+    methodology_caveats = controls.get("methodology", {}).get("caveats", [])
+    assert any(
+        "dedicated unmatched reference baseline" in str(caveat).lower()
+        for caveat in methodology_caveats
+    )
+    diagnostics = payload["charts"]["duplicates_exact_metric_diagnostics"]
+    unmatched_rows = [row for row in diagnostics if row.get("scope") == "unmatched_only"]
+    assert unmatched_rows
+    assert all(row.get("inferential_status") == "descriptive_only" for row in unmatched_rows)
+    assert all(
+        row.get("inferential_reason") == "unmatched_scope_registry_baseline_unsupported"
+        for row in unmatched_rows
+    )
+    assert all(row.get("p_value") is None for row in unmatched_rows)
+
+
 def test_duplicates_exact_bucket_concentration_keeps_signed_deviation() -> None:
     payload = _build_interactive_chart_payload_v2(
         table_map={

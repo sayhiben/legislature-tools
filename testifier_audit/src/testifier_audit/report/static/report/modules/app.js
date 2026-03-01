@@ -2392,6 +2392,34 @@ export async function runReportApp() {
     return "";
   }
 
+  function inferentialReasonLabel(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized) {
+      return "";
+    }
+    if (normalized === "unmatched_scope_registry_baseline_unsupported") {
+      return "unmatched-only scope is descriptive-only until a dedicated unmatched reference baseline exists";
+    }
+    return humanizeToken(normalized);
+  }
+
+  function inferentialReasonFromRows(rows) {
+    const normalizedRows = Array.isArray(rows) ? rows : [];
+    const fromInferentialReason = firstNonEmptyString(
+      normalizedRows.map((row) => (row && row.inferential_reason ? String(row.inferential_reason) : ""))
+    );
+    if (fromInferentialReason) {
+      return fromInferentialReason;
+    }
+    const fromInferenceReason = firstNonEmptyString(
+      normalizedRows.map((row) => (row && row.inference_reason ? String(row.inference_reason) : ""))
+    );
+    if (fromInferenceReason) {
+      return fromInferenceReason;
+    }
+    return "";
+  }
+
   function baselineLabelFromRows(rows) {
     const normalizedRows = Array.isArray(rows) ? rows : [];
     const explicit = firstNonEmptyString(
@@ -2457,6 +2485,12 @@ export async function runReportApp() {
       duplicateStatisticalContract.inferential_status,
     ]);
     const inferentialStatus = inferentialStatusLabel(inferentialStatusRaw);
+    const inferentialReasonRaw = firstNonEmptyString([
+      inferentialReasonFromRows(rows),
+      declaration.inferential_reason,
+      duplicateStatisticalContract.inferential_reason,
+    ]);
+    const inferentialReason = inferentialReasonLabel(inferentialReasonRaw);
     const gating = firstNonEmptyString([
       declaration.gating,
       duplicateStatisticalContract.gating,
@@ -2477,6 +2511,9 @@ export async function runReportApp() {
     }
     if (inferentialStatus) {
       parts.push("Inferential status: " + inferentialStatus + ".");
+    }
+    if (inferentialReason) {
+      parts.push("Reason: " + inferentialReason + ".");
     }
     if (inferentialKeyLabel || inferentialKeyMode) {
       const keyText = inferentialKeyLabel || duplicateModeLabel(inferentialKeyMode);

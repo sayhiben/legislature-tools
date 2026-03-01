@@ -92,6 +92,17 @@ def _uses_default_hypergeometric_tail() -> bool:
 class DuplicatesExactDetector(Detector):
     name = "duplicates_exact"
     DEFAULT_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
+    STATISTICAL_CONTRACT_ESTIMAND_PRIMARY = (
+        "name-key collision burden relative to reference baseline"
+    )
+    STATISTICAL_CONTRACT_NON_GOALS = (
+        "cannot infer identity, intent, IP-based behavior, or per-person duplication from "
+        "the public dataset"
+    )
+    STATISTICAL_CONTRACT_BASELINE_SEMANTICS = (
+        "reference model; not the data-generating process"
+    )
+    COLLISION_CLAIM_CLASS = "collision_signal"
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
     POSITION_CLAIM_REASON_ELIGIBLE = "eligible"
     POSITION_CLAIM_REASON_UNSUPPORTED_MODEL = "unsupported_collision_baseline_model"
@@ -215,6 +226,22 @@ class DuplicatesExactDetector(Detector):
         self.voter_table_name = voter_table_name
         self.voter_active_only = bool(voter_active_only)
         self.random_seed = int(random_seed)
+
+    @classmethod
+    def _baseline_label_for_source(cls, source: str) -> str:
+        source_norm = str(source or "").strip().lower()
+        if source_norm in {"vrdb_full_histogram", "vrdb_full_keys"}:
+            return "Statewide registry reference baseline"
+        if source_norm == "hearing_empirical":
+            return "Same-hearing empirical baseline"
+        return "Reference baseline"
+
+    @classmethod
+    def _scope_inferential_status(cls, baseline_source: str) -> str:
+        source_norm = str(baseline_source or "").strip().lower()
+        if source_norm == "hearing_empirical":
+            return "descriptive_only"
+        return "reference_model_inference"
 
     @staticmethod
     def _duplicate_rows_for_subset(working: pd.DataFrame, key_column: str) -> tuple[int, int]:
@@ -2003,6 +2030,7 @@ class DuplicatesExactDetector(Detector):
                 {
                     "scope": scope,
                     "baseline_source": effective_baseline_source,
+                    "baseline_label": self._baseline_label_for_source(effective_baseline_source),
                     "baseline_model": self.collision_baseline_model,
                     "uncertainty_model": self.collision_uncertainty_mode,
                     "n_used": int(n_scope),
@@ -2015,6 +2043,13 @@ class DuplicatesExactDetector(Detector):
                     "normalization_version_hash": normalization_hash,
                     "stratification": effective_scope_stratification,
                     "censored": bool(len(grouped) > self.per_name_display_limit),
+                    "claim_class": self.COLLISION_CLAIM_CLASS,
+                    "inferential_status": self._scope_inferential_status(
+                        effective_baseline_source
+                    ),
+                    "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
+                    "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
+                    "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
                 }
             )
 
@@ -2737,6 +2772,7 @@ class DuplicatesExactDetector(Detector):
         summary = {
             "name_key": self.collision_key_mode,
             "baseline_source": primary_scope_baseline_source,
+            "baseline_label": self._baseline_label_for_source(primary_scope_baseline_source),
             "baseline_model": self.collision_baseline_model,
             "n_records": int(primary_scope_row_count),
             "n_unique_names": int(primary_scope_unique_count),
@@ -2759,6 +2795,18 @@ class DuplicatesExactDetector(Detector):
             "position_interval_method_id": self.POSITION_INTERVAL_METHOD_ID,
             "position_claim_eligible": bool(position_claim_eligible),
             "position_claim_reason": str(position_claim_reason),
+            "claim_class": self.COLLISION_CLAIM_CLASS,
+            "inferential_status": self._scope_inferential_status(
+                primary_scope_baseline_source
+            ),
+            "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
+            "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
+            "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
+            "statistical_contract": {
+                "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
+                "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
+                "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
+            },
         }
         record_runtime_timing(
             "detector.duplicates_exact.assemble_outputs",

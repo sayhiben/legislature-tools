@@ -311,6 +311,15 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(controls["duplicate_collision_metric_options"], list)
     assert isinstance(controls["duplicate_match_mode_default"], str)
     assert isinstance(controls["duplicate_match_mode_options"], list)
+    assert isinstance(controls["duplicate_statistical_contract"], dict)
+    duplicate_contract = controls["duplicate_statistical_contract"]
+    assert "name-key collision burden" in str(duplicate_contract.get("estimand_primary", ""))
+    assert "cannot infer identity" in str(duplicate_contract.get("non_goals", ""))
+    assert "reference model" in str(duplicate_contract.get("baseline_semantics", ""))
+    assert isinstance(duplicate_contract.get("chart_declarations"), dict)
+    assert isinstance(duplicate_contract.get("table_declarations"), dict)
+    assert "duplicates_exact_bucket_concentration" in duplicate_contract["chart_declarations"]
+    assert "collision_methods" in duplicate_contract["table_declarations"]
     assert isinstance(controls["voter_match_mode_default"], str)
     assert isinstance(controls["voter_match_mode_options"], list)
     assert "absolute_time" in controls["zoom_sync_groups"]
@@ -569,6 +578,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
                     {
                         "scope": "matched_only",
                         "baseline_source": "hearing_empirical",
+                        "baseline_label": "Same-hearing empirical baseline",
                         "baseline_model": "multinomial",
                         "uncertainty_model": "monte_carlo",
                         "n_used": 100,
@@ -581,6 +591,16 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
                         "normalization_version_hash": "abc123",
                         "stratification": "none",
                         "censored": False,
+                        "claim_class": "collision_signal",
+                        "inferential_status": "descriptive_only",
+                        "estimand_primary": (
+                            "name-key collision burden relative to reference baseline"
+                        ),
+                        "non_goals": (
+                            "cannot infer identity, intent, IP-based behavior, or per-person "
+                            "duplication from the public dataset"
+                        ),
+                        "baseline_semantics": "reference model; not the data-generating process",
                     }
                 ]
             ),
@@ -795,6 +815,9 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert rows_row["N_used"] == 1000
     assert rows_row["baseline_model"] == "multinomial"
     assert rows_row["baseline_source"] == "hearing_empirical"
+    assert rows_row["baseline_label"] == "Same-hearing empirical baseline"
+    assert rows_row["inferential_status"] == "descriptive_only"
+    assert rows_row["claim_class"] == "collision_signal"
     assert rows_row["baseline_degraded"] is True
     assert abs(float(rows_row["duplicate_rows"]) - 3.0) < 1e-9
     assert abs(float(rows_row["expected_duplicate_rows"]) - 0.25) < 1e-9
@@ -808,6 +831,8 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert "unit_observed_names" in rows_row
     assert "unit_expected_names" in rows_row
     assert "unit_deviation_names" in rows_row
+    assert all(row.get("baseline_label") == "Same-hearing empirical baseline" for row in diagnostics)
+    assert all(row.get("inferential_status") == "descriptive_only" for row in diagnostics)
 
     timing_exact_rows = payload["charts"]["duplicates_exact_top_name_timing_exact"]
     assert timing_exact_rows
@@ -831,6 +856,8 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
         "last_seen",
     }
     assert timing_required.issubset(set(timing_exact_rows[0].keys()))
+    assert all(row.get("baseline_label") == "Same-hearing empirical baseline" for row in timing_exact_rows)
+    assert all(row.get("inferential_status") == "descriptive_only" for row in timing_exact_rows)
 
     controls = payload["controls"]
     assert controls["duplicate_collision_scope_default"] == "matched_only"
@@ -839,6 +866,12 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert controls["duplicate_collision_metric_options"] == ["rows_anywhere", "names_anywhere"]
     assert controls["duplicate_match_mode_default"] in {"strict", "loose"}
     assert set(controls["duplicate_match_mode_options"]).issubset({"strict", "loose"})
+    duplicate_contract = controls["duplicate_statistical_contract"]
+    assert duplicate_contract["claim_class"] == "collision_signal"
+    assert duplicate_contract["baseline_label"] == "Same-hearing empirical baseline"
+    assert duplicate_contract["inferential_status"] == "descriptive_only"
+    assert "duplicates_exact_metric_diagnostics" in duplicate_contract["chart_declarations"]
+    assert "collision_overview" in duplicate_contract["table_declarations"]
 
     methodology = payload["controls"]["methodology"]
     assert methodology["duplicate_runtime"]

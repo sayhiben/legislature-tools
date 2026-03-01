@@ -364,6 +364,12 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "baseline_source": (
         "Baseline source used for this row (day_on_hours, global_on_hours, or fallback)."
     ),
+    "baseline_label": "Human-readable label for the selected baseline source in this row.",
+    "inferential_status": (
+        "Inference availability status for this row (`reference_model_inference`, "
+        "`descriptive_only`, or `unavailable`)."
+    ),
+    "claim_class": "Public-facing claim class for the row-level signal family.",
     "model_baseline_source": "Model baseline fit source for this row.",
     "primary_baseline_source": "Baseline source for primary scoring columns in this row.",
     "is_model_baseline_available": "True when model expected pro rate is available for this row.",

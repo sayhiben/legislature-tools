@@ -77,6 +77,66 @@ _VOLUME_ADAPTIVE_BUCKET_THRESHOLDS: tuple[tuple[int, int], ...] = (
 )
 _MIN_DEFAULT_BUCKET_MINUTES = 30
 
+_DUPLICATE_DEFAULT_ESTIMAND_PRIMARY = "name-key collision burden relative to reference baseline"
+_DUPLICATE_DEFAULT_NON_GOALS = (
+    "cannot infer identity, intent, IP-based behavior, or per-person duplication from the public dataset"
+)
+_DUPLICATE_DEFAULT_BASELINE_SEMANTICS = "reference model; not the data-generating process"
+_DUPLICATE_DEFAULT_CLAIM_CLASS = "collision_signal"
+_DUPLICATE_DEFAULT_INFERENTIAL_GATING = (
+    "Low-power rows/windows are descriptive-only; inferential claims require supportable rows and "
+    "an inferential status other than descriptive-only or unavailable."
+)
+_DUPLICATE_CHART_IDS: tuple[str, ...] = (
+    "duplicates_exact_bucket_concentration",
+    "duplicates_exact_metric_diagnostics",
+    "duplicates_exact_per_name_anomalies",
+    "duplicates_exact_top_name_timing_exact",
+    "duplicates_exact_position_bucket_deviance",
+    "duplicates_exact_null_distribution",
+    "duplicates_exact_swing_impact",
+    "duplicates_exact_top_names",
+    "duplicates_exact_position_switch",
+)
+_DUPLICATE_TABLE_NAMES: tuple[str, ...] = (
+    "collision_methods",
+    "collision_overview",
+    "collision_by_bucket",
+    "collision_by_bucket_position",
+    "collision_stratification_sensitivity",
+    "duplicate_metrics_overview",
+    "duplicate_by_bucket",
+    "position_duplicate_metrics",
+    "position_concentration_tests",
+    "null_distribution",
+    "swing_impact_scenarios",
+    "top_repeated_names",
+    "per_name_tests",
+    "per_name_display",
+    "per_name_duplicates_by_mode",
+    "per_name_submission_timing_by_mode",
+    "top_name_timing_by_mode",
+    "temporal_burst_signals",
+)
+
+
+def _duplicate_baseline_label_for_source(source: str) -> str:
+    source_norm = str(source or "").strip().lower()
+    if source_norm in {"vrdb_full_histogram", "vrdb_full_keys"}:
+        return "Statewide registry reference baseline"
+    if source_norm == "hearing_empirical":
+        return "Same-hearing empirical baseline"
+    if source_norm:
+        return source_norm.replace("_", " ")
+    return "Reference baseline"
+
+
+def _duplicate_inferential_status_for_source(source: str) -> str:
+    source_norm = str(source or "").strip().lower()
+    if source_norm == "hearing_empirical":
+        return "descriptive_only"
+    return "reference_model_inference"
+
 
 def _total_submissions_from_counts_per_minute(counts_per_minute: pd.DataFrame) -> int | None:
     if counts_per_minute.empty:
@@ -573,6 +633,7 @@ def _build_interactive_chart_payload_v2(
         [
             "scope",
             "baseline_source",
+            "baseline_label",
             "baseline_model",
             "uncertainty_model",
             "n_used",
@@ -585,7 +646,68 @@ def _build_interactive_chart_payload_v2(
             "normalization_version_hash",
             "stratification",
             "censored",
+            "claim_class",
+            "inferential_status",
+            "estimand_primary",
+            "non_goals",
+            "baseline_semantics",
         ],
+    )
+    if not dup_exact_methods.empty:
+        dup_exact_methods["baseline_source"] = (
+            dup_exact_methods.get("baseline_source", pd.Series(dtype=str)).fillna("").astype(str)
+        )
+        dup_exact_methods["baseline_label"] = (
+            dup_exact_methods.get("baseline_label", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_methods.get("baseline_label", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_methods["baseline_source"].map(_duplicate_baseline_label_for_source),
+            )
+        )
+        dup_exact_methods["inferential_status"] = (
+            dup_exact_methods.get("inferential_status", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_methods.get("inferential_status", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_methods["baseline_source"].map(_duplicate_inferential_status_for_source),
+            )
+        )
+    dup_exact_summary_raw = detector_summaries.get("duplicates_exact", {})
+    dup_exact_summary = dup_exact_summary_raw if isinstance(dup_exact_summary_raw, dict) else {}
+    dup_exact_statistical_contract_raw = dup_exact_summary.get("statistical_contract", {})
+    dup_exact_statistical_contract = (
+        dup_exact_statistical_contract_raw
+        if isinstance(dup_exact_statistical_contract_raw, dict)
+        else {}
+    )
+    dup_estimand_primary = str(
+        dup_exact_statistical_contract.get("estimand_primary")
+        or dup_exact_summary.get("estimand_primary")
+        or _DUPLICATE_DEFAULT_ESTIMAND_PRIMARY
+    )
+    dup_non_goals = str(
+        dup_exact_statistical_contract.get("non_goals")
+        or dup_exact_summary.get("non_goals")
+        or _DUPLICATE_DEFAULT_NON_GOALS
+    )
+    dup_baseline_semantics = str(
+        dup_exact_statistical_contract.get("baseline_semantics")
+        or dup_exact_summary.get("baseline_semantics")
+        or _DUPLICATE_DEFAULT_BASELINE_SEMANTICS
+    )
+    dup_claim_class = str(
+        dup_exact_summary.get("claim_class") or _DUPLICATE_DEFAULT_CLAIM_CLASS
     )
     primary_dup_scope = (
         str(dup_exact_methods["scope"].iloc[0]).strip() if not dup_exact_methods.empty else "full_hearing"
@@ -596,6 +718,27 @@ def _build_interactive_chart_payload_v2(
         else "repeated_group_rows"
     )
     primary_dup_unit = "rows_anywhere"
+    primary_dup_baseline_source = (
+        str(dup_exact_methods.get("baseline_source", pd.Series(dtype=str)).iloc[0]).strip()
+        if not dup_exact_methods.empty
+        else str(dup_exact_summary.get("baseline_source") or "").strip()
+    )
+    primary_dup_baseline_label = (
+        str(dup_exact_methods.get("baseline_label", pd.Series(dtype=str)).iloc[0]).strip()
+        if not dup_exact_methods.empty
+        else str(dup_exact_summary.get("baseline_label") or "").strip()
+    )
+    if not primary_dup_baseline_label:
+        primary_dup_baseline_label = _duplicate_baseline_label_for_source(primary_dup_baseline_source)
+    primary_dup_inferential_status = (
+        str(dup_exact_methods.get("inferential_status", pd.Series(dtype=str)).iloc[0]).strip()
+        if not dup_exact_methods.empty
+        else str(dup_exact_summary.get("inferential_status") or "").strip()
+    )
+    if not primary_dup_inferential_status:
+        primary_dup_inferential_status = _duplicate_inferential_status_for_source(
+            primary_dup_baseline_source
+        )
     duplicate_scope_options = sorted(
         {
             str(value).strip()
@@ -620,6 +763,10 @@ def _build_interactive_chart_payload_v2(
             "p_value",
             "n_used",
             "N_used",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
     )
     duplicate_metric_options = ["rows_anywhere", "names_anywhere"]
@@ -632,6 +779,121 @@ def _build_interactive_chart_payload_v2(
         )
     )
     duplicate_match_mode_options: list[str] = []
+    dup_scope_metadata_columns = [
+        "scope",
+        "baseline_source",
+        "baseline_label",
+        "inferential_status",
+        "claim_class",
+    ]
+    if not dup_exact_methods.empty:
+        dup_scope_metadata = (
+            dup_exact_methods[dup_scope_metadata_columns]
+            .dropna(subset=["scope"])
+            .drop_duplicates(subset=["scope"], keep="first")
+            .copy()
+        )
+    else:
+        dup_scope_metadata = pd.DataFrame(
+            [
+                {
+                    "scope": primary_dup_scope,
+                    "baseline_source": primary_dup_baseline_source,
+                    "baseline_label": primary_dup_baseline_label,
+                    "inferential_status": primary_dup_inferential_status,
+                    "claim_class": dup_claim_class,
+                }
+            ]
+        )
+    if dup_scope_metadata.empty:
+        dup_scope_metadata = pd.DataFrame(
+            [
+                {
+                    "scope": primary_dup_scope,
+                    "baseline_source": primary_dup_baseline_source,
+                    "baseline_label": primary_dup_baseline_label,
+                    "inferential_status": primary_dup_inferential_status,
+                    "claim_class": dup_claim_class,
+                }
+            ]
+        )
+
+    def _attach_duplicate_scope_metadata(frame: pd.DataFrame) -> pd.DataFrame:
+        if frame.empty:
+            return frame
+        working = frame.copy()
+        if "scope" not in working.columns:
+            working["scope"] = primary_dup_scope
+        working["scope"] = working["scope"].fillna("").astype(str).replace("", primary_dup_scope)
+        metadata = dup_scope_metadata.copy()
+        metadata["scope"] = metadata["scope"].fillna("").astype(str).replace("", primary_dup_scope)
+        working = working.merge(
+            metadata,
+            on="scope",
+            how="left",
+            suffixes=("", "_scope_meta"),
+        )
+        for column in ("baseline_source", "baseline_label", "inferential_status", "claim_class"):
+            fallback_column = f"{column}_scope_meta"
+            if fallback_column not in working.columns:
+                continue
+            if column not in working.columns:
+                working[column] = working[fallback_column]
+            else:
+                working[column] = (
+                    working[column]
+                    .fillna("")
+                    .astype(str)
+                    .where(
+                        working[column].fillna("").astype(str).str.len() > 0,
+                        working[fallback_column].fillna("").astype(str),
+                    )
+                )
+            working = working.drop(columns=[fallback_column])
+        if "baseline_source" in working.columns:
+            working["baseline_source"] = working["baseline_source"].fillna("").astype(str)
+        else:
+            working["baseline_source"] = primary_dup_baseline_source
+        if "baseline_label" in working.columns:
+            working["baseline_label"] = (
+                working["baseline_label"]
+                .fillna("")
+                .astype(str)
+                .where(
+                    working["baseline_label"].fillna("").astype(str).str.len() > 0,
+                    working["baseline_source"].map(_duplicate_baseline_label_for_source),
+                )
+            )
+        else:
+            working["baseline_label"] = working["baseline_source"].map(
+                _duplicate_baseline_label_for_source
+            )
+        if "inferential_status" in working.columns:
+            working["inferential_status"] = (
+                working["inferential_status"]
+                .fillna("")
+                .astype(str)
+                .where(
+                    working["inferential_status"].fillna("").astype(str).str.len() > 0,
+                    working["baseline_source"].map(_duplicate_inferential_status_for_source),
+                )
+            )
+        else:
+            working["inferential_status"] = working["baseline_source"].map(
+                _duplicate_inferential_status_for_source
+            )
+        if "claim_class" in working.columns:
+            working["claim_class"] = (
+                working["claim_class"]
+                .fillna("")
+                .astype(str)
+                .where(working["claim_class"].fillna("").astype(str).str.len() > 0, dup_claim_class)
+            )
+        else:
+            working["claim_class"] = dup_claim_class
+        return working
+
+    dup_exact_collision_overview = _attach_duplicate_scope_metadata(dup_exact_collision_overview)
     dup_exact_metric_diagnostics = dup_exact_collision_overview[
         dup_exact_collision_overview["scope"].astype(str).str.len() > 0
     ].copy()
@@ -658,11 +920,15 @@ def _build_interactive_chart_payload_v2(
             "excess",
             "baseline_model",
             "baseline_source",
+            "baseline_label",
             "baseline_degraded",
             "is_low_power",
             "inference_status",
+            "inferential_status",
+            "claim_class",
         ],
     )
+    dup_exact_collision_bucket = _attach_duplicate_scope_metadata(dup_exact_collision_bucket)
     dup_exact_per_name_by_mode = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_duplicates_by_mode"), pd.DataFrame()),
         [
@@ -701,6 +967,7 @@ def _build_interactive_chart_payload_v2(
             .astype(str)
             .str.strip()
         )
+    dup_exact_per_name_by_mode = _attach_duplicate_scope_metadata(dup_exact_per_name_by_mode)
     dup_exact_per_name_timing_by_mode = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "per_name_submission_timing_by_mode"), pd.DataFrame()),
         [
@@ -740,6 +1007,9 @@ def _build_interactive_chart_payload_v2(
         dup_exact_per_name_timing_by_mode = dup_exact_per_name_timing_by_mode.dropna(
             subset=["bucket_start"]
         )
+    dup_exact_per_name_timing_by_mode = _attach_duplicate_scope_metadata(
+        dup_exact_per_name_timing_by_mode
+    )
 
     # Bucket skeleton comes from collision tables; semantic values are replaced below.
     dup_exact_bucket_skeleton = pd.DataFrame()
@@ -1206,6 +1476,7 @@ def _build_interactive_chart_payload_v2(
         ).where(names_unit["n_rows"] > 0, 0.0)
 
         dup_exact_bucket = pd.concat([rows_unit, names_unit], ignore_index=True, sort=False)
+        dup_exact_bucket = _attach_duplicate_scope_metadata(dup_exact_bucket)
 
         numeric_columns = [
             "n_rows",
@@ -1258,6 +1529,7 @@ def _build_interactive_chart_payload_v2(
         )
         if not (dup_exact_per_name_anomalies["scope"].astype(str).str.len() > 0).any():
             dup_exact_per_name_anomalies["scope"] = primary_dup_scope
+    dup_exact_per_name_anomalies = _attach_duplicate_scope_metadata(dup_exact_per_name_anomalies)
 
     if not dup_exact_per_name_by_mode.empty:
         dup_exact_per_name = dup_exact_per_name_by_mode.rename(
@@ -1362,6 +1634,7 @@ def _build_interactive_chart_payload_v2(
     dup_exact_per_name["temporal_p_value_min_gap"] = dup_exact_per_name.get(
         "temporal_p_value_min_gap", pd.Series(pd.NA, index=dup_exact_per_name.index)
     )
+    dup_exact_per_name = _attach_duplicate_scope_metadata(dup_exact_per_name)
     dup_exact_top_name_timing = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "top_name_timing_by_mode"), pd.DataFrame()),
         [
@@ -1393,6 +1666,7 @@ def _build_interactive_chart_payload_v2(
             .astype(str)
             .replace("", primary_dup_scope)
         )
+    dup_exact_top_name_timing = _attach_duplicate_scope_metadata(dup_exact_top_name_timing)
     duplicate_match_mode_options = sorted(
         {
             _normalize_report_match_mode(value, default="strict")
@@ -1439,8 +1713,13 @@ def _build_interactive_chart_payload_v2(
             "prior_level",
             "is_low_power",
             "inference_status",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
     )
+    dup_exact_bucket_position = _attach_duplicate_scope_metadata(dup_exact_bucket_position)
     dup_exact_null_distribution = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "null_distribution"), pd.DataFrame()),
         [
@@ -1455,6 +1734,11 @@ def _build_interactive_chart_payload_v2(
             "max_count",
         ],
     )
+    if not dup_exact_null_distribution.empty:
+        dup_exact_null_distribution["baseline_source"] = primary_dup_baseline_source
+        dup_exact_null_distribution["baseline_label"] = primary_dup_baseline_label
+        dup_exact_null_distribution["inferential_status"] = primary_dup_inferential_status
+        dup_exact_null_distribution["claim_class"] = dup_claim_class
     dup_exact_swing_impact = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "swing_impact_scenarios"), pd.DataFrame()),
         [
@@ -1464,6 +1748,11 @@ def _build_interactive_chart_payload_v2(
             "pro_share",
         ],
     )
+    if not dup_exact_swing_impact.empty:
+        dup_exact_swing_impact["baseline_source"] = primary_dup_baseline_source
+        dup_exact_swing_impact["baseline_label"] = primary_dup_baseline_label
+        dup_exact_swing_impact["inferential_status"] = primary_dup_inferential_status
+        dup_exact_swing_impact["claim_class"] = dup_claim_class
 
     org_blank_rates = _with_expected_columns(
         table_map.get(
@@ -2820,6 +3109,9 @@ def _build_interactive_chart_payload_v2(
             "N_used",
             "baseline_model",
             "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
             "baseline_degraded",
             "n_pro",
             "n_con",
@@ -2840,6 +3132,10 @@ def _build_interactive_chart_payload_v2(
             "p_value",
             "n_used",
             "N_used",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
         max_rows=50,
     )
@@ -2904,6 +3200,10 @@ def _build_interactive_chart_payload_v2(
             "temporal_p_value_min_gap",
             "position_series",
             "position_count",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
         max_rows=100_000,
     )
@@ -2929,6 +3229,10 @@ def _build_interactive_chart_payload_v2(
             "n_other",
             "first_seen",
             "last_seen",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
         max_rows=100_000,
     )
@@ -2946,6 +3250,10 @@ def _build_interactive_chart_payload_v2(
             "name_key",
             "display_name",
             "total_repeated_rows",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
         max_rows=100_000,
     )
@@ -2974,6 +3282,10 @@ def _build_interactive_chart_payload_v2(
             "prior_level",
             "is_low_power",
             "inference_status",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
         max_rows=100_000,
     )
@@ -2989,6 +3301,10 @@ def _build_interactive_chart_payload_v2(
             "n_names_ge5",
             "n_names_ge10",
             "max_count",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
         max_rows=25_000,
     )
@@ -2999,6 +3315,10 @@ def _build_interactive_chart_payload_v2(
             "n_pro_effective",
             "n_con_effective",
             "pro_share",
+            "baseline_source",
+            "baseline_label",
+            "inferential_status",
+            "claim_class",
         ],
         max_rows=20,
     )
@@ -3441,6 +3761,7 @@ def _build_interactive_chart_payload_v2(
             columns=[
                 "scope",
                 "baseline_source",
+                "baseline_label",
                 "baseline_model",
                 "uncertainty_model",
                 "n_used",
@@ -3450,9 +3771,81 @@ def _build_interactive_chart_payload_v2(
                 "fallback_policy",
                 "collision_key_mode",
                 "stratification",
+                "inferential_status",
+                "claim_class",
+                "estimand_primary",
+                "non_goals",
+                "baseline_semantics",
             ],
             max_rows=20,
         )
+    duplicate_low_power_rows = bool(
+        pd.to_numeric(
+            dup_exact_collision_bucket.get("is_low_power", pd.Series(dtype=float)),
+            errors="coerce",
+        )
+        .fillna(0.0)
+        .astype(float)
+        .gt(0.0)
+        .any()
+        or pd.to_numeric(
+            dup_exact_bucket_position.get("is_low_power", pd.Series(dtype=float)),
+            errors="coerce",
+        )
+        .fillna(0.0)
+        .astype(float)
+        .gt(0.0)
+        .any()
+    )
+    duplicate_gating_text = _DUPLICATE_DEFAULT_INFERENTIAL_GATING
+    if duplicate_low_power_rows:
+        duplicate_gating_text += " This run includes low-power flags in collision outputs."
+
+    duplicate_chart_declarations = {
+        chart_id: {
+            "baseline_source": primary_dup_baseline_source,
+            "baseline_label": primary_dup_baseline_label,
+            "inferential_status": primary_dup_inferential_status,
+            "gating": duplicate_gating_text,
+        }
+        for chart_id in _DUPLICATE_CHART_IDS
+    }
+    duplicate_table_declarations = {
+        table_name: {
+            "baseline_source": primary_dup_baseline_source,
+            "baseline_label": primary_dup_baseline_label,
+            "inferential_status": primary_dup_inferential_status,
+            "gating": duplicate_gating_text,
+        }
+        for table_name in _DUPLICATE_TABLE_NAMES
+    }
+    duplicate_statistical_contract = {
+        "estimand_primary": dup_estimand_primary,
+        "non_goals": dup_non_goals,
+        "baseline_semantics": dup_baseline_semantics,
+        "claim_class": dup_claim_class,
+        "baseline_source": primary_dup_baseline_source,
+        "baseline_label": primary_dup_baseline_label,
+        "inferential_status": primary_dup_inferential_status,
+        "gating": duplicate_gating_text,
+        "interpretation_callout": (
+            "Treat this detector as a collision-burden screen: values above reference-baseline "
+            "expectation are follow-up signals, not proof about specific people."
+        ),
+        "limitations_callout": dup_non_goals,
+        "can_conclude": [
+            "Whether duplicate-name collision burden is higher or lower than reference-baseline expectation.",
+            "Whether collision burden patterns persist across adjacent windows.",
+            "Whether outputs are inferential, descriptive-only, or unavailable in this run.",
+        ],
+        "cannot_conclude": [
+            "Identity or intent of any person.",
+            "IP/device coordination or per-person duplicate behavior from this public dataset alone.",
+            "Definitive manipulation claims without corroborating evidence outside this detector.",
+        ],
+        "chart_declarations": duplicate_chart_declarations,
+        "table_declarations": duplicate_table_declarations,
+    }
     theme_options = default_theme_options()
     color_semantics = default_color_semantics()
 
@@ -3484,6 +3877,7 @@ def _build_interactive_chart_payload_v2(
             "duplicate_collision_metric_options": duplicate_metric_options,
             "duplicate_match_mode_default": primary_dup_match_mode,
             "duplicate_match_mode_options": duplicate_match_mode_options,
+            "duplicate_statistical_contract": duplicate_statistical_contract,
             "voter_match_mode_default": voter_default_mode,
             "voter_match_mode_options": voter_match_mode_options,
             "timezone": timezone_name,

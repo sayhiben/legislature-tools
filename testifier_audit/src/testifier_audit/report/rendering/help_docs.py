@@ -50,13 +50,13 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
             ),
             (
                 "Names that appear repeatedly while switching pro/con positions are "
-                "higher-priority review targets because they indicate inconsistent "
-                "stance representation under one canonical identity."
+                "higher-priority follow-up targets because they indicate repeated "
+                "name-key collisions across positions."
             ),
             (
-                "Persistent duplicate concentration during otherwise stable baseline "
-                "periods can imply scripted submissions or queue replay effects "
-                "rather than organic participation."
+                "Persistent duplicate-name collision burden during otherwise stable "
+                "periods is stronger follow-up evidence than isolated spikes, but "
+                "still does not identify individuals or intent."
             ),
         ],
         "org_anomalies": [
@@ -129,16 +129,16 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             ),
         },
         "duplicates_exact": {
-            "primary_metric": "exact repeated-name concentration",
+            "primary_metric": "duplicate-name collision burden under a reference baseline",
             "momentary_high": (
                 "household/shared-name collisions or small coordinated batches"
             ),
             "momentary_low": "normal diversity of distinct names in organic intake",
             "extended_high": (
-                "repeat-name patterns likely to influence authenticity and weighting "
-                "assumptions"
+                "repeat-name collision burden persistently above the reference baseline "
+                "expectation across adjacent windows"
             ),
-            "extended_low": "healthy name diversity with limited exact repetition pressure",
+            "extended_low": "name-key collision burden near or below reference-baseline expectation",
         },
         "org_anomalies": {
             "primary_metric": "blank organization rate overall and by position",
@@ -867,8 +867,8 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "duplicates_exact_bucket_concentration": timebar(
             summary=(
-                "Observed versus expected duplicated-anywhere presence over time "
-                "(rows or distinct names)."
+                "Observed duplicate-name collision burden versus reference-baseline "
+                "expectation over time (rows or distinct names)."
             ),
             primary_label="Observed duplicated-anywhere count",
             primary_desc=(
@@ -881,16 +881,16 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             volume_desc="Stacked Pro/Con row counts in each bucket (desaturated context bars).",
             extra=[
                 {
-                    "label": "Expected duplicated-anywhere count",
+                    "label": "Reference baseline expectation",
                     "description": (
-                        "Volume-share expectation for the selected unit "
+                        "Volume-share reference expectation for the selected unit "
                         "(bucket rows * global duplicated-anywhere share)."
                     ),
                 },
             ],
         ),
         "duplicates_exact_metric_diagnostics": {
-            "summary": "Observed versus expected diagnostics across collision metrics.",
+            "summary": "Observed versus reference-baseline diagnostics across collision metrics.",
             "items": [
                 {
                     "label": "Metric columns",
@@ -909,20 +909,21 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "label": "Expected and quantiles",
                     "description": (
                         "Use tooltip/table columns `expected`, `expected_p05`, `expected_p50`, and "
-                        "`expected_p95` to compare where observed lands under the baseline."
+                        "`expected_p95` to compare where observed lands under the reference baseline."
                     ),
                 },
                 {
                     "label": "Significance columns",
                     "description": (
                         "`z_score` and `p_value` indicate standardized effect size and tail probability "
-                        "for each metric; interpret with `n_used`/`N_used` support context."
+                        "for each metric under the selected reference model; interpret with "
+                        "`n_used`/`N_used` support context."
                     ),
                 },
             ],
         },
         "duplicates_exact_per_name_anomalies": {
-            "summary": "Per-name duplicate counts with stacked Pro/Con bars.",
+            "summary": "Per-name duplicate-name collision counts with stacked Pro/Con bars.",
             "items": [
                 {
                     "label": "Series",
@@ -934,7 +935,7 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "label": "Pagination",
                     "description": (
                         "Names are paginated 10 at a time up to 10 pages (top 100 names by "
-                        "duplicate sign-ins)."
+                        "duplicate-name collision rows)."
                     ),
                 },
                 {
@@ -952,7 +953,8 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "duplicates_exact_top_name_timing_exact": {
             "summary": (
-                "Top duplicate names shown as time points sized by per-position submission rows."
+                "Top duplicate-name collisions shown as time points sized by "
+                "per-position submission rows."
             ),
             "items": [
                 {
@@ -983,12 +985,13 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
         },
         "duplicates_exact_position_bucket_deviance": timebar(
             summary=(
-                "Position-level observed versus baseline duplicate counts over time, split by "
+                "Position-level observed versus reference-baseline duplicate-name collision counts "
+                "over time, split by "
                 "position and metric."
             ),
-            primary_label="Observed duplicate count",
+            primary_label="Observed collision count",
             primary_desc=(
-                "Solid lines show observed duplicate count in each position bucket for the selected "
+                "Solid lines show observed collision count in each position bucket for the selected "
                 "position/metric series."
             ),
             include_low_power=True,
@@ -997,10 +1000,10 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             volume_desc="Bar height is total rows available in each position bucket.",
             extra=[
                 {
-                    "label": "<Position> baseline",
+                    "label": "<Position> reference baseline",
                     "description": (
-                        "Dashed line for expected duplicate count under the position-aware baseline "
-                        "for the same position/metric series."
+                        "Dashed line for expected collision count under the position-aware reference "
+                        "baseline for the same position/metric series."
                     ),
                 },
                 {
@@ -1013,11 +1016,14 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
             ],
         ),
         "duplicates_exact_null_distribution": {
-            "summary": "Monte Carlo null distribution for duplicate burden metrics.",
+            "summary": "Monte Carlo reference distribution for duplicate-name collision metrics.",
             "items": [
                 {
                     "label": "Bar height",
-                    "description": "Simulated duplicate burden metric under the configured baseline.",
+                    "description": (
+                        "Simulated duplicate-name collision burden metric under the configured "
+                        "reference baseline."
+                    ),
                 },
                 {"label": "X-axis", "description": "Simulation iteration."},
             ],

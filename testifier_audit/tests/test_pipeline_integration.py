@@ -251,8 +251,10 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert 'data-analysis-id="periodicity"' not in report_text
     elif _configured_focus_analysis_ids():
         assert "Composite Evidence Score" not in report_text
-        assert "Duplicate Names" in report_text
+        assert "Duplicate-Name Collisions" in report_text
         assert "Registered Voter Match" in report_text
+        assert "cannot infer identity" in report_text
+        assert "reference model; not the data-generating process" in report_text
     assert 'data-analysis-id="composite_score"' not in report_text
     assert 'data-analysis-id="rare_names"' not in report_text
     assert 'data-analysis-id="periodicity"' not in report_text
@@ -297,8 +299,10 @@ def test_run_all_generates_report_and_outputs(tmp_path: Path) -> None:
         assert 'data-analysis-id="periodicity"' not in reloaded_report_text
     elif _configured_focus_analysis_ids():
         assert "Composite Evidence Score" not in reloaded_report_text
-        assert "Duplicate Names" in reloaded_report_text
+        assert "Duplicate-Name Collisions" in reloaded_report_text
         assert "Registered Voter Match" in reloaded_report_text
+        assert "cannot infer identity" in reloaded_report_text
+        assert "reference model; not the data-generating process" in reloaded_report_text
     assert 'data-analysis-id="composite_score"' not in reloaded_report_text
     assert 'data-analysis-id="rare_names"' not in reloaded_report_text
     assert 'data-analysis-id="periodicity"' not in reloaded_report_text

@@ -107,7 +107,7 @@ export const DEFAULT_TIME_BAR_LINE_OVERRIDES = Object.freeze({
     ],
     lineField: "duplicate_rows",
     extraLines: ["expected_duplicate_rows"],
-    lineAxisName: "Duplicated count",
+    lineAxisName: "Collision count",
     barAxisName: "Positioned rows",
   },
   org_anomalies_position_rates: {

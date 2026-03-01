@@ -98,7 +98,7 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
     ),
     AnalysisDefinition(
         id="duplicates_exact",
-        title="Duplicate Names",
+        title="Duplicate-Name Collisions",
         detector="duplicates_exact",
         hero_chart_id="duplicates_exact_bucket_concentration",
         detail_chart_ids=(
@@ -109,18 +109,18 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
             "duplicates_exact_position_bucket_deviance",
         ),
         how_to_read=(
-            "Interpret bucket values as duplicated-anywhere presence: rows (or distinct names) "
-            "in the bucket whose names repeat anywhere in the hearing timeline. Expected values "
-            "use volume-share scaling from hearing-level duplicated totals, and deviation is "
-            "signed (observed minus expected)."
+            "Interpret bucket values as duplicate-name collision burden: rows (or distinct names) "
+            "in the bucket whose normalized name keys repeat anywhere in the hearing timeline. "
+            "Reference-baseline expectation uses volume-share scaling from hearing-level collision "
+            "totals, and deviation is signed (observed minus expected)."
         ),
         what_to_look_for=(
-            "Buckets where duplicated-anywhere rows/names are persistently above expectation "
-            "across neighboring windows, then verify whether those intervals also show "
-            "position-specific deviance or concentrated repeated names."
+            "Buckets where duplicate-name collision burden is persistently higher than expected "
+            "under the selected baseline across neighboring windows, then verify whether those "
+            "intervals also show position-specific deviance or concentrated repeated names."
         ),
         common_benign_causes=(
-            "Common names and legitimate coordinated outreach can elevate duplicate pressure."
+            "Common names and legitimate coordinated outreach can elevate collision burden."
         ),
         expected_metric_keys=("top_name_max_records", "dedup_drop_fraction", "window_top_dup_fraction"),
     ),

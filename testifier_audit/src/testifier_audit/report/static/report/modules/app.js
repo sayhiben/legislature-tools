@@ -220,6 +220,21 @@ export async function runReportApp() {
         .map((value) => String(value || "").trim().toLowerCase())
         .filter((value) => value === "strict" || value === "loose")
     : [];
+  const duplicateStatisticalContract =
+    controls.duplicate_statistical_contract &&
+    typeof controls.duplicate_statistical_contract === "object"
+      ? controls.duplicate_statistical_contract
+      : {};
+  const duplicateChartDeclarations =
+    duplicateStatisticalContract.chart_declarations &&
+    typeof duplicateStatisticalContract.chart_declarations === "object"
+      ? duplicateStatisticalContract.chart_declarations
+      : {};
+  const duplicateTableDeclarations =
+    duplicateStatisticalContract.table_declarations &&
+    typeof duplicateStatisticalContract.table_declarations === "object"
+      ? duplicateStatisticalContract.table_declarations
+      : {};
   const defaultDuplicateScope =
     typeof controls.duplicate_collision_scope_default === "string" &&
     duplicateScopeOptions.includes(controls.duplicate_collision_scope_default)
@@ -2243,7 +2258,131 @@ export async function runReportApp() {
     host.classList.remove("hidden");
   }
 
-  function composeChartNote(mount, fallbackNote) {
+  const duplicateChartIds = new Set([
+    "duplicates_exact_bucket_concentration",
+    "duplicates_exact_metric_diagnostics",
+    "duplicates_exact_per_name_anomalies",
+    "duplicates_exact_top_name_timing_exact",
+    "duplicates_exact_position_bucket_deviance",
+    "duplicates_exact_null_distribution",
+    "duplicates_exact_swing_impact",
+    "duplicates_exact_top_names",
+    "duplicates_exact_position_switch",
+  ]);
+
+  function firstNonEmptyString(values) {
+    const candidates = Array.isArray(values) ? values : [];
+    for (const value of candidates) {
+      const text = typeof value === "string" ? value.trim() : "";
+      if (text) {
+        return text;
+      }
+    }
+    return "";
+  }
+
+  function humanizeToken(value) {
+    return String(value || "")
+      .trim()
+      .replace(/_/g, " ");
+  }
+
+  function inferentialStatusLabel(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized) {
+      return "";
+    }
+    if (normalized === "reference_model_inference" || normalized === "tested") {
+      return "inferential";
+    }
+    if (normalized === "descriptive_only") {
+      return "descriptive-only";
+    }
+    if (normalized === "unavailable") {
+      return "unavailable";
+    }
+    return humanizeToken(normalized);
+  }
+
+  function inferentialStatusFromRows(rows) {
+    const normalizedRows = Array.isArray(rows) ? rows : [];
+    const fromInferentialStatus = firstNonEmptyString(
+      normalizedRows.map((row) => (row && row.inferential_status ? String(row.inferential_status) : ""))
+    );
+    if (fromInferentialStatus) {
+      return fromInferentialStatus;
+    }
+    const fromInferenceStatus = firstNonEmptyString(
+      normalizedRows.map((row) => (row && row.inference_status ? String(row.inference_status) : ""))
+    );
+    if (fromInferenceStatus) {
+      return fromInferenceStatus;
+    }
+    return "";
+  }
+
+  function baselineLabelFromRows(rows) {
+    const normalizedRows = Array.isArray(rows) ? rows : [];
+    const explicit = firstNonEmptyString(
+      normalizedRows.map((row) => (row && row.baseline_label ? String(row.baseline_label) : ""))
+    );
+    if (explicit) {
+      return explicit;
+    }
+    const source = firstNonEmptyString(
+      normalizedRows.map((row) => (row && row.baseline_source ? String(row.baseline_source) : ""))
+    );
+    return source ? humanizeToken(source) : "";
+  }
+
+  function duplicateDeclarationNoteFrom(entry, rows) {
+    const declaration = entry && typeof entry === "object" ? entry : {};
+    const baselineLabel = firstNonEmptyString([
+      baselineLabelFromRows(rows),
+      declaration.baseline_label,
+      duplicateStatisticalContract.baseline_label,
+      declaration.baseline_source ? humanizeToken(declaration.baseline_source) : "",
+      duplicateStatisticalContract.baseline_source
+        ? humanizeToken(duplicateStatisticalContract.baseline_source)
+        : "",
+    ]);
+    const inferentialStatusRaw = firstNonEmptyString([
+      inferentialStatusFromRows(rows),
+      declaration.inferential_status,
+      duplicateStatisticalContract.inferential_status,
+    ]);
+    const inferentialStatus = inferentialStatusLabel(inferentialStatusRaw);
+    const gating = firstNonEmptyString([
+      declaration.gating,
+      duplicateStatisticalContract.gating,
+    ]);
+    const parts = [];
+    if (baselineLabel) {
+      parts.push("Baseline: " + baselineLabel + ".");
+    }
+    if (inferentialStatus) {
+      parts.push("Inferential status: " + inferentialStatus + ".");
+    }
+    if (gating) {
+      parts.push("Gating: " + gating);
+    }
+    return parts.join(" ").trim();
+  }
+
+  function duplicateChartDeclarationNote(chartId, rows) {
+    if (!duplicateChartIds.has(String(chartId || "").trim())) {
+      return "";
+    }
+    const declaration = duplicateChartDeclarations[chartId] || {};
+    return duplicateDeclarationNoteFrom(declaration, rows);
+  }
+
+  function duplicateTableDeclarationNote(tableName, rows) {
+    const declaration = duplicateTableDeclarations[tableName] || {};
+    return duplicateDeclarationNoteFrom(declaration, rows);
+  }
+
+  function composeChartNote(mount, fallbackNote, declarationNote) {
     const parts = [];
     if (mount && Number.isFinite(mount.activeBucket)) {
       parts.push("Bucket: " + mount.activeBucket + "m.");
@@ -2253,6 +2392,9 @@ export async function runReportApp() {
     }
     if (fallbackNote) {
       parts.push(fallbackNote);
+    }
+    if (declarationNote) {
+      parts.push(declarationNote);
     }
     return parts.join(" ");
   }
@@ -6290,11 +6432,15 @@ export async function runReportApp() {
             lines.push("<strong>Bucket:</strong> " + bucketLabel);
           }
           if (row) {
-            lines.push("<strong>Pro duplicates:</strong> " + Number(toNumber(row.nPro)).toLocaleString());
-            lines.push("<strong>Con duplicates:</strong> " + Number(toNumber(row.nCon)).toLocaleString());
+            lines.push(
+              "<strong>Pro collision rows:</strong> " + Number(toNumber(row.nPro)).toLocaleString()
+            );
+            lines.push(
+              "<strong>Con collision rows:</strong> " + Number(toNumber(row.nCon)).toLocaleString()
+            );
             if (row.total > 0) {
               lines.push(
-                "<strong>Total duplicate sign-ins:</strong> " +
+                "<strong>Total collision rows:</strong> " +
                   Number(toNumber(row.total)).toLocaleString()
               );
             }
@@ -6325,7 +6471,7 @@ export async function runReportApp() {
       },
       yAxis: {
         type: "value",
-        name: "Duplicate sign-ins",
+        name: "Collision rows",
         axisLabel: { color: theme.axisText },
       },
       series: [
@@ -8810,10 +8956,10 @@ export async function runReportApp() {
           : "strict") +
         " first-name matching."
       : duplicateRowsFull.length
-      ? "All repeated names from duplicates test rows."
+      ? "All repeated name-key collisions from duplicate-analysis test rows."
       : duplicateRowsDisplay.length
-        ? "Repeated canonical names from display-limited duplicates table."
-        : "Fallback from triage summary (top repeated names only).";
+        ? "Repeated name-key collisions from display-limited duplicate-analysis table."
+        : "Fallback from triage summary (top repeated name keys only).";
 
     return {
       rows: rows,
@@ -9476,11 +9622,13 @@ export async function runReportApp() {
       const sourceRows = detectorTables[tableName] || [];
       let rows = sourceRows;
       let tableBucketNote = "";
+      let tableDeclarationNote = "";
       let tableTitle = humanizeTableSectionHeader(tableName);
       if (analysis.id === "duplicates_exact") {
         const bucketFiltered = filterRowsByDuplicateTableBucket(tableName, sourceRows);
         rows = bucketFiltered.rows;
         tableBucketNote = bucketFiltered.note;
+        tableDeclarationNote = duplicateTableDeclarationNote(tableName, rows);
         if (bucketFiltered.applied && Number.isFinite(state.activeBucket)) {
           tableTitle =
             humanizeTableSectionHeader(tableName) + " (" + Math.round(state.activeBucket) + "m)";
@@ -9540,6 +9688,13 @@ export async function runReportApp() {
       const wrap = document.createElement("div");
       wrap.className = "table-wrap";
       details.appendChild(wrap);
+
+      if (tableDeclarationNote) {
+        const declarationNote = document.createElement("p");
+        declarationNote.className = "tiny-note";
+        declarationNote.textContent = tableDeclarationNote;
+        wrap.appendChild(declarationNote);
+      }
 
       if (tableBucketNote) {
         const note = document.createElement("p");
@@ -9605,6 +9760,7 @@ export async function runReportApp() {
     const bucketSelection = filterRowsByBucket(duplicateScopedRows, mount.chartId);
     const zoomSelection = filterRowsByLinkedZoom(mount, bucketSelection.rows);
     const rows = zoomSelection.rows;
+    const declarationNote = duplicateChartDeclarationNote(mount.chartId, rows);
     mount.activeBucket = bucketSelection.bucket;
     const preRenderNote = [bucketSelection.note, zoomSelection.note]
       .map((value) => String(value || "").trim())
@@ -9628,7 +9784,7 @@ export async function runReportApp() {
     if (!didRender) {
       return;
     }
-    setChartNote(mount.chartId, composeChartNote(mount, preRenderNote));
+    setChartNote(mount.chartId, composeChartNote(mount, preRenderNote, declarationNote));
     if (mount.isAbsoluteTime) {
       applyZoomToChart(mount);
     }
@@ -9914,8 +10070,8 @@ export async function runReportApp() {
 
     metricSelect.innerHTML = "";
     const duplicateMetricLabelMap = {
-      rows_anywhere: "Rows (duplicated anywhere)",
-      names_anywhere: "Names (duplicated anywhere)",
+      rows_anywhere: "Rows (name-key collisions anywhere)",
+      names_anywhere: "Names (name-key collisions anywhere)",
     };
     metricOptions.forEach((value) => {
       const option = document.createElement("option");

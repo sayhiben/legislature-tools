@@ -4,6 +4,7 @@
 
 <section id="analysis-root" class="report-section">
   {% set analysis_items = interactive_charts.analysis_catalog %}
+  {% set duplicate_contract = interactive_charts.get("controls", {}).get("duplicate_statistical_contract", {}) %}
   {% for analysis in analysis_items %}
     <section
       class="analysis-section"
@@ -20,6 +21,30 @@
       </div>
       {% if analysis.reason %}
         <p class="tiny-note">{{ analysis.reason }}</p>
+      {% endif %}
+      {% if analysis.id == "duplicates_exact" and duplicate_contract %}
+        <aside class="definition-callout duplicate-contract-callout">
+          <p><strong>Estimand:</strong> {{ duplicate_contract.get("estimand_primary", "") }}</p>
+          <p><strong>Baseline semantics:</strong> {{ duplicate_contract.get("baseline_semantics", "") }}</p>
+          <p><strong>Interpretation:</strong> {{ duplicate_contract.get("interpretation_callout", "") }}</p>
+          <p><strong>Limitations:</strong> {{ duplicate_contract.get("non_goals", "") }}</p>
+          {% if duplicate_contract.get("can_conclude") %}
+            <p><strong>Can conclude:</strong></p>
+            <ul>
+              {% for bullet in duplicate_contract.get("can_conclude", []) %}
+                <li>{{ bullet }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if duplicate_contract.get("cannot_conclude") %}
+            <p><strong>Cannot conclude:</strong></p>
+            <ul>
+              {% for bullet in duplicate_contract.get("cannot_conclude", []) %}
+                <li>{{ bullet }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </aside>
       {% endif %}
 
       <div class="analysis-hero-block">
@@ -39,8 +64,8 @@
       {% if analysis.detail_chart_ids %}
         <div class="analysis-detail-grid">
           {% set chart_title_overrides = {
-            "duplicates_exact_per_name_anomalies": "Duplicate Names by Position",
-            "duplicates_exact_top_name_timing_exact": "Duplicate Names Top Timing"
+            "duplicates_exact_per_name_anomalies": "Duplicate-Name Collisions by Position",
+            "duplicates_exact_top_name_timing_exact": "Duplicate-Name Collision Timing"
           } %}
           {% set chart_card_class_overrides = {
             "duplicates_exact_metric_diagnostics": "detail-card detail-card-half",

@@ -788,6 +788,16 @@ code {
   color: #1e40af;
 }
 
+.duplicate-contract-callout ul {
+  margin: 0.2rem 0 0.25rem 1rem;
+  padding: 0;
+}
+
+.duplicate-contract-callout li {
+  margin: 0.2rem 0;
+  color: #1e3a8a;
+}
+
 .kpi-grid {
   margin-top: 0.75rem;
   display: grid;
@@ -2155,6 +2165,7 @@ tr.duplicate-name-inline-detail-row > td {
 }
 
 :root[data-theme="dark"] .definition-callout p,
+:root[data-theme="dark"] .duplicate-contract-callout li,
 :root[data-theme="dark"] .methodology-list li,
 :root[data-theme="dark"] .table-help-body p,
 :root[data-theme="dark"] .analysis-help-body p,

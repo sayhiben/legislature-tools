@@ -157,6 +157,49 @@ def test_collision_baseline_failure_policy_fail_and_degrade() -> None:
         fail_fast.run(df=frame, features={})
 
 
+def test_duplicate_statistical_contract_is_emitted_in_summary_and_methods() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 3, "BROWN|AVA": 2})
+    detector = DuplicatesExactDetector(
+        top_n=25,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+    )
+    result = detector.run(df=frame, features={})
+
+    summary = result.summary
+    assert summary["claim_class"] == detector.COLLISION_CLAIM_CLASS
+    assert summary["estimand_primary"] == detector.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY
+    assert summary["non_goals"] == detector.STATISTICAL_CONTRACT_NON_GOALS
+    assert summary["baseline_semantics"] == detector.STATISTICAL_CONTRACT_BASELINE_SEMANTICS
+    assert isinstance(summary.get("statistical_contract"), dict)
+    assert summary["statistical_contract"]["estimand_primary"] == detector.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY
+    assert summary["statistical_contract"]["non_goals"] == detector.STATISTICAL_CONTRACT_NON_GOALS
+    assert summary["statistical_contract"]["baseline_semantics"] == detector.STATISTICAL_CONTRACT_BASELINE_SEMANTICS
+
+    methods = result.tables["collision_methods"]
+    required_columns = {
+        "baseline_label",
+        "claim_class",
+        "inferential_status",
+        "estimand_primary",
+        "non_goals",
+        "baseline_semantics",
+    }
+    assert required_columns.issubset(set(methods.columns))
+    assert set(methods["claim_class"].astype(str)) == {detector.COLLISION_CLAIM_CLASS}
+    assert set(methods["estimand_primary"].astype(str)) == {
+        detector.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY
+    }
+    assert set(methods["non_goals"].astype(str)) == {detector.STATISTICAL_CONTRACT_NON_GOALS}
+    assert set(methods["baseline_semantics"].astype(str)) == {
+        detector.STATISTICAL_CONTRACT_BASELINE_SEMANTICS
+    }
+    assert methods["baseline_label"].astype(str).str.len().gt(0).all()
+    assert methods["inferential_status"].astype(str).isin(
+        {"descriptive_only", "reference_model_inference"}
+    ).all()
+
+
 def test_duplicates_exact_emits_scope_phase_runtime_profile_keys() -> None:
     frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2, "BROWN|AVA": 1})
     detector = DuplicatesExactDetector(

@@ -138,3 +138,12 @@ Operational rollout should remain blocked until review explicitly accepts the ob
   - acceptable historical-control behavior is observed in inferential-evaluable scenarios in the expanded run;
   - remaining concern shifts from pure false-positive rate to inferential coverage/evaluability policy across scenario families;
   - rollout remains pending reviewer sign-off on this policy treatment.
+
+## 2026-03-01 Addendum (Baseline Artifact Sync)
+- Re-ran canonical baseline artifacts in `output/dup007` after inferential-evaluability instrumentation to keep baseline and expanded outputs schema-aligned.
+- Baseline cohort (`historical_normal_count=6`, `historical_suspect_count=2`) remained support-limited:
+  - no scenario met inferential evaluability gate (`holdout_normal_inferential_n >= 5`).
+  - city fallback scenarios had inferential holdout-normal alert rate `0.5` with `n=2` (insufficient support).
+- Practical readout:
+  - treat `output/dup007` as a reproducible low-support baseline reference.
+  - use `output/dup007_expanded` for inferential-operating target assessment.

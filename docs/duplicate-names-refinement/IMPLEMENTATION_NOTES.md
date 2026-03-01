@@ -2019,3 +2019,38 @@ Scope: Separate inferentially-evaluable operating behavior from descriptive-only
 - DUP-007 false-positive behavior is acceptable in inferential-evaluable scenarios under expanded support.
 - Remaining open decision is policy-level: whether non-evaluable (descriptive-only) scenarios are acceptable for rollout with explicit caveats, or require additional inferential coverage before sign-off.
 - Review sign-off remains pending.
+
+---
+
+## DUP-007 Baseline Sync + ESSB 6346 Validation Refresh
+
+Date: 2026-03-01  
+Scope: Refresh canonical `output/dup007` artifacts with inferential-evaluability fields and confirm ESSB 6346 report rerender/Playwright diagnostics for this batch.
+
+## What Was Run
+- Baseline artifact sync run:
+  - `python testifier_audit/scripts/tests/backtest_vrdb_collision_module.py --out-dir output/dup007 --log-level WARNING --historical-normal-count 6 --historical-suspect-count 2 --synthetic-replicates 1 --bucket-minutes 15,60,240 --small-bucket-minutes 15 --monte-carlo-draws 96`
+  - log:
+    - `output/dup007/backtest_run_20260301_warning_v3.log`
+- ESSB 6346 rerender:
+  - `output/dup007/essb6346_report_rerender_20260301_v2.log`
+- Playwright MCP validation:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - local server log:
+    - `output/dup007/http_server_8778_v2.log`
+
+## Findings
+- Baseline `output/dup007` now includes inferential-evaluability fields.
+- With baseline cohort support (`historical_normal_count=6`), no scenario is inferential-evaluable under gate:
+  - `holdout_normal_inferential_n >= 5`
+  - `synthetic_injected_inferential_n >= 1`
+- City fallback scenarios remain the closest to target behavior in baseline (`holdout_normal_inferential_alert_rate=0.5`, `n=2`) but are still non-evaluable due support depth.
+- ESSB 6346 rerender + Playwright checks were healthy:
+  - report-data requests `200`;
+  - only expected static-server `favicon.ico` `404` in console.
+
+## Interpretation / Handoff Update
+- `output/dup007` should be treated as a reproducible low-support baseline reference set.
+- `output/dup007_expanded` remains the inferential-operating evidence set for policy review.
+- DUP-007 remains open pending reviewer sign-off on evaluability policy.

@@ -1773,3 +1773,125 @@ def test_temporal_conditioned_null_downgrades_when_position_pool_is_exhausted(
     ).all()
     assert unsupported["temporal_p_value_min_gap"].isna().all()
     assert unsupported["temporal_q_value_min_gap"].isna().all()
+
+
+def test_rng_seed_lineage_is_exposed_in_summary_and_collision_methods() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 3, "SMITH|JOHN": 2, "BROWN|AVA": 1})
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+        random_seed=73,
+    )
+    result = detector.run(df=frame, features={})
+
+    summary = result.summary
+    assert int(summary["rng_root_seed"]) == 73
+    seed_lineage = summary.get("rng_seed_lineage")
+    assert isinstance(seed_lineage, dict)
+    assert set(seed_lineage.get("streams", {}).keys()) == set(detector.RNG_STREAM_NAMES)
+
+    methods = result.tables["collision_methods"]
+    assert not methods.empty
+    assert int(methods["rng_root_seed"].iloc[0]) == 73
+    assert str(methods["rng_root_stream_id"].iloc[0]).strip() != ""
+    for stream_name in detector.RNG_STREAM_NAMES:
+        column = f"rng_stream_{stream_name}"
+        assert column in methods.columns
+        assert methods[column].astype(str).str.strip().str.len().gt(0).all()
+
+
+def test_temporal_rng_consumption_does_not_perturb_bucket_collision_outputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame(
+        {
+            "ALPHA|A": 5,
+            "BETA|B": 4,
+            "GAMMA|C": 3,
+            "DELTA|D": 2,
+            "EPSILON|E": 2,
+        }
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1],
+                "n_keys": [50_000],
+                "N": [50_000],
+            }
+        ),
+    )
+
+    detector_kwargs = {
+        "top_n": 20,
+        "bucket_minutes": [5, 15],
+        "collision_baseline_source": "vrdb_full_histogram",
+        "collision_uncertainty_mode": "monte_carlo",
+        "voter_db_url": "postgresql://example",
+        "monte_carlo_draws": 300,
+        "temporal_permutation_draws": 250,
+        "low_power_min_unique_names": 1,
+        "low_power_min_expected_duplicates": 0.0,
+        "random_seed": 41,
+    }
+
+    baseline_detector = DuplicatesExactDetector(**detector_kwargs)
+    baseline_result = baseline_detector.run(df=frame, features={})
+    baseline_bucket = (
+        baseline_result.tables["collision_by_bucket"][
+            [
+                "scope",
+                "bucket_start",
+                "bucket_minutes",
+                "metric",
+                "observed",
+                "expected",
+                "expected_p05",
+                "expected_p95",
+                "p_value",
+                "z_score",
+            ]
+        ]
+        .sort_values(["scope", "bucket_minutes", "bucket_start", "metric"])
+        .reset_index(drop=True)
+    )
+
+    original_temporal_metrics = DuplicatesExactDetector._temporal_metrics_by_name
+
+    def _temporal_with_extra_rng_draws(self, *args, **kwargs):
+        rng = kwargs.get("rng")
+        if rng is not None:
+            rng.random(10_000)
+        return original_temporal_metrics(self, *args, **kwargs)
+
+    monkeypatch.setattr(
+        DuplicatesExactDetector,
+        "_temporal_metrics_by_name",
+        _temporal_with_extra_rng_draws,
+    )
+
+    perturbed_detector = DuplicatesExactDetector(**detector_kwargs)
+    perturbed_result = perturbed_detector.run(df=frame, features={})
+    perturbed_bucket = (
+        perturbed_result.tables["collision_by_bucket"][
+            [
+                "scope",
+                "bucket_start",
+                "bucket_minutes",
+                "metric",
+                "observed",
+                "expected",
+                "expected_p05",
+                "expected_p95",
+                "p_value",
+                "z_score",
+            ]
+        ]
+        .sort_values(["scope", "bucket_minutes", "bucket_start", "metric"])
+        .reset_index(drop=True)
+    )
+
+    pd.testing.assert_frame_equal(baseline_bucket, perturbed_bucket, check_exact=True)

@@ -95,6 +95,24 @@ def _uses_default_hypergeometric_tail() -> bool:
 class DuplicatesExactDetector(Detector):
     name = "duplicates_exact"
     DEFAULT_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
+    RNG_STREAM_SCOPE_COLLISION = "scope_collision"
+    RNG_STREAM_SCOPE_STRATIFIED_COLLISION = "scope_stratified_collision"
+    RNG_STREAM_BUCKET_COLLISION = "bucket_collision"
+    RNG_STREAM_BUCKET_STRATIFIED_COLLISION = "bucket_stratified_collision"
+    RNG_STREAM_POSITION_INTERVAL = "position_interval"
+    RNG_STREAM_POSITION_PERMUTATION = "position_permutation"
+    RNG_STREAM_POSITION_CLUSTER_BOOTSTRAP = "position_cluster_bootstrap"
+    RNG_STREAM_TEMPORAL_PERMUTATION = "temporal_permutation"
+    RNG_STREAM_NAMES = (
+        RNG_STREAM_SCOPE_COLLISION,
+        RNG_STREAM_SCOPE_STRATIFIED_COLLISION,
+        RNG_STREAM_BUCKET_COLLISION,
+        RNG_STREAM_BUCKET_STRATIFIED_COLLISION,
+        RNG_STREAM_POSITION_INTERVAL,
+        RNG_STREAM_POSITION_PERMUTATION,
+        RNG_STREAM_POSITION_CLUSTER_BOOTSTRAP,
+        RNG_STREAM_TEMPORAL_PERMUTATION,
+    )
     STATISTICAL_CONTRACT_ESTIMAND_PRIMARY = (
         "name-key collision burden relative to reference baseline"
     )
@@ -751,6 +769,56 @@ class DuplicatesExactDetector(Detector):
         )
         return version_value, version_hash
 
+    @staticmethod
+    def _seed_sequence_stream_id(sequence: np.random.SeedSequence) -> str:
+        spawn_key = ".".join(str(value) for value in sequence.spawn_key) or "root"
+        state_words = sequence.generate_state(4, dtype=np.uint32)
+        state_hex = "".join(f"{int(value):08x}" for value in state_words.tolist())
+        return f"{spawn_key}:{state_hex}"
+
+    @classmethod
+    def _spawn_rng_streams(
+        cls,
+        *,
+        root_seed: int,
+    ) -> tuple[dict[str, np.random.Generator], dict[str, object]]:
+        root_sequence = np.random.SeedSequence(int(root_seed))
+        child_sequences = root_sequence.spawn(len(cls.RNG_STREAM_NAMES))
+        rng_streams: dict[str, np.random.Generator] = {}
+        stream_lineage: dict[str, dict[str, str]] = {}
+        for stream_name, child_sequence in zip(cls.RNG_STREAM_NAMES, child_sequences):
+            rng_streams[stream_name] = np.random.default_rng(child_sequence)
+            stream_lineage[stream_name] = {
+                "stream_id": cls._seed_sequence_stream_id(child_sequence),
+            }
+        lineage = {
+            "root_seed": int(root_seed),
+            "root_stream_id": cls._seed_sequence_stream_id(root_sequence),
+            "streams": stream_lineage,
+        }
+        return rng_streams, lineage
+
+    @classmethod
+    def _flatten_rng_lineage(
+        cls,
+        *,
+        lineage: dict[str, object],
+    ) -> dict[str, object]:
+        streams = lineage.get("streams", {})
+        if not isinstance(streams, dict):
+            streams = {}
+        flattened: dict[str, object] = {
+            "rng_root_seed": int(lineage.get("root_seed", 0) or 0),
+            "rng_root_stream_id": str(lineage.get("root_stream_id", "") or ""),
+        }
+        for stream_name in cls.RNG_STREAM_NAMES:
+            stream_value = streams.get(stream_name, {})
+            stream_id = ""
+            if isinstance(stream_value, dict):
+                stream_id = str(stream_value.get("stream_id", "") or "")
+            flattened[f"rng_stream_{stream_name}"] = stream_id
+        return flattened
+
     def _scope_frames(
         self,
         infer: pd.DataFrame,
@@ -1366,6 +1434,7 @@ class DuplicatesExactDetector(Detector):
         key_column: str,
         *,
         rng: np.random.Generator,
+        bootstrap_rng: np.random.Generator | None = None,
         n_permutations: int | None = None,
     ) -> pd.DataFrame:
         started = perf_counter()
@@ -1441,10 +1510,11 @@ class DuplicatesExactDetector(Detector):
             p_value_two_sided = float(
                 (np.sum(np.abs(perm_series) >= observed_abs_effect) + 1) / (perm_series.size + 1)
             )
+            bootstrap_rng_effective = rng if bootstrap_rng is None else bootstrap_rng
             effect, ci_low, ci_high, interval_draws_effective = self._cluster_bootstrap_rate_difference(
                 pro_counts_observed=pro_counts_observed,
                 con_counts_observed=con_counts_observed,
-                rng=rng,
+                rng=bootstrap_rng_effective,
                 n_bootstrap_draws=self.position_cluster_bootstrap_draws,
             )
             has_result = True
@@ -2078,7 +2148,22 @@ class DuplicatesExactDetector(Detector):
         record_runtime_counter("detector.duplicates_exact.rows.working", int(len(working)))
         record_runtime_counter("detector.duplicates_exact.rows.inference", int(len(infer)))
 
-        rng = np.random.default_rng(self.random_seed)
+        # Use per-submethod RNG streams so unrelated stochastic paths do not perturb each other.
+        rng_streams, rng_seed_lineage = self._spawn_rng_streams(root_seed=self.random_seed)
+        rng_lineage_columns = self._flatten_rng_lineage(lineage=rng_seed_lineage)
+        rng_scope_collision = rng_streams[self.RNG_STREAM_SCOPE_COLLISION]
+        rng_scope_stratified_collision = rng_streams[self.RNG_STREAM_SCOPE_STRATIFIED_COLLISION]
+        rng_bucket_collision = rng_streams[self.RNG_STREAM_BUCKET_COLLISION]
+        rng_bucket_stratified_collision = rng_streams[self.RNG_STREAM_BUCKET_STRATIFIED_COLLISION]
+        rng_position_interval = rng_streams[self.RNG_STREAM_POSITION_INTERVAL]
+        rng_position_permutation = rng_streams[self.RNG_STREAM_POSITION_PERMUTATION]
+        rng_position_cluster_bootstrap = rng_streams[self.RNG_STREAM_POSITION_CLUSTER_BOOTSTRAP]
+        rng_temporal_permutation = rng_streams[self.RNG_STREAM_TEMPORAL_PERMUTATION]
+        LOGGER.info(
+            "duplicates_exact rng lineage root_seed=%s root_stream=%s",
+            rng_lineage_columns.get("rng_root_seed"),
+            rng_lineage_columns.get("rng_root_stream_id"),
+        )
         with profile_runtime_block("detector.duplicates_exact.resolve_scope_frames"):
             scope_frames, scope_availability = self._scope_frames(
                 infer=infer,
@@ -2543,7 +2628,7 @@ class DuplicatesExactDetector(Detector):
                         null_samples = self._simulate_stratified_collision_null(
                             n_rows=n_scope,
                             draws=self.monte_carlo_draws,
-                            rng=rng,
+                            rng=rng_scope_stratified_collision,
                             stratum_weights=stratified_sampling_weights,
                             stratum_keys=stratified_sampling_keys,
                             stratum_probabilities=stratified_sampling_probabilities,
@@ -2560,7 +2645,7 @@ class DuplicatesExactDetector(Detector):
                             n_rows=n_scope,
                             histogram=stratified_null_histogram,
                             draws=self.monte_carlo_draws,
-                            rng=rng,
+                            rng=rng_scope_collision,
                             baseline_model="multinomial",
                             n_population=n_population if n_population > 0 else None,
                             max_draws=scope_max_draws,
@@ -2573,7 +2658,7 @@ class DuplicatesExactDetector(Detector):
                         n_rows=n_scope,
                         histogram=histogram,
                         draws=self.monte_carlo_draws,
-                        rng=rng,
+                        rng=rng_scope_collision,
                         baseline_model=self.collision_baseline_model,
                         n_population=n_population if n_population > 0 else None,
                         max_draws=scope_max_draws,
@@ -2819,7 +2904,7 @@ class DuplicatesExactDetector(Detector):
             temporal = self._temporal_metrics_by_name(
                 scope_frame,
                 key_column,
-                rng=rng,
+                rng=rng_temporal_permutation,
                 inferential_name_gate=temporal_inferential_gate,
             )
             if not temporal.empty:
@@ -2867,6 +2952,7 @@ class DuplicatesExactDetector(Detector):
                     "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
                     "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
                     "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
+                    **rng_lineage_columns,
                 }
             )
 
@@ -2952,7 +3038,7 @@ class DuplicatesExactDetector(Detector):
                                     null_for_n = self._simulate_stratified_collision_null(
                                         n_rows=n_bucket,
                                         draws=self.monte_carlo_draws,
-                                        rng=rng,
+                                        rng=rng_bucket_stratified_collision,
                                         stratum_weights=stratified_sampling_weights,
                                         stratum_keys=stratified_sampling_keys,
                                         stratum_probabilities=stratified_sampling_probabilities,
@@ -2971,7 +3057,7 @@ class DuplicatesExactDetector(Detector):
                                             )
                                         ),
                                         draws=self.monte_carlo_draws,
-                                        rng=rng,
+                                        rng=rng_bucket_collision,
                                         baseline_model="multinomial",
                                         n_population=n_population if n_population > 0 else None,
                                         max_draws=bucket_max_draws,
@@ -3001,7 +3087,7 @@ class DuplicatesExactDetector(Detector):
                                     n_rows=n_bucket,
                                     histogram=histogram,
                                     draws=self.monte_carlo_draws,
-                                    rng=rng,
+                                    rng=rng_bucket_collision,
                                     baseline_model=self.collision_baseline_model,
                                     n_population=n_population if n_population > 0 else None,
                                     max_draws=bucket_max_draws,
@@ -3406,7 +3492,7 @@ class DuplicatesExactDetector(Detector):
                             n_rows=n_subset_rows,
                             histogram=histogram,
                             n_population=n_population if n_population > 0 else None,
-                            rng=rng,
+                            rng=rng_position_interval,
                         )
                     interval_stats = position_interval_by_n[n_subset_rows]
                     expected_rows = float(interval_stats.get("expected_duplicate_rows", 0.0))
@@ -3481,7 +3567,8 @@ class DuplicatesExactDetector(Detector):
                     legacy_position_tests = self._position_permutation_test(
                         scope_frame,
                         key_column,
-                        rng=rng,
+                        rng=rng_position_permutation,
+                        bootstrap_rng=rng_position_cluster_bootstrap,
                         n_permutations=permutation_draws,
                     )
                 else:
@@ -4888,6 +4975,9 @@ class DuplicatesExactDetector(Detector):
                 }
                 for scope_name in scope_names
             ],
+            "rng_root_seed": int(rng_lineage_columns.get("rng_root_seed", 0) or 0),
+            "rng_root_stream_id": str(rng_lineage_columns.get("rng_root_stream_id", "") or ""),
+            "rng_seed_lineage": rng_seed_lineage,
         }
         record_runtime_timing(
             "detector.duplicates_exact.assemble_outputs",

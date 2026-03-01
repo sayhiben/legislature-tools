@@ -98,6 +98,13 @@ def _stable_seed(*parts: object) -> int:
     return int(digest[:16], 16) % (2**32)
 
 
+def _seed_sequence_stream_id(sequence: np.random.SeedSequence) -> str:
+    spawn_key = ".".join(str(value) for value in sequence.spawn_key) or "root"
+    state_words = sequence.generate_state(4, dtype=np.uint32)
+    state_hex = "".join(f"{int(value):08x}" for value in state_words.tolist())
+    return f"{spawn_key}:{state_hex}"
+
+
 def _normalize_probability_rows(probability_rows: pd.DataFrame) -> pd.DataFrame:
     missing = sorted(_REQUIRED_PROBABILITY_COLUMNS - set(probability_rows.columns))
     if missing:
@@ -356,6 +363,11 @@ def _empty_slice_row(
     effective_geo_level: str,
     effective_geo_value: str,
     reason: str,
+    rng_root_seed: int = 0,
+    rng_slice_seed: int = 0,
+    rng_root_stream_id: str = "",
+    rng_stream_pairs: str = "",
+    rng_stream_max_name: str = "",
 ) -> dict[str, object]:
     return {
         "evidence_family": DEFAULT_EVIDENCE_FAMILY,
@@ -396,6 +408,11 @@ def _empty_slice_row(
         "effective_denominator": 0,
         "vrdb_version": "",
         "normalization_version": "",
+        "rng_root_seed": int(max(int(rng_root_seed), 0)),
+        "rng_slice_seed": int(max(int(rng_slice_seed), 0)),
+        "rng_root_stream_id": _safe_text(rng_root_stream_id),
+        "rng_stream_pairs": _safe_text(rng_stream_pairs),
+        "rng_stream_max_name": _safe_text(rng_stream_max_name),
     }
 
 
@@ -530,6 +547,19 @@ def compute_vrdb_collision_null_for_slices(
         )
         effective_geo_level = _safe_text(geo_resolution.get("effective_geo_level", default_geo_level))
         effective_geo_value = _safe_text(geo_resolution.get("effective_geo_value", default_geo_value))
+        slice_seed = _stable_seed(
+            random_seed,
+            slice_id_value,
+            baseline_variant,
+            name_key_type,
+            effective_geo_level,
+            effective_geo_value,
+        )
+        slice_root_sequence = np.random.SeedSequence(int(slice_seed))
+        slice_pairs_sequence, slice_max_sequence = slice_root_sequence.spawn(2)
+        rng_root_stream_id = _seed_sequence_stream_id(slice_root_sequence)
+        rng_stream_pairs = _seed_sequence_stream_id(slice_pairs_sequence)
+        rng_stream_max_name = _seed_sequence_stream_id(slice_max_sequence)
 
         context_key = (baseline_variant, name_key_type, effective_geo_level, effective_geo_value)
         context = context_cache.get(context_key)
@@ -559,6 +589,11 @@ def compute_vrdb_collision_null_for_slices(
                         effective_geo_level=effective_geo_level,
                         effective_geo_value=effective_geo_value,
                         reason="missing_baseline_context",
+                        rng_root_seed=int(random_seed),
+                        rng_slice_seed=int(slice_seed),
+                        rng_root_stream_id=rng_root_stream_id,
+                        rng_stream_pairs=rng_stream_pairs,
+                        rng_stream_max_name=rng_stream_max_name,
                     )
                 )
                 continue
@@ -585,6 +620,11 @@ def compute_vrdb_collision_null_for_slices(
                     effective_geo_level=effective_geo_level,
                     effective_geo_value=effective_geo_value,
                     reason="empty_slice",
+                    rng_root_seed=int(random_seed),
+                    rng_slice_seed=int(slice_seed),
+                    rng_root_stream_id=rng_root_stream_id,
+                    rng_stream_pairs=rng_stream_pairs,
+                    rng_stream_max_name=rng_stream_max_name,
                 )
             )
             continue
@@ -598,21 +638,13 @@ def compute_vrdb_collision_null_for_slices(
         sum_p2 = _expected_sum_p2(context.histogram)
         closed_form_expected_pairs = float(comb(n_rows, 2) * sum_p2) if n_rows >= 2 else 0.0
 
-        seed = _stable_seed(
-            random_seed,
-            slice_id_value,
-            baseline_variant,
-            name_key_type,
-            effective_geo_level,
-            effective_geo_value,
-        )
-        rng = np.random.default_rng(seed)
+        rng_pairs = np.random.default_rng(slice_pairs_sequence)
         null_samples = simulate_collision_null_from_histogram(
             n_rows=n_rows,
             histogram=context.histogram,
             draws=int(max(int(monte_carlo_draws), 0)),
             max_draws=int(max(int(monte_carlo_draws), 0)),
-            rng=rng,
+            rng=rng_pairs,
             baseline_model="multinomial",
         )
         pairs_samples = pd.to_numeric(null_samples.get("pairs"), errors="coerce").dropna().to_numpy(dtype=float)
@@ -653,7 +685,7 @@ def compute_vrdb_collision_null_for_slices(
             n_rows=n_rows,
             histogram=context.histogram,
             draws=int(max(int(monte_carlo_draws), 0)),
-            rng=np.random.default_rng(seed ^ 0xA5A5A5A5),
+            rng=np.random.default_rng(slice_max_sequence),
             max_categories=int(max_categories_for_max_count_reference),
         )
         if max_samples.size > 0:
@@ -719,6 +751,11 @@ def compute_vrdb_collision_null_for_slices(
                 "effective_denominator": context.denominator,
                 "vrdb_version": context.vrdb_version,
                 "normalization_version": context.normalization_version,
+                "rng_root_seed": int(random_seed),
+                "rng_slice_seed": int(slice_seed),
+                "rng_root_stream_id": rng_root_stream_id,
+                "rng_stream_pairs": rng_stream_pairs,
+                "rng_stream_max_name": rng_stream_max_name,
             }
         )
 

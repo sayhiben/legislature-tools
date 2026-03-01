@@ -52,6 +52,7 @@ class VrdbCollisionEvidenceDetector(Detector):
         requested_geo_value: str = "WA",
         probability_rows_path: str | None = None,
         backoff_rows_path: str | None = None,
+        random_seed: int = 42,
     ) -> None:
         # Keep sidecar runtime bounded by focusing on coarse timeline slices.
         selected_buckets = sorted({int(value) for value in bucket_minutes if int(value) >= 30})
@@ -64,6 +65,7 @@ class VrdbCollisionEvidenceDetector(Detector):
         self.requested_geo_value = str(requested_geo_value or "").strip() or "WA"
         self.probability_rows_path = str(probability_rows_path or "").strip()
         self.backoff_rows_path = str(backoff_rows_path or "").strip()
+        self.random_seed = int(max(int(random_seed), 0))
 
         self._repo_root = Path(__file__).resolve().parents[4]
         self._default_probability_candidates = [
@@ -107,6 +109,7 @@ class VrdbCollisionEvidenceDetector(Detector):
             "requested_geo_value": self.requested_geo_value,
             "bucket_minutes": list(self.bucket_minutes),
             "monte_carlo_draws": self.monte_carlo_draws,
+            "random_seed": self.random_seed,
         }
         return DetectorResult(
             detector=self.name,
@@ -229,6 +232,7 @@ class VrdbCollisionEvidenceDetector(Detector):
             probability_rows=probability_rows,
             backoff_rows=backoff_rows,
             monte_carlo_draws=self.monte_carlo_draws,
+            random_seed=self.random_seed,
             top_name_limit=self.top_name_limit,
         )
         metrics_rows = self._attach_bucket_fields(metrics_rows)

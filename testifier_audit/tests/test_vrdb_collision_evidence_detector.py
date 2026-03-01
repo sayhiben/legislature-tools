@@ -93,6 +93,9 @@ def test_vrdb_collision_evidence_emits_bucket_metrics_and_overrun_rows(tmp_path)
     assert not metrics.empty
     assert "full_hearing" in set(metrics["slice_id"].astype(str))
     assert (metrics["evidence_family"] == "vrdb_collision_null").all()
+    assert {"rng_root_seed", "rng_slice_seed", "rng_root_stream_id", "rng_stream_pairs", "rng_stream_max_name"}.issubset(
+        set(metrics.columns)
+    )
     assert set(metrics["bucket_minutes"].astype(int)).issuperset({0, 60})
     assert not overrun.empty
     assert (overrun["rank"].astype(int) <= 3).all()

@@ -78,6 +78,11 @@ def test_vrdb_collision_null_closed_form_expected_pairs_toy_case() -> None:
     assert abs(float(row["expected_pairs_closed_form"]) - expected_pairs) < 1e-12
     assert abs(float(row["expected_pairs_analytic"]) - expected_pairs) < 1e-12
     assert abs(float(row["observed_pairs"]) - 2.0) < 1e-12
+    assert int(row["rng_root_seed"]) == 123
+    assert int(row["rng_slice_seed"]) > 0
+    assert str(row["rng_root_stream_id"]).strip() != ""
+    assert str(row["rng_stream_pairs"]).strip() != ""
+    assert str(row["rng_stream_max_name"]).strip() != ""
 
 
 def test_vrdb_collision_null_simulation_matches_multinomial_expectation() -> None:
@@ -101,6 +106,7 @@ def test_vrdb_collision_null_simulation_matches_multinomial_expectation() -> Non
     assert int(row["monte_carlo_draws_effective"]) == 1200
     assert np.isfinite(float(row["tail_prob_pairs_mcse"]))
     assert 0.0 <= float(row["tail_prob_pairs_ci_low"]) <= float(row["tail_prob_pairs_ci_high"]) <= 1.0
+    assert str(row["rng_stream_pairs"]) != str(row["rng_stream_max_name"])
 
 
 def test_vrdb_collision_null_bucket_expectation_is_not_linear_rescale() -> None:

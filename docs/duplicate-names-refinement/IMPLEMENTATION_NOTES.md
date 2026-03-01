@@ -23,21 +23,21 @@ Execution order is tracked here independently from ticket numbering.
 12. `DUP-012` (Done, 2026-02-28)
 13. `DUP-013` (Done, 2026-02-28)
 14. `DUP-014` (Done, 2026-03-01)
+15. `DUP-015` (Done, 2026-03-01)
 
 ### Current
-1. `DUP-015` (next in-progress target)
+1. `DUP-016` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-015`
-2. `DUP-016`
-3. `DUP-017`
-4. `DUP-018`
-5. `DUP-019`
-6. `DUP-020`
-7. `DUP-021`
+1. `DUP-016`
+2. `DUP-017`
+3. `DUP-018`
+4. `DUP-019`
+5. `DUP-020`
+6. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, and **DUP-014**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, and **DUP-015**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1184,3 +1184,108 @@ Work item: DUP-014 (P1)
   - MC-derived outputs now include precision metadata.
   - small-hearing under-simulation risk from `sqrt(n)` budgeting has been removed.
 - Next ticket in sequence is `DUP-015`.
+
+---
+
+## DUP-015 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-015 (P1)
+
+## What Was Implemented
+- Added independent RNG stream management in `duplicates_exact` using a per-run root `SeedSequence` with one spawned stream per stochastic sub-method.
+- Stream-isolated the following duplicate stochastic paths:
+  - scope collision simulation
+  - scope stratified collision simulation
+  - bucket collision simulation
+  - bucket stratified collision simulation
+  - position interval simulation
+  - position permutation simulation
+  - position cluster-bootstrap interval simulation
+  - temporal permutation simulation
+- Updated position permutation implementation to accept a dedicated bootstrap RNG so permutation and interval draws do not share a stream.
+- Added RNG lineage provenance to duplicate outputs:
+  - summary:
+    - `rng_root_seed`
+    - `rng_root_stream_id`
+    - `rng_seed_lineage`
+  - `collision_methods`:
+    - `rng_root_seed`
+    - `rng_root_stream_id`
+    - `rng_stream_scope_collision`
+    - `rng_stream_scope_stratified_collision`
+    - `rng_stream_bucket_collision`
+    - `rng_stream_bucket_stratified_collision`
+    - `rng_stream_position_interval`
+    - `rng_stream_position_permutation`
+    - `rng_stream_position_cluster_bootstrap`
+    - `rng_stream_temporal_permutation`
+- Added sidecar-specific RNG stream isolation in `vrdb_collision_null`:
+  - per-slice root seed sequence
+  - spawned stream for pairs simulation
+  - spawned stream for max-name-count simulation
+- Added VRDB sidecar lineage provenance fields:
+  - `rng_root_seed`
+  - `rng_slice_seed`
+  - `rng_root_stream_id`
+  - `rng_stream_pairs`
+  - `rng_stream_max_name`
+- Updated detector wiring:
+  - `VrdbCollisionEvidenceDetector` now accepts `random_seed`
+  - detector registry now passes `config.calibration.random_seed` to duplicates and VRDB sidecar detectors.
+- Updated report payload normalization/serialization paths to include duplicate and sidecar RNG provenance fields.
+- Refreshed external duplicate frozen expected fixtures after deterministic-output changes:
+  - `tests/fixtures/methodology/external/expected/febrl_dataset1_duplicates_fast.json`
+  - `tests/fixtures/methodology/external/expected/febrl_dataset2_duplicates_extended.json`
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - added regression for emitted seed-lineage provenance fields.
+  - added regression proving extra temporal RNG consumption does not perturb bucket collision outputs.
+- `tests/test_vrdb_collision_null.py`
+  - added assertions for sidecar RNG lineage fields.
+  - added assertion that sidecar pair/max streams are distinct.
+- `tests/test_vrdb_collision_evidence_detector.py`
+  - added schema assertions for sidecar RNG lineage columns.
+- Focused validation:
+  - `python -m pytest tests/test_duplicates_exact.py tests/test_vrdb_collision_null.py tests/test_vrdb_collision_evidence_detector.py tests/test_report_chart_payload.py -q`
+  - `python -m pytest tests/test_analysis_registry.py tests/test_report_render_helpers.py -q`
+  - `python -m pytest tests/test_external_duplicates_e2e.py::test_external_duplicates_pipeline_matches_frozen_reference_outputs -q`
+  - all passed.
+- Full suite validation:
+  - `./testifier_audit/scripts/ci/test.sh`
+  - result: `364 passed` (warnings only; no failures).
+
+## Runtime / Report Validation (ESSB 6346)
+- Run-all attempt executed with log capture:
+  - command:
+    - `TESTIFIER_AUDIT_DB_URL=postgresql://legislature:legislature@localhost:55432/legislature python -m testifier_audit.cli run-all --csv ../data/raw/ESSB6346-20260224-0800.csv --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup015_essb6346_runall_csv.log`
+- Rerender completed:
+  - command:
+    - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup015_essb6346_rerender.log`
+  - completion evidence:
+    - `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - sidebar toggle and mobile global-controls expand/collapse.
+    - bucket switch (`1h` to `30m`) and persisted state behavior.
+    - theme toggle behavior.
+    - report-data analysis requests returned `200`.
+    - only console error observed was local static-server `favicon.ico` `404`.
+
+## Issues Discovered During DUP-015
+- ESSB 6346 `run-all` path remained long-running/idle in this environment (same operational issue seen in prior tickets), so end-to-end validation relied on rerender + Playwright checks against refreshed report artifacts.
+- External frozen methodology fixtures drifted due deterministic RNG stream isolation (expected change); fixture refresh was required to restore full-CI parity.
+
+## Remaining Work / Handoff
+- DUP-015 acceptance criteria are met:
+  - unrelated stochastic paths no longer share a generator.
+  - seed lineage is emitted in duplicate and sidecar provenance outputs.
+  - determinism regressions are covered by targeted tests and full CI.
+- Next ticket in sequence is `DUP-016`.

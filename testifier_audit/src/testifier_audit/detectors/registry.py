@@ -99,6 +99,7 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             voter_db_url=config.voter_registry.db_url,
             voter_table_name=config.voter_registry.table_name,
             voter_active_only=config.voter_registry.active_only,
+            random_seed=config.calibration.random_seed,
         ),
         VrdbCollisionEvidenceDetector(
             bucket_minutes=bucket_minutes,
@@ -108,6 +109,7 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             name_key_type="full_name_key",
             requested_geo_level="state",
             requested_geo_value="WA",
+            random_seed=config.calibration.random_seed,
         ),
         BurstsDetector(
             window_minutes=sorted(set(config.windows.scan_window_minutes + bucket_minutes)),

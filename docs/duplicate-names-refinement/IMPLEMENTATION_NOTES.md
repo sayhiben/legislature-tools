@@ -36,7 +36,7 @@ Execution order is tracked here independently from ticket numbering.
 2. Non-coding sign-off holds still tracked:
    - `DUP-007` review sign-off pending
 3. Latest implementation commit for DUP-007 engineering/doc refresh:
-   - `85e80071` (`dup-007: fix empty-slice warnings and refresh sign-off evidence`)
+   - `1ce3602e` (`dup-007: add verification sweep v2 and chronology note`)
 
 ### Planned next order (subject to reprioritization)
 1. No additional DUP engineering work items currently queued.
@@ -2223,6 +2223,54 @@ Scope: Fresh DUP-007 regression + ESSB 6346 rerender/Playwright pass; clarify ch
   - `report_data` requests returned `200` for baseline and bucket variants used during checks (including duplicates, VRDB sidecar, and evidence matrix).
   - console remained limited to expected static-server `favicon.ico` `404`.
   - rerender still emits known non-blocking warning:
+    - `DataFrame columns are not unique, some columns will be omitted.`
+
+## Current State
+- No new engineering regressions observed in this sweep.
+- DUP-007 remains review-gated; remaining work is unchanged:
+  - reviewer/policy sign-off on evaluability treatment.
+
+---
+
+## DUP-007 Verification Sweep v3 (Generation + Rerender + Playwright)
+
+Date: 2026-03-01  
+Scope: Refresh DUP-007 runtime evidence with a full ESSB 6346 generation path plus rerender and Playwright checks.
+
+## What Changed
+- Updated `docs/duplicate-names-refinement/work-items/DUP-007.md` with a new sign-off refresh entry (`verification sweep v3`), including this batch's generation/rerender/Playwright evidence.
+
+## What Was Run
+- Targeted DUP-007 regression:
+  - `python -m pytest testifier_audit/tests/test_vrdb_collision_backtest.py -q`
+  - result: pass (`15 passed`).
+- ESSB 6346 unified generation (`--skip-imports`):
+  - `./testifier_audit/scripts/report/run_unified_report.sh /Users/sayhiben/dev/legislature-tools/data/raw/ESSB6346-20260224-0800.csv /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt /Users/sayhiben/dev/legislature-tools/data/metadata/ESSB6346-20260224-0800.hearing.yaml --skip-imports`
+  - log:
+    - `output/dup007/essb6346_report_generation_20260301_v5.log`
+  - operational note:
+    - an initial attempt using `./data/raw/...` relative paths failed because `run_unified_report.sh` changes working directory to `testifier_audit/`; absolute paths resolved this.
+- ESSB 6346 rerender:
+  - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/dup007/essb6346_report_rerender_20260301_v6.log`
+- Playwright MCP against:
+  - `http://127.0.0.1:8785/report.html`
+
+## Validation Results
+- Generation + rerender both completed and wrote:
+  - `reports/ESSB6346-20260224-0800/report.html`
+- Desktop `1728x1117`:
+  - bucket switch to `1h` with URL sync (`?bucket=60`)
+  - theme toggle (`Light <-> Dark`)
+  - side menu show/hide
+- Mobile `390x844`:
+  - global controls collapse/expand (`Controls ▾ / Controls ▴`)
+  - side menu show/hide
+- Diagnostics:
+  - all exercised `report_data` requests returned `200`, including duplicates, VRDB sidecar, evidence matrix, and shared payload bucket variants (`30m` and `60m`).
+  - console remained limited to expected static-server `favicon.ico` `404`.
+  - known non-blocking warning remained in generation/rerender:
     - `DataFrame columns are not unique, some columns will be omitted.`
 
 ## Current State

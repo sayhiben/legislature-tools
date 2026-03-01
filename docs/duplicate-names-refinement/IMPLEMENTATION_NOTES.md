@@ -1780,3 +1780,27 @@ Work item: DUP-021 (P2)
   - calibration is deterministic/reproducible under fixed seeds.
   - inference/path changes now have regression coverage through calibration harness tests and threshold provenance assertions.
 - No remaining DUP work items are currently queued in `docs/duplicate-names-refinement/work-items/`.
+
+---
+
+## Post-DUP-021 Verification Sweep
+
+Date: 2026-03-01  
+Scope: Documentation/state consistency pass after DUP-021 completion.
+
+## What Was Verified
+- Re-read implementation sequence and remaining-work sections in this notes file.
+- Re-read remaining non-finalized ticket docs:
+  - `docs/duplicate-names-refinement/work-items/DUP-006.md`
+  - `docs/duplicate-names-refinement/work-items/DUP-007.md`
+- Confirmed no additional engineering `DUP-xxx` work items remain beyond DUP-021.
+
+## Findings
+- Engineering implementation queue remains clear through `DUP-021`.
+- Outstanding work remains non-coding sign-off only:
+  - `DUP-006` analyst sign-off pending.
+  - `DUP-007` review sign-off pending.
+- No acceptance-criteria drift identified in remaining work-item markdown files during this sweep.
+
+## Handoff State
+- Next action is sign-off closure for `DUP-006` and `DUP-007`, or creation of a new `DUP-xxx` ticket if additional engineering scope is added.

@@ -2189,3 +2189,43 @@ Scope: Re-validate ESSB 6346 runtime behavior after documentation alignment swee
 - No new engineering regressions observed in this sweep.
 - No acceptance-criteria drift identified in DUP work-item markdown.
 - Remaining open item is unchanged: DUP-007 reviewer/policy sign-off.
+
+---
+
+## DUP-007 Verification Sweep v2 (No Engineering Drift)
+
+Date: 2026-03-01  
+Scope: Fresh DUP-007 regression + ESSB 6346 rerender/Playwright pass; clarify chronology wording in work item.
+
+## What Changed
+- Updated `docs/duplicate-names-refinement/work-items/DUP-007.md`:
+  - added chronology note clarifying that early 2026-03-01 blocker snapshots are historical context and superseded by inferential-evaluability interpretation sections.
+  - added this batch's verification sweep (`v2`) details.
+
+## What Was Run
+- Targeted DUP-007 regression:
+  - `python -m pytest testifier_audit/tests/test_vrdb_collision_backtest.py -q`
+  - result: pass (`15 passed`).
+- ESSB 6346 rerender:
+  - `output/dup007/essb6346_report_rerender_20260301_v5.log`
+- Playwright MCP against:
+  - `http://127.0.0.1:8784/report.html`
+
+## Validation Results
+- Desktop `1728x1117`:
+  - bucket switch to `1h` with URL sync (`?bucket=60`)
+  - theme toggle (`Light <-> Dark`)
+  - side menu show/hide
+- Mobile `390x844`:
+  - global controls collapse/expand (`Controls ▾ / Controls ▴`)
+  - side menu show/hide
+- Diagnostics:
+  - `report_data` requests returned `200` for baseline and bucket variants used during checks (including duplicates, VRDB sidecar, and evidence matrix).
+  - console remained limited to expected static-server `favicon.ico` `404`.
+  - rerender still emits known non-blocking warning:
+    - `DataFrame columns are not unique, some columns will be omitted.`
+
+## Current State
+- No new engineering regressions observed in this sweep.
+- DUP-007 remains review-gated; remaining work is unchanged:
+  - reviewer/policy sign-off on evaluability treatment.

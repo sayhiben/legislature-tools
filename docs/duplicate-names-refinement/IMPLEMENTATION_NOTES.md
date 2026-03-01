@@ -32,10 +32,14 @@ Execution order is tracked here independently from ticket numbering.
 21. `DUP-021` (Done, 2026-03-01)
 
 ### Current
-1. Queue clear through `DUP-021`
+1. Engineering implementation queue clear through `DUP-021`
+2. Non-coding sign-off holds still tracked:
+   - `DUP-007` review sign-off pending
+   - `DUP-006` analyst sign-off pending
 
 ### Planned next order (subject to reprioritization)
-1. No additional DUP work items currently queued.
+1. No additional DUP engineering work items currently queued.
+2. Awaiting sign-off closure for `DUP-006` and `DUP-007`.
 
 ## Scope Covered
 These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, **DUP-018**, **DUP-019**, **DUP-020**, and **DUP-021**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.

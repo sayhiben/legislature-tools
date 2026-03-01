@@ -17,27 +17,27 @@ Execution order is tracked here independently from ticket numbering.
 6. `DUP-003` (Done, 2026-02-28)
 7. `DUP-004` (Done, 2026-02-28)
 8. `DUP-005` (Done, 2026-02-28)
+9. `DUP-007` (Implemented, 2026-02-28; review sign-off pending)
 
 ### Current
-1. `DUP-007` (next in-progress target)
+1. `DUP-006` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-007`
-2. `DUP-006`
-3. `DUP-011`
-4. `DUP-012`
-5. `DUP-013`
-6. `DUP-014`
-7. `DUP-015`
-8. `DUP-016`
-9. `DUP-017`
-10. `DUP-018`
-11. `DUP-019`
-12. `DUP-020`
-13. `DUP-021`
+1. `DUP-006`
+2. `DUP-011`
+3. `DUP-012`
+4. `DUP-013`
+5. `DUP-014`
+6. `DUP-015`
+7. `DUP-016`
+8. `DUP-017`
+9. `DUP-018`
+10. `DUP-019`
+11. `DUP-020`
+12. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, and **DUP-005**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, and **DUP-007**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -661,3 +661,110 @@ Work item: DUP-005 (P0)
 ## Remaining Work / Handoff
 - Move to `DUP-007`.
 - Preserve `vrdb_collision_evidence` as additive sidecar evidence; avoid back-merging into existing duplicate output schemas unless explicitly required by later tickets.
+
+---
+
+## DUP-007 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-007 (P0)
+
+## What Was Implemented
+- Added a dedicated backtest helper module:
+  - `src/testifier_audit/backtests/vrdb_collision_backtest.py`
+  - capabilities added:
+    - deterministic seed helper (`stable_seed`)
+    - scenario dataclasses for baseline/synthetic cases
+    - geo-target derivation and filtering for state/county/city/fallback backtests
+    - streaming probability/backoff artifact loading helpers for scenario subsets
+    - slice construction for full-hearing and bucket windows
+    - per-case summary rollups (tail probabilities, overrun ratios, fallback behavior, low-power share)
+    - deterministic historical family selection (normal vs suspected) and calibration/holdout split helpers
+    - synthetic case generator with controlled burst injection support
+- Added package init for backtest helpers:
+  - `src/testifier_audit/backtests/__init__.py`
+- Added reproducible DUP-007 harness script:
+  - `scripts/tests/backtest_vrdb_collision_module.py`
+  - performs end-to-end backtest workflow with fixed seed:
+    - discovers historical hearings
+    - builds normal/suspected families + calibration/holdout split
+    - builds synthetic null and injected cases
+    - runs required scenario matrix (state/county/city + denominator variants + city quality/fallback checks)
+    - computes scenario-level calibration thresholds from normal controls
+    - writes case-level and scenario-level artifacts + JSON summary + markdown memo
+- Added unit tests for backtest helpers:
+  - `tests/test_vrdb_collision_backtest.py`
+  - coverage includes:
+    - geo target derivation
+    - probability filtering contract
+    - slice generation + bucket parsing
+    - case summarization fields
+    - family selection and deterministic split
+    - synthetic injection behavior
+- Added checked-in DUP-007 memo:
+  - `docs/duplicate-names-refinement/DUP-007-backtest-memo.md`
+- Updated work item status/details:
+  - `docs/duplicate-names-refinement/work-items/DUP-007.md`
+
+## Tests Added/Updated
+- `python -m pytest tests/test_vrdb_collision_backtest.py -q`
+- `python -m pytest tests/test_vrdb_collision_null.py tests/test_vrdb_collision_evidence_detector.py tests/test_vrdb_collision_backtest.py -q`
+- CI lint:
+  - `./testifier_audit/scripts/ci/lint.sh`
+- CI tests:
+  - `./testifier_audit/scripts/ci/test.sh`
+
+## Backtest Runtime Artifacts
+- Backtest run log:
+  - `output/run_logs/dup007_backtest.log`
+- Backtest outputs:
+  - `output/dup007/vrdb_collision_backtest_case_manifest.csv`
+  - `output/dup007/vrdb_collision_backtest_case_metrics.csv`
+  - `output/dup007/vrdb_collision_backtest_scenario_summary.csv`
+  - `output/dup007/vrdb_collision_backtest_summary.json`
+  - `output/dup007/vrdb_collision_backtest_memo.md`
+
+## Backtest Findings (Current Cohort)
+- Synthetic behavior:
+  - synthetic null cases remained unflagged in this run
+  - synthetic injected cases were flagged in this run
+- Geography quality behavior:
+  - city quality stress scenarios (`city_ad_benge`, `city_ad_missing`) produced explicit fallback behavior (`fallback_steps=1`)
+- Sensitivity coverage:
+  - denominator variants (`all_registrants` vs `active_only`) measured
+  - normalization version artifact availability is currently single-version (`shared_name_normalization_v1:4f856a65edcd`)
+  - normalization proxy comparison (`canonical_medium_proxy`) showed zero delta in this run
+- Control behavior:
+  - several baseline choices (state/county/city-supported) still produced high holdout alert rates on selected historical controls
+  - rollout remains review-gated pending sign-off (do not treat this as operational approval)
+
+## Runtime / Report Validation (ESSB 6346)
+- Unified run executed:
+  - `CI_SKIP_INSTALL=1 ./testifier_audit/scripts/report/run_unified_report.sh --skip-imports /Users/sayhiben/dev/legislature-tools/data/raw/ESSB6346-20260224-0800.csv /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt /Users/sayhiben/dev/legislature-tools/data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup007_essb6346_unified.log`
+- Rerender executed:
+  - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup007_essb6346_rerender.log`
+- Playwright MCP validation completed:
+  - desktop + mobile coverage
+  - verified:
+    - report loads and data shards hydrate
+    - bucket control interaction updates chart note text and fallback messaging
+    - mobile global-controls toggle works
+    - sidecar analysis and table surfaces load under ESSB report
+    - network requests for report shards return `200`
+  - only console error: expected local `favicon.ico` `404`
+
+## Issues Discovered During DUP-007
+- Backtest runtime can become heavy when combining:
+  - large hearings (ESSB-scale),
+  - very fine buckets (especially `1m`/`5m`),
+  - many scenario variants.
+- Practical mitigation used for this batch:
+  - bounded bucket set for reproducible runtime (`15,60,240`) in the committed memo run.
+
+## Remaining Work / Handoff
+- DUP-007 implementation deliverables are in place (pipeline + memo + artifacts), but rollout sign-off is still pending review of control-behavior findings.
+- Next ticket in planned sequence remains `DUP-006`.

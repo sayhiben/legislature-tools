@@ -118,3 +118,23 @@ Operational rollout should remain blocked until review explicitly accepts the ob
   - synthetic separation is strong;
   - historical-control behavior is still too high for rollout approval;
   - sign-off stays pending and rollout remains blocked.
+
+## 2026-03-01 Addendum (Inferential Evaluability Expansion)
+- Added inferential-evaluability reporting to the DUP-007 backtest outputs:
+  - inferential-only alert-rate summaries by family/split;
+  - inferential-only threshold-feasibility scan fields;
+  - per-scenario evaluability flag with gate:
+    - holdout-normal inferential support `>= 5`;
+    - synthetic-injected inferential support `>= 1`.
+- Ran expanded deterministic cohort for support depth:
+  - `--historical-normal-count 12 --historical-suspect-count 4 --monte-carlo-draws 32 --seed 6346`
+  - artifacts under `output/dup007_expanded/`.
+- Expanded-run operating summary:
+  - inferential-evaluable scenarios:
+    - `city_ad_benge_all_default`: holdout-normal inferential `0.20` (`n=5`), synthetic-injected inferential `1.00` (`n=2`), targets met.
+    - `city_ad_missing_all_default`: holdout-normal inferential `0.20` (`n=5`), synthetic-injected inferential `1.00` (`n=2`), targets met.
+  - non-evaluable scenarios (`state_wa_*`, `county_ki_*`, `city_ki_seattle_*`) lacked sufficient inferential support under this gate and are dominated by descriptive-only low-power rows.
+- Updated interpretation:
+  - acceptable historical-control behavior is observed in inferential-evaluable scenarios in the expanded run;
+  - remaining concern shifts from pure false-positive rate to inferential coverage/evaluability policy across scenario families;
+  - rollout remains pending reviewer sign-off on this policy treatment.

@@ -1974,3 +1974,48 @@ Scope: Complete code-level threshold-feasibility instrumentation for DUP-007, re
 - Engineering implementation for DUP-007 instrumentation is complete and tested.
 - Evidence remains blocker-confirming; acceptance criterion for historical-control false-positive behavior is still not met.
 - Next step is non-coding review sign-off decision on rollout policy for DUP-007.
+
+---
+
+## DUP-007 Inferential Evaluability Refinement
+
+Date: 2026-03-01  
+Scope: Separate inferentially-evaluable operating behavior from descriptive-only low-power scenarios in DUP-007 backtest interpretation.
+
+## What Changed (Code)
+- Updated `testifier_audit/scripts/tests/backtest_vrdb_collision_module.py` to emit inferential-only operating metrics in scenario summary:
+  - inferential-only `n`, `alerts`, alert rates, and Wilson intervals per family/split.
+  - inferential-only threshold-feasibility scan fields.
+  - per-scenario evaluability + target-met flags.
+- Added CLI control for evaluability support threshold:
+  - `--minimum-inferential-holdout-normal-cases` (default `5`).
+- Memo generation now includes:
+  - evaluability gate definition;
+  - inferential-only rates and evaluability outcome per scenario.
+- Summary JSON now records:
+  - `minimum_inferential_holdout_normal_cases`.
+
+## What Was Run
+- Backtest rerun (expanded support cohort):
+  - `python testifier_audit/scripts/tests/backtest_vrdb_collision_module.py --out-dir output/dup007_expanded --log-level WARNING --historical-normal-count 12 --historical-suspect-count 4 --synthetic-replicates 1 --bucket-minutes 15,60,240 --small-bucket-minutes 15 --monte-carlo-draws 32`
+- Generated/updated artifacts:
+  - `output/dup007_expanded/vrdb_collision_backtest_case_metrics.csv`
+  - `output/dup007_expanded/vrdb_collision_backtest_scenario_summary.csv`
+  - `output/dup007_expanded/vrdb_collision_backtest_summary.json`
+  - `output/dup007_expanded/vrdb_collision_backtest_memo.md`
+  - `output/dup007_expanded/backtest_run_20260301_warning_v2.log`
+- Targeted regression:
+  - `python -m pytest testifier_audit/tests/test_vrdb_collision_backtest.py -q` (pass).
+
+## Findings
+- Inferential-evaluable scenarios (gate: holdout-normal inferential `>= 5`, synthetic-injected inferential `>= 1`):
+  - `city_ad_benge_all_default`: inferential targets met.
+  - `city_ad_missing_all_default`: inferential targets met.
+- Non-evaluable scenarios:
+  - `state_wa_*`, `county_ki_*`, `city_ki_seattle_*` lacked inferential support under this gate.
+  - Their elevated raw alert rates are primarily descriptive-only (`low_power_support`) rows.
+
+## Interpretation Update
+- DUP-007 false-positive behavior is acceptable in inferential-evaluable scenarios under expanded support.
+- Remaining open decision is policy-level: whether non-evaluable (descriptive-only) scenarios are acceptable for rollout with explicit caveats, or require additional inferential coverage before sign-off.
+- Review sign-off remains pending.

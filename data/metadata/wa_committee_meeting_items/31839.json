@@ -1,0 +1,14 @@
+{
+  "agenda_id": "31839",
+  "retrieved_at_utc": "2026-03-01T18:29:23.611160+00:00",
+  "row_count": 1,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2313",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Furthering digital equity and opportunity in Washington."
+    }
+  ],
+  "schema_version": 1
+}

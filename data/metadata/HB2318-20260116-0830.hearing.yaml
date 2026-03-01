@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2318-33623-27186
+timezone: America/Los_Angeles
+meeting_start: '2026-01-16T08:30:00-08:00'
+sign_in_cutoff: '2026-01-16T07:30:00-08:00'
+stats:
+  total_rows: 75
+  total_testifying: 2
+  total_not_testifying: 73
+  total_pro: 71
+  total_con: 3
+  total_other: 1
+  total_pro_pct: 94.66666666666667
+  total_con_pct: 4.0
+  total_other_pct: 1.3333333333333335
+source:
+  provider: wa_leg_csi
+  search_query: HB 2318
+  meeting_family_id: '33623'
+  agenda_item_family_id: '168096'
+  agenda_item_id: '27186'
+  agenda_item_description: HB 2318 Early achievers awards
+  short_bill_id: HB 2318
+  bill_number: '2318'
+  bill_title: Adjusting the early achievers quality improvement awards. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:29:59.352226+00:00'

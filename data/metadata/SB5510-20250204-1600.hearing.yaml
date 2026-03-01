@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5510-32639-25338
+timezone: America/Los_Angeles
+meeting_start: '2025-02-04T16:00:00-08:00'
+sign_in_cutoff: '2025-02-04T15:00:00-08:00'
+stats:
+  total_rows: 50
+  total_testifying: 10
+  total_not_testifying: 40
+  total_pro: 15
+  total_con: 34
+  total_other: 1
+  total_pro_pct: 30.0
+  total_con_pct: 68.0
+  total_other_pct: 2.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5510
+  meeting_family_id: '32639'
+  agenda_item_family_id: '162914'
+  agenda_item_id: '25338'
+  agenda_item_description: SB 5510 Conservation district limits
+  short_bill_id: SB 5510
+  bill_number: '5510'
+  bill_title: Concerning conservation district revenue limitations. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:06.367902+00:00'

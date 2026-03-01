@@ -1,0 +1,62 @@
+{
+  "agenda_id": "32821",
+  "retrieved_at_utc": "2026-03-01T18:27:44.208570+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9214",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Kurt Beckett, Chair, Energy Facility Site Evaluation Council."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9224",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Casey Sixkiller, Director, Department of Ecology - Agency Head."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9219",
+      "hearing_type_description": "Executive Session",
+      "item_description": "William S Kehoe, Director, Washington Technology Solutions - Agency Head."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5423",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting the servicing and right to repair of certain products with digital electronics in a secure and reliable manner."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5680",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a right to repair for mobility equipment for persons with physical disabilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5627",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving safe excavation practices and preventing damage to underground utilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5445",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Encouraging utility investment in local energy resilience."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5380",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing environmental justice by improving government decisions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5091",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning motor vehicle emission standards for Washington. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

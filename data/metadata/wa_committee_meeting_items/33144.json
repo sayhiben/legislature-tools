@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33144",
+  "retrieved_at_utc": "2026-03-01T18:26:30.667838+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5786",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing license, permit, and endorsement fees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1722",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reviewing state restrictions affecting students participating in secondary career and technical education programs and other state-approved career pathways. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1602",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing food service options for liquor licensees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1515",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modernizing the regulation of alcohol service in public spaces. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1066",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a data dashboard to track use of regulated substances. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1141",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning collective bargaining for agricultural cannabis workers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1332",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning transportation network companies. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

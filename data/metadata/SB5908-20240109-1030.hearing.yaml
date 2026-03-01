@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5908-31555-22717
+timezone: America/Los_Angeles
+meeting_start: '2024-01-09T10:30:00-08:00'
+sign_in_cutoff: '2024-01-09T09:30:00-08:00'
+stats:
+  total_rows: 60
+  total_testifying: 8
+  total_not_testifying: 52
+  total_pro: 58
+  total_con: 1
+  total_other: 1
+  total_pro_pct: 96.66666666666667
+  total_con_pct: 1.6666666666666667
+  total_other_pct: 1.6666666666666667
+source:
+  provider: wa_leg_csi
+  search_query: SB 5908
+  meeting_family_id: '31555'
+  agenda_item_family_id: '156024'
+  agenda_item_id: '22717'
+  agenda_item_description: SB 5908 Extended foster care
+  short_bill_id: SB 5908
+  bill_number: '5908'
+  bill_title: Providing extended foster care services to youth ages 18 to 21. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:40:27.414542+00:00'

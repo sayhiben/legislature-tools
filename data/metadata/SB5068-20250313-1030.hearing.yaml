@@ -1,0 +1,31 @@
+schema_version: 1
+hearing_id: SB5068-32974-26264
+timezone: America/Los_Angeles
+meeting_start: '2025-03-13T10:30:00-07:00'
+sign_in_cutoff: '2025-03-13T09:30:00-07:00'
+stats:
+  total_rows: 1838
+  total_testifying: 5
+  total_not_testifying: 1833
+  total_pro: 11
+  total_con: 1826
+  total_other: 1
+  total_pro_pct: 0.5984766050054406
+  total_con_pct: 99.34711643090316
+  total_other_pct: 0.0544069640914037
+source:
+  provider: wa_leg_csi
+  search_query: SB 5068
+  meeting_family_id: '32974'
+  agenda_item_family_id: '165327'
+  agenda_item_id: '26264'
+  agenda_item_description: SB 5068 Public employ. eligibility
+  short_bill_id: SB 5068
+  bill_number: '5068'
+  bill_title: Concerning agencies, firefighters, prosecutors, and general or limited
+    authority law enforcement, extending eligibility for employment to all United
+    States citizens or persons legally authorized to work in the United States under
+    federal law. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:10.484725+00:00'

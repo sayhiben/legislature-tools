@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32622",
+  "retrieved_at_utc": "2026-03-01T18:29:09.699225+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1603",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring guaranteed issue of medicare supplemental coverage to an individual who voluntarily disenrolls from a medicare advantage plan and enrolls in medicare parts A and B. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1639",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring entities offering medicare advantage coverage in Washington to provide certain disclosures to consumers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1754",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring medicare supplemental insurance to be offered on a guaranteed issue basis during an open enrollment period. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1291",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning cost sharing for maternity services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1394",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the retention of hospital medical records."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1430",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning advanced practice registered nurse and physician assistant reimbursement."
+    }
+  ],
+  "schema_version": 1
+}

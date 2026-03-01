@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1485-32776-25647
+timezone: America/Los_Angeles
+meeting_start: '2025-02-12T13:30:00-08:00'
+sign_in_cutoff: '2025-02-12T12:30:00-08:00'
+stats:
+  total_rows: 1269
+  total_testifying: 6
+  total_not_testifying: 1263
+  total_pro: 628
+  total_con: 637
+  total_other: 4
+  total_pro_pct: 49.48778565799842
+  total_con_pct: 50.19700551615445
+  total_other_pct: 0.31520882584712373
+source:
+  provider: wa_leg_csi
+  search_query: HB 1485
+  meeting_family_id: '32776'
+  agenda_item_family_id: '163333'
+  agenda_item_id: '25647'
+  agenda_item_description: HB 1485 Services and activities fees
+  short_bill_id: HB 1485
+  bill_number: '1485'
+  bill_title: Increasing the annual limit of services and activities fees at institutions
+    of higher education. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:42:59.136149+00:00'

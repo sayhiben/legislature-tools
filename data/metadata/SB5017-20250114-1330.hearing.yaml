@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5017-32427-24598
+timezone: America/Los_Angeles
+meeting_start: '2025-01-14T13:30:00-08:00'
+sign_in_cutoff: '2025-01-14T12:30:00-08:00'
+stats:
+  total_rows: 292
+  total_testifying: 9
+  total_not_testifying: 283
+  total_pro: 21
+  total_con: 270
+  total_other: 1
+  total_pro_pct: 7.191780821917808
+  total_con_pct: 92.46575342465754
+  total_other_pct: 0.3424657534246575
+source:
+  provider: wa_leg_csi
+  search_query: SB 5017
+  meeting_family_id: '32427'
+  agenda_item_family_id: '161272'
+  agenda_item_id: '24598'
+  agenda_item_description: SB 5017 Uniformed & overseas voting
+  short_bill_id: SB 5017
+  bill_number: '5017'
+  bill_title: Adopting national standards for uniformed and overseas civilian voting,
+    including conforming amendments to existing statute
+  committee_name: State Government, Tribal Affairs & Elections
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:34:12.632079+00:00'

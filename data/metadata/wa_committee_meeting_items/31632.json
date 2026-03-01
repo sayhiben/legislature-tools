@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31632",
+  "retrieved_at_utc": "2026-03-01T18:26:56.284628+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1876",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning confidential fisheries information collected by other states and maintaining that confidentiality under the public records act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2098",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing the women's commission to solicit gifts, grants, and endowments from public or private sources. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2062",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning exemption of certain personnel of the department of social and health services from civil service. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2173",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning executive sessions by publicly owned natural gas utilities under the open public meetings act in order to comply with the climate commitment act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2205",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing protections for citizens participating in the initiative and referendum process. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2206",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing secure online access to the voter registration database. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

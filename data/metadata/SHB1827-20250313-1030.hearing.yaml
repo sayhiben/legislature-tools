@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SHB1827-32994-26335
+timezone: America/Los_Angeles
+meeting_start: '2025-03-13T10:30:00-07:00'
+sign_in_cutoff: '2025-03-13T09:30:00-07:00'
+stats:
+  total_rows: 644
+  total_testifying: 7
+  total_not_testifying: 637
+  total_pro: 17
+  total_con: 626
+  total_other: 1
+  total_pro_pct: 2.639751552795031
+  total_con_pct: 97.20496894409938
+  total_other_pct: 0.15527950310559005
+source:
+  provider: wa_leg_csi
+  search_query: SHB 1827
+  meeting_family_id: '32994'
+  agenda_item_family_id: '165447'
+  agenda_item_id: '26335'
+  agenda_item_description: SHB 1827 Basic education/juv. justice
+  short_bill_id: SHB 1827
+  bill_number: '1827'
+  bill_title: Concerning the effective delivery and administration of basic education
+    services to justice-involved students. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:43:45.529271+00:00'

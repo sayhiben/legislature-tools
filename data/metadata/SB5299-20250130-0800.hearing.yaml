@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: SB5299-32590-24990
+timezone: America/Los_Angeles
+meeting_start: '2025-01-30T08:00:00-08:00'
+sign_in_cutoff: '2025-01-30T07:00:00-08:00'
+stats:
+  total_rows: 11
+  total_testifying: 5
+  total_not_testifying: 6
+  total_pro: 10
+  total_con: 0
+  total_other: 1
+  total_pro_pct: 90.9090909090909
+  total_con_pct: 0.0
+  total_other_pct: 9.090909090909092
+source:
+  provider: wa_leg_csi
+  search_query: SB 5299
+  meeting_family_id: '32590'
+  agenda_item_family_id: '162161'
+  agenda_item_id: '24990'
+  agenda_item_description: SB 5299 Radiologic technologists
+  short_bill_id: SB 5299
+  bill_number: '5299'
+  bill_title: Concerning general supervision of diagnostic radiologic technologists,
+    therapeutic radiologic technologists, and magnetic resonance imaging technologists
+    by licensed physicians. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:42:06.657381+00:00'

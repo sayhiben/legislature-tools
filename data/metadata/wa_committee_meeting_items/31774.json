@@ -1,0 +1,38 @@
+{
+  "agenda_id": "31774",
+  "retrieved_at_utc": "2026-03-01T18:25:40.576730+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2343",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning reimbursement by property owners for street, road, and water or sewer projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2344",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the effective date of the filing of a notice of intention with a boundary review board. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2348",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning county hospital funding. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2354",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating an option for impacted taxing districts to provide a portion of their new revenue to support any tax increment area proposed within their jurisdiction. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2391",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning county ferries. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

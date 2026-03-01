@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: HB2104-32006-24269
+timezone: America/Los_Angeles
+meeting_start: '2024-02-19T16:00:00-08:00'
+sign_in_cutoff: '2024-02-19T15:00:00-08:00'
+stats:
+  total_rows: 657
+  total_testifying: 119
+  total_not_testifying: 538
+  total_pro: 55
+  total_con: 528
+  total_other: 74
+  total_pro_pct: 8.37138508371385
+  total_con_pct: 80.36529680365297
+  total_other_pct: 11.263318112633181
+source:
+  provider: wa_leg_csi
+  search_query: HB 2104
+  meeting_family_id: '32006'
+  agenda_item_family_id: '159671'
+  agenda_item_id: '24269'
+  agenda_item_description: PSHB 2104 - Making 2023-2025 fiscal biennium supplemental
+    operating appropriations. (Remote Testimony Available).
+  short_bill_id: HB 2104
+  bill_number: '2104'
+  bill_title: Making 2023-2025 fiscal biennium supplemental operating appropriations.
+    (Hearing is on the proposed substitute bill.)
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:37:48.199978+00:00'

@@ -1,0 +1,26 @@
+{
+  "agenda_id": "31710",
+  "retrieved_at_utc": "2026-03-01T18:29:11.792155+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2191",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding two voting members that are transit users to the governing body of public transportation benefit areas. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2318",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning state route number 501. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2357",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a state patrol longevity bonus. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

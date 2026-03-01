@@ -1,0 +1,74 @@
+{
+  "agenda_id": "32829",
+  "retrieved_at_utc": "2026-03-01T18:26:55.189522+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9043",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Kimberly H Pearson, Member, Small Business Export Finance Assistance Center Board of Directors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9044",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Christine E Skoorsmith, Member, Small Business Export Finance Assistance Center Board of Directors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9100",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Joseph Timmons, Member, Small Business Export Finance Assistance Center Board of Directors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9043",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Kimberly H Pearson, Member, Small Business Export Finance Assistance Center Board of Directors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9044",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Christine E Skoorsmith, Member, Small Business Export Finance Assistance Center Board of Directors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9100",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Joseph Timmons, Member, Small Business Export Finance Assistance Center Board of Directors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5589",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Conducting a study of credit history, credit-based insurance scores, and other rate factors in making rates for personal insurance."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5622",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing age restrictions on diet pills and dietary supplements."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5721",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Enhancing consumer protections for automobile insurance coverage."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5754",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the Washington state public bank."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5708",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting Washington children online."
+    }
+  ],
+  "schema_version": 1
+}

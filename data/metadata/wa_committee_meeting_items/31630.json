@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31630",
+  "retrieved_at_utc": "2026-03-01T18:28:43.397077+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2059",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the sale of halal foods. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2243",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating the children's social equity land trust. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2341",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Directing the University of Washington to conduct a study on the cumulative effects of offshore wind development on the oceanographic processes of the Pacific Ocean. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1971",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning a rangeland fire protection association pilot project."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2147",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning agriculture pest and disease response."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2165",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the authority of the department of natural resources to determine recreational use fees for activities on agency-managed public lands."
+    }
+  ],
+  "schema_version": 1
+}

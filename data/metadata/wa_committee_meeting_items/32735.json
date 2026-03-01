@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32735",
+  "retrieved_at_utc": "2026-03-01T18:29:24.746963+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1113",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning accountability and access to services for individuals charged with a misdemeanor."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1180",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Implementing certain recommendations from the sex offender policy board concerning the criminal offense of failure to register."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1220",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning appropriate response to assaults by individuals in behavioral health crisis."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1228",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning toxicology testing by certified or accredited laboratories."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1276",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning organized retail theft. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1512",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving traffic safety. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1591",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing remedies for defendant survivors of domestic violence, sexual assault, or human trafficking. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

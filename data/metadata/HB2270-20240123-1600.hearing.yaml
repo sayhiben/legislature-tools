@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2270-31777-23498
+timezone: America/Los_Angeles
+meeting_start: '2024-01-23T16:00:00-08:00'
+sign_in_cutoff: '2024-01-23T15:00:00-08:00'
+stats:
+  total_rows: 130
+  total_testifying: 6
+  total_not_testifying: 124
+  total_pro: 78
+  total_con: 49
+  total_other: 3
+  total_pro_pct: 60.0
+  total_con_pct: 37.69230769230769
+  total_other_pct: 2.307692307692308
+source:
+  provider: wa_leg_csi
+  search_query: HB 2270
+  meeting_family_id: '31777'
+  agenda_item_family_id: '157403'
+  agenda_item_id: '23498'
+  agenda_item_description: HB 2270 Department of housing
+  short_bill_id: HB 2270
+  bill_number: '2270'
+  bill_title: Creating a Washington state department of housing. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:39:10.958245+00:00'

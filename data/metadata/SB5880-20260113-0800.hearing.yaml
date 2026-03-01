@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5880-33580-27223
+timezone: America/Los_Angeles
+meeting_start: '2026-01-13T08:00:00-08:00'
+sign_in_cutoff: '2026-01-13T07:00:00-08:00'
+stats:
+  total_rows: 23
+  total_testifying: 6
+  total_not_testifying: 17
+  total_pro: 18
+  total_con: 0
+  total_other: 5
+  total_pro_pct: 78.26086956521739
+  total_con_pct: 0.0
+  total_other_pct: 21.73913043478261
+source:
+  provider: wa_leg_csi
+  search_query: SB 5880
+  meeting_family_id: '33580'
+  agenda_item_family_id: '168135'
+  agenda_item_id: '27223'
+  agenda_item_description: SB 5880 Toxicology testing
+  short_bill_id: SB 5880
+  bill_number: '5880'
+  bill_title: Concerning toxicology testing by certified or accredited laboratories.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:32:09.517151+00:00'

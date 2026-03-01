@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import date
@@ -12,6 +14,7 @@ from testifier_audit.io.http_rate_limit import wait_for_global_http_slot
 SERVICE_BASE_URL = "https://wslwebservices.leg.wa.gov/CommitteeMeetingService.asmx"
 DEFAULT_TIMEOUT_SECONDS = 30.0
 DEFAULT_USER_AGENT = "wa-leg-testifier-audit/0.1 (+https://app.leg.wa.gov/csi)"
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,11 @@ def _child_text(element: ET.Element, child_name: str) -> str:
 def _request_xml(*, operation: str, params: dict[str, Any], timeout_seconds: float) -> str:
     query = urlencode({key: str(value) for key, value in params.items() if value is not None})
     url = f"{SERVICE_BASE_URL}/{operation}?{query}" if query else f"{SERVICE_BASE_URL}/{operation}"
+    LOGGER.info(
+        "Committee service request start %s timeout=%.1fs",
+        url,
+        float(timeout_seconds),
+    )
     request = Request(
         url,
         headers={
@@ -55,9 +63,19 @@ def _request_xml(*, operation: str, params: dict[str, Any], timeout_seconds: flo
             "Accept": "application/xml, text/xml",
         },
     )
+    started = time.monotonic()
     wait_for_global_http_slot()
     with urlopen(request, timeout=timeout_seconds) as response:
         payload = response.read()
+        status = int(getattr(response, "status", response.getcode()))
+    elapsed = time.monotonic() - started
+    LOGGER.info(
+        "Committee service response %s %s (bytes=%s elapsed=%.2fs)",
+        status,
+        url,
+        len(payload),
+        elapsed,
+    )
     return payload.decode("utf-8", errors="replace")
 
 

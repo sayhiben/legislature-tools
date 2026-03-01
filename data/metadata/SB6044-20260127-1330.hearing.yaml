@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB6044-33755-27615
+timezone: America/Los_Angeles
+meeting_start: '2026-01-27T13:30:00-08:00'
+sign_in_cutoff: '2026-01-27T12:30:00-08:00'
+stats:
+  total_rows: 39
+  total_testifying: 6
+  total_not_testifying: 33
+  total_pro: 31
+  total_con: 7
+  total_other: 1
+  total_pro_pct: 79.48717948717949
+  total_con_pct: 17.94871794871795
+  total_other_pct: 2.564102564102564
+source:
+  provider: wa_leg_csi
+  search_query: SB 6044
+  meeting_family_id: '33755'
+  agenda_item_family_id: '168798'
+  agenda_item_id: '27615'
+  agenda_item_description: SB 6044 Diwali and Bandi Chhor Divas
+  short_bill_id: SB 6044
+  bill_number: '6044'
+  bill_title: Recognizing Diwali and Bandi Chhor Divas. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:48.836048+00:00'

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1499-32614-25203
+timezone: America/Los_Angeles
+meeting_start: '2025-01-28T10:30:00-08:00'
+sign_in_cutoff: '2025-01-28T09:30:00-08:00'
+stats:
+  total_rows: 236
+  total_testifying: 12
+  total_not_testifying: 224
+  total_pro: 220
+  total_con: 15
+  total_other: 1
+  total_pro_pct: 93.22033898305084
+  total_con_pct: 6.3559322033898304
+  total_other_pct: 0.423728813559322
+source:
+  provider: wa_leg_csi
+  search_query: HB 1499
+  meeting_family_id: '32614'
+  agenda_item_family_id: '162352'
+  agenda_item_id: '25203'
+  agenda_item_description: HB 1499 Legal financial obligations
+  short_bill_id: HB 1499
+  bill_number: '1499'
+  bill_title: Legal financial obligations
+  committee_name: Civil Rights & Judiciary
+  chamber: House
+  downloaded_at: '2026-03-01T18:41:19.938418+00:00'

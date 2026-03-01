@@ -1,0 +1,62 @@
+{
+  "agenda_id": "32892",
+  "retrieved_at_utc": "2026-03-01T18:29:22.778395+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1044",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning county fees for administration of the real estate excise tax. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1037",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning public facilities district formation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1870",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning county property tax levies for public health clinic purposes. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1953",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regarding the distribution of unclaimed property to local governments. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1960",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Encouraging renewable energy in Washington through tax policy and investment in local communities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1995",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning tax preferences. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1996",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing a qualified county to impose a tax for the funding of behavioral health diversion from the criminal justice system. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1102",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing support and services for veterans. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2015",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving public safety funding by providing resources to local governments and state and local criminal justice agencies, and authorizing a local option tax. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

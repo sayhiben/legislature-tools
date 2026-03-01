@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1958-31563-22805
+timezone: America/Los_Angeles
+meeting_start: '2024-01-10T08:00:00-08:00'
+sign_in_cutoff: '2024-01-10T07:00:00-08:00'
+stats:
+  total_rows: 59
+  total_testifying: 5
+  total_not_testifying: 54
+  total_pro: 51
+  total_con: 7
+  total_other: 1
+  total_pro_pct: 86.4406779661017
+  total_con_pct: 11.864406779661017
+  total_other_pct: 1.694915254237288
+source:
+  provider: wa_leg_csi
+  search_query: HB 1958
+  meeting_family_id: '31563'
+  agenda_item_family_id: '156041'
+  agenda_item_id: '22805'
+  agenda_item_description: HB 1958 Sexually protective devices
+  short_bill_id: HB 1958
+  bill_number: '1958'
+  bill_title: Concerning nonconsensual removal of or tampering with a sexually protective
+    device. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:33:09.741192+00:00'

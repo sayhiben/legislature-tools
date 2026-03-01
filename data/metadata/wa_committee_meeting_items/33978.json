@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33978",
+  "retrieved_at_utc": "2026-03-01T18:28:15.701618+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5820",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the responsibility of certain counties to include freight rail dependent use overlay as part of the transportation element of their comprehensive plan."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5995",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning moneys available to a port district allocated for the purchase of zero and near zero emission cargo handling equipment."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5552",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the creation of building codes for kit homes."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5467",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sale of surplus property by water-sewer districts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6189",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Removing the deadline for forming a public facilities district for regional aquatics and sports facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 6026",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning residential development in commercial and mixed-use zones. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5106-32549-25033
+timezone: America/Los_Angeles
+meeting_start: '2025-01-28T13:30:00-08:00'
+sign_in_cutoff: '2025-01-28T12:30:00-08:00'
+stats:
+  total_rows: 1468
+  total_testifying: 33
+  total_not_testifying: 1435
+  total_pro: 732
+  total_con: 718
+  total_other: 18
+  total_pro_pct: 49.863760217983646
+  total_con_pct: 48.91008174386921
+  total_other_pct: 1.226158038147139
+source:
+  provider: wa_leg_csi
+  search_query: SSB 5106
+  meeting_family_id: '32549'
+  agenda_item_family_id: '161930'
+  agenda_item_id: '25033'
+  agenda_item_description: SB 5106 Eid al-Fitr & Eid al-Adha
+  short_bill_id: SB 5106
+  bill_number: '5106'
+  bill_title: Establishing Eid al-Fitr and Eid al-Adha as state holidays
+  committee_name: State Government, Tribal Affairs & Elections
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:37:33.910494+00:00'

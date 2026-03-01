@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32487",
+  "retrieved_at_utc": "2026-03-01T18:25:57.643032+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5064",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating an advisory council on rare diseases. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5019",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning prepacked medication distribution. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5244",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing an exemption for women, infants, and children program staff to perform hematological screening tests. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

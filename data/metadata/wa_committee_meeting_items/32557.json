@@ -1,0 +1,56 @@
+{
+  "agenda_id": "32557",
+  "retrieved_at_utc": "2026-03-01T18:29:10.487718+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5358",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning career and technical education in sixth grade. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5272",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving school safety by extending penalties for interference by, or intimidation by threat of, force or violence at schools and extracurricular activities and requiring schools to notify the public of such penalties. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5253",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending special education services to students with disabilities until the end of the school year in which the student turns 22. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5187",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing adequate and predictable student transportation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5192",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning school district materials, supplies, and operating costs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5263",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning special education funding."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5004",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Updating emergency response systems in public schools including panic or alert buttons."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5193",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting remote testing options for students enrolled in online school programs."
+    }
+  ],
+  "schema_version": 1
+}

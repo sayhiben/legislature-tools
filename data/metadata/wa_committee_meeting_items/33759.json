@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33759",
+  "retrieved_at_utc": "2026-03-01T18:28:30.659795+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2455",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a housing assistance pilot program for youth enrolled in extended foster care. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2468",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Correcting terminology to align the revised code of Washington with recent reorganization at the department of social and health services. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2529",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the department of children, youth, and families accountability board. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

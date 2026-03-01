@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1754-32622-25507
+timezone: America/Los_Angeles
+meeting_start: '2025-02-07T08:00:00-08:00'
+sign_in_cutoff: '2025-02-07T07:00:00-08:00'
+stats:
+  total_rows: 132
+  total_testifying: 9
+  total_not_testifying: 123
+  total_pro: 129
+  total_con: 2
+  total_other: 1
+  total_pro_pct: 97.72727272727273
+  total_con_pct: 1.5151515151515151
+  total_other_pct: 0.7575757575757576
+source:
+  provider: wa_leg_csi
+  search_query: HB 1754
+  meeting_family_id: '32622'
+  agenda_item_family_id: '163068'
+  agenda_item_id: '25507'
+  agenda_item_description: HB 1754 Medicare suppl./guaranteed
+  short_bill_id: HB 1754
+  bill_number: '1754'
+  bill_title: Requiring medicare supplemental insurance to be offered on a guaranteed
+    issue basis during an open enrollment period. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:55.233887+00:00'

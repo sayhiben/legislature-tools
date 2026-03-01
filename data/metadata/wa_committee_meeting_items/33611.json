@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33611",
+  "retrieved_at_utc": "2026-03-01T18:28:49.428164+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5877",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Making a technical correction to the surcharges authorized for certified anesthesiologist assistants. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5967",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Preserving access to preventive services by clarifying state authority and definitions. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

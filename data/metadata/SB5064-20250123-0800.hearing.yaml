@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5064-32487-24749
+timezone: America/Los_Angeles
+meeting_start: '2025-01-23T08:00:00-08:00'
+sign_in_cutoff: '2025-01-23T07:00:00-08:00'
+stats:
+  total_rows: 74
+  total_testifying: 5
+  total_not_testifying: 69
+  total_pro: 37
+  total_con: 36
+  total_other: 1
+  total_pro_pct: 50.0
+  total_con_pct: 48.64864864864865
+  total_other_pct: 1.3513513513513513
+source:
+  provider: wa_leg_csi
+  search_query: SB 5064
+  meeting_family_id: '32487'
+  agenda_item_family_id: '161670'
+  agenda_item_id: '24749'
+  agenda_item_description: SB 5064 Rare diseases adv. council
+  short_bill_id: SB 5064
+  bill_number: '5064'
+  bill_title: Creating an advisory council on rare diseases. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:36:26.580313+00:00'

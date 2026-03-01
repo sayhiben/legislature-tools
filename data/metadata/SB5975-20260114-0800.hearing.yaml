@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5975-33638-27046
+timezone: America/Los_Angeles
+meeting_start: '2026-01-14T08:00:00-08:00'
+sign_in_cutoff: '2026-01-14T07:00:00-08:00'
+stats:
+  total_rows: 623
+  total_testifying: 14
+  total_not_testifying: 609
+  total_pro: 60
+  total_con: 558
+  total_other: 5
+  total_pro_pct: 9.630818619582666
+  total_con_pct: 89.56661316211878
+  total_other_pct: 0.8025682182985553
+source:
+  provider: wa_leg_csi
+  search_query: SB 5975
+  meeting_family_id: '33638'
+  agenda_item_family_id: '168070'
+  agenda_item_id: '27046'
+  agenda_item_description: SB 5975 Safe cookware
+  short_bill_id: SB 5975
+  bill_number: '5975'
+  bill_title: Providing consumer access to safe cookware and interstate and international
+    trade certainty in the regulation of lead in cookware
+  committee_name: Environment, Energy & Technology
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:39:04.540597+00:00'

@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33020",
+  "retrieved_at_utc": "2026-03-01T18:25:52.622382+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5529",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Amending the county population threshold for counties that may exempt from taxation the value of accessory dwelling units to incentivize rental to low-income households. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5516",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the property tax exemption for community centers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5252",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Removing the acreage limit on the property tax exemption for nonprofit public assembly halls and meeting places. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5368",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Studying taxes and fees related to alcohol. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

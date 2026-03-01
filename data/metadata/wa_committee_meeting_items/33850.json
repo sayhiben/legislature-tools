@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33850",
+  "retrieved_at_utc": "2026-03-01T18:27:43.188398+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2684",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing guidelines for what constitutes a socially disadvantaged individual for the purpose of business enterprise state certification."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HJM 4012",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting combat-injured veterans."
+    }
+  ],
+  "schema_version": 1
+}

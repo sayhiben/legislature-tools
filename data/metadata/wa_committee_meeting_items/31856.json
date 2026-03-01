@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31856",
+  "retrieved_at_utc": "2026-03-01T18:29:16.796004+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5899",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding to the list of provisions prohibited from rental agreements."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5989",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Confirming property ownership or owner authorization for short-term rentals."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6064",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning moneys collected by a landlord as fees, deposit, or security for pets."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6211",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating clarity and consistency in rental agreements under the manufactured/mobile home landlord-tenant act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6210",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning unlawful detainer actions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6212",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring landlords to report on-time rent payments to consumer reporting agencies."
+    }
+  ],
+  "schema_version": 1
+}

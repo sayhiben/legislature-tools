@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2403-31773-23475
+timezone: America/Los_Angeles
+meeting_start: '2024-01-23T10:30:00-08:00'
+sign_in_cutoff: '2024-01-23T09:30:00-08:00'
+stats:
+  total_rows: 140
+  total_testifying: 5
+  total_not_testifying: 135
+  total_pro: 138
+  total_con: 2
+  total_other: 0
+  total_pro_pct: 98.57142857142858
+  total_con_pct: 1.4285714285714286
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 2403
+  meeting_family_id: '31773'
+  agenda_item_family_id: '157352'
+  agenda_item_id: '23475'
+  agenda_item_description: HB 2403 Kennel fire safety standards
+  short_bill_id: HB 2403
+  bill_number: '2403'
+  bill_title: Protecting cats and dogs by requiring kennels to meet certain fire safety
+    standards. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:38:22.873142+00:00'

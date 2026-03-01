@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32027",
+  "retrieved_at_utc": "2026-03-01T18:28:00.495377+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5419",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Removing a Washington state institute of public policy outcome evaluation requirement."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5591",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing dependent youth with financial education and support."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5774",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the capacity to conduct timely fingerprint-based background checks for prospective child care employees and other programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5853",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the crisis relief center model to provide behavioral health crisis services for minors."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6038",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing the costs associated with providing child care."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6110",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing the child fatality statute."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,62 @@
+{
+  "agenda_id": "33073",
+  "retrieved_at_utc": "2026-03-01T18:25:25.537593+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1971",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing access to prescription hormone therapy. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1755",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Exempting elective percutaneous coronary intervention performed in certain hospitals owned or operated by a state entity from certificate of need requirements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1395",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Streamlining the home care worker background check process. (Hearing is on the Proposed Striking Amendment.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1531",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Preserving the ability of public officials to address communicable diseases. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1287",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing the disclosure of health information for care coordination."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1291",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning cost sharing for maternity services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1640",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Placing licenses issued in chapters 18.71B and 18.71C RCW under the authority of the uniform disciplinary act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1669",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning coverage requirements for prosthetic limbs and custom orthotic braces."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1718",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning well-being programs for certain health care professionals."
+    }
+  ],
+  "schema_version": 1
+}

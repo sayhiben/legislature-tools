@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33589",
+  "retrieved_at_utc": "2026-03-01T18:26:35.077669+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1662",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Removing the requirement for certain education agencies to reside in the office of the superintendent of public instruction for administrative purposes and by making other necessary changes to support independent administration of each agency. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1683",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adjusting school director districts. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33755",
+  "retrieved_at_utc": "2026-03-01T18:26:58.962074+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6084",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying the prohibition on voting more than once in an election. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6044",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Recognizing Diwali and Bandi Chhor Divas. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5950",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Celebrating Rosh Hashanah, Yom Kippur, Guru Nanak, Guru Gobind Singh, and Vaisakhi. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6046",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing the Washington division of civil air patrol as part of the Washington military department. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5763",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the law enforcement aviation support grant program. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5784",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Encouraging agency demographic data collection. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

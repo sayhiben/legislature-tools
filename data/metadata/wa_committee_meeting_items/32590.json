@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32590",
+  "retrieved_at_utc": "2026-03-01T18:28:20.604753+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5351",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Ensuring patient choice and access to care by prohibiting unfair and deceptive dental insurance practices. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8004",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning Universal Health Care. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5335",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing the rural nursing education program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5326",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Accessing an emergency supply of insulin. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5299",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning general supervision of diagnostic radiologic technologists, therapeutic radiologic technologists, and magnetic resonance imaging technologists by licensed physicians. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5064",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating an advisory council on rare diseases."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5361",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Delaying the use of the ASAM 4 criteria, treatment criteria for addictive, substance related, and co-occurring conditions."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5808-31535-22723
+timezone: America/Los_Angeles
+meeting_start: '2024-01-09T10:30:00-08:00'
+sign_in_cutoff: '2024-01-09T09:30:00-08:00'
+stats:
+  total_rows: 122
+  total_testifying: 6
+  total_not_testifying: 116
+  total_pro: 120
+  total_con: 0
+  total_other: 2
+  total_pro_pct: 98.36065573770492
+  total_con_pct: 0.0
+  total_other_pct: 1.639344262295082
+source:
+  provider: wa_leg_csi
+  search_query: SB 5808
+  meeting_family_id: '31535'
+  agenda_item_family_id: '155967'
+  agenda_item_id: '22723'
+  agenda_item_description: SB 5808 Safety telecom/interest arb.
+  short_bill_id: SB 5808
+  bill_number: '5808'
+  bill_title: Granting interest arbitration to certain public safety telecommunicators.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:44:01.967859+00:00'

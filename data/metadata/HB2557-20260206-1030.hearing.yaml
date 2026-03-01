@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2557-33879-28060
+timezone: America/Los_Angeles
+meeting_start: '2026-02-06T10:30:00-08:00'
+sign_in_cutoff: '2026-02-06T09:30:00-08:00'
+stats:
+  total_rows: 94
+  total_testifying: 2
+  total_not_testifying: 92
+  total_pro: 86
+  total_con: 7
+  total_other: 1
+  total_pro_pct: 91.48936170212765
+  total_con_pct: 7.446808510638298
+  total_other_pct: 1.0638297872340425
+source:
+  provider: wa_leg_csi
+  search_query: HB 2557
+  meeting_family_id: '33879'
+  agenda_item_family_id: '170081'
+  agenda_item_id: '28060'
+  agenda_item_description: HB 2557 Sp. ed. evaluation reports
+  short_bill_id: HB 2557
+  bill_number: '2557'
+  bill_title: Parental access to special education evaluation reports
+  committee_name: Appropriations
+  chamber: House
+  downloaded_at: '2026-03-01T18:36:30.783331+00:00'

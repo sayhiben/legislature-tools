@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5484-32628-25322
+timezone: America/Los_Angeles
+meeting_start: '2025-02-06T16:00:00-08:00'
+sign_in_cutoff: '2025-02-06T15:00:00-08:00'
+stats:
+  total_rows: 36
+  total_testifying: 4
+  total_not_testifying: 32
+  total_pro: 18
+  total_con: 18
+  total_other: 0
+  total_pro_pct: 50.0
+  total_con_pct: 50.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5484
+  meeting_family_id: '32628'
+  agenda_item_family_id: '162980'
+  agenda_item_id: '25322'
+  agenda_item_description: SB 5484 Tow truck payments/indigent
+  short_bill_id: SB 5484
+  bill_number: '5484'
+  bill_title: Payments to tow truck operators for the release of vehicles to indigent
+    citizens
+  committee_name: Transportation
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:32:50.747809+00:00'

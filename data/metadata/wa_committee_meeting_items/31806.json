@@ -1,0 +1,86 @@
+{
+  "agenda_id": "31806",
+  "retrieved_at_utc": "2026-03-01T18:27:33.254802+00:00",
+  "row_count": 13,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9362",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "JC Baldwin, Member, Transportation Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6280",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing for veteran parking privileges. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6288",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring headlight use on motor vehicles at all times. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6304",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Implementing certain recommendations of the transportation electrification strategy. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6283",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Eliminating the expiration date for the Sandy Williams connecting communities program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6302",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a Washington state supply chain competitiveness infrastructure program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5209",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing universal civic duty voting. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6195",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing the current backlog of vehicle inspections."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6114",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring local airport operators to provide sustainable aviation fuel for use in private jets."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6283",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Eliminating the expiration date for the Sandy Williams connecting communities program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6115",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning speed safety camera systems."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6277",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a new statutory framework for the use of public-private partnerships for transportation projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9362",
+      "hearing_type_description": "Executive Session",
+      "item_description": "JC Baldwin, Member, Transportation Commission."
+    }
+  ],
+  "schema_version": 1
+}

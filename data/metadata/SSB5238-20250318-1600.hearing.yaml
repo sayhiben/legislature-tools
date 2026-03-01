@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SSB5238-33069-26464
+timezone: America/Los_Angeles
+meeting_start: '2025-03-18T16:00:00-07:00'
+sign_in_cutoff: '2025-03-18T15:00:00-07:00'
+stats:
+  total_rows: 98
+  total_testifying: 1
+  total_not_testifying: 97
+  total_pro: 94
+  total_con: 3
+  total_other: 1
+  total_pro_pct: 95.91836734693877
+  total_con_pct: 3.061224489795918
+  total_other_pct: 1.0204081632653061
+source:
+  provider: wa_leg_csi
+  search_query: SSB 5238
+  meeting_family_id: '33069'
+  agenda_item_family_id: '165660'
+  agenda_item_id: '26464'
+  agenda_item_description: SSB 5238 Reckless driving, speed
+  short_bill_id: SSB 5238
+  bill_number: '5238'
+  bill_title: Reckless driving in cases involving excessive speed
+  committee_name: Community Safety
+  chamber: House
+  downloaded_at: '2026-03-01T18:44:16.787010+00:00'

@@ -1,0 +1,74 @@
+{
+  "agenda_id": "33882",
+  "retrieved_at_utc": "2026-03-01T18:27:05.579773+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6124",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Assessing the feasibility of developing an affordability index for appliances sold into Washington state."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6171",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing emerging large energy use facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6284",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing consumer protections for artificial intelligence systems."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5609",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Regarding cultural resource protection for certain land use activities that are categorically exempt from the state environmental policy act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6172",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Eliminating preferential treatment related to a coal-fired electric generating plant."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6246",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning emissions from emissions-intensive, trade-exposed facilities under the climate commitment act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5932",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing certainty for the development of low-to-zero carbon alternative jet fuel production in Washington state."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6269",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing the definition of motor fuel in the motor fuel quality act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6223",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing community scaled weatherization projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5975",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing consumer access to safe cookware and interstate and international trade certainty in the regulation of lead in cookware."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5466",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving reliability and capacity of the electric transmission system in Washington state."
+    }
+  ],
+  "schema_version": 1
+}

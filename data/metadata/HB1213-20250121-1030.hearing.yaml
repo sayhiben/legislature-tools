@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1213-32518-24889
+timezone: America/Los_Angeles
+meeting_start: '2025-01-21T10:30:00-08:00'
+sign_in_cutoff: '2025-01-21T09:30:00-08:00'
+stats:
+  total_rows: 691
+  total_testifying: 16
+  total_not_testifying: 675
+  total_pro: 382
+  total_con: 308
+  total_other: 1
+  total_pro_pct: 55.28219971056439
+  total_con_pct: 44.57308248914617
+  total_other_pct: 0.1447178002894356
+source:
+  provider: wa_leg_csi
+  search_query: HB 1213
+  meeting_family_id: '32518'
+  agenda_item_family_id: '161694'
+  agenda_item_id: '24889'
+  agenda_item_description: HB 1213 Paid family & medical leave
+  short_bill_id: HB 1213
+  bill_number: '1213'
+  bill_title: Expanding protections for workers in the state paid family and medical
+    leave program
+  committee_name: Labor & Workplace Standards
+  chamber: House
+  downloaded_at: '2026-03-01T18:41:25.117345+00:00'

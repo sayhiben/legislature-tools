@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2051-31567-22909
+timezone: America/Los_Angeles
+meeting_start: '2024-01-11T08:00:00-08:00'
+sign_in_cutoff: '2024-01-11T07:00:00-08:00'
+stats:
+  total_rows: 745
+  total_testifying: 25
+  total_not_testifying: 720
+  total_pro: 269
+  total_con: 466
+  total_other: 10
+  total_pro_pct: 36.10738255033557
+  total_con_pct: 62.5503355704698
+  total_other_pct: 1.342281879194631
+source:
+  provider: wa_leg_csi
+  search_query: HB 2051
+  meeting_family_id: '31567'
+  agenda_item_family_id: '156271'
+  agenda_item_id: '22909'
+  agenda_item_description: HB 2051 Small off-road engines
+  short_bill_id: HB 2051
+  bill_number: '2051'
+  bill_title: Reducing emissions from small off-road engines. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:38.230955+00:00'

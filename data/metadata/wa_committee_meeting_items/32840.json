@@ -1,0 +1,62 @@
+{
+  "agenda_id": "32840",
+  "retrieved_at_utc": "2026-03-01T18:28:32.705353+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1607",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning recycling and waste reduction."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1673",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving reliability and capacity of the electric transmission system in Washington state."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1756",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning lead in cookware."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1871",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Incentivizing grid-connected residential battery energy storage systems."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1857",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning asbestos-containing building materials."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1819",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing transmission capacity."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1804",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving accessibility of community solar projects in Washington state."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1742",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning environmentally sustainable urban design."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1847",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Prioritizing the development of distributed alternative energy resources in targeted circumstances."
+    }
+  ],
+  "schema_version": 1
+}

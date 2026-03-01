@@ -1,0 +1,32 @@
+{
+  "agenda_id": "31759",
+  "retrieved_at_utc": "2026-03-01T18:27:58.221072+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2163",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning liquor licensee advertising."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2204",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a special liquor permit."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2255",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning inversion and diversion of cannabis."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2260",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing civil penalties for the unlawful sale or supply of alcohol to minors."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB6065-33886-27876
+timezone: America/Los_Angeles
+meeting_start: '2026-02-03T08:00:00-08:00'
+sign_in_cutoff: '2026-02-03T07:00:00-08:00'
+stats:
+  total_rows: 226
+  total_testifying: 8
+  total_not_testifying: 218
+  total_pro: 220
+  total_con: 4
+  total_other: 2
+  total_pro_pct: 97.34513274336283
+  total_con_pct: 1.7699115044247788
+  total_other_pct: 0.8849557522123894
+source:
+  provider: wa_leg_csi
+  search_query: SB 6065
+  meeting_family_id: '33886'
+  agenda_item_family_id: '169589'
+  agenda_item_id: '27876'
+  agenda_item_description: SB 6277 Military families/education
+  short_bill_id: SB 6065
+  bill_number: '6065'
+  bill_title: Concerning school district transportation vehicle funds.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:41:15.715880+00:00'

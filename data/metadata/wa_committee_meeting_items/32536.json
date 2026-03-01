@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32536",
+  "retrieved_at_utc": "2026-03-01T18:26:13.702284+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1537",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding access to funding from the multiuse roadway safety account for eligible cities and for the Washington state departments of natural resources and fish and wildlife for maintenance and guidance of motorized recreation on green dot roads. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HJM 4002",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Designating the bridge that carries Interstate 90 over the Columbia river near Vantage, Washington as the \"Medal of Honor Bridge.\" (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1061",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing additional parking flexibility in residential neighborhoods."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1371",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning parking privileges for veterans."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HJM 4000",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the naming of Martin Luther King, Jr. Way."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HJM 4001",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning Russ Blount memorial bridge naming."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5171-32470-24724
+timezone: America/Los_Angeles
+meeting_start: '2025-01-20T13:30:00-08:00'
+sign_in_cutoff: '2025-01-20T12:30:00-08:00'
+stats:
+  total_rows: 570
+  total_testifying: 7
+  total_not_testifying: 563
+  total_pro: 519
+  total_con: 49
+  total_other: 2
+  total_pro_pct: 91.05263157894737
+  total_con_pct: 8.596491228070176
+  total_other_pct: 0.3508771929824561
+source:
+  provider: wa_leg_csi
+  search_query: SB 5171
+  meeting_family_id: '32470'
+  agenda_item_family_id: '161530'
+  agenda_item_id: '24724'
+  agenda_item_description: SB 5171 Wolf predation
+  short_bill_id: SB 5171
+  bill_number: '5171'
+  bill_title: Concerning livestock damage due to wolf predation. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:36:58.530161+00:00'

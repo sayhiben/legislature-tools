@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33998",
+  "retrieved_at_utc": "2026-03-01T18:26:14.707513+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5971",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a green fertilizer incentive program to support the production and adoption of low-carbon nitrogen fertilizer in Washington state. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6097",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding federally recognized Indian tribes to the list of entities that may participate in the conservation futures program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5919",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Encouraging fire districts and insurance providers to develop voluntary incentives to promote best practices."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5816",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sale of juice grapes."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5838",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding tribal members to the board of natural resources. (REVISED FOR ENGROSSED: Adding tribal representation to the board of natural resources.)"
+    }
+  ],
+  "schema_version": 1
+}

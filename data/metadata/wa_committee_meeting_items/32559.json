@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32559",
+  "retrieved_at_utc": "2026-03-01T18:25:15.529550+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1409",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the clean fuels program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1497",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving outcomes associated with waste material management systems. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1543",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing compliance pathways for the clean buildings performance standard. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1253",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding the ability of consumer-owned utilities to enter into joint use agreements."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1329",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning wholesale power purchases by electric utilities under the Washington clean energy transformation act."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,38 @@
+{
+  "agenda_id": "31620",
+  "retrieved_at_utc": "2026-03-01T18:27:11.446986+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1341",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning cannabis license ownership. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2182",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a data dashboard to track use of regulated substances. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2194",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Legalizing the home cultivation of cannabis. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2320",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning high THC cannabis products. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1650",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring voter approval for local government prohibitions on cannabis businesses."
+    }
+  ],
+  "schema_version": 1
+}

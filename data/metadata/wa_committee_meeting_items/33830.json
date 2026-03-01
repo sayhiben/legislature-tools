@@ -1,0 +1,62 @@
+{
+  "agenda_id": "33830",
+  "retrieved_at_utc": "2026-03-01T18:28:34.639042+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9272",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Kristin Ferrera, Member, Sentencing Guidelines Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9255",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Leesa Manion, Member, Sentencing Guidelines Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9256",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Kate Benward, Member, Sentencing Guidelines Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9271",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Roshelle Cleland, Member, Sentencing Guidelines Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5925",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the general powers and duties of the attorney general\u2019s office."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6086",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Strengthening security for Washington state judicial officers and court personnel."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6074",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reinstituting parole."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5962",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning spring blade knives."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6296",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning involuntary treatment."
+    }
+  ],
+  "schema_version": 1
+}

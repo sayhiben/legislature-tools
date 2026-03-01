@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32489",
+  "retrieved_at_utc": "2026-03-01T18:25:38.597677+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5228",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating the governor's interagency coordinating council on health disparities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5258",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Implementing state auditor recommendations for reducing improper medicaid concurrent enrollment payments. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5121",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning health plan coverage of fertility-related services. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5051",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Consolidating regulatory authority for nursing assistants."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5239",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the retention of hospital medical records."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5244",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing an exemption for women, infants, and children program staff to perform hematological screening tests."
+    }
+  ],
+  "schema_version": 1
+}

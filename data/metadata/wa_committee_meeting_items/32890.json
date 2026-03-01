@@ -1,0 +1,356 @@
+{
+  "agenda_id": "32890",
+  "retrieved_at_utc": "2026-03-01T18:26:17.796619+00:00",
+  "row_count": 58,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5263",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning special education funding."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5192",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning school district materials, supplies, and operating costs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5253",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending special education services to students with disabilities until the end of the school year in which the student turns 22."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5009",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Accommodating multiple vehicle types for transporting students."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting students who are chronically absent and at risk for not graduating high school."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5123",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding protections for certain students to promote inclusivity in public schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5189",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting the implementation of competency-based education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5327",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning learning standards and graduation requirements."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5570",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting public school instruction in tribal sovereignty and federally recognized Indian tribes."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5455",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the administration of the Andy Hill cancer research endowment."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5509",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the siting of child care centers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5298",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the notice of sale or lease of manufactured/mobile home communities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5694",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a statewide boiler operator certification."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5522",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the state capitol campus."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5033",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning sampling or testing of biosolids for PFAS chemicals."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5188",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning broadband infrastructure repair loans."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5030",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving access to educational services by reducing barriers to obtaining vital records and allowing alternative forms of documentation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5163",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing the child fatality statute."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5388",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning department of corrections behavioral health certification."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5278",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the management of individuals who are placed in juvenile rehabilitation institutions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5032",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding the duties of the office of the family and children's ombuds to include juvenile rehabilitation facilities operated by the department of children, youth, and families."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5266",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the indeterminate sentence review board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5296",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving outcomes for individuals adjudicated of juvenile offenses by increasing opportunities for community placement options and refining procedural requirements."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5060",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the number of law enforcement agency personnel."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5062",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a child care workforce standards board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5292",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning paid family and medical leave rates."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5752",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying child care and early childhood development programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5761",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Developing a schedule for court appointment of attorneys for children and youth in dependency and termination proceedings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5371",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Eliminating the per transaction limit for wine and spirit sales."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5745",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning legal representation under the involuntary treatment act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5206",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning cannabis retailer advertising."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5083",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring access to primary care, behavioral health, and affordable hospital services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5357",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning actuarial funding of pension systems."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5433",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Exempting exclusive bargaining representatives for department of corrections employees from certain provisions related to coalition bargaining."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5653",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning collective bargaining by fish and wildlife officers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5738",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Permitting individuals retired from the public employees' retirement system, the teachers' retirement system, and the school employees' retirement system additional opportunities to work for up to 1,040 hours per year while in receipt of pension benefits."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5036",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Strengthening Washington's leadership and accountability on climate policy by transitioning to annual reporting of statewide emissions data."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5203",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring connectivity for Washington wildlife through safe passages."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5284",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving Washington's solid waste management outcomes."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5502",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning recycling and waste reduction."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5583",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning recreational fishing and hunting licenses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9215",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Katherine D. Chapman-See, Director, Office of Financial Management - Agency Head."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJR 8201",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Amending the Constitution to allow the state to invest moneys from long-term services and supports accounts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5217",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding pregnancy-related accommodations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5541",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the Washington future fund pilot project."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5576",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing state funding for essential affordable housing programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5748",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Incentivizing the substantial reduction or elimination of impact fees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJR 8203",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Amending the Constitution to allow for a property tax exemption for a principal place of residence."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5770",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing housing safety, security, and protection by creating the primary residence property tax exemption."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5771",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the working families' tax credit to reflect the economic impact of property taxes incorporated into rental amounts charged to residential tenants."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5768",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding eligibility for the working families' tax credit to everyone age 18 and older."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5682",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the Washington customized employment training program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5697",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a property tax exemption for property owned by a qualifying nonprofit organization and loaned, leased, or rented to and used by any government entity to provide character-building, benevolent, protective, or rehabilitative social services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5368",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Studying taxes and fees related to alcohol."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5775",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding local taxing authority to fund public safety and community protection focused programs and services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5696",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sales and use tax supporting chemical dependency and mental health treatment programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5647",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a real estate excise tax exemption for the sale of qualified affordable housing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5651",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning exemptions from garnishment."
+    }
+  ],
+  "schema_version": 1
+}

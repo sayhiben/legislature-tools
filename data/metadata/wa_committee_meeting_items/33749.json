@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33749",
+  "retrieved_at_utc": "2026-03-01T18:28:42.383734+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2117",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding a tribal member to the board of natural resources. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2199",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing impacts from derelict vessels. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2327",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Directing an audit of county forest board lands. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2516",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Placing a moratorium on the use of certain rodenticides. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2554",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Recognizing judicially affirmed and treaty-reserved fishing rights and promoting state-tribal cooperative agreements in the management of salmon, trout, and steelhead resources. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

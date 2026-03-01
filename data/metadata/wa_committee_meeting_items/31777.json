@@ -1,0 +1,26 @@
+{
+  "agenda_id": "31777",
+  "retrieved_at_utc": "2026-03-01T18:27:07.893531+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2270",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a Washington state department of housing. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2275",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning senior independent living facilities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2113",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning compliance with the housing element requirements of the growth management act."
+    }
+  ],
+  "schema_version": 1
+}

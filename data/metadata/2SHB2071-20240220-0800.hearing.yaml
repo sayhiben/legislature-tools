@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: 2SHB2071-31992-24239
+timezone: America/Los_Angeles
+meeting_start: '2024-02-20T08:00:00-08:00'
+sign_in_cutoff: '2024-02-20T07:00:00-08:00'
+stats:
+  total_rows: 1805
+  total_testifying: 22
+  total_not_testifying: 1783
+  total_pro: 170
+  total_con: 1633
+  total_other: 2
+  total_pro_pct: 9.418282548476455
+  total_con_pct: 90.47091412742382
+  total_other_pct: 0.110803324099723
+source:
+  provider: wa_leg_csi
+  search_query: 2SHB 2071
+  meeting_family_id: '31992'
+  agenda_item_family_id: '159453'
+  agenda_item_id: '24239'
+  agenda_item_description: ESHB 2474 Transitional housing siting
+  short_bill_id: 2SHB 2071
+  bill_number: '2071'
+  bill_title: Concerning residential housing regulations.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:40:11.388621+00:00'

@@ -2,8 +2,8 @@
   "cache": {
     "max_age_hours": 12.0
   },
-  "retrieved_at_utc": "2026-02-25T09:25:50.655323+00:00",
-  "row_count": 1984,
+  "retrieved_at_utc": "2026-03-01T18:25:11.009952+00:00",
+  "row_count": 1998,
   "rows": [
     {
       "agency": "Joint",
@@ -15876,11 +15876,123 @@
       "committee_name": "",
       "meeting_date": "2026-02-25T16:00:00",
       "revised_date": "0001-01-01T00:00:00"
+    },
+    {
+      "agency": "Senate",
+      "agenda_id": "34104",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-25T16:00:00",
+      "revised_date": "0001-01-01T00:00:00"
+    },
+    {
+      "agency": "Senate",
+      "agenda_id": "34002",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-26T08:00:00",
+      "revised_date": "2026-02-24T16:05:31.76"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34046",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-26T08:00:00",
+      "revised_date": "2026-02-20T15:01:17.317"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34054",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-26T09:00:00",
+      "revised_date": "2026-02-25T09:03:23.45"
+    },
+    {
+      "agency": "Senate",
+      "agenda_id": "34008",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-26T13:30:00",
+      "revised_date": "2026-02-25T14:31:16.14"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34024",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-26T13:30:00",
+      "revised_date": "2026-02-23T18:24:31.637"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34026",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-26T13:30:00",
+      "revised_date": "2026-02-20T17:33:57.103"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34047",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-27T08:00:00",
+      "revised_date": "2026-02-26T14:38:40.46"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34056",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-27T09:00:00",
+      "revised_date": "2026-02-26T10:55:47.05"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34025",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-27T10:30:00",
+      "revised_date": "2026-02-26T17:38:49.33"
+    },
+    {
+      "agency": "House",
+      "agenda_id": "34027",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-27T10:30:00",
+      "revised_date": "2026-02-27T08:53:18.797"
+    },
+    {
+      "agency": "Senate",
+      "agenda_id": "34003",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-27T14:30:00",
+      "revised_date": "2026-02-26T15:24:52.49"
+    },
+    {
+      "agency": "Senate",
+      "agenda_id": "34010",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-27T14:30:00",
+      "revised_date": "2026-02-25T15:39:17.523"
+    },
+    {
+      "agency": "Senate",
+      "agenda_id": "34011",
+      "committee_acronym": "",
+      "committee_name": "",
+      "meeting_date": "2026-02-28T09:00:00",
+      "revised_date": "2026-02-26T09:20:46.867"
     }
   ],
   "schema_version": 1,
   "source": {
-    "end_date": "2026-02-25",
+    "end_date": "2026-03-01",
     "endpoint": "GetCommitteeMeetings",
     "include_revised": false,
     "service": "wa_committee_meeting_service",

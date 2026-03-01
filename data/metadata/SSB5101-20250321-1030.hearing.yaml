@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SSB5101-33099-26522
+timezone: America/Los_Angeles
+meeting_start: '2025-03-21T10:30:00-07:00'
+sign_in_cutoff: '2025-03-21T09:30:00-07:00'
+stats:
+  total_rows: 887
+  total_testifying: 9
+  total_not_testifying: 878
+  total_pro: 208
+  total_con: 675
+  total_other: 4
+  total_pro_pct: 23.449830890642616
+  total_con_pct: 76.09921082299887
+  total_other_pct: 0.4509582863585118
+source:
+  provider: wa_leg_csi
+  search_query: SSB 5101
+  meeting_family_id: '33099'
+  agenda_item_family_id: '165803'
+  agenda_item_id: '26522'
+  agenda_item_description: SSB 5101 Worker leave/hate crimes
+  short_bill_id: SSB 5101
+  bill_number: '5101'
+  bill_title: Expanding access to leave and safety accommodations to include workers
+    who are victims of hate crimes
+  committee_name: Labor & Workplace Standards
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:08.006096+00:00'

@@ -1,0 +1,104 @@
+{
+  "agenda_id": "31853",
+  "retrieved_at_utc": "2026-03-01T18:29:19.504420+00:00",
+  "row_count": 16,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6072",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing recommendations of the long-term services and supports trust commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6299",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting employee rights in the workplace with regards to the use of digital technology."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5996",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning collecting data on the H-2A worker program and from certain hand harvesters."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning employment standards for grocery workers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5662",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the cannabis employee job retention act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a wine retailer shipper's permit."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5997",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Making technical corrections to plumbing supervision and trainee hours reporting."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6220",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning high THC cannabis products."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6265",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting a consumer's right to coupon and sale prices offered by grocery stores."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6118",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Regarding a vapor directory."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6074",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning death benefits applicable to drivers of transportation network companies. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6111",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning prevailing wage sanctions, penalties, and debarment. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5898",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying employment standards for long-term care individual providers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6107",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning sanitary conditions for construction workers who menstruate or express milk. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5932",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing the number of days that a worker's temporary total disability must continue to receive industrial insurance compensation for the day of an injury and the three-day period following the injury. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5476",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing agricultural employers to select 12 weeks a year to employ workers for up to 50 hours a week before overtime applies. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

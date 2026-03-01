@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5809-31530-22750
+timezone: America/Los_Angeles
+meeting_start: '2024-01-10T10:30:00-08:00'
+sign_in_cutoff: '2024-01-10T09:30:00-08:00'
+stats:
+  total_rows: 359
+  total_testifying: 13
+  total_not_testifying: 346
+  total_pro: 303
+  total_con: 54
+  total_other: 2
+  total_pro_pct: 84.40111420612814
+  total_con_pct: 15.041782729805014
+  total_other_pct: 0.5571030640668524
+source:
+  provider: wa_leg_csi
+  search_query: SB 5809
+  meeting_family_id: '31530'
+  agenda_item_family_id: '156245'
+  agenda_item_id: '22750'
+  agenda_item_description: SB 5809 Charter schools/enrichment
+  short_bill_id: SB 5809
+  bill_number: '5809'
+  bill_title: Concerning enrichment funding for charter public schools. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:44.503278+00:00'

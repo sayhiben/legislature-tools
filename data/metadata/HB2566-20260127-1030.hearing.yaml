@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2566-33777-27722
+timezone: America/Los_Angeles
+meeting_start: '2026-01-27T10:30:00-08:00'
+sign_in_cutoff: '2026-01-27T09:30:00-08:00'
+stats:
+  total_rows: 58
+  total_testifying: 4
+  total_not_testifying: 54
+  total_pro: 53
+  total_con: 0
+  total_other: 5
+  total_pro_pct: 91.37931034482759
+  total_con_pct: 0.0
+  total_other_pct: 8.620689655172415
+source:
+  provider: wa_leg_csi
+  search_query: HB 2566
+  meeting_family_id: '33777'
+  agenda_item_family_id: '168919'
+  agenda_item_id: '27722'
+  agenda_item_description: HB 2566 Local government procurement
+  short_bill_id: HB 2566
+  bill_number: '2566'
+  bill_title: Local government procurement
+  committee_name: Local Government
+  chamber: House
+  downloaded_at: '2026-03-01T18:31:49.016842+00:00'

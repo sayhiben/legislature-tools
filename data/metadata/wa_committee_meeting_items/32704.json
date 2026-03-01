@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32704",
+  "retrieved_at_utc": "2026-03-01T18:26:45.164949+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5384",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Conducting a review of Washington's riparian programs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5385",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Amending the definition of timberland for purposes of determining the real property excise tax for a governmental entity. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9064",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Steven Malloch, Member, Chehalis Board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9065",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Jerry J Meninick, Member, Columbia River Gorge Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9126",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Pah-tu Pitt, Member, Columbia River Gorge Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9213",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Derek I Sandison, Director, Department of Agriculture - Agency Head."
+    }
+  ],
+  "schema_version": 1
+}

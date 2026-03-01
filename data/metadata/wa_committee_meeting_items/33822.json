@@ -1,0 +1,56 @@
+{
+  "agenda_id": "33822",
+  "retrieved_at_utc": "2026-03-01T18:28:17.325233+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1717",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a sales and use tax remittance program for affordable housing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1859",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding opportunities for affordable housing developments on properties owned by religious organizations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1960",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Encouraging renewable energy in Washington through tax policy and investment in local communities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2133",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Making the property tax exemption for multipurpose senior citizen centers permanent."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2135",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying and extending the adaptive housing retail sales and use tax preference for disabled veterans."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2140",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Exempting land classified under current use that is sold or transferred to a governmental entity from additional tax in certain circumstances."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2442",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing local governments tax resources and fund flexibility."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2559",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a local government option for the funding of essential affordable housing programs."
+    }
+  ],
+  "schema_version": 1
+}

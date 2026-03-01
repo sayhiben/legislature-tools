@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33682",
+  "retrieved_at_utc": "2026-03-01T18:26:05.684760+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2337",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning training requirements for individual providers caring for a family member. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2311",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning workforce education investment accountability and oversight board administrative changes. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2088",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the dietitian licensure compact."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2148",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the pay it forward program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2132",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning applications for state financial aid."
+    }
+  ],
+  "schema_version": 1
+}

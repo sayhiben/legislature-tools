@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5567-32867-25974
+timezone: America/Los_Angeles
+meeting_start: '2025-02-18T08:00:00-08:00'
+sign_in_cutoff: '2025-02-18T07:00:00-08:00'
+stats:
+  total_rows: 1872
+  total_testifying: 39
+  total_not_testifying: 1833
+  total_pro: 997
+  total_con: 862
+  total_other: 13
+  total_pro_pct: 53.258547008547005
+  total_con_pct: 46.047008547008545
+  total_other_pct: 0.6944444444444444
+source:
+  provider: wa_leg_csi
+  search_query: SB 5567
+  meeting_family_id: '32867'
+  agenda_item_family_id: '164514'
+  agenda_item_id: '25974'
+  agenda_item_description: SB 5574 History instruction
+  short_bill_id: SB 5567
+  bill_number: '5567'
+  bill_title: Expanding secondary training for careers in natural resources and conservation.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:30:40.637874+00:00'

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5967-33611-27051
+timezone: America/Los_Angeles
+meeting_start: '2026-01-15T08:00:00-08:00'
+sign_in_cutoff: '2026-01-15T07:00:00-08:00'
+stats:
+  total_rows: 2390
+  total_testifying: 21
+  total_not_testifying: 2369
+  total_pro: 595
+  total_con: 1792
+  total_other: 3
+  total_pro_pct: 24.89539748953975
+  total_con_pct: 74.97907949790795
+  total_other_pct: 0.12552301255230125
+source:
+  provider: wa_leg_csi
+  search_query: SB 5967
+  meeting_family_id: '33611'
+  agenda_item_family_id: '167965'
+  agenda_item_id: '27051'
+  agenda_item_description: SB 5967 Preventive health services
+  short_bill_id: SB 5967
+  bill_number: '5967'
+  bill_title: Preserving access to preventive services by clarifying state authority
+    and definitions. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:43:17.593962+00:00'

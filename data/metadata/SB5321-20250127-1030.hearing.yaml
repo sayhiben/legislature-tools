@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5321-32576-24995
+timezone: America/Los_Angeles
+meeting_start: '2025-01-27T10:30:00-08:00'
+sign_in_cutoff: '2025-01-27T09:30:00-08:00'
+stats:
+  total_rows: 3098
+  total_testifying: 13
+  total_not_testifying: 3085
+  total_pro: 803
+  total_con: 2293
+  total_other: 2
+  total_pro_pct: 25.91994835377663
+  total_con_pct: 74.01549386701097
+  total_other_pct: 0.06455777921239508
+source:
+  provider: wa_leg_csi
+  search_query: SB 5321
+  meeting_family_id: '32576'
+  agenda_item_family_id: '162067'
+  agenda_item_id: '24995'
+  agenda_item_description: SB 5321 Postsecondary/med. abortion
+  short_bill_id: SB 5321
+  bill_number: '5321'
+  bill_title: Concerning access at public postsecondary educational institutions to
+    medication abortion. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:36:42.622737+00:00'

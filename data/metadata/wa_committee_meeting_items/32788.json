@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32788",
+  "retrieved_at_utc": "2026-03-01T18:29:14.541842+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5074",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the payment of turfgrass seed contracts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5157",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the direct sale of valuable materials for habitat restoration projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5171",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning livestock damage due to wolf predation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5391",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sustainable farms and fields grant program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5474",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding opportunities for organic, regenerative, climate-smart, and sustainable producers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5485",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning livestock identification."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5656",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the definition of inflation rate for aquatic leases."
+    }
+  ],
+  "schema_version": 1
+}

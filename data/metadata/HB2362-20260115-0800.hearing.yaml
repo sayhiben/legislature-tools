@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2362-33599-27227
+timezone: America/Los_Angeles
+meeting_start: '2026-01-15T08:00:00-08:00'
+sign_in_cutoff: '2026-01-15T07:00:00-08:00'
+stats:
+  total_rows: 776
+  total_testifying: 23
+  total_not_testifying: 753
+  total_pro: 270
+  total_con: 501
+  total_other: 5
+  total_pro_pct: 34.79381443298969
+  total_con_pct: 64.5618556701031
+  total_other_pct: 0.6443298969072164
+source:
+  provider: wa_leg_csi
+  search_query: HB 2362
+  meeting_family_id: '33599'
+  agenda_item_family_id: '168131'
+  agenda_item_id: '27227'
+  agenda_item_description: HB 2362 Impaired driving
+  short_bill_id: HB 2362
+  bill_number: '2362'
+  bill_title: Impaired driving
+  committee_name: Community Safety
+  chamber: House
+  downloaded_at: '2026-03-01T18:35:17.731971+00:00'

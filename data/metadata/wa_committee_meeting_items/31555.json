@@ -1,0 +1,20 @@
+{
+  "agenda_id": "31555",
+  "retrieved_at_utc": "2026-03-01T18:27:40.229765+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5805",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Developing a schedule for court appointment of attorneys for children and youth in dependency and termination proceedings. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5908",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing extended foster care services to youth ages 18 to 21. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

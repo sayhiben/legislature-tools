@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: ESHB1875-33057-26414
+timezone: America/Los_Angeles
+meeting_start: '2025-03-18T10:30:00-07:00'
+sign_in_cutoff: '2025-03-18T09:30:00-07:00'
+stats:
+  total_rows: 954
+  total_testifying: 10
+  total_not_testifying: 944
+  total_pro: 204
+  total_con: 748
+  total_other: 2
+  total_pro_pct: 21.38364779874214
+  total_con_pct: 78.40670859538784
+  total_other_pct: 0.20964360587002098
+source:
+  provider: wa_leg_csi
+  search_query: ESHB 1875
+  meeting_family_id: '33057'
+  agenda_item_family_id: '165779'
+  agenda_item_id: '26414'
+  agenda_item_description: ESHB 1875 Sick leave/immigration
+  short_bill_id: ESHB 1875
+  bill_number: '1875'
+  bill_title: Allowing the use of paid sick leave to prepare for or participate in
+    certain immigration proceedings. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:36:05.791885+00:00'

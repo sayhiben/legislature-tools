@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33085",
+  "retrieved_at_utc": "2026-03-01T18:28:47.423827+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1409",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the clean fuels program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1975",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Amending the climate commitment act by adjusting auction price containment mechanisms and ceiling prices, addressing the department of ecology's authority to amend rules to facilitate linkage with other jurisdictions, and providing for market dynamic analysis. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1543",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing compliance pathways for the clean buildings performance standard. (Hearing is on the Proposed Striking Amendment.) (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

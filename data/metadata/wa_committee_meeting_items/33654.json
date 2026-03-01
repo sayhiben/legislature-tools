@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33654",
+  "retrieved_at_utc": "2026-03-01T18:29:05.788687+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2279",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Evaluating the use of PFAS chemicals in agriculture. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2463",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting Washington farmers feeding families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1941",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing agricultural cooperatives for cannabis producers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2238",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning statewide food security."
+    }
+  ],
+  "schema_version": 1
+}

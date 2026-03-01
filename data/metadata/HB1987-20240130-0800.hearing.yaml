@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: HB1987-31807-23711
+timezone: America/Los_Angeles
+meeting_start: '2024-01-30T08:00:00-08:00'
+sign_in_cutoff: '2024-01-30T07:00:00-08:00'
+stats:
+  total_rows: 23
+  total_testifying: 3
+  total_not_testifying: 20
+  total_pro: 22
+  total_con: 0
+  total_other: 1
+  total_pro_pct: 95.65217391304348
+  total_con_pct: 0.0
+  total_other_pct: 4.3478260869565215
+source:
+  provider: wa_leg_csi
+  search_query: HB 1987
+  meeting_family_id: '31807'
+  agenda_item_family_id: '157746'
+  agenda_item_id: '23711'
+  agenda_item_description: HB 1987 Public facilities tax use
+  short_bill_id: HB 1987
+  bill_number: '1987'
+  bill_title: Concerning the use of moneys from the rural public facilities sales
+    and use tax for affordable workforce housing infrastructure and facilities. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:30:56.160167+00:00'

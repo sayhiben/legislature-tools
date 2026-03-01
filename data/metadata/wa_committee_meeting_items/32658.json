@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32658",
+  "retrieved_at_utc": "2026-03-01T18:25:17.563626+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1406",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning associate development organizations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1408",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing funding for community preservation and development authorities approved through RCW 43.167.060."
+    }
+  ],
+  "schema_version": 1
+}

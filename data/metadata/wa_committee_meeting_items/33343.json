@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33343",
+  "retrieved_at_utc": "2026-03-01T18:25:14.590549+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9241",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "James R Anderson, Member, Fish and Wildlife Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9242",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Molly F Linville, Member, Fish and Wildlife Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9243",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Victor B Garcia, Member, Fish and Wildlife Commission."
+    }
+  ],
+  "schema_version": 1
+}

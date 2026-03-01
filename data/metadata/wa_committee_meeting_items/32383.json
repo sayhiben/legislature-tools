@@ -1,0 +1,14 @@
+{
+  "agenda_id": "32383",
+  "retrieved_at_utc": "2026-03-01T18:27:04.178060+00:00",
+  "row_count": 1,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1161",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing the veteran employability training and career advancement for reentry program. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,32 @@
+{
+  "agenda_id": "31567",
+  "retrieved_at_utc": "2026-03-01T18:28:56.448709+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2068",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the environmental impacts of fashion. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1900",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Implementing strategies to achieve higher recycling rates within Washington's existing solid waste management system. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2073",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning emissions of greenhouse gases from sources other than methane and carbon dioxide. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2051",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing emissions from small off-road engines. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32666",
+  "retrieved_at_utc": "2026-03-01T18:28:24.583369+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5501",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning employer requirements for driving. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5600",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning regulation of transportation network companies during large-scale events. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5463",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the duties of industrial insurance self-insured employers and third-party administrators. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5377",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning auto sales. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5592",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning manufacturers and vehicle dealers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5626",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a wage replacement program for certain Washington workers excluded from unemployment insurance. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

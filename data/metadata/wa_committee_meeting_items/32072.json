@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32072",
+  "retrieved_at_utc": "2026-03-01T18:26:43.193963+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HI 2111",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning taxes on personal income. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SI 2111",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning taxes on personal income."
+    }
+  ],
+  "schema_version": 1
+}

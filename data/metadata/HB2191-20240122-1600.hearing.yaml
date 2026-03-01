@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2191-31710-23446
+timezone: America/Los_Angeles
+meeting_start: '2024-01-22T16:00:00-08:00'
+sign_in_cutoff: '2024-01-22T15:00:00-08:00'
+stats:
+  total_rows: 60
+  total_testifying: 14
+  total_not_testifying: 46
+  total_pro: 54
+  total_con: 0
+  total_other: 6
+  total_pro_pct: 90.0
+  total_con_pct: 0.0
+  total_other_pct: 10.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 2191
+  meeting_family_id: '31710'
+  agenda_item_family_id: '157065'
+  agenda_item_id: '23446'
+  agenda_item_description: HB 2191 PTBA governing body members
+  short_bill_id: HB 2191
+  bill_number: '2191'
+  bill_title: Adding two voting members that are transit users to the governing body
+    of public transportation benefit areas. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:59.754383+00:00'

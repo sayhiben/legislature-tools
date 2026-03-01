@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33186",
+  "retrieved_at_utc": "2026-03-01T18:27:25.140018+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1946",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Clarifying tribal membership on local boards of health."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1562",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the availability of baby diaper changing stations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1576",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the designation of historic landmarks by cities."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,68 @@
+{
+  "agenda_id": "31668",
+  "retrieved_at_utc": "2026-03-01T18:26:40.841691+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5870",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding and streamlining eligibility for early learning programs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5933",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning funding for the early support for infants and toddlers program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5941",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying requirements for subsidized child care. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6018",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Designating early learning coordinators at educational service districts. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5882",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing prototypical school staffing to better meet student needs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5809",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning enrichment funding for charter public schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5852",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning special education safety net awards."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5883",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the burden of proof for special education due process hearings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requesting Congress to fully fund 40 percent of the costs of IDEA."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6014",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the special education enrollment funding cap."
+    }
+  ],
+  "schema_version": 1
+}

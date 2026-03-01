@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SHB1308-33143-26641
+timezone: America/Los_Angeles
+meeting_start: '2025-03-24T10:30:00-07:00'
+sign_in_cutoff: '2025-03-24T09:30:00-07:00'
+stats:
+  total_rows: 745
+  total_testifying: 13
+  total_not_testifying: 732
+  total_pro: 260
+  total_con: 483
+  total_other: 2
+  total_pro_pct: 34.899328859060404
+  total_con_pct: 64.83221476510067
+  total_other_pct: 0.2684563758389262
+source:
+  provider: wa_leg_csi
+  search_query: SHB 1308
+  meeting_family_id: '33143'
+  agenda_item_family_id: '166122'
+  agenda_item_id: '26641'
+  agenda_item_description: SHB 1308 Access to personnel records
+  short_bill_id: SHB 1308
+  bill_number: '1308'
+  bill_title: Access to personnel records
+  committee_name: Labor & Commerce
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:31.794183+00:00'

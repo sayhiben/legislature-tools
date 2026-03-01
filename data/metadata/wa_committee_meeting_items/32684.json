@@ -1,0 +1,62 @@
+{
+  "agenda_id": "32684",
+  "retrieved_at_utc": "2026-03-01T18:28:04.245748+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1128",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a child care workforce standards board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1155",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Prohibiting noncompetition agreements and clarifying nonsolicitation agreements."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1213",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding protections for workers in the state paid family and medical leave program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1332",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning transportation network companies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1335",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting military spouses from employment discrimination."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1398",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning factors which are considered in interest arbitration for adult family home providers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1402",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning job postings requiring driver's licenses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1511",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning Washington state ferries captains."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1524",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workplace standards and requirements applicable to employers of isolated employees."
+    }
+  ],
+  "schema_version": 1
+}

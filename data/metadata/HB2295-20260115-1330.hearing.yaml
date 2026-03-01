@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2295-33575-27202
+timezone: America/Los_Angeles
+meeting_start: '2026-01-15T13:30:00-08:00'
+sign_in_cutoff: '2026-01-15T12:30:00-08:00'
+stats:
+  total_rows: 134
+  total_testifying: 34
+  total_not_testifying: 100
+  total_pro: 28
+  total_con: 86
+  total_other: 20
+  total_pro_pct: 20.8955223880597
+  total_con_pct: 64.17910447761194
+  total_other_pct: 14.925373134328357
+source:
+  provider: wa_leg_csi
+  search_query: HB 2295
+  meeting_family_id: '33575'
+  agenda_item_family_id: '168082'
+  agenda_item_id: '27202'
+  agenda_item_description: HB 2295 Capital budget, supplemental
+  short_bill_id: HB 2295
+  bill_number: '2295'
+  bill_title: Concerning the capital budget. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:39:23.033918+00:00'

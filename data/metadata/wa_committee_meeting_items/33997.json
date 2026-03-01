@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33997",
+  "retrieved_at_utc": "2026-03-01T18:28:51.403178+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5969",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing duplication between high school and beyond plans and individualized education program transition plans. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6222",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting public school students by improving their access to surplus technology hardware. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6247",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning school district financial management. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31726",
+  "retrieved_at_utc": "2026-03-01T18:26:20.735105+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5931",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expediting the safer products for Washington process regarding motorized vehicle tires containing 6PPD."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6058",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Facilitating linkage of Washington's carbon market with the California-Quebec carbon market."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6016",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a green energy community fund to support school districts and nonprofit organizations that service the communities where renewable energy projects are located."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5919",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sale of biogenic carbon dioxide and other coproducts of biogas processing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6163",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning biosolids."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6303",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing tax incentives to encourage energy storage system and component parts manufacturing in Washington."
+    }
+  ],
+  "schema_version": 1
+}

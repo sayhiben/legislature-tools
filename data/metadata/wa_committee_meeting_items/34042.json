@@ -1,0 +1,32 @@
+{
+  "agenda_id": "34042",
+  "retrieved_at_utc": "2026-03-01T18:26:08.696307+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2272",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Updating terminology related to ski areas and winter sports activities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2418",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning permit review processes."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2451",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning local tax increment financing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2140",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Exempting land classified under current use that is sold or transferred to a governmental entity from additional tax in certain circumstances."
+    }
+  ],
+  "schema_version": 1
+}

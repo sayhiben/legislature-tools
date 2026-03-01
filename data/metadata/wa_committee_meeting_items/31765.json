@@ -1,0 +1,38 @@
+{
+  "agenda_id": "31765",
+  "retrieved_at_utc": "2026-03-01T18:29:18.729011+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5969",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adjusting school districts' authority to contract indebtedness for school construction. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5978",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing the office of the superintendent of public instruction to act as a guarantor for a county when the county provides a loan to a school district. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5903",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning representation in the educator preparation act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6012",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Helping approved teacher preparation programs respond to the continuously changing needs of the modern classroom. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5966",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning restraint or isolation of students in public schools and educational programs. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

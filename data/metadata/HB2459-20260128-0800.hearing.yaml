@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2459-33778-27762
+timezone: America/Los_Angeles
+meeting_start: '2026-01-28T08:00:00-08:00'
+sign_in_cutoff: '2026-01-28T07:00:00-08:00'
+stats:
+  total_rows: 21
+  total_testifying: 9
+  total_not_testifying: 12
+  total_pro: 17
+  total_con: 3
+  total_other: 1
+  total_pro_pct: 80.95238095238095
+  total_con_pct: 14.285714285714285
+  total_other_pct: 4.761904761904762
+source:
+  provider: wa_leg_csi
+  search_query: HB 2459
+  meeting_family_id: '33778'
+  agenda_item_family_id: '168922'
+  agenda_item_id: '27762'
+  agenda_item_description: HB 2459 Schools outside UGAs
+  short_bill_id: HB 2459
+  bill_number: '2459'
+  bill_title: Concerning siting schools outside of an urban growth area. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:36:35.355005+00:00'

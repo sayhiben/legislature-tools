@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1125-32555-25173
+timezone: America/Los_Angeles
+meeting_start: '2025-01-30T08:00:00-08:00'
+sign_in_cutoff: '2025-01-30T07:00:00-08:00'
+stats:
+  total_rows: 1139
+  total_testifying: 20
+  total_not_testifying: 1119
+  total_pro: 535
+  total_con: 601
+  total_other: 3
+  total_pro_pct: 46.97102721685689
+  total_con_pct: 52.76558384547849
+  total_other_pct: 0.2633889376646181
+source:
+  provider: wa_leg_csi
+  search_query: HB 1125
+  meeting_family_id: '32555'
+  agenda_item_family_id: '162313'
+  agenda_item_id: '25173'
+  agenda_item_description: HB 1125 Sentence modification
+  short_bill_id: HB 1125
+  bill_number: '1125'
+  bill_title: Providing judicial discretion to modify sentences in the interest of
+    justice. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:35:46.066160+00:00'

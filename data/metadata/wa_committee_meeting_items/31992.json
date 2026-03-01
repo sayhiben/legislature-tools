@@ -1,0 +1,80 @@
+{
+  "agenda_id": "31992",
+  "retrieved_at_utc": "2026-03-01T18:27:35.173585+00:00",
+  "row_count": 12,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2474",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning compliance with siting requirements for transitional housing, permanent supportive housing, indoor emergency shelters, and indoor emergency housing. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1468",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning impact fee deferrals."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1510",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing permanent funding for community preservation and development authorities approved through RCW 43.167.060."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1835",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Defining frontier counties."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1987",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the use of moneys from the rural public facilities sales and use tax for affordable workforce housing infrastructure and facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2071",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning residential housing regulations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2252",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing small business establishments in residential zones."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2428",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing cities to voluntarily share certain sales and use tax revenue."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2433",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning administration of the southwest Washington fair by the Lewis county board of county commissioners."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2354",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating an option for impacted taxing districts to provide a portion of their new revenue to support any tax increment area proposed within their jurisdiction and clarifying that a tax increment area must be dissolved when all bond obligations are paid."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2160",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting community and transit-oriented housing development."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2474",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning compliance with siting requirements for transitional housing, permanent supportive housing, indoor emergency shelters, and indoor emergency housing."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5164-32577-24997
+timezone: America/Los_Angeles
+meeting_start: '2025-01-30T13:30:00-08:00'
+sign_in_cutoff: '2025-01-30T12:30:00-08:00'
+stats:
+  total_rows: 1708
+  total_testifying: 23
+  total_not_testifying: 1685
+  total_pro: 1278
+  total_con: 419
+  total_other: 11
+  total_pro_pct: 74.82435597189696
+  total_con_pct: 24.531615925058546
+  total_other_pct: 0.6440281030444965
+source:
+  provider: wa_leg_csi
+  search_query: SB 5164
+  meeting_family_id: '32577'
+  agenda_item_family_id: '162112'
+  agenda_item_id: '24997'
+  agenda_item_description: SB 5402 Financial aid eligibility
+  short_bill_id: SB 5164
+  bill_number: '5164'
+  bill_title: Providing student navigational supports to increase postsecondary enrollment.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:34:34.867724+00:00'

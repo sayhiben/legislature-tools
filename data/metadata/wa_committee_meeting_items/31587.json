@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31587",
+  "retrieved_at_utc": "2026-03-01T18:26:35.919679+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5841",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring individuals convicted of offenses related to driving under the influence to pay financial support to minor children and dependents when the offense results in the death or disability of a parent. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5998",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Timing of eligibility for vacation of nonfelony convictions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5985",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning firearms background check program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5828",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning water rights adjudication commissioners and referees. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5780",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding training opportunities for public defense. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6006",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting victims of human trafficking and sexual abuse. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31715",
+  "retrieved_at_utc": "2026-03-01T18:28:50.720010+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2309",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing the Washington 13 free guarantee."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2374",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing the Washington promise program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2339",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adjusting certification renewal for home care aides and nursing assistants."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2077",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning participation in the Washington guaranteed admissions program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2242",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting sexual assault survivors at institutions of higher education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1338",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning education and vocational programs in state correctional institutions."
+    }
+  ],
+  "schema_version": 1
+}

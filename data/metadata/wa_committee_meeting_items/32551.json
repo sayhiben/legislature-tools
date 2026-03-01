@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32551",
+  "retrieved_at_utc": "2026-03-01T18:26:47.909905+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1001",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning capital projects for the provision of fire protection services. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1011",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a school safety capital grant program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1064",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Eliminating the expiration of the interagency, multijurisdictional system improvement team. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1256",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning products manufactured in the United States for the purposes of public works projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1314",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the early learning facilities grant and loan program. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

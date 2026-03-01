@@ -278,7 +278,7 @@ def test_ensure_voter_registry_schema_executes_create_statement(
         'CREATE INDEX IF NOT EXISTS "voter_registry_canonical_last_idx"' in stmt
         for stmt in statements
     )
-    assert any("SET" in stmt and "canonical_key_strict" in stmt for stmt in statements)
+    assert not any("UPDATE" in stmt and "canonical_key_strict" in stmt for stmt in statements)
 
 
 def test_upsert_vrdb_rows_handles_empty_and_non_empty_payload(

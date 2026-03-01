@@ -173,6 +173,65 @@ def test_sample_baseline_corpus_command_runs(monkeypatch, tmp_path: Path) -> Non
     assert "Baseline corpus sampling complete" in result.stdout
 
 
+def test_sample_baseline_corpus_command_verbose_sets_debug_logging(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    index_json = tmp_path / "index.json"
+    index_csv = tmp_path / "index.csv"
+    csv_out_dir = tmp_path / "raw"
+    metadata_out_dir = tmp_path / "metadata"
+    manifest_out = tmp_path / "manifest.json"
+    captured: dict[str, object] = {}
+
+    def _fake_sample(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {
+            "session_years": [2026, 2025, 2024],
+            "sample_size_requested": 1,
+            "sample_size_selected": 1,
+            "sample_size_downloaded": 1,
+            "sample_size_failed": 0,
+            "index_refreshed": False,
+        }
+
+    def _fake_write(path: Path, manifest: dict[str, object]) -> None:
+        _ = path, manifest
+
+    logging_capture: dict[str, object] = {}
+
+    def _fake_configure_logging(level: str = "INFO") -> None:
+        logging_capture["level"] = level
+
+    monkeypatch.setattr("testifier_audit.cli.sample_unsampled_baseline_corpus", _fake_sample)
+    monkeypatch.setattr("testifier_audit.cli.write_baseline_sample_manifest", _fake_write)
+    monkeypatch.setattr("testifier_audit.cli.configure_logging", _fake_configure_logging)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "sample-baseline-corpus",
+            "--sample-size",
+            "1",
+            "--index-json",
+            str(index_json),
+            "--index-csv",
+            str(index_csv),
+            "--csv-out-dir",
+            str(csv_out_dir),
+            "--metadata-out-dir",
+            str(metadata_out_dir),
+            "--manifest-out",
+            str(manifest_out),
+            "--verbose",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert logging_capture["level"] == "DEBUG"
+
+
 def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Path) -> None:
     extract_path = tmp_path / "extract.txt"
     extract_path.write_text("StateVoterID|FName|LName\n1|JANE|DOE\n", encoding="utf-8")

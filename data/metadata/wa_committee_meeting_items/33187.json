@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33187",
+  "retrieved_at_utc": "2026-03-01T18:27:17.719072+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5021",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning retention of court exhibits. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5486",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning open motion picture captioning in motion picture theaters. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5745",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning legal representation under the involuntary treatment act. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

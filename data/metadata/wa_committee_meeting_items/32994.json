@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32994",
+  "retrieved_at_utc": "2026-03-01T18:29:00.439698+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1167",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Directing the statewide career and technical education task force to consider educational opportunities for careers in maritime professions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1393",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing public school students with opportunities for cultural expression at commencement ceremonies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1648",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying child care provider qualifications. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1827",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the effective delivery and administration of basic education services to justice-involved students. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

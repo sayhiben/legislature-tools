@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5493-32790-25753
+timezone: America/Los_Angeles
+meeting_start: '2025-02-13T08:00:00-08:00'
+sign_in_cutoff: '2025-02-13T07:00:00-08:00'
+stats:
+  total_rows: 67
+  total_testifying: 6
+  total_not_testifying: 61
+  total_pro: 33
+  total_con: 31
+  total_other: 3
+  total_pro_pct: 49.25373134328358
+  total_con_pct: 46.26865671641791
+  total_other_pct: 4.477611940298507
+source:
+  provider: wa_leg_csi
+  search_query: SB 5493
+  meeting_family_id: '32790'
+  agenda_item_family_id: '163722'
+  agenda_item_id: '25753'
+  agenda_item_description: SB 5493 Hospital price transparency
+  short_bill_id: SB 5493
+  bill_number: '5493'
+  bill_title: Concerning hospital price transparency. (Hearing is on the Proposed
+    Substitute.) (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:37:41.296726+00:00'

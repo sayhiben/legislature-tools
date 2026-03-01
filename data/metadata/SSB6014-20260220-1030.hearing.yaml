@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: SSB6014-33982-28188
+timezone: America/Los_Angeles
+meeting_start: '2026-02-20T10:30:00-08:00'
+sign_in_cutoff: '2026-02-20T09:30:00-08:00'
+stats:
+  total_rows: 156
+  total_testifying: 1
+  total_not_testifying: 155
+  total_pro: 41
+  total_con: 115
+  total_other: 0
+  total_pro_pct: 26.282051282051285
+  total_con_pct: 73.71794871794873
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SSB 6014
+  meeting_family_id: '33982'
+  agenda_item_family_id: '170428'
+  agenda_item_id: '28188'
+  agenda_item_description: SSB 6014 Pregnancy accommodations
+  short_bill_id: SSB 6014
+  bill_number: '6014'
+  bill_title: Refining pregnancy-related accommodations by clarifying requirements
+    for written certification and prohibiting disclosure of certain types of identifying
+    personal information
+  committee_name: Labor & Workplace Standards
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:28.280493+00:00'

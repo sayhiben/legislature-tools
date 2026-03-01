@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32581",
+  "retrieved_at_utc": "2026-03-01T18:27:37.195600+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1142",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Standardizing basic training and certification requirements for long-term care workers who provide in-home care for their family members, including spouses or domestic partners."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1036",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding labor trustees to college boards."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1298",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning student athlete insurance."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1278",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the role of students on the governing boards of institutions of higher education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1136",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing student navigational supports to increase postsecondary enrollment."
+    }
+  ],
+  "schema_version": 1
+}

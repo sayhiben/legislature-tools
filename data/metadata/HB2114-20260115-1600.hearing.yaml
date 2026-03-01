@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2114-33557-27112
+timezone: America/Los_Angeles
+meeting_start: '2026-01-15T16:00:00-08:00'
+sign_in_cutoff: '2026-01-15T15:00:00-08:00'
+stats:
+  total_rows: 141
+  total_testifying: 5
+  total_not_testifying: 136
+  total_pro: 139
+  total_con: 1
+  total_other: 1
+  total_pro_pct: 98.58156028368793
+  total_con_pct: 0.7092198581560284
+  total_other_pct: 0.7092198581560284
+source:
+  provider: wa_leg_csi
+  search_query: HB 2114
+  meeting_family_id: '33557'
+  agenda_item_family_id: '167810'
+  agenda_item_id: '27112'
+  agenda_item_description: HB 2114 Defective license plates
+  short_bill_id: HB 2114
+  bill_number: '2114'
+  bill_title: Defective license plates issued by the department of licensing
+  committee_name: Transportation
+  chamber: House
+  downloaded_at: '2026-03-01T18:36:24.340892+00:00'

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1875-32856-25955
+timezone: America/Los_Angeles
+meeting_start: '2025-02-18T10:30:00-08:00'
+sign_in_cutoff: '2025-02-18T09:30:00-08:00'
+stats:
+  total_rows: 935
+  total_testifying: 13
+  total_not_testifying: 922
+  total_pro: 108
+  total_con: 826
+  total_other: 1
+  total_pro_pct: 11.550802139037433
+  total_con_pct: 88.34224598930481
+  total_other_pct: 0.10695187165775401
+source:
+  provider: wa_leg_csi
+  search_query: HB 1875
+  meeting_family_id: '32856'
+  agenda_item_family_id: '164175'
+  agenda_item_id: '25955'
+  agenda_item_description: HB 1875 Sick leave/immigration
+  short_bill_id: HB 1875
+  bill_number: '1875'
+  bill_title: Allowing the use of paid sick leave to prepare for or participate in
+    certain immigration proceedings
+  committee_name: Labor & Workplace Standards
+  chamber: House
+  downloaded_at: '2026-03-01T18:40:08.997817+00:00'

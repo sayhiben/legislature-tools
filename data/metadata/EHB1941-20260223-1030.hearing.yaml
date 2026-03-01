@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: EHB1941-34020-28427
+timezone: America/Los_Angeles
+meeting_start: '2026-02-23T10:30:00-08:00'
+sign_in_cutoff: '2026-02-23T09:30:00-08:00'
+stats:
+  total_rows: 148
+  total_testifying: 5
+  total_not_testifying: 143
+  total_pro: 2
+  total_con: 140
+  total_other: 6
+  total_pro_pct: 1.3513513513513513
+  total_con_pct: 94.5945945945946
+  total_other_pct: 4.054054054054054
+source:
+  provider: wa_leg_csi
+  search_query: EHB 1941
+  meeting_family_id: '34020'
+  agenda_item_family_id: '171097'
+  agenda_item_id: '28427'
+  agenda_item_description: EHB 1941 Agricultural coops/cannabis
+  short_bill_id: EHB 1941
+  bill_number: '1941'
+  bill_title: Authorizing agricultural cooperatives for cannabis producers. (Hearing
+    is on the Proposed Striking Amendment.) (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:25.202583+00:00'

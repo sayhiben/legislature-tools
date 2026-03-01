@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32490",
+  "retrieved_at_utc": "2026-03-01T18:25:44.642027+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1293",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning litter. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1290",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving climate resiliency through the development of a water quality trading program for recipients of national pollutant discharge elimination system general permits. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1150",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving Washington's solid waste management outcomes. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

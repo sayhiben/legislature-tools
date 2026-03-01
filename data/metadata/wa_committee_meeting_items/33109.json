@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33109",
+  "retrieved_at_utc": "2026-03-01T18:26:39.918273+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1113",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning accountability and access to services for individuals charged with a misdemeanor. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1133",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning sexually violent predators. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1829",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning tribal warrants. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1733",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing the reimbursement cap for moving and relocation expenses incurred by persons affected by agency displacements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1574",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting access to life-saving care and substance use services. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

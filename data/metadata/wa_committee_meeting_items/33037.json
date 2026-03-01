@@ -1,0 +1,74 @@
+{
+  "agenda_id": "33037",
+  "retrieved_at_utc": "2026-03-01T18:28:19.304816+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1012",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing the women's commission to solicit gifts, grants, and endowments from public or private sources."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1013",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning exemption of certain personnel of the department of social and health services from civil service."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1222",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning public inspection and copying of proprietary financial and security information submitted to or obtained by the gambling commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1372",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying provisions on joint legislative audit and review committee studies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1759",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating the twelfth day of December as the day of the 12s."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1628",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the fire service policy board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1606",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning state employee access to peer-reviewed journals."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1631",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing the state marine forest."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1573",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Revising the period in which the oath of office must be taken for elective offices of counties, cities, towns, and special purpose districts. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1102",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing support and services for veterans. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1934",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the disclosure of information pertaining to complainants, accusers, and witnesses in an employment investigation. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

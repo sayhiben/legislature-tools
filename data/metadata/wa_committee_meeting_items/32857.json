@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32857",
+  "retrieved_at_utc": "2026-03-01T18:27:34.466665+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1533",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing a specialty electrician to continue working under a valid specialty certificate of competency while enrolled in a journey level apprenticeship program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1672",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing technology used by employers in the workplace."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1747",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding protections for applicants and employees under the Washington fair chance act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1788",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workers' compensation benefits."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1821",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding the definition of \"interested party\" for the purposes of prevailing wage laws."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1875",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing the use of paid sick leave to prepare for or participate in certain immigration proceedings."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1722",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reviewing state restrictions affecting students participating in secondary career and technical education programs and other state-approved career pathways."
+    }
+  ],
+  "schema_version": 1
+}

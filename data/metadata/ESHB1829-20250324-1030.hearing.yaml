@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: ESHB1829-33109-26659
+timezone: America/Los_Angeles
+meeting_start: '2025-03-24T10:30:00-07:00'
+sign_in_cutoff: '2025-03-24T09:30:00-07:00'
+stats:
+  total_rows: 66
+  total_testifying: 3
+  total_not_testifying: 63
+  total_pro: 4
+  total_con: 60
+  total_other: 2
+  total_pro_pct: 6.0606060606060606
+  total_con_pct: 90.9090909090909
+  total_other_pct: 3.0303030303030303
+source:
+  provider: wa_leg_csi
+  search_query: ESHB 1829
+  meeting_family_id: '33109'
+  agenda_item_family_id: '165992'
+  agenda_item_id: '26659'
+  agenda_item_description: ESHB 1829 Tribal warrants
+  short_bill_id: ESHB 1829
+  bill_number: '1829'
+  bill_title: Concerning tribal warrants. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:01.498999+00:00'

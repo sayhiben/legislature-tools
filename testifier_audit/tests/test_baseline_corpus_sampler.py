@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -798,3 +799,118 @@ def test_sample_unsampled_baseline_corpus_treats_empty_items_cache_as_cache_hit(
     assert manifest["sample_size_selected"] == 0
     assert manifest["selection_stats"]["meeting_items_cache_hits"] == 1
     assert manifest["selection_stats"]["meeting_items_cache_misses"] == 0
+
+
+def test_sample_unsampled_baseline_corpus_emits_progress_logging(
+    monkeypatch,
+    tmp_path: Path,
+    caplog,
+) -> None:
+    index_path = tmp_path / "meetings_cache.json"
+    index_csv = tmp_path / "legacy.csv"
+    items_cache_dir = tmp_path / "meeting_items_cache"
+    csv_out_dir = tmp_path / "raw"
+    metadata_out_dir = tmp_path / "metadata"
+    manifest_path = tmp_path / "manifest.json"
+    meetings_rows = [
+        {
+            "agenda_id": "900",
+            "meeting_date": "2026-02-20T10:30:00",
+            "revised_date": "2026-02-20T11:00:00",
+            "agency": "Senate",
+            "committee_name": "Transportation",
+        }
+    ]
+    index_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "retrieved_at_utc": datetime.now(tz=timezone.utc).isoformat(),
+                "rows": meetings_rows,
+            }
+        ),
+        encoding="utf-8",
+    )
+    items_cache_dir.mkdir(parents=True, exist_ok=True)
+    (items_cache_dir / "900.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "rows": [
+                    {
+                        "agenda_item_id": "901",
+                        "bill_id": "SB 9000",
+                        "item_description": "logging candidate",
+                        "hearing_type_description": "Public Hearing",
+                    }
+                ],
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    def _fake_download(**kwargs: object) -> CSIDownloadResult:
+        agenda_item_id = str(kwargs["agenda_item_id"])
+        meeting_start = kwargs["meeting_start"]
+        assert isinstance(meeting_start, datetime)
+        csv_path = Path(str(kwargs["csv_out_dir"])) / f"{agenda_item_id}.csv"
+        metadata_path = Path(str(kwargs["metadata_out_dir"])) / f"{agenda_item_id}.hearing.yaml"
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        csv_path.write_text("Group,Name,Organization,Position,Time Signed In\n", encoding="utf-8")
+        metadata_path.write_text(
+            yaml.safe_dump(
+                {
+                    "schema_version": 1,
+                    "source": {
+                        "meeting_family_id": str(kwargs["meeting_family_id"]),
+                        "agenda_item_id": agenda_item_id,
+                    },
+                },
+                sort_keys=False,
+                allow_unicode=False,
+            ),
+            encoding="utf-8",
+        )
+        return CSIDownloadResult(
+            search_query=str(kwargs["bill_query"]),
+            csv_path=csv_path,
+            metadata_path=metadata_path,
+            short_bill_id=str(kwargs["short_bill_id"]),
+            bill_title=str(kwargs.get("bill_title") or ""),
+            meeting_family_id=str(kwargs["meeting_family_id"]),
+            agenda_item_family_id=str(kwargs.get("agenda_item_family_id") or ""),
+            agenda_item_id=agenda_item_id,
+            meeting_start=meeting_start,
+            testifying_rows=1,
+            not_testifying_rows=0,
+        )
+
+    monkeypatch.setattr(
+        "testifier_audit.io.baseline_corpus_sampler.download_csi_testifier_csv_by_agenda_item",
+        _fake_download,
+    )
+    caplog.set_level(logging.INFO)
+
+    manifest = sample_unsampled_baseline_corpus(
+        sample_size=1,
+        session_count=1,
+        index_json_path=index_path,
+        index_csv_path=index_csv,
+        meeting_items_cache_dir=items_cache_dir,
+        csv_out_dir=csv_out_dir,
+        metadata_out_dir=metadata_out_dir,
+        manifest_path=manifest_path,
+        refresh_index=False,
+        seed=31,
+        rate_limit_seconds=0.0,
+        reference_date=date(2026, 2, 25),
+    )
+
+    assert manifest["sample_size_downloaded"] == 1
+    log_text = "\n".join(record.getMessage() for record in caplog.records)
+    assert "Baseline sampling run start requested=1" in log_text
+    assert "Evaluating meeting 1/1 agenda_id=900" in log_text
+    assert "Selected candidate 1/1 agenda_id=900 agenda_item_id=901 bill_id=SB 9000" in log_text
+    assert "Download success candidate 1/1 agenda_id=900 agenda_item_id=901 total_rows=1" in log_text

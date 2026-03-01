@@ -1,0 +1,26 @@
+{
+  "agenda_id": "31535",
+  "retrieved_at_utc": "2026-03-01T18:29:14.040389+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5777",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning unemployment insurance benefits for striking or lockout workers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5794",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning architecture licensing examinations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5808",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Granting interest arbitration to certain public safety telecommunicators. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

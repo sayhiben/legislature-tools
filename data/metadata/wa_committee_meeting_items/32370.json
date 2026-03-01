@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32370",
+  "retrieved_at_utc": "2026-03-01T18:29:08.489513+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1144",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding an additional superior court judge in Skagit county. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1014",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Implementing recommendations of the 2023 child support schedule work group. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1218",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning persons referred for competency evaluation and restoration services. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

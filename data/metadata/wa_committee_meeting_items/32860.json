@@ -1,0 +1,80 @@
+{
+  "agenda_id": "32860",
+  "retrieved_at_utc": "2026-03-01T18:26:11.713034+00:00",
+  "row_count": 12,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1096",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing housing options through lot splitting."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1119",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning supervision compliance credit."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1131",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning clemency and pardons."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1154",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring environmental and public health protection from solid waste handling facility operations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1177",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the child welfare housing assistance program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1195",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning compliance with siting, development permit processes and standards, and requirements for permanent supportive housing, transitional housing, indoor emergency housing, or indoor emergency shelters."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1272",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the program to address complex cases of children in crisis."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1275",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing department authority to ensure payment is received from the self-insured employer after a self-insured group or municipal employer has their self-insurer certification withdrawn."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1339",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Shifting general elections for local governments to even-numbered years to increase voter participation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1351",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adjusting age requirements for accessing the early childhood education and assistance program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1473",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Making expenditures from the budget stabilization account for declared catastrophic events."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1552",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the fee on real estate broker licenses to fund the Washington center for real estate research and adjusting the fee to account for inflation."
+    }
+  ],
+  "schema_version": 1
+}

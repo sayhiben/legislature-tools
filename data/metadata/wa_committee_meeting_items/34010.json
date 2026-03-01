@@ -1,0 +1,128 @@
+{
+  "agenda_id": "34010",
+  "retrieved_at_utc": "2026-03-01T18:28:40.650579+00:00",
+  "row_count": 20,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2521",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning firearms background check. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2475",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning language accessible public programs, activities, and services conducted, operated, or administered by state agencies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2479",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the recovery of unpaid wages. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E3SHB 1960",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Encouraging renewable energy in Washington through tax policy and investment in local communities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5932",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing certainty for the development of low-to-zero carbon alternative jet fuel production in Washington state. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2238",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning statewide food security. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1903",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a statewide low-income energy assistance program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2416",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning fair treatment of waste to energy facilities under the climate commitment act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2515",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing emerging large energy use facilities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2140",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Exempting land classified under current use that is sold or transferred to a governmental entity from additional tax in certain circumstances. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2590",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Exempting limited equity cooperatives from the Washington uniform common interest ownership act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2508",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying the scope of authority of the office of independent investigations to align with current operations and practices and to include public disclosure requirements and protect privacy. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2249",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Amending the state civil service statutes to include Washington technology solutions network and security systems employees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2333",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting elected officials and candidates, executive state officers, election officials, and criminal justice participants against threats and incidents of political violence. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1570",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning collective bargaining for certain employees who are enrolled in academic programs at public institutions of higher education. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1796",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning school districts' authority to contract indebtedness for school construction. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1170",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Informing users when content is developed or modified by artificial intelligence. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E3SHB 1710",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning compliance with the Washington voting rights act of 2018. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1833",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating an artificial intelligence grant program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2636",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring reviews of the performance, operations, and funding of the state\u2019s public education system. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32665",
+  "retrieved_at_utc": "2026-03-01T18:25:13.542728+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5265",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding minimum requirements for electrical inspectors to include certain out-of-state experience. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5528",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the installation of transportation electrification infrastructure. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5090",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating the professional engineers' registration act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5525",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning employment loss due to businesses closing or mass layoffs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5459",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning call center retention. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5378",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding access to grants within the paid family and medical leave insurance program for small school districts. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

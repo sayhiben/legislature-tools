@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33176",
+  "retrieved_at_utc": "2026-03-01T18:26:01.634733+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5014",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning election security. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5106",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Celebrating Eid al-Fitr and Eid al-Adha."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5325",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating the state cactus."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8008",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Rescinding prior applications for a constitutional convention to propose amendments to the Constitution of the United States."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5102",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a public records exemption for the proprietary information of public risk pools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5049",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the public records exemptions accountability committee."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5414",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring social equity impact analysis in performance audits and legislative public hearings thereon."
+    }
+  ],
+  "schema_version": 1
+}

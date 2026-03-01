@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31773",
+  "retrieved_at_utc": "2026-03-01T18:26:49.964399+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1899",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Facilitating reconstruction of communities damaged or destroyed by wildfires. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2052",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing the availability of baby diaper changing stations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2252",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Allowing small business establishments in residential zones. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2296",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the comprehensive plan revision schedule for select local governments. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2394",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Streamlining certain decisions pertaining to the development or extension of a trail or path from the state environmental policy act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2403",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting cats and dogs by requiring kennels to meet certain fire safety standards. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

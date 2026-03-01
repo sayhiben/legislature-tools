@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32460",
+  "retrieved_at_utc": "2026-03-01T18:28:55.703790+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1222",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning public inspection and copying of proprietary financial and security information submitted to or obtained by the gambling commission. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1339",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Shifting general elections for local governments to even-numbered years to increase voter participation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1372",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying provisions on joint legislative audit and review committee studies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1381",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving meaningful access to elections by increasing language assistance. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

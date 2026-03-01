@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5466-32611-24979
+timezone: America/Los_Angeles
+meeting_start: '2025-01-31T10:30:00-08:00'
+sign_in_cutoff: '2025-01-31T09:30:00-08:00'
+stats:
+  total_rows: 870
+  total_testifying: 19
+  total_not_testifying: 851
+  total_pro: 337
+  total_con: 523
+  total_other: 10
+  total_pro_pct: 38.735632183908045
+  total_con_pct: 60.11494252873564
+  total_other_pct: 1.1494252873563218
+source:
+  provider: wa_leg_csi
+  search_query: SB 5466
+  meeting_family_id: '32611'
+  agenda_item_family_id: '162279'
+  agenda_item_id: '24979'
+  agenda_item_description: SB 5466 Electric transmission system
+  short_bill_id: SB 5466
+  bill_number: '5466'
+  bill_title: Improving reliability and capacity of the electric transmission system
+    in Washington state. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:35:32.713593+00:00'

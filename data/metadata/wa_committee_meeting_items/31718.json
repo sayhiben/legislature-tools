@@ -1,0 +1,56 @@
+{
+  "agenda_id": "31718",
+  "retrieved_at_utc": "2026-03-01T18:26:23.783273+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1985",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing a benefit increase to certain retirees of the public employees' retirement system plan 1 and the teachers' retirement system plan 1."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2013",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Paying state retirement benefits until the end of the month in which the retiree or beneficiary dies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2170",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Making expenditures from the budget stabilization account for declared catastrophic events."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1078",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning urban forest management ordinances. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1531",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Promoting economic development of the aerospace industry through a committee empowered to advise on industry issues other than the siting of commercial airports. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1969",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding the definition of family member for individual providers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2000",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Renewing Washington's international leadership. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1075",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding eligibility for the working families' tax credit to everyone age 18 and older. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

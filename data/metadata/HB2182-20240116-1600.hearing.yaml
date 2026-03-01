@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2182-31620-23227
+timezone: America/Los_Angeles
+meeting_start: '2024-01-16T16:00:00-08:00'
+sign_in_cutoff: '2024-01-16T15:00:00-08:00'
+stats:
+  total_rows: 18
+  total_testifying: 4
+  total_not_testifying: 14
+  total_pro: 12
+  total_con: 5
+  total_other: 1
+  total_pro_pct: 66.66666666666666
+  total_con_pct: 27.77777777777778
+  total_other_pct: 5.555555555555555
+source:
+  provider: wa_leg_csi
+  search_query: HB 2182
+  meeting_family_id: '31620'
+  agenda_item_family_id: '156417'
+  agenda_item_id: '23227'
+  agenda_item_description: HB 2182 Regulated substance use data
+  short_bill_id: HB 2182
+  bill_number: '2182'
+  bill_title: Creating a data dashboard to track use of regulated substances. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:39:18.470977+00:00'

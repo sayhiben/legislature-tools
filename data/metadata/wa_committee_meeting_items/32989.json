@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32989",
+  "retrieved_at_utc": "2026-03-01T18:26:22.755149+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5000",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adopting the evergreen state as the state nickname. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5017",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adopting national standards for uniformed and overseas civilian voting, including conforming amendments to existing statute. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5077",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning expansion of voter registration services by government agencies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5106",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Celebrating Eid al-Fitr and Eid al-Adha."
+    }
+  ],
+  "schema_version": 1
+}

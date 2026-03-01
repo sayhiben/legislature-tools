@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: E3SHB1710-34010-28553
+timezone: America/Los_Angeles
+meeting_start: '2026-02-27T14:30:00-08:00'
+sign_in_cutoff: '2026-02-27T13:30:00-08:00'
+stats:
+  total_rows: 1098
+  total_testifying: 3
+  total_not_testifying: 1095
+  total_pro: 193
+  total_con: 903
+  total_other: 2
+  total_pro_pct: 17.577413479052822
+  total_con_pct: 82.24043715846994
+  total_other_pct: 0.18214936247723132
+source:
+  provider: wa_leg_csi
+  search_query: HB 1710
+  meeting_family_id: '34010'
+  agenda_item_family_id: '171398'
+  agenda_item_id: '28553'
+  agenda_item_description: E3SHB 1710 Voting rights act compliance
+  short_bill_id: E3SHB 1710
+  bill_number: '1710'
+  bill_title: Compliance with the Washington voting rights act of 2018
+  committee_name: Ways & Means
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:40:25.192283+00:00'

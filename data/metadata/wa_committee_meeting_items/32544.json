@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32544",
+  "retrieved_at_utc": "2026-03-01T18:25:54.628853+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1153",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning urban forest management ordinances. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1389",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the expiration date for reporting requirements on timber purchases. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1048",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning a rangeland fire protection association pilot project."
+    }
+  ],
+  "schema_version": 1
+}

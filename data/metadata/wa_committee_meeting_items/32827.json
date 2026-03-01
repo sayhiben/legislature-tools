@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32827",
+  "retrieved_at_utc": "2026-03-01T18:28:02.544887+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1499",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning legal financial obligations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1207",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning superior court clerk fees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1460",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning protection order hope cards."
+    }
+  ],
+  "schema_version": 1
+}

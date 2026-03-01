@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS voter_registry (
   name_suffix TEXT,
   birth_year TEXT,
   status_code TEXT,
+  reg_city TEXT NOT NULL DEFAULT '',
+  county_code TEXT NOT NULL DEFAULT '',
   canonical_first TEXT NOT NULL,
   canonical_last TEXT NOT NULL,
   canonical_name TEXT NOT NULL,
@@ -61,12 +63,20 @@ CREATE TABLE IF NOT EXISTS voter_registry (
   collision_key_strict TEXT NOT NULL DEFAULT '',
   collision_key_medium TEXT NOT NULL DEFAULT '',
   collision_key_loose TEXT NOT NULL DEFAULT '',
+  full_name_key TEXT NOT NULL DEFAULT '',
+  first_name_key TEXT NOT NULL DEFAULT '',
+  last_name_key TEXT NOT NULL DEFAULT '',
+  name_normalized TEXT NOT NULL DEFAULT '',
+  normalization_version TEXT NOT NULL DEFAULT '',
+  normalization_version_hash TEXT NOT NULL DEFAULT '',
   source_file TEXT NOT NULL,
   source_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS reg_city TEXT NOT NULL DEFAULT '';
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS county_code TEXT NOT NULL DEFAULT '';
 ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS canonical_middle_initial TEXT NOT NULL DEFAULT '';
 ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS canonical_suffix TEXT NOT NULL DEFAULT '';
 ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS canonical_key_strict TEXT NOT NULL DEFAULT '';
@@ -76,6 +86,12 @@ ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS canonical_key_nickname TEXT 
 ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS collision_key_strict TEXT NOT NULL DEFAULT '';
 ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS collision_key_medium TEXT NOT NULL DEFAULT '';
 ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS collision_key_loose TEXT NOT NULL DEFAULT '';
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS full_name_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS first_name_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS last_name_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS name_normalized TEXT NOT NULL DEFAULT '';
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS normalization_version TEXT NOT NULL DEFAULT '';
+ALTER TABLE voter_registry ADD COLUMN IF NOT EXISTS normalization_version_hash TEXT NOT NULL DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS voter_registry_canonical_name_idx
   ON voter_registry (canonical_name);
@@ -83,6 +99,10 @@ CREATE INDEX IF NOT EXISTS voter_registry_canonical_last_idx
   ON voter_registry (canonical_last);
 CREATE INDEX IF NOT EXISTS voter_registry_status_code_idx
   ON voter_registry (status_code);
+CREATE INDEX IF NOT EXISTS voter_registry_county_code_idx
+  ON voter_registry (county_code);
+CREATE INDEX IF NOT EXISTS voter_registry_reg_city_idx
+  ON voter_registry (reg_city);
 CREATE INDEX IF NOT EXISTS voter_registry_canonical_key_strict_idx
   ON voter_registry (canonical_key_strict);
 CREATE INDEX IF NOT EXISTS voter_registry_canonical_key_medium_idx
@@ -97,65 +117,12 @@ CREATE INDEX IF NOT EXISTS voter_registry_collision_key_medium_idx
   ON voter_registry (collision_key_medium);
 CREATE INDEX IF NOT EXISTS voter_registry_collision_key_loose_idx
   ON voter_registry (collision_key_loose);
-
-UPDATE voter_registry
-SET
-  canonical_middle_initial = COALESCE(
-    NULLIF(TRIM(canonical_middle_initial), ''),
-    LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
-  ),
-  canonical_suffix = COALESCE(
-    NULLIF(TRIM(canonical_suffix), ''),
-    COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
-  ),
-  canonical_key_medium = COALESCE(
-    NULLIF(TRIM(canonical_key_medium), ''),
-    COALESCE(canonical_name, '')
-  ),
-  canonical_key_loose = COALESCE(
-    NULLIF(TRIM(canonical_key_loose), ''),
-    COALESCE(canonical_last, '') || '|' || LEFT(COALESCE(canonical_first, ''), 1)
-  ),
-  canonical_key_nickname = COALESCE(
-    NULLIF(TRIM(canonical_key_nickname), ''),
-    COALESCE(canonical_name, '')
-  ),
-  collision_key_medium = COALESCE(
-    NULLIF(TRIM(collision_key_medium), ''),
-    COALESCE(canonical_key_medium, '')
-  ),
-  collision_key_loose = COALESCE(
-    NULLIF(TRIM(collision_key_loose), ''),
-    COALESCE(canonical_key_loose, '')
-  ),
-  collision_key_strict = COALESCE(
-    NULLIF(TRIM(collision_key_strict), ''),
-    COALESCE(canonical_key_strict, '')
-  ),
-  canonical_key_strict = COALESCE(
-    NULLIF(TRIM(canonical_key_strict), ''),
-    COALESCE(canonical_last, '')
-    || '|'
-    || COALESCE(canonical_first, '')
-    || '|'
-    || COALESCE(
-      NULLIF(TRIM(canonical_middle_initial), ''),
-      LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
-    )
-    || '|'
-    || COALESCE(
-      NULLIF(TRIM(canonical_suffix), ''),
-      COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
-    )
-  )
-WHERE
-  canonical_key_medium = ''
-  OR canonical_key_loose = ''
-  OR canonical_key_nickname = ''
-  OR canonical_key_strict = ''
-  OR collision_key_medium = ''
-  OR collision_key_loose = ''
-  OR collision_key_strict = '';
+CREATE INDEX IF NOT EXISTS voter_registry_full_name_key_idx
+  ON voter_registry (full_name_key);
+CREATE INDEX IF NOT EXISTS voter_registry_first_name_key_idx
+  ON voter_registry (first_name_key);
+CREATE INDEX IF NOT EXISTS voter_registry_last_name_key_idx
+  ON voter_registry (last_name_key);
 
 CREATE TABLE IF NOT EXISTS data_imports (
   import_id BIGSERIAL PRIMARY KEY,

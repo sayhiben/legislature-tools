@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2385-31830-23753
+timezone: America/Los_Angeles
+meeting_start: '2024-01-31T16:00:00-08:00'
+sign_in_cutoff: '2024-01-31T15:00:00-08:00'
+stats:
+  total_rows: 557
+  total_testifying: 10
+  total_not_testifying: 547
+  total_pro: 12
+  total_con: 544
+  total_other: 1
+  total_pro_pct: 2.154398563734291
+  total_con_pct: 97.66606822262118
+  total_other_pct: 0.17953321364452424
+source:
+  provider: wa_leg_csi
+  search_query: HB 2385
+  meeting_family_id: '31830'
+  agenda_item_family_id: '158341'
+  agenda_item_id: '23753'
+  agenda_item_description: HB 2485 Speed safety camera pilot
+  short_bill_id: HB 2385
+  bill_number: '2385'
+  bill_title: Concerning fuel purchasing for the state ferry system.
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:35:03.346365+00:00'

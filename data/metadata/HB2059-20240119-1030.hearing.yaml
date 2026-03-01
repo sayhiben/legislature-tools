@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2059-31630-23092
+timezone: America/Los_Angeles
+meeting_start: '2024-01-19T10:30:00-08:00'
+sign_in_cutoff: '2024-01-19T09:30:00-08:00'
+stats:
+  total_rows: 18
+  total_testifying: 4
+  total_not_testifying: 14
+  total_pro: 17
+  total_con: 0
+  total_other: 1
+  total_pro_pct: 94.44444444444444
+  total_con_pct: 0.0
+  total_other_pct: 5.555555555555555
+source:
+  provider: wa_leg_csi
+  search_query: HB 2059
+  meeting_family_id: '31630'
+  agenda_item_family_id: '156754'
+  agenda_item_id: '23092'
+  agenda_item_description: HB 2059 Sale of halal foods
+  short_bill_id: HB 2059
+  bill_number: '2059'
+  bill_title: Concerning the sale of halal foods. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:03.628065+00:00'

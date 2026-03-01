@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32495",
+  "retrieved_at_utc": "2026-03-01T18:25:29.634593+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1271",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Permitting early deployment of state fire service resources. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1360",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning advancement of quantum economic development. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

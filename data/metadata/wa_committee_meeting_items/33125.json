@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33125",
+  "retrieved_at_utc": "2026-03-01T18:28:14.322214+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1819",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing transmission capacity. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1514",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Encouraging the deployment of low carbon thermal energy networks. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1715",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regarding the costs of compliance with the state energy performance standard. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1857",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning asbestos-containing building materials. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1483",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting the servicing and right to repair of certain products with digital electronics in a secure and reliable manner to increase access and affordability for Washingtonians. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

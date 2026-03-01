@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1409-32559-25109
+timezone: America/Los_Angeles
+meeting_start: '2025-01-28T16:00:00-08:00'
+sign_in_cutoff: '2025-01-28T15:00:00-08:00'
+stats:
+  total_rows: 1123
+  total_testifying: 21
+  total_not_testifying: 1102
+  total_pro: 289
+  total_con: 826
+  total_other: 8
+  total_pro_pct: 25.734639358860196
+  total_con_pct: 73.55298308103295
+  total_other_pct: 0.7123775601068566
+source:
+  provider: wa_leg_csi
+  search_query: HB 1409
+  meeting_family_id: '32559'
+  agenda_item_family_id: '162203'
+  agenda_item_id: '25109'
+  agenda_item_description: HB 1409 Clean fuels program
+  short_bill_id: HB 1409
+  bill_number: '1409'
+  bill_title: Concerning the clean fuels program. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:34:48.884421+00:00'

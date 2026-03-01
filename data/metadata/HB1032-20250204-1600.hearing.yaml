@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1032-32655-25405
+timezone: America/Los_Angeles
+meeting_start: '2025-02-04T16:00:00-08:00'
+sign_in_cutoff: '2025-02-04T15:00:00-08:00'
+stats:
+  total_rows: 2169
+  total_testifying: 25
+  total_not_testifying: 2144
+  total_pro: 1434
+  total_con: 733
+  total_other: 2
+  total_pro_pct: 66.1134163208852
+  total_con_pct: 33.79437528815122
+  total_other_pct: 0.09220839096357768
+source:
+  provider: wa_leg_csi
+  search_query: HB 1032
+  meeting_family_id: '32655'
+  agenda_item_family_id: '162510'
+  agenda_item_id: '25405'
+  agenda_item_description: HB 1032 School district elections
+  short_bill_id: HB 1032
+  bill_number: '1032'
+  bill_title: Concerning school district elections. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:31:44.785967+00:00'

@@ -1,0 +1,62 @@
+{
+  "agenda_id": "33789",
+  "retrieved_at_utc": "2026-03-01T18:28:36.643489+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5977",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring publication of child near fatality reviews. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6184",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating the office of homeless youth program provisions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5681",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the age at which clients of the developmental disabilities administration may receive employment and community inclusion services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5917",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving access to abortion medications."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5942",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the department of children, youth, and families accountability board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6024",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Streamlining monitoring and oversight activities related to community residential service business providers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6036",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Exempting certain former foster care providers from adult family home licensure."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6080",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning contracts between the United States and county and municipal jails for committing or confining individuals in federal custody."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6085",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the transparency in expenditures from the institutional welfare account."
+    }
+  ],
+  "schema_version": 1
+}

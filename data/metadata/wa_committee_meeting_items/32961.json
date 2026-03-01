@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32961",
+  "retrieved_at_utc": "2026-03-01T18:27:46.751342+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5081",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Revising the provisions around unattended motor vehicles. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5281",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Changing the vessel length requirement in obtaining nonresident vessel permits. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5462",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing the current backlog of vehicle inspections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5556",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modernizing the adopt-a-highway program to improve its ability to meet its original purpose within existing fiscal limitations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5595",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing shared streets. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSJM 8000",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the naming of Martin Luther King, Jr. Way. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSJM 8003",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requesting the transportation commission to designate the overpass over Interstate 82 as the Washington state patrol trooper Charles Frank Noble, Jr. memorial overpass. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

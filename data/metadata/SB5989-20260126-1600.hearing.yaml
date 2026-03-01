@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5989-33738-27584
+timezone: America/Los_Angeles
+meeting_start: '2026-01-26T16:00:00-08:00'
+sign_in_cutoff: '2026-01-26T15:00:00-08:00'
+stats:
+  total_rows: 68
+  total_testifying: 4
+  total_not_testifying: 64
+  total_pro: 61
+  total_con: 7
+  total_other: 0
+  total_pro_pct: 89.70588235294117
+  total_con_pct: 10.294117647058822
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5989
+  meeting_family_id: '33738'
+  agenda_item_family_id: '169118'
+  agenda_item_id: '27584'
+  agenda_item_description: SB 5989 Aircraft fuel tax distrib.
+  short_bill_id: SB 5989
+  bill_number: '5989'
+  bill_title: Distribution of aircraft fuel tax revenue
+  committee_name: Ways & Means
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:35:12.634664+00:00'

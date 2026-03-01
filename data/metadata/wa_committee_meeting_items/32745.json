@@ -1,0 +1,56 @@
+{
+  "agenda_id": "32745",
+  "retrieved_at_utc": "2026-03-01T18:27:02.888768+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5659",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Eliminating each local government's proportional share of Washington's housing shortage. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5661",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating consistency in housing. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5678",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Preparing for revisions to the residential landlord-tenant act by creating a task force and establishing a moratorium on new residential landlord-tenant regulations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5679",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding eligibility to utilize the multifamily tax exemption program to all counties required or choosing to plan under RCW 36.70A.040. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5686",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding and funding the foreclosure mediation program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5469",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Prohibiting algorithmic rent fixing and noncompete agreements in the rental housing market."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5580",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the registration of certain corporations and trusts that own single-family homes and condominium units."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5587",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning affordable housing development in counties not closing the gap between estimated existing housing units within the county and existing housing needs."
+    }
+  ],
+  "schema_version": 1
+}

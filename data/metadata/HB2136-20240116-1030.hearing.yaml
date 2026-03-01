@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2136-31663-23201
+timezone: America/Los_Angeles
+meeting_start: '2024-01-16T10:30:00-08:00'
+sign_in_cutoff: '2024-01-16T09:30:00-08:00'
+stats:
+  total_rows: 35
+  total_testifying: 6
+  total_not_testifying: 29
+  total_pro: 30
+  total_con: 1
+  total_other: 4
+  total_pro_pct: 85.71428571428571
+  total_con_pct: 2.857142857142857
+  total_other_pct: 11.428571428571429
+source:
+  provider: wa_leg_csi
+  search_query: HB 2136
+  meeting_family_id: '31663'
+  agenda_item_family_id: '156585'
+  agenda_item_id: '23201'
+  agenda_item_description: HB 2136 Prevailing wage sanctions
+  short_bill_id: HB 2136
+  bill_number: '2136'
+  bill_title: Concerning prevailing wage sanctions, penalties, and debarment. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:42:20.427713+00:00'

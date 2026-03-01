@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2632-33955-28349
+timezone: America/Los_Angeles
+meeting_start: '2026-02-20T10:30:00-08:00'
+sign_in_cutoff: '2026-02-20T09:30:00-08:00'
+stats:
+  total_rows: 1037
+  total_testifying: 4
+  total_not_testifying: 1033
+  total_pro: 176
+  total_con: 861
+  total_other: 0
+  total_pro_pct: 16.972034715525556
+  total_con_pct: 83.02796528447445
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 2632
+  meeting_family_id: '33955'
+  agenda_item_family_id: '170991'
+  agenda_item_id: '28349'
+  agenda_item_description: HB 2632 Noncitizen terminology
+  short_bill_id: HB 2632
+  bill_number: '2632'
+  bill_title: Modernizing terminology when referring to individuals who are not citizens
+    or nationals of the United States
+  committee_name: State Government, Tribal Affairs & Elections
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:32:25.036910+00:00'

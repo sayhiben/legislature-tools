@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33365",
+  "retrieved_at_utc": "2026-03-01T18:27:19.406265+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5444",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning special license plates and personalized license plates."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5801",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning transportation resources."
+    }
+  ],
+  "schema_version": 1
+}

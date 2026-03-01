@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HJM4012-33849-27966
+timezone: America/Los_Angeles
+meeting_start: '2026-02-03T10:30:00-08:00'
+sign_in_cutoff: '2026-02-03T09:30:00-08:00'
+stats:
+  total_rows: 367
+  total_testifying: 2
+  total_not_testifying: 365
+  total_pro: 361
+  total_con: 5
+  total_other: 1
+  total_pro_pct: 98.36512261580381
+  total_con_pct: 1.3623978201634876
+  total_other_pct: 0.2724795640326975
+source:
+  provider: wa_leg_csi
+  search_query: HJM 4012
+  meeting_family_id: '33849'
+  agenda_item_family_id: '169363'
+  agenda_item_id: '27966'
+  agenda_item_description: HJM 4012 Combat-injured veterans
+  short_bill_id: HJM 4012
+  bill_number: '4012'
+  bill_title: Combat-injured veterans
+  committee_name: Technology, Economic Development, & Veterans
+  chamber: House
+  downloaded_at: '2026-03-01T18:40:38.293139+00:00'

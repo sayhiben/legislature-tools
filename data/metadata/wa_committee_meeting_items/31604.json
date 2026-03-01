@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31604",
+  "retrieved_at_utc": "2026-03-01T18:27:48.490589+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1896",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Simplifying the funding provisions of the statewide tourism marketing account. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1983",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the criminal justice treatment account. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2170",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Making expenditures from the budget stabilization account for declared catastrophic events. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2200",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning accounts. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1368",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring and funding the purchase of zero emission school buses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1949",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Including in the public safety employees' retirement system specified competency restoration workers at department of social and health services institutional and residential sites that serve civilly committed residents or serve patients under not guilty by reason of insanity findings."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1131-32367-24637
+timezone: America/Los_Angeles
+meeting_start: '2025-01-16T08:30:00-08:00'
+sign_in_cutoff: '2025-01-16T07:30:00-08:00'
+stats:
+  total_rows: 116
+  total_testifying: 6
+  total_not_testifying: 110
+  total_pro: 106
+  total_con: 9
+  total_other: 1
+  total_pro_pct: 91.37931034482759
+  total_con_pct: 7.758620689655173
+  total_other_pct: 0.8620689655172413
+source:
+  provider: wa_leg_csi
+  search_query: HB 1131
+  meeting_family_id: '32367'
+  agenda_item_family_id: '161158'
+  agenda_item_id: '24637'
+  agenda_item_description: HB 1131 Clemency and pardons
+  short_bill_id: HB 1131
+  bill_number: '1131'
+  bill_title: Clemency and pardons
+  committee_name: Community Safety
+  chamber: House
+  downloaded_at: '2026-03-01T18:37:03.643950+00:00'

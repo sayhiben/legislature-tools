@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SI2111-32072-24423
+timezone: America/Los_Angeles
+meeting_start: '2024-02-27T12:30:00-08:00'
+sign_in_cutoff: '2024-02-27T11:30:00-08:00'
+stats:
+  total_rows: 6887
+  total_testifying: 213
+  total_not_testifying: 6674
+  total_pro: 6189
+  total_con: 673
+  total_other: 25
+  total_pro_pct: 89.8649629737186
+  total_con_pct: 9.772034267460434
+  total_other_pct: 0.36300275882096705
+source:
+  provider: wa_leg_csi
+  search_query: SI 2111
+  meeting_family_id: '32072'
+  agenda_item_family_id: '160093'
+  agenda_item_id: '24423'
+  agenda_item_description: HI 2111 Taxes on personal income
+  short_bill_id: SI 2111
+  bill_number: '2111'
+  bill_title: Concerning taxes on personal income.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:09.370505+00:00'

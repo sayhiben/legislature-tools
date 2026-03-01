@@ -1,0 +1,56 @@
+{
+  "agenda_id": "32723",
+  "retrieved_at_utc": "2026-03-01T18:28:29.682410+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1636",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Eliminating the per transaction limit for wine and spirit sales. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1698",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating liquor permit and licensing provisions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1701",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing multiple liquor licensees to have licensed premises within a facility owned and leased out by another liquor licensee or person. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1719",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning events conducted by liquor manufacturers and retailers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1807",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regarding catered events with alcohol. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1347",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning cannabis testing laboratories."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1515",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing the regulation of alcohol service in public spaces."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1602",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing food service options for liquor licensees."
+    }
+  ],
+  "schema_version": 1
+}

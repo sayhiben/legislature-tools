@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: HB1046-32958-26307
+timezone: America/Los_Angeles
+meeting_start: '2025-03-13T10:30:00-07:00'
+sign_in_cutoff: '2025-03-13T09:30:00-07:00'
+stats:
+  total_rows: 258
+  total_testifying: 3
+  total_not_testifying: 255
+  total_pro: 203
+  total_con: 53
+  total_other: 2
+  total_pro_pct: 78.68217054263566
+  total_con_pct: 20.54263565891473
+  total_other_pct: 0.7751937984496124
+source:
+  provider: wa_leg_csi
+  search_query: HB 1046
+  meeting_family_id: '32958'
+  agenda_item_family_id: '165316'
+  agenda_item_id: '26307'
+  agenda_item_description: HB 1046 Motor vehicle damage/rescue
+  short_bill_id: HB 1046
+  bill_number: '1046'
+  bill_title: Protecting the vulnerable by providing immunity from civil liability
+    for damage to a motor vehicle arising from the rescue of vulnerable persons or
+    domestic animals. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:36:33.134110+00:00'

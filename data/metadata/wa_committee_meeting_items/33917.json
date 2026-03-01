@@ -1,0 +1,74 @@
+{
+  "agenda_id": "33917",
+  "retrieved_at_utc": "2026-03-01T18:25:55.642722+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2092",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a passenger rail advisory committee."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2114",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning defective license plates issued by the department of licensing."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2172",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning route jurisdiction transfer and abandonment."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2251",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning climate commitment act accounts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2374",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning electric-assisted bicycle and electric motorcycle regulation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2410",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a commercial truck safety and education council."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2552",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing the use of multiple award task order contracting by the department of transportation and regional transit authorities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2588",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning county ferry district authority."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2718",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Streamlining transportation projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2722",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the maximum weight of certain vehicles subject to transportation benefit district vehicle fees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2727",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the educational transit access grant program to reduce the cost of public transportation for community and technical college students."
+    }
+  ],
+  "schema_version": 1
+}

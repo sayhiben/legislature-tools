@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32051",
+  "retrieved_at_utc": "2026-03-01T18:26:04.936199+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5344",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a public school revolving fund. (REVISED FOR ENGROSSED: Establishing a school modernization loan program.)"
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5667",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning eligibility, enrollment, and compensation of small forestland owners volunteering for participation in the forestry riparian easement program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5789",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sales and use tax for school construction assistance program capital projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5955",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Mitigating harm and improving equity in large port districts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6039",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting the development of geothermal energy resources."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6040",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning prompt payment in public works."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6192",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing additional work and change orders on public and private construction projects."
+    }
+  ],
+  "schema_version": 1
+}

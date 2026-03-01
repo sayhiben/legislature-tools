@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: ESHB1522-33217-26906
+timezone: America/Los_Angeles
+meeting_start: '2025-04-05T12:00:00-07:00'
+sign_in_cutoff: '2025-04-05T11:00:00-07:00'
+stats:
+  total_rows: 51
+  total_testifying: 3
+  total_not_testifying: 48
+  total_pro: 50
+  total_con: 1
+  total_other: 0
+  total_pro_pct: 98.0392156862745
+  total_con_pct: 1.9607843137254901
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: ESHB 1522
+  meeting_family_id: '33217'
+  agenda_item_family_id: '166978'
+  agenda_item_id: '26906'
+  agenda_item_description: ESHB 1522 Utility wildfire mitigation
+  short_bill_id: ESHB 1522
+  bill_number: '1522'
+  bill_title: Concerning approval of electric utility wildfire mitigation plans. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:29:46.397443+00:00'

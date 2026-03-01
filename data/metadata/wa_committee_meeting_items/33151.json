@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33151",
+  "retrieved_at_utc": "2026-03-01T18:25:45.629320+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5149",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding the early childhood court program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5163",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing the child fatality statute."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5291",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Implementing the recommendations of the long-term services and supports trust commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5506",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the effective date of licensing living accommodations for residential private schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5545",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying provisions regarding family home providers overseen and certified by a federal military service."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5752",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying child care and early childhood development programs."
+    }
+  ],
+  "schema_version": 1
+}

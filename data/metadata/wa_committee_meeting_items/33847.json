@@ -1,0 +1,74 @@
+{
+  "agenda_id": "33847",
+  "retrieved_at_utc": "2026-03-01T18:26:33.906041+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1367",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving motorcycle safety by authorizing the use of the right shoulder of limited access roadways. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2172",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning route jurisdiction transfer and abandonment. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2174",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing crash prevention zones. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2718",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Streamlining transportation projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2139",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning snowmobile registration fees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2192",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Updating the role of the Washington traffic safety commission in identifying the risk factors that lead to roadway fatalities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2307",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the time component of various definitions for purposes of commute trip reduction."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2379",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing for the suspension of tolling on certain facilities in the event of an emergency."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2467",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning fifth-wheel travel trailers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2495",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing the removal of vehicles by certain cities when obstructing the operation of streetcar vehicles or jeopardizing public safety."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2604",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Transferring ownership of a vehicle to an insurer under certain circumstances."
+    }
+  ],
+  "schema_version": 1
+}

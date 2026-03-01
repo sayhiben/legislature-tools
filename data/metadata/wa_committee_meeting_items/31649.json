@@ -1,0 +1,56 @@
+{
+  "agenda_id": "31649",
+  "retrieved_at_utc": "2026-03-01T18:28:16.351120+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1912",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring state agencies to share information to encourage economic development. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2273",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Conducting a study of functional recovery building code standards. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1869",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Enacting the keeping our Washington guard strong act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1870",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting economic development by increasing opportunities for local communities to secure federal funding."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1925",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding the veterans service officer program to increase veteran support statewide."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1978",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding special purpose and junior taxing districts to the intrastate mutual aid system."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1982",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the authority of the community economic revitalization board with respect to loans and grants to political subdivisions and federally recognized Indian tribes for broadband."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2020",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a state administered public infrastructure assistance program within the emergency management division."
+    }
+  ],
+  "schema_version": 1
+}

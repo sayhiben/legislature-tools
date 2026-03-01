@@ -1,0 +1,56 @@
+{
+  "agenda_id": "33748",
+  "retrieved_at_utc": "2026-03-01T18:26:32.911762+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6139",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning partial rental payments and rental payment methods of an unlawful detainer action or issuance of a writ of restitution. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6214",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing land banking authorities. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6237",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning rental property disclosures of flooding history and flood risk. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6091",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Prohibiting real estate brokers from marketing residential properties to an exclusive group of prospective buyers or real estate brokers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6096",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning delayed utility connection fees for residential construction."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6200",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning renters' and mobile home occupants' ability to install portable cooling devices."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9278",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Pedro Espinoza, Member, Housing Finance Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9279",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Diana H Perez, Member, Housing Finance Commission."
+    }
+  ],
+  "schema_version": 1
+}

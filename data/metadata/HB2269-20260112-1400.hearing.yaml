@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2269-33633-27143
+timezone: America/Los_Angeles
+meeting_start: '2026-01-12T14:00:00-08:00'
+sign_in_cutoff: '2026-01-12T13:00:00-08:00'
+stats:
+  total_rows: 721
+  total_testifying: 5
+  total_not_testifying: 716
+  total_pro: 183
+  total_con: 537
+  total_other: 1
+  total_pro_pct: 25.381414701803052
+  total_con_pct: 74.47988904299584
+  total_other_pct: 0.13869625520110956
+source:
+  provider: wa_leg_csi
+  search_query: HB 2269
+  meeting_family_id: '33633'
+  agenda_item_family_id: '168107'
+  agenda_item_id: '27143'
+  agenda_item_description: HB 2269 Middle housing/uninc. areas
+  short_bill_id: HB 2269
+  bill_number: '2269'
+  bill_title: Concerning middle housing in unincorporated areas. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:39:20.785406+00:00'

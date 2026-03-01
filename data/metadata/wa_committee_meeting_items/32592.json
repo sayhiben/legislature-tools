@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32592",
+  "retrieved_at_utc": "2026-03-01T18:27:28.492352+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1448",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing representation and voter participation in local elections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1223",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Limiting frivolous claims by modifying forms, processes, and methods of adjudication for voter registration challenges. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1419",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring interpreters providing services under certain state contracts and purchase agreements to complete national fingerprint background checks. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1573",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Revising the period in which the oath of office must be taken for elective offices of counties, cities, towns, and special purpose districts. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

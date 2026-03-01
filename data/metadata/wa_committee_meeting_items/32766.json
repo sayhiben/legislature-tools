@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32766",
+  "retrieved_at_utc": "2026-03-01T18:27:42.173496+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1196",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Revoking a person's voting rights only when convicted of a state crime punishable by death."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1448",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing representation and voter participation in local elections."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1710",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning compliance with the Washington voting rights act of 2018."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1750",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating guidelines for voter suppression and vote dilution claims under the Washington voting rights act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1446",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Changing the state holiday called Presidents' Day to George Washington's Birthday (observed). (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1745",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Ensuring election integrity at the county level. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1916",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Amending voter registration challenges and managing voter registration lists. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

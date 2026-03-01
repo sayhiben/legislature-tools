@@ -1,0 +1,74 @@
+{
+  "agenda_id": "33807",
+  "retrieved_at_utc": "2026-03-01T18:27:09.936418+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5921",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning psilocybin. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5185",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing preceptorship and hardship pathways to medical practice for international medical graduates. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6182",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing an abortion savings program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6115",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning comprehensive cancer education programs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6258",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a nondisciplinary pathway for relinquishing licenses issued by the Washington medical commission. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5916",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning nonopioid drugs for the treatment of pain."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5981",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting patient access to discounted medications and health care services through Washington's health care safety net by preventing manufacturer limitations on the 340B drug pricing program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5985",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning endometriosis."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6019",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving the functioning of home care rate statutes."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6161",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning department of health information on dementia."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6183",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning coverage for HIV antiviral drugs."
+    }
+  ],
+  "schema_version": 1
+}

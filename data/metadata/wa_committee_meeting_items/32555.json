@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32555",
+  "retrieved_at_utc": "2026-03-01T18:25:37.573370+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1101",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning vehicular homicide offenses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1110",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Vacating convictions for driving under the influence."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1111",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the indeterminate sentence review board."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1233",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning work programs for incarcerated persons."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1317",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning persons serving long sentences for offenses committed prior to reaching 21 years of age."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1125",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing judicial discretion to modify sentences in the interest of justice. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

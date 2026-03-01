@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB2196-33577-27158
+timezone: America/Los_Angeles
+meeting_start: '2026-01-16T08:00:00-08:00'
+sign_in_cutoff: '2026-01-16T07:00:00-08:00'
+stats:
+  total_rows: 498
+  total_testifying: 6
+  total_not_testifying: 492
+  total_pro: 491
+  total_con: 1
+  total_other: 6
+  total_pro_pct: 98.59437751004016
+  total_con_pct: 0.2008032128514056
+  total_other_pct: 1.2048192771084338
+source:
+  provider: wa_leg_csi
+  search_query: HB 2196
+  meeting_family_id: '33577'
+  agenda_item_family_id: '167925'
+  agenda_item_id: '27158'
+  agenda_item_description: HB 2196 PANDAS, pediatric treatment
+  short_bill_id: HB 2196
+  bill_number: '2196'
+  bill_title: Expanding access to PANDA PANS treatment. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:38:13.860878+00:00'

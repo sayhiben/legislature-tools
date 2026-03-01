@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33209",
+  "retrieved_at_utc": "2026-03-01T18:28:05.260019+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5074",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning payment of seed contracts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5303",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the water supply milestone for the Yakima river basin integrated plan to 2035."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5319",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing surface mine reclamation permit fees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5391",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the sustainable farms and fields grant program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2062",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing maple syrup processing operations. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

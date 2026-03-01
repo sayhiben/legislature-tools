@@ -1,0 +1,68 @@
+{
+  "agenda_id": "33970",
+  "retrieved_at_utc": "2026-03-01T18:27:52.558246+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2577",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning hospital inspections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2363",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning temporary exemptions from licensure for certain applicants for a license to practice music therapy. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1187",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting patients involved in motor vehicle accidents from delayed ambulance bills. (Hearing is on the Proposed Striking Amendment.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2339",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the regulation of nursing. (CORRECTED COPY) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2384",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing regulatory oversight of continuing care retirement communities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2540",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning emergency medical technician recertification. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2113",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the supervision of diagnostic radiologic technologists, therapeutic radiologic technologists, and magnetic resonance imaging technologists. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2242",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Preserving access to preventive services by clarifying state authority and definitions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2152",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Permitting the medical use of cannabis by qualifying patients in specified health care facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2168",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Facilitating the rapid sharing of overdose mapping information for overdose prevention."
+    }
+  ],
+  "schema_version": 1
+}

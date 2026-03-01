@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32541",
+  "retrieved_at_utc": "2026-03-01T18:25:39.878162+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1287",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing the disclosure of health information for care coordination. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1394",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the retention of hospital medical records. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1430",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning advanced practice registered nurse and physician assistant reimbursement. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1432",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving access to appropriate mental health and substance use disorder services. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1535",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Ensuring patient choice and access to care by prohibiting unfair and deceptive dental insurance practices. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

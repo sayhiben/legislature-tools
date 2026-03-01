@@ -1,0 +1,74 @@
+{
+  "agenda_id": "31767",
+  "retrieved_at_utc": "2026-03-01T18:27:59.244884+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6031",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the student transportation allocation to accommodate multiple vehicle types for transporting students. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6205",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Mandating instruction on the meaning and history of the pledge of allegiance in public schools. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6045",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning school district efficiencies and consolidation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6264",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting the implementation of competency-based education. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5849",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning a computer science competency graduation requirement."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5851",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning Holocaust and genocide education in public schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5941",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Clarifying requirements for subsidized child care."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6018",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating early learning coordinators at educational service districts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9430",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Brent L Stark, Member, Washington State School for the Blind Board of Trustees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9434",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Lily Clifton, Member, Washington State School for the Blind Board of Trustees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9286",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Greg Szabo, Member, Washington State School for the Blind Board of Trustees."
+    }
+  ],
+  "schema_version": 1
+}

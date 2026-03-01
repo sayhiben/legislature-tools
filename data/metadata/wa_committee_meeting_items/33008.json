@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33008",
+  "retrieved_at_utc": "2026-03-01T18:26:16.697028+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5431",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying tax and revenue laws in a manner that is not estimated to affect state or local tax collections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5138",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning public facilities districts. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

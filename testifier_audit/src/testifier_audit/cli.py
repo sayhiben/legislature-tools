@@ -453,9 +453,14 @@ def sample_baseline_corpus_command(
         "--overwrite/--no-overwrite",
         help="Replace existing sampled CSV/sidecar files if output paths already exist.",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        help="Enable debug logging for request and selection progress details.",
+    ),
 ) -> None:
     """Sample N unsampled hearings and download CSV + sidecars with request-aware rate limiting."""
-    configure_logging()
+    configure_logging(level="DEBUG" if verbose else "INFO")
     extra_metadata_dirs = sampled_metadata_dir or []
     manifest = sample_unsampled_baseline_corpus(
         sample_size=sample_size,

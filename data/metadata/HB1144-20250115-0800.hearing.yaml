@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1144-32370-24623
+timezone: America/Los_Angeles
+meeting_start: '2025-01-15T08:00:00-08:00'
+sign_in_cutoff: '2025-01-15T07:00:00-08:00'
+stats:
+  total_rows: 8
+  total_testifying: 4
+  total_not_testifying: 4
+  total_pro: 8
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 1144
+  meeting_family_id: '32370'
+  agenda_item_family_id: '161085'
+  agenda_item_id: '24623'
+  agenda_item_description: HB 1144 Superior court judge/Skagit
+  short_bill_id: HB 1144
+  bill_number: '1144'
+  bill_title: Adding an additional superior court judge in Skagit county. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:43:52.917635+00:00'

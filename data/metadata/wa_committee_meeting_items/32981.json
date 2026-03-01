@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32981",
+  "retrieved_at_utc": "2026-03-01T18:25:48.871386+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5189",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting the implementation of competency-based education. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5570",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting public school instruction in tribal sovereignty and federally recognized Indian tribes. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

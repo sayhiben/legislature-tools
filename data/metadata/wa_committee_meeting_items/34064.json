@@ -1,0 +1,68 @@
+{
+  "agenda_id": "34064",
+  "retrieved_at_utc": "2026-03-01T18:28:52.697732+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5292",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning paid family and medical leave rates. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 6106",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the securing timely notification and benefits for laid-off employees act. (REVISED FOR ENGROSSED: Concerning the laid-off employees act.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6134",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning notice to striking workers applying for unemployment insurance benefits of potential overpayment assessment upon receipt of retroactive wages. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6197",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Enforcing plumbing contractor requirements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5847",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning access to medical care in workers' compensation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6014",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning pregnancy-related accommodations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6039",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing methods of communications by the department of labor and industries."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 6058",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding discretion to wage enforcement actions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6136",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting transparency in certain industrial insurance rate increases."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6188",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the department of labor and industries' authority to enact rules related to regulating asbestos training."
+    }
+  ],
+  "schema_version": 1
+}

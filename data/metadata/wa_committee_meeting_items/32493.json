@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32493",
+  "retrieved_at_utc": "2026-03-01T18:25:51.677227+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1201",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Identifying accommodations allowing pets in an emergency or extreme weather event. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1057",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting economic development by increasing support for local communities to access federal funds."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1073",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Keeping our Washington national guard strong act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1102",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing support and services for veterans."
+    }
+  ],
+  "schema_version": 1
+}

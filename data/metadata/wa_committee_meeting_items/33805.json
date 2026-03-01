@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33805",
+  "retrieved_at_utc": "2026-03-01T18:26:48.890942+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5930",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning irrigation district director beneficial interests in contracts. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6075",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring fairness in mitigation requirements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6216",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating timber sale process efficiencies and adopting consistent language for the department's land sales. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6233",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning penalties for sale of covered animal species. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

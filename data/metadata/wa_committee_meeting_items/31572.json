@@ -1,0 +1,38 @@
+{
+  "agenda_id": "31572",
+  "retrieved_at_utc": "2026-03-01T18:28:25.351544+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1901",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Removing the sunset on changes to the unemployment insurance voluntary contribution program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1905",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Including protected classes in the Washington equal pay and opportunities act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1927",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing the number of days that a worker's temporary total disability must continue to receive industrial insurance compensation for the day of an injury and the three-day period following the injury. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1940",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting the rights of workers to refrain from attending meetings or listening to their employer's speech on political or religious matters. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1975",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Relieving individuals from paying interest on certain unemployment insurance overpayment assessments. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

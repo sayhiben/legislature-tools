@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: HB2489-33700-27448
+timezone: America/Los_Angeles
+meeting_start: '2026-01-20T16:00:00-08:00'
+sign_in_cutoff: '2026-01-20T15:00:00-08:00'
+stats:
+  total_rows: 4622
+  total_testifying: 47
+  total_not_testifying: 4575
+  total_pro: 1953
+  total_con: 2658
+  total_other: 11
+  total_pro_pct: 42.254435309389876
+  total_con_pct: 57.507572479446125
+  total_other_pct: 0.2379922111639983
+source:
+  provider: wa_leg_csi
+  search_query: HB 2489
+  meeting_family_id: '33700'
+  agenda_item_family_id: '168488'
+  agenda_item_id: '27448'
+  agenda_item_description: HB 2489 Public space/local use laws
+  short_bill_id: HB 2489
+  bill_number: '2489'
+  bill_title: Establishing statewide standards for when local governments may enforce
+    laws regulating the use of public space for life-sustaining activities. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:34:51.608591+00:00'

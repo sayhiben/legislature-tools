@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33048",
+  "retrieved_at_utc": "2026-03-01T18:26:46.885816+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5076",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a Puget Sound nonspot shrimp pot fishery license. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5165",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning compensation in frontier one counties for deer and elk damage. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5212",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning filing of adjudication claims for precode uses of groundwater and surface water in the water resource inventory area 1 water rights adjudication. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5303",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Extending the water supply milestone for the Yakima river basin integrated plan to 2035. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32727",
+  "retrieved_at_utc": "2026-03-01T18:28:35.670328+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1654",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the administration of the international fire code. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1695",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning unincorporated villages in the growth management act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1854",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing subdivision of land in rural areas for families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1135",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring that local government planning complies with the growth management act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1529",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing opportunities for cities to utilize county resources for road construction and maintenance."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1353",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a self-certification program for accessory dwelling unit project permit applications."
+    }
+  ],
+  "schema_version": 1
+}

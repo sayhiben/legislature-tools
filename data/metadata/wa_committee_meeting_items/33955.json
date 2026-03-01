@@ -1,0 +1,74 @@
+{
+  "agenda_id": "33955",
+  "retrieved_at_utc": "2026-03-01T18:27:56.529092+00:00",
+  "row_count": 11,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9267",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Gauri Shrotriya, Member, Washington State Women\u2019s Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1759",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Designating the twelfth day of December as the day of the 12s. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E3SHB 1710",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning compliance with the Washington voting rights act of 2018. (Hearing is on the Proposed Striking Amendment.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1750",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating guidelines for voter suppression and vote dilution claims under the Washington voting rights act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2475",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning language accessible public programs, activities, and services conducted, operated, or administered by state agencies. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2632",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modernizing terminology when referring to individuals who are not citizens or nationals of the United States. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2420",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing small works roster contract limits. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2574",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the removal of deceased candidates for nonpartisan office from ballots. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2637",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Safeguarding personal information entrusted to agencies that is of no legitimate concern to the public. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2123",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning foreign national participation in Washington state elections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2235",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning public records act exemptions regarding concealed pistol licenses, permits to purchase firearms, and firearms purchases or transfers. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33074",
+  "retrieved_at_utc": "2026-03-01T18:27:23.140914+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1028",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing child exposure to violence. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1130",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning utilization of developmental disabilities waivers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1171",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Exempting attorney higher education employees from certain mandated reporting of child abuse and neglect. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1385",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning fingerprint background check on applicants. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

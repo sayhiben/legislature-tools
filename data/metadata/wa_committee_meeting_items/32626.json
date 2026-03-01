@@ -1,0 +1,50 @@
+{
+  "agenda_id": "32626",
+  "retrieved_at_utc": "2026-03-01T18:27:18.409074+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5218",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying motor vehicle and driver licensing laws to align with federal definitions, making technical corrections, and streamlining requirements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5287",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Limiting the monetary assistance an indigent person may receive from the ignition interlock device revolving account program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5462",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Addressing the current backlog of vehicle inspections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5527",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the establishment of a state patrol longevity bonus. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5410",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning parking privileges for veterans. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5417",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing the use of automated vehicle noise enforcement cameras in vehicle-racing camera enforcement zones. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5464",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Promoting the better understanding of certain federal standards related to commercial driver's licenses. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

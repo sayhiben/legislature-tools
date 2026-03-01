@@ -1,0 +1,32 @@
+{
+  "agenda_id": "31651",
+  "retrieved_at_utc": "2026-03-01T18:25:49.611299+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2257",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Supporting back country search and rescue organizations and volunteers through the creation of the back country search and rescue grant program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1912",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring state agencies to share information to encourage economic development."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2273",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Conducting a study of functional recovery building code standards."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2014",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the definition of veteran and restoring honor to veterans."
+    }
+  ],
+  "schema_version": 1
+}

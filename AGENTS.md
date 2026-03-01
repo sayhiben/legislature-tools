@@ -90,12 +90,20 @@ python ./testifier_audit/scripts/report/build_global_baselines.py
   - source inputs changed (submissions CSV, VRDB extract, or hearing metadata values that affect
     computed outputs);
   - detector/pipeline/config/contract changes alter computed payload values (not just rendering).
+- Rerender-only validation can look healthy while still showing stale computed metadata if detector
+  outputs were not recomputed after logic changes.
 
 ## Import Memoization
 - Imports memoize by file checksum (not filename).
 - Tracking table: `data_imports` in Postgres.
 - Repeat import with same checksum is skipped.
 - Use `--force` to intentionally bypass memoization.
+- Treat `VRDB_IMPORTER_VERSION` (`src/testifier_audit/io/vrdb_postgres.py`) as a
+  data-contract/versioned-migration marker, not a routine code-change marker.
+- Bump `VRDB_IMPORTER_VERSION` only for meaningful import-semantic changes that can alter stored
+  VRDB rows/keys/normalization/upsert outcomes.
+- Do **not** bump `VRDB_IMPORTER_VERSION` for non-semantic changes (logging, observability,
+  profiling hooks, refactors, performance tuning that preserves imported row values, tests/docs).
 
 ## Analysis and Interpretation Requirements
 - Keep statistical concepts separate in charts/tables:
@@ -105,7 +113,15 @@ python ./testifier_audit/scripts/report/build_global_baselines.py
   - retain low-power flags,
   - gate inferential claims on support,
   - allow descriptive-only output when alert-eligible windows fail support thresholds.
+- Keep scope-availability semantics orthogonal to inferential semantics:
+  - treat `scope_status`/`scope_reason` as separate from
+    `inferential_status`/`inferential_reason`,
+  - do not overload one to imply the other.
+- In descriptive-only/unavailable paths, null-mask inferential outputs
+  (`p/q/z/significance` and inferential intervals) instead of sentinel defaults.
 - Prefer model-aware primary baselines with explicit day/hour fallback behavior.
+- When report-layer expected lines use a different baseline family than detector inference, surface
+  both baseline families and method labels explicitly in chart/table metadata.
 - Treat persistence and neighborhood structure as first-class evidence:
   repeated adjacent-window signals are stronger than isolated spikes.
 - Default to one CSV per report run; comparative analysis must be explicitly requested and rendered
@@ -142,6 +158,10 @@ python ./testifier_audit/scripts/report/build_global_baselines.py
 - If bucket options change, update config, payload builder, template runtime behavior, and contract
   tests in the same change.
 - Interactive payload version is `2` and must remain finite-safe (`no NaN/Infinity/-Infinity`).
+- Duplicate statistical contract payload is under
+  `interactive_charts.controls.duplicate_statistical_contract` (not a top-level payload node).
+- Keep contract/declaration objects present when inferential metrics are unavailable; encode
+  explicit status/reason rather than omitting sections.
 
 ## Testing and QA Expectations
 - Coverage targets:
@@ -179,6 +199,11 @@ For major report/template changes, run a UX pass:
      - sidebar toggle, bucket/theme controls, zoom/reset, linked marker/cursor behavior
   6. Check diagnostics:
      - console errors/warnings and failed network requests
+  7. Before wrapping up Playwright work, stop any Playwright MCP sessions and associated spawned
+     processes (including Node/browser children):
+     - `playwright-cli close-all`
+     - `playwright-cli kill-all`
+     - optionally verify cleanup with `ps -Ao pid,ppid,etime,command | rg -i "playwright|playwright-mcp|node.*playwright"`
 - If Playwright cannot launch because an existing session/profile lock is detected:
   - `playwright-cli close-all`
   - `playwright-cli kill-all`
@@ -214,11 +239,17 @@ For major report/template changes, run a UX pass:
 - Commit `reports/` cached artifacts only when requested.
 - Do not commit `./output/`.
 - Keep local commands aligned with scripts in `./testifier_audit/scripts/ci/`.
+- Rerender/QA cycles can dirty `reports/<hearing>/...`; avoid including incidental generated
+  artifact churn in source-only changes unless explicitly requested.
 
 ## Known Pitfalls
 - Do not reintroduce lazy-loading assumptions in tests unless lazy loading is intentionally restored.
 - If report output appears empty, first check for JSON parse failures caused by non-finite values.
 - If CI fails, inspect logs before patching.
+- Long-running/interrupted VRDB schema backfills can leave lock-holding backends that block report
+  recomputes; check `pg_stat_activity` for blockers before rerunning.
+- In pandas scope-filtered updates, boolean masks derived from scoped frames can misalign with
+  non-contiguous parent indexes; resolve explicit index lists before `.loc` assignments.
 
 ## Nickname Dataset Maintenance
 - Source notes:

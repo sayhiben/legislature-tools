@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: SSB5212-33048-26445
+timezone: America/Los_Angeles
+meeting_start: '2025-03-19T08:00:00-07:00'
+sign_in_cutoff: '2025-03-19T07:00:00-07:00'
+stats:
+  total_rows: 22
+  total_testifying: 2
+  total_not_testifying: 20
+  total_pro: 21
+  total_con: 0
+  total_other: 1
+  total_pro_pct: 95.45454545454545
+  total_con_pct: 0.0
+  total_other_pct: 4.545454545454546
+source:
+  provider: wa_leg_csi
+  search_query: SSB 5212
+  meeting_family_id: '33048'
+  agenda_item_family_id: '165588'
+  agenda_item_id: '26445'
+  agenda_item_description: SSB 5212 Water adjudication in WRIA 1
+  short_bill_id: SSB 5212
+  bill_number: '5212'
+  bill_title: Concerning filing of adjudication claims for precode uses of groundwater
+    and surface water in the water resource inventory area 1 water rights adjudication.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:38:16.172394+00:00'

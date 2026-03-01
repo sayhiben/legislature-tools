@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32421",
+  "retrieved_at_utc": "2026-03-01T18:26:15.746372+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5084",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning health carrier reporting."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5178",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting public health and safety by regulating the transfer of sodium nitrite."
+    }
+  ],
+  "schema_version": 1
+}

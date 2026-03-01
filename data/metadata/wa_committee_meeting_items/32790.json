@@ -1,0 +1,62 @@
+{
+  "agenda_id": "32790",
+  "retrieved_at_utc": "2026-03-01T18:26:29.100496+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5112",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a prescribing psychologist certification in Washington state. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5493",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning hospital price transparency. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5075",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning cost sharing for prenatal and postnatal care."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5337",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a certification for memory care services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5568",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Updating and modernizing the Washington state health plan."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5577",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning medicaid coverage for HIV antiviral drugs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5326",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Accessing an emergency supply of insulin."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8002",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning Medicare."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5200",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning veterans' medical foster homes."
+    }
+  ],
+  "schema_version": 1
+}

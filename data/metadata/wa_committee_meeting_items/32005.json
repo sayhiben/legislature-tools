@@ -1,0 +1,104 @@
+{
+  "agenda_id": "32005",
+  "retrieved_at_utc": "2026-03-01T18:26:06.684401+00:00",
+  "row_count": 16,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5660",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a mental health advance directive effective implementation work group. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5780",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Encouraging participation in public defense and prosecution professions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5788",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning service animal training. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5825",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning guardianship and conservatorship. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5828",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning water rights adjudication commissioners and referees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5836",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding an additional superior court judge in Clark county. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 6068",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reporting on dependency outcomes. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6222",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the number of district court judges. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5241",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning material changes to the operations and governance structure of participants in the health care marketplace."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6227",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing entry of a civil protection order to protect victims when a person is found not guilty by reason of insanity."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5427",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting people who have been targeted or affected by hate crimes and bias incidents by establishing a reporting hotline and tracking hate crimes and bias incidents."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5444",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Restricting the possession of weapons, excluding carrying a pistol by a person licensed to carry a concealed pistol, on the premises of libraries, zoos, aquariums, and transit facilities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5589",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning probate."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5786",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Making updates to the Washington business corporation act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5787",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Enacting the uniform electronic estate planning documents act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5805",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Developing a schedule for court appointment of attorneys for children and youth in dependency and termination proceedings."
+    }
+  ],
+  "schema_version": 1
+}

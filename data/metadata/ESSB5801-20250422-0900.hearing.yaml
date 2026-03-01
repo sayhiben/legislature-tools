@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: ESSB5801-33364-26954
+timezone: America/Los_Angeles
+meeting_start: '2025-04-22T09:00:00-07:00'
+sign_in_cutoff: '2025-04-22T08:00:00-07:00'
+stats:
+  total_rows: 2197
+  total_testifying: 38
+  total_not_testifying: 2159
+  total_pro: 13
+  total_con: 2169
+  total_other: 15
+  total_pro_pct: 0.591715976331361
+  total_con_pct: 98.72553482020938
+  total_other_pct: 0.6827492034592627
+source:
+  provider: wa_leg_csi
+  search_query: ESSB 5801
+  meeting_family_id: '33364'
+  agenda_item_family_id: '167175'
+  agenda_item_id: '26954'
+  agenda_item_description: ESSB 5801 Transportation resources
+  short_bill_id: ESSB 5801
+  bill_number: '5801'
+  bill_title: Transportation resources
+  committee_name: Transportation
+  chamber: House
+  downloaded_at: '2026-03-01T18:39:31.902808+00:00'

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1815-32763-25806
+timezone: America/Los_Angeles
+meeting_start: '2025-02-12T13:30:00-08:00'
+sign_in_cutoff: '2025-02-12T12:30:00-08:00'
+stats:
+  total_rows: 87
+  total_testifying: 15
+  total_not_testifying: 72
+  total_pro: 59
+  total_con: 25
+  total_other: 3
+  total_pro_pct: 67.81609195402298
+  total_con_pct: 28.735632183908045
+  total_other_pct: 3.4482758620689653
+source:
+  provider: wa_leg_csi
+  search_query: HB 1815
+  meeting_family_id: '32763'
+  agenda_item_family_id: '163807'
+  agenda_item_id: '25806'
+  agenda_item_description: HB 1815 Prison riot offenses
+  short_bill_id: HB 1815
+  bill_number: '1815'
+  bill_title: Concerning prison riot offenses. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:36:39.799264+00:00'

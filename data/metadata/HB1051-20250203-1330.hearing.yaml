@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1051-32654-25400
+timezone: America/Los_Angeles
+meeting_start: '2025-02-03T13:30:00-08:00'
+sign_in_cutoff: '2025-02-03T12:30:00-08:00'
+stats:
+  total_rows: 254
+  total_testifying: 15
+  total_not_testifying: 239
+  total_pro: 237
+  total_con: 16
+  total_other: 1
+  total_pro_pct: 93.30708661417323
+  total_con_pct: 6.299212598425196
+  total_other_pct: 0.39370078740157477
+source:
+  provider: wa_leg_csi
+  search_query: HB 1051
+  meeting_family_id: '32654'
+  agenda_item_family_id: '162505'
+  agenda_item_id: '25400'
+  agenda_item_description: HB 1051 IEP team meetings/recording
+  short_bill_id: HB 1051
+  bill_number: '1051'
+  bill_title: Permitting the recording of individualized education program team meetings.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:32:27.280226+00:00'

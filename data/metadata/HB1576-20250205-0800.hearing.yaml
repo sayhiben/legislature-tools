@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1576-32636-25465
+timezone: America/Los_Angeles
+meeting_start: '2025-02-05T08:00:00-08:00'
+sign_in_cutoff: '2025-02-05T07:00:00-08:00'
+stats:
+  total_rows: 268
+  total_testifying: 11
+  total_not_testifying: 257
+  total_pro: 93
+  total_con: 174
+  total_other: 1
+  total_pro_pct: 34.701492537313435
+  total_con_pct: 64.92537313432835
+  total_other_pct: 0.3731343283582089
+source:
+  provider: wa_leg_csi
+  search_query: HB 1576
+  meeting_family_id: '32636'
+  agenda_item_family_id: '162654'
+  agenda_item_id: '25465'
+  agenda_item_description: HB 1576 Historic landmarks/cities
+  short_bill_id: HB 1576
+  bill_number: '1576'
+  bill_title: Designation of historic landmarks by cities
+  committee_name: Local Government
+  chamber: House
+  downloaded_at: '2026-03-01T18:30:03.604798+00:00'

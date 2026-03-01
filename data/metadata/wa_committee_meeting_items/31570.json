@@ -1,0 +1,20 @@
+{
+  "agenda_id": "31570",
+  "retrieved_at_utc": "2026-03-01T18:28:10.264975+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1893",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning unemployment insurance benefits for striking or lockout workers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1898",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning unemployment insurance benefit charging. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

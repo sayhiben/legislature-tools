@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33947",
+  "retrieved_at_utc": "2026-03-01T18:25:36.572090+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2274",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the Washington commercial electronic mail act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 2294",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Prohibiting negative use restrictions on real property that have the effect of limiting consumer access to food and medicine. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2428",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Preventing unintentional lapses and cancellations of life insurance policies."
+    }
+  ],
+  "schema_version": 1
+}

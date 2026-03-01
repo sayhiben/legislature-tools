@@ -1,0 +1,26 @@
+{
+  "agenda_id": "31591",
+  "retrieved_at_utc": "2026-03-01T18:26:26.756024+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1920",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the public accountancy act. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1880",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning architecture licensing examinations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1889",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Allowing persons to receive professional licenses and certifications regardless of immigration or citizenship status. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

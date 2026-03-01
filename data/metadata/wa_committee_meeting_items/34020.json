@@ -1,0 +1,110 @@
+{
+  "agenda_id": "34020",
+  "retrieved_at_utc": "2026-03-01T18:26:50.932449+00:00",
+  "row_count": 17,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1155",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Prohibiting noncompetition agreements and clarifying nonsolicitation agreements. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2303",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Prohibiting employers from microchipping employees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2405",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a pilot program for posttraumatic stress disorder treatment and research. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2479",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the recovery of unpaid wages. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1941",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing agricultural cooperatives for cannabis producers. (Hearing is on the Proposed Striking Amendment.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1526",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the snack bar liquor license. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2476",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the spirits, beer, and wine theater license. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1066",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a data dashboard to track use of regulated substances."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1069",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing collective bargaining over contributions for certain supplemental retirement benefits."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1347",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning cannabis testing laboratories."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1701",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing multiple liquor licensees to have licensed premises within a facility owned and leased out by another liquor licensee or person."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2091",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring public employers under chapter 41.80 RCW to provide employee information to exclusive bargaining representatives."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2229",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the professional engineers' registration act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2264",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning unemployment insurance benefits for workers separated from employment as a result of employer-initiated layoffs or workforce reductions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2472",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring that work on fire protection sprinkler systems is performed by licensed contractors and certified fitters."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 2345",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning contributions in the state paid family and medical leave program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1128",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a child care workforce standards board."
+    }
+  ],
+  "schema_version": 1
+}

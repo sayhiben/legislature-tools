@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33764",
+  "retrieved_at_utc": "2026-03-01T18:27:00.464499+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2325",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a tourism self-supported assessment program to fund statewide tourism promotion."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2481",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Prohibiting surveillance-based price discrimination and surge pricing for retail goods."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2503",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Regulating artificial intelligence training data."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2397",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring timely reimbursement of state agencies and local jurisdictions mobilized under the Washington state fire services mobilization plan."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2278",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning tourism promotion areas."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2417",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Changing the Washington code of military justice so that it includes certain protections for victims of an offense while serving within the organized militia of Washington."
+    }
+  ],
+  "schema_version": 1
+}

@@ -29,10 +29,24 @@ trap on_error ERR
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REPO_ROOT="$(cd "${PROJECT_ROOT}/.." && pwd)"
+CALLER_CWD="$(pwd)"
 
 # shellcheck disable=SC1091
 source "${PROJECT_ROOT}/scripts/lib/env.sh"
 load_project_env "${PROJECT_ROOT}"
+
+resolve_path_from_caller() {
+  local path_value="$1"
+  if [[ -z "${path_value}" ]]; then
+    printf '%s\n' "${path_value}"
+    return
+  fi
+  if [[ "${path_value}" = /* ]]; then
+    printf '%s\n' "${path_value}"
+    return
+  fi
+  printf '%s\n' "${CALLER_CWD}/${path_value#./}"
+}
 
 usage() {
   cat <<'EOF'
@@ -117,6 +131,9 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+VRDB_EXTRACT="$(resolve_path_from_caller "${VRDB_EXTRACT}")"
+BASE_CONFIG_PATH="$(resolve_path_from_caller "${BASE_CONFIG_PATH}")"
 
 if [[ "${LOO_MODE}" != "batch" && "${LOO_MODE}" != "subprocess" ]]; then
   log_error "Invalid --loo-mode value: ${LOO_MODE}. Expected 'batch' or 'subprocess'."
@@ -438,7 +455,7 @@ if [[ "${CI_SKIP_INSTALL:-0}" != "1" ]]; then
 fi
 export CI_SKIP_INSTALL=1
 
-log_info "Importing VRDB once before report loops..."
+log_info "Checking/importing VRDB once before report loops..."
 CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/vrdb/import_vrdb.sh" "${VRDB_EXTRACT}"
 
 VR_LOOKUP_CACHE_DIR="${VR_LOOKUP_CACHE_DIR:-${REPO_ROOT}/output/voter_registry_lookup_cache}"

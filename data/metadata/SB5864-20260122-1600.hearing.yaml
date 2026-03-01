@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5864-33670-27354
+timezone: America/Los_Angeles
+meeting_start: '2026-01-22T16:00:00-08:00'
+sign_in_cutoff: '2026-01-22T15:00:00-08:00'
+stats:
+  total_rows: 223
+  total_testifying: 7
+  total_not_testifying: 216
+  total_pro: 61
+  total_con: 158
+  total_other: 4
+  total_pro_pct: 27.3542600896861
+  total_con_pct: 70.85201793721974
+  total_other_pct: 1.7937219730941705
+source:
+  provider: wa_leg_csi
+  search_query: SB 5864
+  meeting_family_id: '33670'
+  agenda_item_family_id: '168597'
+  agenda_item_id: '27354'
+  agenda_item_description: SB 5864 Vehicle insurance verif.
+  short_bill_id: SB 5864
+  bill_number: '5864'
+  bill_title: Concerning verification of motor vehicle insurance. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:35:26.012552+00:00'

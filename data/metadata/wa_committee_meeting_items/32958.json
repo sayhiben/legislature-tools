@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32958",
+  "retrieved_at_utc": "2026-03-01T18:25:59.788928+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1046",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting the vulnerable by providing immunity from civil liability for damage to a motor vehicle arising from the rescue of vulnerable persons or domestic animals. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1112",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Removing the city residency requirement for judges pro tempore in municipalities with a population of more than 400,000 inhabitants. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1149",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Preventing cruelty to animals. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1007",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning requisites of notice in small claims actions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1052",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Clarifying a hate crime offense. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

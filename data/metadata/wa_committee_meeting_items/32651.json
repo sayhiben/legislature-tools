@@ -1,0 +1,44 @@
+{
+  "agenda_id": "32651",
+  "retrieved_at_utc": "2026-03-01T18:28:37.628964+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1652",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing environmental impacts associated with the operation of certain ocean-going vessels. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1670",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing transparency regarding sewage-containing spills. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1689",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adopting emission standards for ocean-going vessels at berth. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1293",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning litter."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1237",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Facilitating predictable and timely application decisions by the energy facility site evaluation council."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1462",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing greenhouse gas emissions associated with hydrofluorocarbons."
+    }
+  ],
+  "schema_version": 1
+}

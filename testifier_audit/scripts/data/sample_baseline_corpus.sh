@@ -16,7 +16,7 @@ Usage:
 
 Examples:
   ./scripts/data/sample_baseline_corpus.sh 25
-  ./scripts/data/sample_baseline_corpus.sh 40 --seed 42 --rate-limit-seconds 1.5
+  ./scripts/data/sample_baseline_corpus.sh 40 --seed 42 --rate-limit-seconds 1.5 --verbose
 
 Environment:
   SAMPLE_BASELINE_INDEX_JSON=<path>         Optional GetCommitteeMeetings cache JSON override.

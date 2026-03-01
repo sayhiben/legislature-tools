@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32776",
+  "retrieved_at_utc": "2026-03-01T18:28:41.685632+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1485",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing the annual limit of services and activities fees at institutions of higher education. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1486",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding a student member to the state board for community and technical colleges. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1572",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying higher education accreditation standards. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1705",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Convening a work group to study and recommend strategies to recruit, train, and retain large animal veterinarians. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1762",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Prohibiting institutions of higher education from requiring students to live on campus. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

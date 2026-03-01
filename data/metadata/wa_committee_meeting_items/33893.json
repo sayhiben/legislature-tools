@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33893",
+  "retrieved_at_utc": "2026-03-01T18:27:06.211553+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2483",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating a data broker registry."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2477",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning actions arising out of real estate appraisal activity."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2274",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the Washington commercial electronic mail act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2394",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Enhancing public safety and enforcement of crimes that impact insurance."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2624",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Clarifying consumer protections regarding unsolicited real estate transactions for public purposes or by nonprofit land conservancies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2240",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the delivery, execution, acceptance, and provisions of individual storage space rental agreements and modifying the use of individual storage spaces after notice of termination or nonrenewal of rental agreements."
+    }
+  ],
+  "schema_version": 1
+}

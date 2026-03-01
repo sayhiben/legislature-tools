@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: HB1752-31847-23699
+timezone: America/Los_Angeles
+meeting_start: '2024-01-30T10:30:00-08:00'
+sign_in_cutoff: '2024-01-30T09:30:00-08:00'
+stats:
+  total_rows: 27
+  total_testifying: 2
+  total_not_testifying: 25
+  total_pro: 23
+  total_con: 1
+  total_other: 3
+  total_pro_pct: 85.18518518518519
+  total_con_pct: 3.7037037037037033
+  total_other_pct: 11.11111111111111
+source:
+  provider: wa_leg_csi
+  search_query: HB 1752
+  meeting_family_id: '31847'
+  agenda_item_family_id: '158114'
+  agenda_item_id: '23699'
+  agenda_item_description: HB 2463 Salmon planning review
+  short_bill_id: HB 1752
+  bill_number: '1752'
+  bill_title: Modifying the application of the annual consumptive quantity calculation
+    to change applications related to certain water rights held by the United States
+    bureau of reclamation.
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:40:46.676328+00:00'

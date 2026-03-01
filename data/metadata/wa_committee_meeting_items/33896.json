@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33896",
+  "retrieved_at_utc": "2026-03-01T18:25:58.648907+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2007",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding opportunities for competency-based assessments in graduation pathway options."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2360",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding access to albuterol in public and private schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2369",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting the use of local foods in public schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2432",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Supporting public school students by improving their access to surplus technology hardware."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2440",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing records maintained by the office of the education ombuds."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2534",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting educational stability for children of military families."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2557",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing parental access to special education evaluation reports."
+    }
+  ],
+  "schema_version": 1
+}

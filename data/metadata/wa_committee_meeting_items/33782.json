@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33782",
+  "retrieved_at_utc": "2026-03-01T18:28:07.258241+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2565",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the investment of gifts, grants, conveyances, bequests, and devises of the University of Washington. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1607",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning recycling and waste reduction."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1622",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Allowing bargaining over matters related to the use of artificial intelligence."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2254",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing flexibility in the partnership access line assessment to cover administrative costs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2385",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the medicaid access program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2531",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Aligning the quality assurance fee for the ambulance transport fund with federal regulations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2543",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning county clerk fees."
+    }
+  ],
+  "schema_version": 1
+}

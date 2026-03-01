@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33719",
+  "retrieved_at_utc": "2026-03-01T18:25:50.682216+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2330",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a prioritization process for capital funding for state campus district energy systems. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2338",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing community scaled weatherization projects. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

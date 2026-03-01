@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1893-31570-22872
+timezone: America/Los_Angeles
+meeting_start: '2024-01-09T10:30:00-08:00'
+sign_in_cutoff: '2024-01-09T09:30:00-08:00'
+stats:
+  total_rows: 262
+  total_testifying: 16
+  total_not_testifying: 246
+  total_pro: 191
+  total_con: 67
+  total_other: 4
+  total_pro_pct: 72.90076335877863
+  total_con_pct: 25.572519083969464
+  total_other_pct: 1.5267175572519083
+source:
+  provider: wa_leg_csi
+  search_query: HB 1893
+  meeting_family_id: '31570'
+  agenda_item_family_id: '156072'
+  agenda_item_id: '22872'
+  agenda_item_description: HB 1893 Unemp ins/strikes & lockouts
+  short_bill_id: HB 1893
+  bill_number: '1893'
+  bill_title: Concerning unemployment insurance benefits for striking or lockout workers.
+    (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:41:36.086695+00:00'

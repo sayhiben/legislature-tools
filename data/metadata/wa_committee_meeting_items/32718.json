@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32718",
+  "retrieved_at_utc": "2026-03-01T18:25:20.569581+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5475",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning maintenance for salmon recovery projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5573",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning electric security alarm systems. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5635",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning approval of certain alternative on-site sewage systems. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5660",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Making it possible for more properties to have access to water, storm drains, and sanitary sewage systems. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5571",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regulating exterior cladding materials. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

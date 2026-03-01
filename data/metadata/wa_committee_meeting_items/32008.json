@@ -1,0 +1,68 @@
+{
+  "agenda_id": "32008",
+  "retrieved_at_utc": "2026-03-01T18:28:31.369939+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5788",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning service animal training."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5780",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Encouraging participation in public defense and prosecution professions."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5825",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning guardianship and conservatorship."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 6246",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning transmission of information relating to firearm prohibitions for persons committed for mental health treatment."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5985",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning firearms background check program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5660",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a mental health advance directive effective implementation work group."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5828",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning water rights adjudication commissioners and referees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5836",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding an additional superior court judge in Clark county."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 6068",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reporting on dependency outcomes."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6222",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the number of district court judges."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,122 @@
+{
+  "agenda_id": "34048",
+  "retrieved_at_utc": "2026-03-01T18:27:09.231749+00:00",
+  "row_count": 19,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9066",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Megan Matthews, Director, Washington State Office of Equity."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9246",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Riddhi Mukhopadhyay, Member, Washington State Women\u2019s Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9268",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Quiana Daniels, Member, Washington State Women\u2019s Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9267",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Gauri Shrotriya, Member, Washington State Women\u2019s Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1759",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating the twelfth day of December as the day of the 12s."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E3SHB 1710",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning compliance with the Washington voting rights act of 2018."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1750",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating guidelines for voter suppression and vote dilution claims under the Washington voting rights act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1916",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Amending voter registration challenges and managing voter registration lists."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2417",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Changing the Washington code of military justice so that it includes certain protections for victims of an offense while serving within the organized militia of Washington."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2632",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modernizing terminology when referring to individuals who are not citizens or nationals of the United States."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2411",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying shared leave provisions to authorize shared leave for victims of a hate crime and those whose absence is due to immigration enforcement actions against the employee or the employee's relative."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2249",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Amending the state civil service statutes to include Washington technology solutions network and security systems employees."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2475",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning language accessible public programs, activities, and services conducted, operated, or administered by state agencies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2420",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing small works roster contract limits."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2574",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the removal of deceased candidates for nonpartisan office from ballots."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2309",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing barriers to state employment by eliminating postgraduate degree requirements that are unnecessary."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2123",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning foreign national participation in Washington state elections."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2235",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning public records act exemptions regarding concealed pistol licenses, permits to purchase firearms, and firearms purchases or transfers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 2637",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Safeguarding personal information entrusted to agencies that is of no legitimate concern to the public."
+    }
+  ],
+  "schema_version": 1
+}

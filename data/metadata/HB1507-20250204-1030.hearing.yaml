@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1507-32688-25363
+timezone: America/Los_Angeles
+meeting_start: '2025-02-04T10:30:00-08:00'
+sign_in_cutoff: '2025-02-04T09:30:00-08:00'
+stats:
+  total_rows: 33
+  total_testifying: 9
+  total_not_testifying: 24
+  total_pro: 14
+  total_con: 19
+  total_other: 0
+  total_pro_pct: 42.42424242424242
+  total_con_pct: 57.57575757575758
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: HB 1507
+  meeting_family_id: '32688'
+  agenda_item_family_id: '162741'
+  agenda_item_id: '25363'
+  agenda_item_description: HB 1507 Health care nondisclosure
+  short_bill_id: HB 1507
+  bill_number: '1507'
+  bill_title: Limiting health care nondisclosure agreements. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:33:24.048164+00:00'

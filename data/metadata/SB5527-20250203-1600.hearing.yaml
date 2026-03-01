@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5527-32626-25313
+timezone: America/Los_Angeles
+meeting_start: '2025-02-03T16:00:00-08:00'
+sign_in_cutoff: '2025-02-03T15:00:00-08:00'
+stats:
+  total_rows: 6
+  total_testifying: 3
+  total_not_testifying: 3
+  total_pro: 6
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5527
+  meeting_family_id: '32626'
+  agenda_item_family_id: '162970'
+  agenda_item_id: '25313'
+  agenda_item_description: SB 5527 State patrol longevity bonus
+  short_bill_id: SB 5527
+  bill_number: '5527'
+  bill_title: Concerning the establishment of a state patrol longevity bonus. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:39:27.390652+00:00'

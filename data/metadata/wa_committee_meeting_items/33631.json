@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33631",
+  "retrieved_at_utc": "2026-03-01T18:28:27.630748+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2148",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating the pay it forward program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2132",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning applications for state financial aid. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

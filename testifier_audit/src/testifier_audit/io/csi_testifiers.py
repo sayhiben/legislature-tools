@@ -213,6 +213,13 @@ def _request_text_with_retries(
     attempt = 0
     while True:
         attempt += 1
+        logger.info(
+            "HTTP request start %s (attempt=%s timeout=%.1fs accept=%s)",
+            url,
+            attempt,
+            float(timeout_seconds),
+            accept,
+        )
         start = time.monotonic()
         wait_for_global_http_slot()
         request = Request(url, headers={"User-Agent": user_agent, "Accept": accept})

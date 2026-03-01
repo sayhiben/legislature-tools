@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32980",
+  "retrieved_at_utc": "2026-03-01T18:27:22.472311+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1279",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing postsecondary education consumer protections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1705",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Convening a work group to study and recommend strategies to recruit, train, and retain large animal veterinarians. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1540",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding eligibility for the students experiencing homelessness and foster youth program to an accredited tribal college."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1556",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding tuition waivers for high school completers at community and technical colleges."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9227",
+      "hearing_type_description": "Executive Session",
+      "item_description": "EDISON A VALERIO, Member, Columbia Basin College Board of Trustees."
+    }
+  ],
+  "schema_version": 1
+}

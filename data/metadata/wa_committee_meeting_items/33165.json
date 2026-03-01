@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33165",
+  "retrieved_at_utc": "2026-03-01T18:28:44.734572+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5101",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding access to leave and safety accommodations to include workers who are victims of hate crimes or bias incidents."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SSB 5217",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Expanding pregnancy-related accommodations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5292",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning paid family and medical leave rates."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5459",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning call center retention."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5473",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning law enforcement personnel grievance arbitration procedures."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5528",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the installation of transportation electrification infrastructure."
+    }
+  ],
+  "schema_version": 1
+}

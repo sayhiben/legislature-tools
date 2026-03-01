@@ -1,0 +1,20 @@
+{
+  "agenda_id": "32480",
+  "retrieved_at_utc": "2026-03-01T18:25:27.580122+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5129",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning common interest communities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5222",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving housing stability for tenants subject to the residential landlord-tenant act and the manufactured/mobile home landlord-tenant act by limiting rent and fee increases, requiring notice of rent and fee increases, limiting fees and deposits, establishing a landlord resource center and associated services, authorizing tenant lease termination, creating parity between lease types, and providing for attorney general enforcement. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

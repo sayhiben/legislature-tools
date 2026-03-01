@@ -1,0 +1,56 @@
+{
+  "agenda_id": "32613",
+  "retrieved_at_utc": "2026-03-01T18:28:54.417506+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5300",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the leasing authority of the state parks and recreation commission at St. Edward State Park. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5390",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating the cost of the discover pass and day-use permits. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5365",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning alternate funding for libraries. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5138",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning public facilities districts."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5221",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Simplifying processes and timelines related to personal property distraint."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5155",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending a program to streamline the environmental permitting process for salmon recovery projects."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5288",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning vacancies on boards of county commissioners."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5315",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Standardizing notification provisions relating to local tax rate changes and shared taxes administered by the department."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import codecs
+import logging
 import re
 from dataclasses import dataclass
 from hashlib import sha1
 from pathlib import Path
+from time import perf_counter
 from typing import Iterable
 
 import pandas as pd
@@ -57,6 +59,7 @@ ALLOWED_NAME_KEY_COLUMNS = frozenset(
 ALLOWED_STRATIFICATION_MODES = frozenset({"none", "birth_decade"})
 ACTIVE_STATUS_VALUE = "Active"
 INACTIVE_STATUS_VALUE = "Inactive"
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -360,7 +363,9 @@ def _iter_vrdb_chunks(path: Path, chunk_size: int) -> Iterable[pd.DataFrame]:
 
 
 def ensure_voter_registry_schema(conn, table_name: str) -> None:
+    started = perf_counter()
     _psycopg, sql = _load_psycopg()
+    LOGGER.info("[vrdb-import] Ensuring voter_registry schema for table=%s", table_name)
     create_table_statement = sql.SQL(
         """
         CREATE TABLE IF NOT EXISTS {table_name} (
@@ -549,147 +554,26 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
             table_name=sql.Identifier(table_name),
         ),
     )
-    backfill_new_keys = sql.SQL(
-        """
-        UPDATE {table_name}
-        SET
-          canonical_middle_initial = COALESCE(
-            NULLIF(TRIM(canonical_middle_initial), ''),
-            LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
-          ),
-          canonical_suffix = COALESCE(
-            NULLIF(TRIM(canonical_suffix), ''),
-            COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
-          ),
-          canonical_key_medium = COALESCE(
-            NULLIF(TRIM(canonical_key_medium), ''),
-            COALESCE(canonical_name, '')
-          ),
-          canonical_key_loose = COALESCE(
-            NULLIF(TRIM(canonical_key_loose), ''),
-            COALESCE(canonical_last, '') || '|' || LEFT(COALESCE(canonical_first, ''), 1)
-          ),
-          canonical_key_nickname = COALESCE(
-            NULLIF(TRIM(canonical_key_nickname), ''),
-            COALESCE(canonical_name, '')
-          ),
-          collision_key_medium = COALESCE(
-            NULLIF(TRIM(collision_key_medium), ''),
-            COALESCE(canonical_key_medium, '')
-          ),
-          collision_key_loose = COALESCE(
-            NULLIF(TRIM(collision_key_loose), ''),
-            COALESCE(canonical_key_loose, '')
-          ),
-          collision_key_strict = COALESCE(
-            NULLIF(TRIM(collision_key_strict), ''),
-            COALESCE(canonical_last, '')
-            || '|'
-            || COALESCE(canonical_first, '')
-            || '|'
-            || COALESCE(
-              NULLIF(TRIM(canonical_middle_initial), ''),
-              LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
-            )
-            || '|'
-            || COALESCE(
-              NULLIF(TRIM(canonical_suffix), ''),
-              COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
-            )
-          ),
-          full_name_key = COALESCE(
-            NULLIF(TRIM(full_name_key), ''),
-            COALESCE(canonical_last, '')
-            || '|'
-            || COALESCE(canonical_first, '')
-            || '|'
-            || COALESCE(
-              NULLIF(TRIM(canonical_middle_initial), ''),
-              LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
-            )
-            || '|'
-            || COALESCE(
-              NULLIF(TRIM(canonical_suffix), ''),
-              COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
-            )
-          ),
-          first_name_key = COALESCE(
-            NULLIF(TRIM(first_name_key), ''),
-            COALESCE(canonical_first, '')
-          ),
-          last_name_key = COALESCE(
-            NULLIF(TRIM(last_name_key), ''),
-            COALESCE(canonical_last, '')
-          ),
-          name_normalized = COALESCE(
-            NULLIF(TRIM(name_normalized), ''),
-            COALESCE(last_name, '')
-            || CASE
-              WHEN COALESCE(NULLIF(TRIM(first_name), ''), '') <> '' THEN ', ' || COALESCE(first_name, '')
-              ELSE ''
-            END
-            || CASE
-              WHEN COALESCE(NULLIF(TRIM(middle_name), ''), '') <> '' THEN ' ' || COALESCE(middle_name, '')
-              ELSE ''
-            END
-            || CASE
-              WHEN COALESCE(NULLIF(TRIM(name_suffix), ''), '') <> '' THEN ' ' || COALESCE(name_suffix, '')
-              ELSE ''
-            END
-          ),
-          reg_city = COALESCE(
-            NULLIF(TRIM(REGEXP_REPLACE(UPPER(COALESCE(reg_city, '')), '[^A-Z0-9]+', ' ', 'g')), ''),
-            ''
-          ),
-          county_code = COALESCE(
-            NULLIF(TRIM(REGEXP_REPLACE(UPPER(COALESCE(county_code, '')), '[^A-Z0-9]+', '', 'g')), ''),
-            ''
-          ),
-          normalization_version = COALESCE(
-            NULLIF(TRIM(normalization_version), ''),
-            'legacy_vrdb_import'
-          ),
-          normalization_version_hash = COALESCE(
-            NULLIF(TRIM(normalization_version_hash), ''),
-            ''
-          ),
-          canonical_key_strict = COALESCE(
-            NULLIF(TRIM(canonical_key_strict), ''),
-            COALESCE(canonical_last, '')
-            || '|'
-            || COALESCE(canonical_first, '')
-            || '|'
-            || COALESCE(
-              NULLIF(TRIM(canonical_middle_initial), ''),
-              LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
-            )
-            || '|'
-            || COALESCE(
-              NULLIF(TRIM(canonical_suffix), ''),
-              COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
-            )
-          )
-        WHERE
-          canonical_key_medium = ''
-          OR canonical_key_loose = ''
-          OR canonical_key_nickname = ''
-          OR canonical_key_strict = ''
-          OR collision_key_medium = ''
-          OR collision_key_loose = ''
-          OR collision_key_strict = ''
-          OR full_name_key = ''
-          OR first_name_key = ''
-          OR last_name_key = ''
-          OR normalization_version = '';
-        """
-    ).format(table_name=sql.Identifier(table_name))
     with conn.cursor() as cursor:
         cursor.execute(create_table_statement)
+        LOGGER.info("[vrdb-import] Schema step complete: table exists/created")
         for alter_stmt in add_missing_columns:
             cursor.execute(alter_stmt.format(table_name=sql.Identifier(table_name)))
+        LOGGER.info(
+            "[vrdb-import] Schema step complete: missing columns ensured count=%d",
+            len(add_missing_columns),
+        )
         for index_stmt in add_missing_indexes:
             cursor.execute(index_stmt)
-        cursor.execute(backfill_new_keys)
+        LOGGER.info(
+            "[vrdb-import] Schema step complete: indexes ensured count=%d",
+            len(add_missing_indexes),
+        )
+    LOGGER.info(
+        "[vrdb-import] Schema ensure complete table=%s elapsed_ms=%.1f",
+        table_name,
+        (perf_counter() - started) * 1000.0,
+    )
 
 
 def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
@@ -815,11 +699,21 @@ def import_vrdb_extract_to_postgres(
 ) -> VRDBImportResult:
     if chunk_size < 1_000:
         raise ValueError("chunk_size must be >= 1000")
+    import_started = perf_counter()
 
     psycopg, _sql = _load_psycopg()
     source_file = extract_path.name
     file_hash = compute_file_sha256(extract_path)
     file_size_bytes = int(extract_path.stat().st_size)
+    LOGGER.info(
+        "[vrdb-import] Starting import source_file=%s table=%s "
+        "file_size_bytes=%d chunk_size=%d force=%s",
+        source_file,
+        table_name,
+        file_size_bytes,
+        chunk_size,
+        bool(force),
+    )
 
     rows_processed = 0
     rows_upserted = 0
@@ -838,12 +732,21 @@ def import_vrdb_extract_to_postgres(
         nickname_map=nickname_map,
         nickname_map_path=nickname_map_path,
     )
+    LOGGER.info(
+        "[vrdb-import] Normalization settings version=%s version_hash=%s nickname_map_entries=%d",
+        resolved_normalization_version,
+        resolved_normalization_version_hash,
+        len(nickname_map),
+    )
 
     with psycopg.connect(db_url) as conn:
+        LOGGER.info("[vrdb-import] Connected to database; ensuring schema + import tracking tables")
         ensure_voter_registry_schema(conn=conn, table_name=table_name)
         ensure_import_tracking_schema(conn=conn)
         conn.commit()
+        LOGGER.info("[vrdb-import] Schema/import-tracking ensure committed")
 
+        LOGGER.info("[vrdb-import] Checking checksum/importer-version skip status")
         prior = find_completed_import(
             conn=conn,
             import_kind=IMPORT_KIND_VRDB,
@@ -856,6 +759,7 @@ def import_vrdb_extract_to_postgres(
                 "checksum already imported "
                 f"(import_id={prior.import_id}, rows_upserted={prior.rows_upserted})"
             )
+            LOGGER.info("[vrdb-import] Import skipped: %s", skip_reason)
             record_import_result(
                 conn=conn,
                 import_kind=IMPORT_KIND_VRDB,
@@ -887,8 +791,13 @@ def import_vrdb_extract_to_postgres(
                 previous_import_id=prior.import_id,
             )
 
+        LOGGER.info("[vrdb-import] Beginning chunked upsert loop")
+        chunk_index = 0
         for chunk in _iter_vrdb_chunks(extract_path, chunk_size=chunk_size):
-            rows_processed += len(chunk)
+            chunk_index += 1
+            chunk_started = perf_counter()
+            chunk_rows = int(len(chunk))
+            rows_processed += chunk_rows
             normalized = normalize_vrdb_chunk(
                 chunk=chunk,
                 source_file=source_file,
@@ -898,13 +807,37 @@ def import_vrdb_extract_to_postgres(
                 normalization_version_value=resolved_normalization_version,
                 normalization_version_hash_value=resolved_normalization_version_hash,
             )
+            normalized_rows = int(len(normalized))
             if normalized.empty:
+                LOGGER.info(
+                    "[vrdb-import] Chunk %d processed: chunk_rows=%d normalized_rows=0 "
+                    "rows_processed=%d rows_upserted=%d elapsed_s=%.1f",
+                    chunk_index,
+                    chunk_rows,
+                    rows_processed,
+                    rows_upserted,
+                    perf_counter() - import_started,
+                )
                 continue
 
             rows_with_state_voter_id += int((normalized["state_voter_id"] != "").sum())
             rows_with_canonical_name += int((normalized["canonical_name"] != "|").sum())
-            rows_upserted += _upsert_vrdb_rows(conn=conn, table_name=table_name, rows=normalized)
+            chunk_upserted = _upsert_vrdb_rows(conn=conn, table_name=table_name, rows=normalized)
+            rows_upserted += chunk_upserted
             conn.commit()
+            LOGGER.info(
+                "[vrdb-import] Chunk %d processed: chunk_rows=%d normalized_rows=%d "
+                "upserted_rows=%d rows_processed=%d rows_upserted=%d elapsed_s=%.1f "
+                "chunk_elapsed_ms=%.1f",
+                chunk_index,
+                chunk_rows,
+                normalized_rows,
+                int(chunk_upserted),
+                rows_processed,
+                rows_upserted,
+                perf_counter() - import_started,
+                (perf_counter() - chunk_started) * 1000.0,
+            )
 
         record_import_result(
             conn=conn,
@@ -920,6 +853,15 @@ def import_vrdb_extract_to_postgres(
             metadata={"force": bool(force)},
         )
         conn.commit()
+        LOGGER.info(
+            "[vrdb-import] Import completed rows_processed=%d rows_upserted=%d "
+            "rows_with_state_voter_id=%d rows_with_canonical_name=%d elapsed_s=%.1f",
+            rows_processed,
+            rows_upserted,
+            rows_with_state_voter_id,
+            rows_with_canonical_name,
+            perf_counter() - import_started,
+        )
 
     return VRDBImportResult(
         source_file=source_file,

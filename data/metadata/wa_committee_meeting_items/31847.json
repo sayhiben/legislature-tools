@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31847",
+  "retrieved_at_utc": "2026-03-01T18:27:47.207463+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2463",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Conducting a review of salmon planning and recovery efforts. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1752",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the application of the annual consumptive quantity calculation to change applications related to certain water rights held by the United States bureau of reclamation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2074",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Limiting the application of certain civil penalties to protect landowners from incurring penalties based on the actions of the landowner's lessee."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2165",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the authority of the department of natural resources to determine recreational use fees for activities on agency-managed public lands."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2293",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Studying the effects of avian predation of salmon."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2302",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Extending the pesticide application safety committee."
+    }
+  ],
+  "schema_version": 1
+}

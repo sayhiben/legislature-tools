@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB6003-33568-27092
+timezone: America/Los_Angeles
+meeting_start: '2026-01-12T16:00:00-08:00'
+sign_in_cutoff: '2026-01-12T15:00:00-08:00'
+stats:
+  total_rows: 56
+  total_testifying: 20
+  total_not_testifying: 36
+  total_pro: 22
+  total_con: 26
+  total_other: 8
+  total_pro_pct: 39.285714285714285
+  total_con_pct: 46.42857142857143
+  total_other_pct: 14.285714285714285
+source:
+  provider: wa_leg_csi
+  search_query: SB 6003
+  meeting_family_id: '33568'
+  agenda_item_family_id: '168076'
+  agenda_item_id: '27092'
+  agenda_item_description: 'SB 6003: Housing and Human services. (Remote Testimony
+    Available).'
+  short_bill_id: SB 6003
+  bill_number: '6003'
+  bill_title: Concerning the capital budget.
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:37:59.298280+00:00'

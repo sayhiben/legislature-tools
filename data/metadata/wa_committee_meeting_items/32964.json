@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32964",
+  "retrieved_at_utc": "2026-03-01T18:26:53.936943+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1006",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regulating service contracts and protection product guarantees. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1080",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning fee disclosure for lodging accommodations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1269",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning pawnbroker fees and interest rates. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1300",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Transferring dedicated accounts for certain professional licenses to the business and professions account. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1209",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting public health and safety by regulating the transfer of sodium nitrite."
+    }
+  ],
+  "schema_version": 1
+}

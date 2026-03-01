@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33057",
+  "retrieved_at_utc": "2026-03-01T18:25:47.638532+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SGA 9112",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Mark S Lyon, Member, Public Employment Relations Commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "EHB 1173",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning wages for journeypersons in high-hazard facilities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SHB 1162",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning workplace violence in health care settings. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1875",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Allowing the use of paid sick leave to prepare for or participate in certain immigration proceedings. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1879",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning meal and rest breaks for hospital workers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1644",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the safety and health of working minors. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1121",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning restrictions on the working conditions and hours of sixteen- and seventeen-year olds. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

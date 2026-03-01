@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33956",
+  "retrieved_at_utc": "2026-03-01T18:27:53.544189+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SCR 8406",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reestablishing the joint select committee on civic health. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5892",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning protection of the voter registration database. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5863",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the preservation and inspection of state historical records. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

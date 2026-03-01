@@ -1,0 +1,20 @@
+{
+  "agenda_id": "31584",
+  "retrieved_at_utc": "2026-03-01T18:28:58.725934+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1892",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the workforce housing accelerator program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2160",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Promoting community and transit-oriented housing development. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,44 @@
+{
+  "agenda_id": "31834",
+  "retrieved_at_utc": "2026-03-01T18:27:29.210154+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2091",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a fallen firefighter memorial."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2216",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reducing barriers to state employment by eliminating two-year and four-year degree requirements that are unnecessary."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2362",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying provisions on joint legislative audit and review committee studies."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2371",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Clarifying the rules surrounding the removal of political advertising."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2392",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Designating kimchi day."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2455",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing local governments options regarding elections for competing ballot measures. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

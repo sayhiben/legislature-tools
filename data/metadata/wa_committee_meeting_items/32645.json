@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32645",
+  "retrieved_at_utc": "2026-03-01T18:28:22.312328+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1099",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a tenant assistance program. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1365",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing rental assistance to manufactured/mobile home park tenants. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1500",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning resale certificates for units in common interest communities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1501",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning inquiries into association governance or operations by unit owners in common interest communities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1191",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning removing vehicle titles from manufactured homes."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32366",
+  "retrieved_at_utc": "2026-03-01T18:29:25.843192+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1091",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning sexually violent predators' ineligibility to earn supervision compliance credit. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1119",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning supervision compliance credit. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1133",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning sexually violent predators. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1137",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing uniform policies and procedures within department of corrections facilities relating to disciplinary proceedings and administrative segregation. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1192",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning disciplinary hearings held by the department of corrections. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

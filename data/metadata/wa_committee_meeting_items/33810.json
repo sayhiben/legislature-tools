@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33810",
+  "retrieved_at_utc": "2026-03-01T18:26:18.692458+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5609",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Regarding cultural resource protection for certain land use activities that are categorically exempt from the state environmental policy act. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6284",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing consumer protections for artificial intelligence systems. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32974",
+  "retrieved_at_utc": "2026-03-01T18:28:45.419276+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5029",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the transportation of individuals released or discharged from the custody of the department of corrections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5068",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning agencies, firefighters, prosecutors, and general or limited authority law enforcement, extending eligibility for employment to all United States citizens or persons legally authorized to work in the United States under federal law. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5209",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Explicitly listing the department of labor and industries in the definition of limited authority Washington law enforcement agency while not granting new enforcement authority. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5223",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning criminal offense fingerprinting. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5224",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning officer certification definitions, processes, and commissioning. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

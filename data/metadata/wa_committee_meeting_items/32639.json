@@ -1,0 +1,62 @@
+{
+  "agenda_id": "32639",
+  "retrieved_at_utc": "2026-03-01T18:26:41.895898+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5405",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating the inflation adjustment for the estate tax exclusion amount. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5457",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning broadcasters. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5510",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning conservation district revenue limitations. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5529",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Amending the county population threshold for counties that may exempt from taxation the value of accessory dwelling units to incentivize rental to low-income households. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5547",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing cannabis revenue distributions to local governments. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5072",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning abandoned vehicles sold at auctions conducted by registered tow truck operators. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5458",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning newspapers and eligible digital content. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5431",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying tax and revenue laws in a manner that is not estimated to affect state or local tax collections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5516",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the property tax exemption for community centers. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

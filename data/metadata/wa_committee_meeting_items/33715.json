@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33715",
+  "retrieved_at_utc": "2026-03-01T18:27:27.413151+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5820",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the responsibility of certain counties to include freight rail dependent use overlay as part of the transportation element of their comprehensive plan. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6064",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the administration of the international fire code. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6077",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning Washington's property assessment appeal procedures. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6101",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring coroners to be appointed rather than elected. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6013",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Updating terminology related to ski areas and winter sports activities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6066",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing accident risk zones."
+    }
+  ],
+  "schema_version": 1
+}

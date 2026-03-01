@@ -1,0 +1,26 @@
+{
+  "agenda_id": "33138",
+  "retrieved_at_utc": "2026-03-01T18:28:21.348278+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5298",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the notice of sale or lease of manufactured/mobile home communities."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5313",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Adding to the list of provisions prohibited from rental agreements."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5471",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing middle housing in unincorporated growth areas and unincorporated urban growth areas, certain limited areas of more intensive rural development, and fully contained communities."
+    }
+  ],
+  "schema_version": 1
+}

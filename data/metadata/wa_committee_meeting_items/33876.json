@@ -1,0 +1,80 @@
+{
+  "agenda_id": "33876",
+  "retrieved_at_utc": "2026-03-01T18:27:39.727957+00:00",
+  "row_count": 12,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2073",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Funding health insurance premium assistance. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2132",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning applications for state financial aid. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2403",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying provisions relating to the crime of failure to register. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2587",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a pilot program to advance funds to nonprofits to support grant performance. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2607",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning child care rate regions. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1170",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Informing users when content is developed or modified by artificial intelligence."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1570",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning collective bargaining for certain employees who are enrolled in academic programs at public institutions of higher education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1710",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning compliance with the Washington voting rights act of 2018."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1750",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating guidelines for voter suppression and vote dilution claims under the Washington voting rights act."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1833",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating an artificial intelligence grant program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1834",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting Washington children online."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2441",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning medical insurance premium reimbursements for surviving spouses of line of duty deaths."
+    }
+  ],
+  "schema_version": 1
+}

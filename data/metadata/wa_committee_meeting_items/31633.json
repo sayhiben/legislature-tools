@@ -1,0 +1,50 @@
+{
+  "agenda_id": "31633",
+  "retrieved_at_utc": "2026-03-01T18:29:15.781632+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2023",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving meaningful access to elections by increasing language assistance."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1990",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the Washington state aerial imagery program."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1692",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating student advisory groups."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2209",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Celebrating lunar new year."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2099",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning state identification cards for persons in state custody or care."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1947",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the governance of technology services in state government, including eliminating the office of the chief information officer and renaming the consolidated technology services agency."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2098",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Authorizing the women's commission to solicit gifts, grants, and endowments from public or private sources."
+    }
+  ],
+  "schema_version": 1
+}

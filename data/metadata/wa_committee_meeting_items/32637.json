@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32637",
+  "retrieved_at_utc": "2026-03-01T18:25:46.611077+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1562",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing the availability of baby diaper changing stations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1529",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing opportunities for cities to utilize county resources for road construction and maintenance."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1600",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying the fee to support family services."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1688",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning electric security alarm systems."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1684",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning water recreation facilities. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

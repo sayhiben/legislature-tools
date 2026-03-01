@@ -1,0 +1,50 @@
+{
+  "agenda_id": "31644",
+  "retrieved_at_utc": "2026-03-01T18:25:34.582220+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5806",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the confidentiality of insurance company data. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5987",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving consumer protection on gift certificates. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6025",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting consumers from predatory loans. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6080",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Simplifying the funding provisions of the statewide tourism marketing account. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5817",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requiring state agencies to share information to encourage economic development. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5842",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Restricting the use of social security numbers by insurance companies for the purpose of determining child support debt."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6027",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the insurance holding company act."
+    }
+  ],
+  "schema_version": 1
+}

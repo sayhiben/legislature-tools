@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1071-32361-24711
+timezone: America/Los_Angeles
+meeting_start: '2025-01-16T08:00:00-08:00'
+sign_in_cutoff: '2025-01-16T07:00:00-08:00'
+stats:
+  total_rows: 139
+  total_testifying: 24
+  total_not_testifying: 115
+  total_pro: 73
+  total_con: 58
+  total_other: 8
+  total_pro_pct: 52.51798561151079
+  total_con_pct: 41.726618705035975
+  total_other_pct: 5.755395683453238
+source:
+  provider: wa_leg_csi
+  search_query: HB 1071
+  meeting_family_id: '32361'
+  agenda_item_family_id: '161400'
+  agenda_item_id: '24711'
+  agenda_item_description: HB 1071 Recycling rates
+  short_bill_id: HB 1071
+  bill_number: '1071'
+  bill_title: Implementing strategies to achieve higher recycling rates within Washington's
+    existing solid waste management system. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:40:51.324045+00:00'

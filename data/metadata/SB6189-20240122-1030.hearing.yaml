@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: SB6189-31697-23296
+timezone: America/Los_Angeles
+meeting_start: '2024-01-22T10:30:00-08:00'
+sign_in_cutoff: '2024-01-22T09:30:00-08:00'
+stats:
+  total_rows: 124
+  total_testifying: 13
+  total_not_testifying: 111
+  total_pro: 95
+  total_con: 28
+  total_other: 1
+  total_pro_pct: 76.61290322580645
+  total_con_pct: 22.58064516129032
+  total_other_pct: 0.8064516129032258
+source:
+  provider: wa_leg_csi
+  search_query: SB 6189
+  meeting_family_id: '31697'
+  agenda_item_family_id: '157113'
+  agenda_item_id: '23296'
+  agenda_item_description: SB 6189 Jail system
+  short_bill_id: SB 6189
+  bill_number: '6189'
+  bill_title: Concerning transparency, public safety, and independent oversight of
+    the city, county, and regional jail system in Washington state. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:31:00.587356+00:00'

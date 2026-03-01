@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33986",
+  "retrieved_at_utc": "2026-03-01T18:27:26.222839+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2510",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the supervision of individuals sentenced to community custody. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2539",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning inmate funds. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2319",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Renaming certain state residential facilities for persons with developmental disabilities. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2350",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Increasing transparency regarding residential habilitation center compliance with certain federal requirements. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

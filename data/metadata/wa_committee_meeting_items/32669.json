@@ -1,0 +1,26 @@
+{
+  "agenda_id": "32669",
+  "retrieved_at_utc": "2026-03-01T18:28:59.444073+00:00",
+  "row_count": 3,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1196",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Revoking a person's voting rights only when convicted of a state crime punishable by death. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1710",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning compliance with the Washington voting rights act of 2018. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1750",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating guidelines for voter suppression and vote dilution claims under the Washington voting rights act. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

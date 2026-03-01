@@ -1,0 +1,38 @@
+{
+  "agenda_id": "33119",
+  "retrieved_at_utc": "2026-03-01T18:29:17.572448+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5238",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing reckless driving in cases involving excessive speed."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5282",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Reestablishing the advisory board for the missing and exploited children task force."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5286",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning policing costs driven by proximity to state hospitals."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5182",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning programs and services for incarcerated parents at the department of corrections. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5268",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Imposing community custody after a conviction for unlawful possession of a firearm. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

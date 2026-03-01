@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5384-32704-25221
+timezone: America/Los_Angeles
+meeting_start: '2025-02-06T13:30:00-08:00'
+sign_in_cutoff: '2025-02-06T12:30:00-08:00'
+stats:
+  total_rows: 82
+  total_testifying: 3
+  total_not_testifying: 79
+  total_pro: 78
+  total_con: 3
+  total_other: 1
+  total_pro_pct: 95.1219512195122
+  total_con_pct: 3.6585365853658534
+  total_other_pct: 1.2195121951219512
+source:
+  provider: wa_leg_csi
+  search_query: SB 5384
+  meeting_family_id: '32704'
+  agenda_item_family_id: '162838'
+  agenda_item_id: '25221'
+  agenda_item_description: SB 5384 Riparian programs review
+  short_bill_id: SB 5384
+  bill_number: '5384'
+  bill_title: Conducting a review of Washington's riparian programs. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:38:11.585827+00:00'

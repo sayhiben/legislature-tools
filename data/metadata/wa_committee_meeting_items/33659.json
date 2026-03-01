@@ -1,0 +1,68 @@
+{
+  "agenda_id": "33659",
+  "retrieved_at_utc": "2026-03-01T18:25:24.571234+00:00",
+  "row_count": 10,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1228",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning toxicology testing by certified or accredited laboratories."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1982",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Vacating convictions involving the exercise of treaty rights by Indian tribal members."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2156",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the authority of investigators of the attorney general's office."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2165",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning false identification as a peace officer."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2173",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the use of face coverings by law enforcement officers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2203",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the offense of reckless interference with emergency operations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2220",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning state oversight and accountability of the criminal justice training commission."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2362",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning impaired driving."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2403",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Modifying provisions relating to the crime of failure to register."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2464",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning reporting requirements and law enforcement responses for incidents at private detention facilities."
+    }
+  ],
+  "schema_version": 1
+}

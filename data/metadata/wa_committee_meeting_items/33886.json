@@ -1,0 +1,62 @@
+{
+  "agenda_id": "33886",
+  "retrieved_at_utc": "2026-03-01T18:28:01.236424+00:00",
+  "row_count": 9,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6277",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Promoting educational stability for children of military families. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5992",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating the youth development fund account to increase access to positive youth development programs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6078",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing prelicensing supports to individuals interested in becoming a licensed child care provider."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6089",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Increasing coordination and alignment throughout the P20W system."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5918",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing funding for school materials, supplies, and operating costs."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5861",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Encouraging community representation in education."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6118",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring cardiac emergency response plans in schools."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6065",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning school district transportation vehicle funds."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6052",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a statewide digital transcript data-sharing environment."
+    }
+  ],
+  "schema_version": 1
+}

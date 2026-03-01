@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33950",
+  "retrieved_at_utc": "2026-03-01T18:27:31.444667+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "2ESSB 5268",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Imposing community custody after a conviction for unlawful possession of a firearm."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5272",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving school safety by extending penalties for interference by, or intimidation by threat of, force or violence at schools and extracurricular activities and requiring schools to notify the public of such penalties."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESB 5286",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning policing costs driven by proximity to state hospitals."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 5067",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning impaired driving. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2ESSB 5105",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning sexually explicit depictions of minors. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 5436",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Interfering with access to a place of religious worship. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "2SSB 5880",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning toxicology testing by certified or accredited laboratories. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

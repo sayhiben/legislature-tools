@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1133-32366-24634
+timezone: America/Los_Angeles
+meeting_start: '2025-01-14T16:00:00-08:00'
+sign_in_cutoff: '2025-01-14T15:00:00-08:00'
+stats:
+  total_rows: 446
+  total_testifying: 7
+  total_not_testifying: 439
+  total_pro: 408
+  total_con: 37
+  total_other: 1
+  total_pro_pct: 91.4798206278027
+  total_con_pct: 8.295964125560538
+  total_other_pct: 0.2242152466367713
+source:
+  provider: wa_leg_csi
+  search_query: HB 1133
+  meeting_family_id: '32366'
+  agenda_item_family_id: '161063'
+  agenda_item_id: '24634'
+  agenda_item_description: HB 1133 Sexually violent predators
+  short_bill_id: HB 1133
+  bill_number: '1133'
+  bill_title: Concerning sexually violent predators. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:44:38.261413+00:00'

@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5511-32750-25708
+timezone: America/Los_Angeles
+meeting_start: '2025-02-10T10:30:00-08:00'
+sign_in_cutoff: '2025-02-10T09:30:00-08:00'
+stats:
+  total_rows: 143
+  total_testifying: 12
+  total_not_testifying: 131
+  total_pro: 128
+  total_con: 13
+  total_other: 2
+  total_pro_pct: 89.5104895104895
+  total_con_pct: 9.090909090909092
+  total_other_pct: 1.3986013986013985
+source:
+  provider: wa_leg_csi
+  search_query: SB 5511
+  meeting_family_id: '32750'
+  agenda_item_family_id: '163693'
+  agenda_item_id: '25708'
+  agenda_item_description: SB 5511 Low-proof alcohol beverages
+  short_bill_id: SB 5511
+  bill_number: '5511'
+  bill_title: Regarding low-proof alcoholic beverages. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:32:52.977887+00:00'

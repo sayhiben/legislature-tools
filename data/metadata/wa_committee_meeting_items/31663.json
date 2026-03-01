@@ -1,0 +1,32 @@
+{
+  "agenda_id": "31663",
+  "retrieved_at_utc": "2026-03-01T18:28:26.368518+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2087",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning objections to apprenticeship programs. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2097",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Assisting workers in recovering wages owed. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2127",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning workers' compensation incentives to return to work. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2136",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning prevailing wage sanctions, penalties, and debarment. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

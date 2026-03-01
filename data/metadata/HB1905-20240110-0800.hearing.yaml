@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1905-31572-22875
+timezone: America/Los_Angeles
+meeting_start: '2024-01-10T08:00:00-08:00'
+sign_in_cutoff: '2024-01-10T07:00:00-08:00'
+stats:
+  total_rows: 263
+  total_testifying: 10
+  total_not_testifying: 253
+  total_pro: 55
+  total_con: 206
+  total_other: 2
+  total_pro_pct: 20.912547528517113
+  total_con_pct: 78.32699619771863
+  total_other_pct: 0.7604562737642585
+source:
+  provider: wa_leg_csi
+  search_query: HB 1905
+  meeting_family_id: '31572'
+  agenda_item_family_id: '156075'
+  agenda_item_id: '22875'
+  agenda_item_description: HB 1905 Equal pay/protected classes
+  short_bill_id: HB 1905
+  bill_number: '1905'
+  bill_title: Including protected classes in the Washington equal pay and opportunities
+    act. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:42:18.231854+00:00'

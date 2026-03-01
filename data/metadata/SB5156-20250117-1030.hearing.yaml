@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5156-32377-24710
+timezone: America/Los_Angeles
+meeting_start: '2025-01-17T10:30:00-08:00'
+sign_in_cutoff: '2025-01-17T09:30:00-08:00'
+stats:
+  total_rows: 61
+  total_testifying: 8
+  total_not_testifying: 53
+  total_pro: 53
+  total_con: 6
+  total_other: 2
+  total_pro_pct: 86.88524590163934
+  total_con_pct: 9.836065573770492
+  total_other_pct: 3.278688524590164
+source:
+  provider: wa_leg_csi
+  search_query: SB 5156
+  meeting_family_id: '32377'
+  agenda_item_family_id: '161402'
+  agenda_item_id: '24710'
+  agenda_item_description: SB 5156 Elevators/smaller apartments
+  short_bill_id: SB 5156
+  bill_number: '5156'
+  bill_title: Concerning elevator standards in smaller apartment buildings. (Remote
+    Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:42:00.316096+00:00'

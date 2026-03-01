@@ -1,0 +1,44 @@
+{
+  "agenda_id": "33968",
+  "retrieved_at_utc": "2026-03-01T18:28:38.691826+00:00",
+  "row_count": 6,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2199",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing impacts from derelict vessels. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 2238",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning statewide food security. (Hearing is on the Proposed Striking Amendment.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2104",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning aviation assurance funding in response to wildland fires. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2554",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Recognizing judicially affirmed and treaty-reserved fishing rights and promoting state-tribal cooperative agreements in the management of salmon, trout, and steelhead resources. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2619",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reducing regulatory stress in agriculture. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 2343",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting the public from water quality impacts of publicly owned or operated game farms. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

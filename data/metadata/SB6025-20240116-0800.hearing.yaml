@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB6025-31644-23001
+timezone: America/Los_Angeles
+meeting_start: '2024-01-16T08:00:00-08:00'
+sign_in_cutoff: '2024-01-16T07:00:00-08:00'
+stats:
+  total_rows: 27
+  total_testifying: 14
+  total_not_testifying: 13
+  total_pro: 15
+  total_con: 4
+  total_other: 8
+  total_pro_pct: 55.55555555555556
+  total_con_pct: 14.814814814814813
+  total_other_pct: 29.629629629629626
+source:
+  provider: wa_leg_csi
+  search_query: SB 6025
+  meeting_family_id: '31644'
+  agenda_item_family_id: '156502'
+  agenda_item_id: '23001'
+  agenda_item_description: SB 6025 Predatory loans
+  short_bill_id: SB 6025
+  bill_number: '6025'
+  bill_title: Protecting consumers from predatory loans. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:35:39.324027+00:00'

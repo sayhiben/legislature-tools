@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB6086-33676-27332
+timezone: America/Los_Angeles
+meeting_start: '2026-01-22T10:30:00-08:00'
+sign_in_cutoff: '2026-01-22T09:30:00-08:00'
+stats:
+  total_rows: 229
+  total_testifying: 8
+  total_not_testifying: 221
+  total_pro: 29
+  total_con: 195
+  total_other: 5
+  total_pro_pct: 12.663755458515283
+  total_con_pct: 85.1528384279476
+  total_other_pct: 2.1834061135371177
+source:
+  provider: wa_leg_csi
+  search_query: SB 6086
+  meeting_family_id: '33676'
+  agenda_item_family_id: '168263'
+  agenda_item_id: '27332'
+  agenda_item_description: SB 6086 Judicial security
+  short_bill_id: SB 6086
+  bill_number: '6086'
+  bill_title: Strengthening security for Washington state judicial officers and court
+    personnel
+  committee_name: Law & Justice
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:42:38.802990+00:00'

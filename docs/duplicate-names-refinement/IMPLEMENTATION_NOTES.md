@@ -2232,6 +2232,72 @@ Scope: Fresh DUP-007 regression + ESSB 6346 rerender/Playwright pass; clarify ch
 
 ---
 
+## Large-Corpus Runbook Check: `run_all_metadata_reports_with_loo.sh --fast-contextual` (2026-03-01)
+
+Date: 2026-03-01  
+Scope: Static code audit of the long-run command the user started in background, to verify whether outputs are sufficient for next DUP-007 decision pass.
+
+## What the command does (confirmed from script code)
+- Discovers only metadata+CSV matched stems (`<stem>.hearing.yaml` + `<stem>.csv`) under `data/metadata` and `data/raw`.
+- Imports VRDB once and prepares shared voter lookup cache config.
+- In `--fast-contextual` mode:
+  - pass 1 validates/imports each dataset (with submissions row-count coverage guard).
+  - builds contextual duplicate baseline from pass1-OK stems.
+  - pass 2 generates contextual reports with `run_unified_report.sh --skip-imports`.
+  - optional pass 2b failure mitigation reruns successful reports against success-only contextual baseline.
+- Rebuilds report index + `reports/global_baselines.json`.
+- Builds per-report LOO baseline payloads (`cross_hearing_baseline_loo.json`) for successful reports.
+- Exits non-zero when any pass1/pass2/LOO failures occur; writes failure summary under `output/run_logs`.
+
+## Sufficiency assessment for upcoming decision work
+- For report/contextual/LOO regeneration: **yes**, this command is the right long-run pipeline.
+- For DUP-007 inferential-coverage decision specifically: **not sufficient by itself**.
+  - DUP-007 operating-point decision still requires explicit rerun of `scripts/tests/backtest_vrdb_collision_module.py`.
+  - Backtest discovers hearings from `data/raw/*.csv` and applies its own family selection/support gates.
+
+## Important caveats captured for interpretation
+- Global/LOO comparators read all report subdirectories under `REPORTS_ROOT`; they are not automatically restricted to just this run's stems unless `REPORTS_ROOT` is isolated.
+- Any hearing without a matching metadata sidecar is ignored by this batch command even if CSV exists.
+- A non-zero final exit can still leave many successful regenerated reports/artifacts; consult run log + `.failures.txt`.
+
+---
+
+## Baseline Corpus Sampling Verbose Logging Refresh (2026-03-01)
+
+Date: 2026-03-01  
+Scope: Improve long-run observability for `sample-baseline-corpus` so request and download phases are monitorable in real time.
+
+## What Changed
+- Added more explicit request/progress logging across sampling/network layers:
+  - `testifier_audit/src/testifier_audit/io/csi_testifiers.py`
+    - logs request start for every HTTP call before awaiting response/retry.
+  - `testifier_audit/src/testifier_audit/io/wa_committee_service.py`
+    - logs committee-service request start/response with status, bytes, and elapsed time.
+  - `testifier_audit/src/testifier_audit/io/baseline_corpus_sampler.py`
+    - logs index refresh decisions.
+    - logs meeting-item cache hit/miss and uncached fetch start/completion.
+    - logs per-meeting evaluation and per-candidate selection progress.
+    - logs per-candidate download start/success/failure, plus rate-limit sleeps.
+    - logs meeting-family fallback transitions when `agenda_item_id` is missing.
+- Added CLI verbosity toggle for sampling:
+  - `testifier_audit/src/testifier_audit/cli.py`
+    - `sample-baseline-corpus` now supports `--verbose` and sets logging level to `DEBUG` when enabled.
+- Updated discoverability docs/examples:
+  - `testifier_audit/README.md`
+  - `testifier_audit/scripts/data/sample_baseline_corpus.sh`
+
+## Test Coverage Added
+- `testifier_audit/tests/test_cli.py`
+  - `test_sample_baseline_corpus_command_verbose_sets_debug_logging`
+- `testifier_audit/tests/test_baseline_corpus_sampler.py`
+  - `test_sample_unsampled_baseline_corpus_emits_progress_logging`
+
+## Notes
+- Existing INFO logs already emitted final summary and many CSI response lines; this refresh adds explicit "start/progress" logs so long waits are no longer silent.
+- `--verbose` is optional; default mode remains INFO-level and still includes the new per-request/per-candidate INFO traces.
+
+---
+
 ## DUP-007 Verification Sweep v3 (Generation + Rerender + Playwright)
 
 Date: 2026-03-01  

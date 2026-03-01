@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2243-33618-27134
+timezone: America/Los_Angeles
+meeting_start: '2026-01-13T10:30:00-08:00'
+sign_in_cutoff: '2026-01-13T09:30:00-08:00'
+stats:
+  total_rows: 358
+  total_testifying: 13
+  total_not_testifying: 345
+  total_pro: 277
+  total_con: 80
+  total_other: 1
+  total_pro_pct: 77.37430167597765
+  total_con_pct: 22.3463687150838
+  total_other_pct: 0.27932960893854747
+source:
+  provider: wa_leg_csi
+  search_query: HB 2243
+  meeting_family_id: '33618'
+  agenda_item_family_id: '167993'
+  agenda_item_id: '27134'
+  agenda_item_description: HB 2243 Workers' comp./PTs & OTs
+  short_bill_id: HB 2243
+  bill_number: '2243'
+  bill_title: Including physical and occupational therapists as attending providers
+    for workers' compensation
+  committee_name: Labor & Workplace Standards
+  chamber: House
+  downloaded_at: '2026-03-01T18:41:33.867017+00:00'

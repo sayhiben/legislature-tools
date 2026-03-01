@@ -1,0 +1,56 @@
+{
+  "agenda_id": "33786",
+  "retrieved_at_utc": "2026-03-01T18:28:08.315426+00:00",
+  "row_count": 8,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2188",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Promoting transparency in certain industrial insurance rate increases. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2563",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning electronic notices and orders in certain unemployment compensation cases. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1571",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Removing qualifiers related to the presumption of occupational disease for heart problems."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2144",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Requiring notices to employees when electronic monitoring is used to assist employers conducting performance evaluations."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2191",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workers' wages and benefits in the construction industry."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2218",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning access to medical care in workers' compensation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2243",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Including physical and occupational therapists as attending providers for workers' compensation."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2372",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning workers' compensation benefits."
+    }
+  ],
+  "schema_version": 1
+}

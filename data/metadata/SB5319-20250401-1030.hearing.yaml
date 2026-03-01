@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB5319-33209-26789
+timezone: America/Los_Angeles
+meeting_start: '2025-04-01T10:30:00-07:00'
+sign_in_cutoff: '2025-04-01T09:30:00-07:00'
+stats:
+  total_rows: 667
+  total_testifying: 5
+  total_not_testifying: 662
+  total_pro: 5
+  total_con: 662
+  total_other: 0
+  total_pro_pct: 0.7496251874062968
+  total_con_pct: 99.2503748125937
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 5319
+  meeting_family_id: '33209'
+  agenda_item_family_id: '166689'
+  agenda_item_id: '26789'
+  agenda_item_description: HB 2062 Maple syrup processing
+  short_bill_id: SB 5319
+  bill_number: '5319'
+  bill_title: Establishing surface mine reclamation permit fees.
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:41:27.440195+00:00'

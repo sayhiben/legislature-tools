@@ -1,0 +1,32 @@
+{
+  "agenda_id": "34047",
+  "retrieved_at_utc": "2026-03-01T18:27:20.437937+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6346",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing a tax on millionaires."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6113",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning taxes administered by the department of revenue. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESSB 6162",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning property tax reform. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SSB 6097",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Adding federally recognized Indian tribes to the list of entities that may participate in the conservation futures program. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

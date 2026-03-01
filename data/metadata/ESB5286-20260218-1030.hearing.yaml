@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: ESB5286-33949-28167
+timezone: America/Los_Angeles
+meeting_start: '2026-02-18T10:30:00-08:00'
+sign_in_cutoff: '2026-02-18T09:30:00-08:00'
+stats:
+  total_rows: 10
+  total_testifying: 2
+  total_not_testifying: 8
+  total_pro: 9
+  total_con: 1
+  total_other: 0
+  total_pro_pct: 90.0
+  total_con_pct: 10.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: ESB 5286
+  meeting_family_id: '33949'
+  agenda_item_family_id: '170369'
+  agenda_item_id: '28167'
+  agenda_item_description: ESB 5286 State hospitals/police costs
+  short_bill_id: ESB 5286
+  bill_number: '5286'
+  bill_title: Policing costs driven by proximity to state hospitals
+  committee_name: Community Safety
+  chamber: House
+  downloaded_at: '2026-03-01T18:40:02.412177+00:00'

@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REPO_ROOT="$(cd "${PROJECT_ROOT}/.." && pwd)"
+CALLER_CWD="$(pwd)"
 
 # shellcheck disable=SC1091
 source "${PROJECT_ROOT}/scripts/lib/env.sh"
@@ -35,6 +36,19 @@ on_error() {
 trap on_error ERR
 
 cd "${PROJECT_ROOT}"
+
+resolve_path_from_caller() {
+  local path_value="$1"
+  if [[ -z "${path_value}" ]]; then
+    printf '%s\n' "${path_value}"
+    return
+  fi
+  if [[ "${path_value}" = /* ]]; then
+    printf '%s\n' "${path_value}"
+    return
+  fi
+  printf '%s\n' "${CALLER_CWD}/${path_value#./}"
+}
 
 DEFAULT_SUBMISSIONS_CSV="${REPO_ROOT}/data/raw/SB6346-20260206-1330.csv"
 DEFAULT_VRDB_EXTRACT="${REPO_ROOT}/data/raw/20260202_VRDB_Extract.txt"
@@ -100,6 +114,9 @@ done
 SUBMISSIONS_CSV="${POSITIONAL_ARGS[0]:-${SUBMISSIONS_CSV:-${DEFAULT_SUBMISSIONS_CSV}}}"
 VRDB_EXTRACT="${POSITIONAL_ARGS[1]:-${VRDB_EXTRACT:-${DEFAULT_VRDB_EXTRACT}}}"
 HEARING_METADATA_PATH_INPUT="${POSITIONAL_ARGS[2]:-${HEARING_METADATA_PATH:-}}"
+SUBMISSIONS_CSV="$(resolve_path_from_caller "${SUBMISSIONS_CSV}")"
+VRDB_EXTRACT="$(resolve_path_from_caller "${VRDB_EXTRACT}")"
+HEARING_METADATA_PATH_INPUT="$(resolve_path_from_caller "${HEARING_METADATA_PATH_INPUT}")"
 REPORTS_ROOT="${REPORTS_ROOT:-${REPO_ROOT}/reports}"
 CSV_BASENAME="$(basename "${SUBMISSIONS_CSV}")"
 CSV_STEM="${CSV_BASENAME%.*}"
@@ -113,6 +130,7 @@ if [[ -z "${HEARING_METADATA_PATH}" ]] && [[ -f "${DEFAULT_HEARING_METADATA_PATH
   AUTO_DETECTED_HEARING_METADATA=1
 fi
 CONFIG_PATH="${CONFIG_PATH:-${PROJECT_ROOT}/configs/voter_registry_enabled.yaml}"
+CONFIG_PATH="$(resolve_path_from_caller "${CONFIG_PATH}")"
 DB_URL="${TESTIFIER_AUDIT_DB_URL:-${DATABASE_URL:-postgresql://legislature:legislature@localhost:55432/legislature}}"
 DEDUP_MODE="${DEDUP_MODE:-}"
 SKIP_DOCKER_POSTGRES="${TESTIFIER_AUDIT_SKIP_DOCKER_POSTGRES:-0}"
@@ -146,7 +164,7 @@ if [[ ! -f "${SUBMISSIONS_CSV}" ]]; then
   exit 1
 fi
 
-if [[ ! -f "${VRDB_EXTRACT}" ]]; then
+if [[ "${SKIP_VRDB_IMPORT}" != "1" ]] && [[ ! -f "${VRDB_EXTRACT}" ]]; then
   log_error "VRDB extract not found: ${VRDB_EXTRACT}"
   exit 1
 fi

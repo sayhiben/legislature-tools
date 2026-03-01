@@ -1,0 +1,38 @@
+{
+  "agenda_id": "31734",
+  "retrieved_at_utc": "2026-03-01T18:29:07.451378+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1945",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Streamlining and enhancing program access for persons eligible for food assistance."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1970",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Improving communication between the department of children, youth, and families and caregivers."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2185",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning the oversight board for children, youth, and families."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2221",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Establishing an American sign language and protactile sign language interpreter work group."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2248",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Providing support to individuals with traumatic brain injuries."
+    }
+  ],
+  "schema_version": 1
+}

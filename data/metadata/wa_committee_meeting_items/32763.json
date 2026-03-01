@@ -1,0 +1,38 @@
+{
+  "agenda_id": "32763",
+  "retrieved_at_utc": "2026-03-01T18:26:02.654055+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1033",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing local licensing and regulation of child care providers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1363",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying licensing requirements for child care and early learning providers. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1660",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Reporting information related to racial disproportionality in child welfare. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1815",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning prison riot offenses. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1919",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying access to the working connections child care program. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

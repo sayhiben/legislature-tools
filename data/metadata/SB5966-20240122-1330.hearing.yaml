@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SB5966-31765-23319
+timezone: America/Los_Angeles
+meeting_start: '2024-01-22T13:30:00-08:00'
+sign_in_cutoff: '2024-01-22T12:30:00-08:00'
+stats:
+  total_rows: 579
+  total_testifying: 28
+  total_not_testifying: 551
+  total_pro: 73
+  total_con: 464
+  total_other: 42
+  total_pro_pct: 12.607944732297064
+  total_con_pct: 80.13816925734024
+  total_other_pct: 7.253886010362693
+source:
+  provider: wa_leg_csi
+  search_query: SB 5966
+  meeting_family_id: '31765'
+  agenda_item_family_id: '157301'
+  agenda_item_id: '23319'
+  agenda_item_description: SB 5966 Student restraint, isolation
+  short_bill_id: SB 5966
+  bill_number: '5966'
+  bill_title: Concerning restraint or isolation of students in public schools and
+    educational programs. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:44:19.095287+00:00'

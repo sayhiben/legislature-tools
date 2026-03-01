@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33757",
+  "retrieved_at_utc": "2026-03-01T18:26:07.667190+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2511",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Providing a definition for imminent physical harm in the context of child welfare. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2660",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing the court to order certain conditions during child welfare shelter care hearings. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

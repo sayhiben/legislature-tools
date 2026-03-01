@@ -1,0 +1,50 @@
+{
+  "agenda_id": "33159",
+  "retrieved_at_utc": "2026-03-01T18:26:51.980211+00:00",
+  "row_count": 7,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1321",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the governor's authority to limit outside militia activities within the state. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1541",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the veterans affairs advisory committee. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "E2SHB 1549",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying the responsible bidder criteria for public works projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1967",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modifying bonding requirements in the design portion of design-build public works projects. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "ESHB 1610",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the disclosure of critical energy infrastructure information. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1064",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Eliminating the expiration of the interagency, multijurisdictional system improvement team. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SHB 1969",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the law enforcement aviation support grant program. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

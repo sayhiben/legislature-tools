@@ -1,0 +1,20 @@
+{
+  "agenda_id": "33700",
+  "retrieved_at_utc": "2026-03-01T18:25:16.493002+00:00",
+  "row_count": 2,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2266",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Encouraging permanent supportive housing, transitional housing, indoor emergency housing, and indoor emergency shelters. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2489",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing statewide standards for when local governments may enforce laws regulating the use of public space for life-sustaining activities. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

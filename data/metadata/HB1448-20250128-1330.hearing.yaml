@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: HB1448-32592-25102
+timezone: America/Los_Angeles
+meeting_start: '2025-01-28T13:30:00-08:00'
+sign_in_cutoff: '2025-01-28T12:30:00-08:00'
+stats:
+  total_rows: 3886
+  total_testifying: 32
+  total_not_testifying: 3854
+  total_pro: 1920
+  total_con: 1960
+  total_other: 6
+  total_pro_pct: 49.40813175501801
+  total_con_pct: 50.43746783324755
+  total_other_pct: 0.1544004117344313
+source:
+  provider: wa_leg_csi
+  search_query: HB 1448
+  meeting_family_id: '32592'
+  agenda_item_family_id: '162116'
+  agenda_item_id: '25102'
+  agenda_item_description: HB 1448 Local elections
+  short_bill_id: HB 1448
+  bill_number: '1448'
+  bill_title: Increasing representation and voter participation in local elections
+  committee_name: State Government & Tribal Relations
+  chamber: House
+  downloaded_at: '2026-03-01T18:40:32.635118+00:00'

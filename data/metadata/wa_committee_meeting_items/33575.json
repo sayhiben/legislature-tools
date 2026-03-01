@@ -1,0 +1,14 @@
+{
+  "agenda_id": "33575",
+  "retrieved_at_utc": "2026-03-01T18:27:16.101747+00:00",
+  "row_count": 1,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2295",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning the capital budget. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

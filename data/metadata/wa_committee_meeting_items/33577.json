@@ -1,0 +1,32 @@
+{
+  "agenda_id": "33577",
+  "retrieved_at_utc": "2026-03-01T18:26:46.207025+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1496",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Strengthening patients' rights regarding their health care information. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2182",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Improving access to abortion medications. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2196",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Expanding access to PANDA PANS treatment. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 2242",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Preserving access to preventive services by clarifying state authority and definitions. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

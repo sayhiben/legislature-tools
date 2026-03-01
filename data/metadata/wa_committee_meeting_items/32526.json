@@ -1,0 +1,32 @@
+{
+  "agenda_id": "32526",
+  "retrieved_at_utc": "2026-03-01T18:25:30.556348+00:00",
+  "row_count": 4,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1063",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a new chapter for the licensing and regulation of businesses providing earned wage access services. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1268",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning virtual currency transaction kiosks. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1067",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Transferring certain cannabis licensing activities to the department of agriculture."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "HB 1209",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Protecting public health and safety by regulating the transfer of sodium nitrite."
+    }
+  ],
+  "schema_version": 1
+}

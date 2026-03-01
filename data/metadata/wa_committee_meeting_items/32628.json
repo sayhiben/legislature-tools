@@ -1,0 +1,86 @@
+{
+  "agenda_id": "32628",
+  "retrieved_at_utc": "2026-03-01T18:27:21.414832+00:00",
+  "row_count": 13,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5248",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Creating a work group to make recommendations concerning bridge collisions by large commercial vessels. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5013",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a department of transportation map for the placement of campaign signage. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5556",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Modernizing the adopt-a-highway program to improve its ability to meet its original purpose within existing fiscal limitations. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8003",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Requesting the transportation commission to designate a section of Interstate 82 as the Washington state patrol trooper Charles Frank Noble, Jr. memorial highway. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJM 8009",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Designating the State Route Number 3 overpass at the junction of Chico Way NW in Bremerton as the Joe Mentor memorial overpass. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5484",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning payments to tow truck operators for the release of vehicles to indigent citizens. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5127",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Creating additional requirements for collector vehicle and horseless carriage license plates to improve compliance and public safety."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5462",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Addressing the current backlog of vehicle inspections."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5624",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Developing best practices for responding to electric vehicle fires."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5203",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Ensuring connectivity for Washington wildlife through safe passages."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5410",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Concerning parking privileges for veterans."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5464",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Promoting the better understanding of certain federal standards related to commercial driver's licenses."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5281",
+      "hearing_type_description": "Executive Session",
+      "item_description": "Changing the vessel length requirement in obtaining nonresident vessel permits."
+    }
+  ],
+  "schema_version": 1
+}

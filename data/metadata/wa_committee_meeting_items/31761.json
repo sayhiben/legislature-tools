@@ -1,0 +1,38 @@
+{
+  "agenda_id": "31761",
+  "retrieved_at_utc": "2026-03-01T18:27:36.258661+00:00",
+  "row_count": 5,
+  "rows": [
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6209",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Concerning hemp consumable products. (Hearing is on the Proposed Substitute.) (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 5818",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Authorizing an exemption to the seashore conservation area for a qualified infrastructure project. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6020",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Establishing a Puget Sound nonspot shrimp pot fishery license. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SB 6147",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Protecting and preserving the Puget Sound salmon purse seine fishing industry. (Remote Testimony Available)."
+    },
+    {
+      "agenda_item_id": "",
+      "bill_id": "SJR 8208",
+      "hearing_type_description": "Public Hearing",
+      "item_description": "Enshrining the right to hunt and fish in the state Constitution. (Remote Testimony Available)."
+    }
+  ],
+  "schema_version": 1
+}

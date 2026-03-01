@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 import random
 import re
 import time
@@ -34,6 +35,7 @@ DEFAULT_MEETINGS_CACHE_MAX_AGE_HOURS = 12.0
 DEFAULT_CSV_OUT_DIR = Path("data/raw")
 DEFAULT_METADATA_OUT_DIR = Path("data/metadata")
 DEFAULT_MANIFEST_OUT = Path("data/metadata/baseline_sample_manifest.json")
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -399,8 +401,19 @@ def _load_or_fetch_meeting_items_rows(
     )
     cached_rows = _load_meeting_items_cache_rows(cache_path)
     if cached_rows is not None:
+        LOGGER.debug(
+            "Meeting-items cache hit agenda_id=%s rows=%s cache_path=%s",
+            agenda_id,
+            len(cached_rows),
+            cache_path,
+        )
         return cached_rows, False
 
+    LOGGER.info(
+        "Meeting-items request start agenda_id=%s timeout=%.1fs",
+        agenda_id,
+        float(timeout_seconds),
+    )
     fetched = fetch_committee_meeting_items(
         agenda_id=agenda_id,
         timeout_seconds=timeout_seconds,
@@ -412,6 +425,12 @@ def _load_or_fetch_meeting_items_rows(
         cache_path=cache_path,
         agenda_id=agenda_id,
         rows=fetched_rows,
+    )
+    LOGGER.info(
+        "Meeting-items request complete agenda_id=%s rows=%s cache_path=%s",
+        agenda_id,
+        len(fetched_rows),
+        cache_path,
     )
     return fetched_rows, True
 
@@ -440,12 +459,28 @@ def _ensure_index(
     should_refresh = (
         bool(refresh_index) or (not meetings_rows) or cache_stale or (not has_year_coverage)
     )
+    LOGGER.info(
+        "Meetings index evaluation rows=%s refresh_requested=%s cache_stale=%s "
+        "has_year_coverage=%s max_age_hours=%.1f",
+        len(meetings_rows),
+        bool(refresh_index),
+        bool(cache_stale),
+        bool(has_year_coverage),
+        float(meetings_cache_max_age_hours),
+    )
     if not should_refresh:
+        LOGGER.info("Using cached meetings index path=%s", index_json_path)
         return meetings_payload, False
 
     start_date, end_date = _session_bounds(
         session_years=session_years,
         reference_date=reference_date,
+    )
+    LOGGER.info(
+        "Refreshing meetings index path=%s begin=%s end=%s",
+        index_json_path,
+        start_date.isoformat(),
+        end_date.isoformat(),
     )
     fetched_meetings = fetch_committee_meetings(
         begin_date=start_date,
@@ -476,6 +511,11 @@ def _ensure_index(
         json.dumps(refreshed_payload, indent=2, sort_keys=True),
         encoding="utf-8",
     )
+    LOGGER.info(
+        "Wrote refreshed meetings index path=%s row_count=%s",
+        index_json_path,
+        len(rows),
+    )
     return refreshed_payload, True
 
 
@@ -504,6 +544,15 @@ def _select_candidates_from_meetings(
     rng.shuffle(cached_meetings)
     rng.shuffle(uncached_meetings)
     meeting_order = [*cached_meetings, *uncached_meetings]
+    LOGGER.info(
+        "Candidate selection start sample_size=%s meetings_total=%s cached=%s uncached=%s "
+        "uncached_fetch_budget=%s",
+        int(sample_size),
+        len(meeting_order),
+        len(cached_meetings),
+        len(uncached_meetings),
+        int(max_uncached_meeting_item_fetches),
+    )
 
     selected: list[BaselineSampleCandidate] = []
     in_run_fallback_keys: set[tuple[str, str]] = set()
@@ -516,7 +565,7 @@ def _select_candidates_from_meetings(
     meetings_skipped_fetch_budget = 0
     uncached_fetches = 0
 
-    for meeting in meeting_order:
+    for meeting_index, meeting in enumerate(meeting_order, start=1):
         if len(selected) >= sample_size:
             break
         cache_path = _meeting_items_cache_path(
@@ -525,9 +574,25 @@ def _select_candidates_from_meetings(
         )
         cache_exists = cache_path.exists()
         if (not cache_exists) and uncached_fetches >= max_uncached_meeting_item_fetches:
+            LOGGER.debug(
+                "Skipping meeting agenda_id=%s due to uncached-fetch budget exhaustion "
+                "(used=%s budget=%s)",
+                meeting.agenda_id,
+                int(uncached_fetches),
+                int(max_uncached_meeting_item_fetches),
+            )
             meetings_skipped_fetch_budget += 1
             continue
 
+        LOGGER.info(
+            "Evaluating meeting %s/%s agenda_id=%s cached=%s selected_so_far=%s/%s",
+            meeting_index,
+            len(meeting_order),
+            meeting.agenda_id,
+            bool(cache_exists),
+            len(selected),
+            int(sample_size),
+        )
         items_rows, was_fetched = _load_or_fetch_meeting_items_rows(
             agenda_id=meeting.agenda_id,
             meeting_items_cache_dir=meeting_items_cache_dir,
@@ -557,6 +622,10 @@ def _select_candidates_from_meetings(
 
         if not eligible_items:
             meetings_without_items += 1
+            LOGGER.debug(
+                "Meeting agenda_id=%s has no eligible items after sampled-key filtering",
+                meeting.agenda_id,
+            )
             continue
 
         chosen_row = rng.choice(eligible_items)
@@ -580,8 +649,16 @@ def _select_candidates_from_meetings(
                 committee_name=meeting.committee_name,
             )
         )
+        LOGGER.info(
+            "Selected candidate %s/%s agenda_id=%s agenda_item_id=%s bill_id=%s",
+            len(selected),
+            int(sample_size),
+            meeting.agenda_id,
+            chosen_agenda_item_id or "(missing)",
+            chosen_bill_id,
+        )
 
-    return selected, {
+    stats = {
         "meeting_items_cache_hits": int(cache_hits),
         "meeting_items_cache_misses": int(cache_misses),
         "meeting_items_uncached_fetches": int(uncached_fetches),
@@ -589,6 +666,13 @@ def _select_candidates_from_meetings(
         "meetings_without_eligible_items_count": int(meetings_without_items),
         "meetings_skipped_fetch_budget_count": int(meetings_skipped_fetch_budget),
     }
+    LOGGER.info(
+        "Candidate selection complete selected=%s/%s stats=%s",
+        len(selected),
+        int(sample_size),
+        stats,
+    )
+    return selected, stats
 
 
 def _collect_sampled_keys_from_sidecars(metadata_dir: Path) -> set[tuple[str, str]]:
@@ -772,7 +856,23 @@ def _materialize_candidates(
     successes: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     for index, candidate in enumerate(candidates):
+        candidate_number = index + 1
+        total_candidates = len(candidates)
+        LOGGER.info(
+            "Downloading candidate %s/%s agenda_id=%s agenda_item_id=%s bill_id=%s",
+            candidate_number,
+            total_candidates,
+            candidate.agenda_id,
+            candidate.agenda_item_id or "(missing)",
+            candidate.bill_id,
+        )
         if index > 0 and rate_limit_seconds > 0:
+            LOGGER.info(
+                "Rate-limit sleep %.2fs before candidate %s/%s",
+                float(rate_limit_seconds),
+                candidate_number,
+                total_candidates,
+            )
             time.sleep(rate_limit_seconds)
         try:
             if candidate.agenda_item_id:
@@ -797,6 +897,11 @@ def _materialize_candidates(
             else:
                 # Fallback path for index rows that omit agenda_item_id.
                 try:
+                    LOGGER.info(
+                        "Attempting meeting-family fallback agenda_id=%s bill_id=%s",
+                        candidate.agenda_id,
+                        candidate.bill_id,
+                    )
                     result = download_csi_testifier_csv_by_meeting_family(
                         bill_query=candidate.bill_id,
                         meeting_family_id=candidate.agenda_id,
@@ -813,7 +918,14 @@ def _materialize_candidates(
                         retry_backoff_seconds=retry_backoff_seconds,
                         overwrite=overwrite,
                     )
-                except CSIDownloadError:
+                except CSIDownloadError as exc:
+                    LOGGER.warning(
+                        "Meeting-family fallback failed agenda_id=%s bill_id=%s: %s. "
+                        "Falling back to search-based download.",
+                        candidate.agenda_id,
+                        candidate.bill_id,
+                        exc,
+                    )
                     result = download_csi_testifier_csv(
                         bill_query=candidate.bill_id,
                         csv_out_dir=csv_out_dir,
@@ -838,7 +950,24 @@ def _materialize_candidates(
                     "not_testifying_rows": int(result.not_testifying_rows),
                 }
             )
+            LOGGER.info(
+                "Download success candidate %s/%s agenda_id=%s agenda_item_id=%s total_rows=%s",
+                candidate_number,
+                total_candidates,
+                result.meeting_family_id,
+                result.agenda_item_id,
+                int(result.total_rows),
+            )
         except CSIDownloadError as exc:
+            LOGGER.error(
+                "Download failed candidate %s/%s agenda_id=%s agenda_item_id=%s bill_id=%s: %s",
+                candidate_number,
+                total_candidates,
+                candidate.agenda_id,
+                candidate.agenda_item_id or "(missing)",
+                candidate.bill_id,
+                exc,
+            )
             failures.append({**candidate.to_dict(), "error": str(exc)})
     return successes, failures
 
@@ -875,6 +1004,16 @@ def sample_unsampled_baseline_corpus(
         session_count=max(1, int(session_count)),
         reference_date=reference_date,
     )
+    LOGGER.info(
+        "Baseline sampling run start requested=%s session_years=%s seed=%s "
+        "rate_limit_seconds=%.2f timeout_seconds=%.1f max_retries=%s",
+        int(requested),
+        session_years,
+        seed,
+        float(max(0.0, rate_limit_seconds)),
+        float(timeout_seconds),
+        int(max_retries),
+    )
     unique_metadata_dirs = [metadata_out_dir]
     for path in sampled_metadata_dirs:
         if path not in unique_metadata_dirs:
@@ -894,9 +1033,20 @@ def sample_unsampled_baseline_corpus(
         rows=meeting_rows,
         session_years=session_years,
     )
+    LOGGER.info(
+        "Meeting pool ready rows=%s candidates=%s index_refreshed=%s",
+        len(meeting_rows),
+        len(meetings),
+        bool(index_refreshed),
+    )
     sampled_keys = collect_sampled_keys(
         metadata_dirs=unique_metadata_dirs,
         manifest_path=manifest_path if manifest_path.exists() else None,
+    )
+    LOGGER.info(
+        "Existing sampled-key coverage=%s metadata_dirs=%s",
+        len(sampled_keys),
+        [str(path) for path in unique_metadata_dirs],
     )
     selected, selection_stats = _select_candidates_from_meetings(
         meetings=meetings,
@@ -916,6 +1066,12 @@ def sample_unsampled_baseline_corpus(
         max_retries=max(0, int(max_retries)),
         retry_backoff_seconds=max(0.1, float(retry_backoff_seconds)),
         overwrite=bool(overwrite),
+    )
+    LOGGER.info(
+        "Baseline sampling run complete selected=%s downloaded=%s failed=%s",
+        len(selected),
+        len(successes),
+        len(failures),
     )
 
     return {

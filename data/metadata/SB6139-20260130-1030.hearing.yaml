@@ -1,0 +1,30 @@
+schema_version: 1
+hearing_id: SB6139-33748-27670
+timezone: America/Los_Angeles
+meeting_start: '2026-01-30T10:30:00-08:00'
+sign_in_cutoff: '2026-01-30T09:30:00-08:00'
+stats:
+  total_rows: 29
+  total_testifying: 6
+  total_not_testifying: 23
+  total_pro: 6
+  total_con: 18
+  total_other: 5
+  total_pro_pct: 20.689655172413794
+  total_con_pct: 62.06896551724138
+  total_other_pct: 17.24137931034483
+source:
+  provider: wa_leg_csi
+  search_query: SB 6139
+  meeting_family_id: '33748'
+  agenda_item_family_id: '169046'
+  agenda_item_id: '27670'
+  agenda_item_description: SB 6139 Rental payments
+  short_bill_id: SB 6139
+  bill_number: '6139'
+  bill_title: Concerning partial rental payments and rental payment methods of an
+    unlawful detainer action or issuance of a writ of restitution. (Remote Testimony
+    Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:37:50.476318+00:00'

@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: SHB2073-31826-23768
+timezone: America/Los_Angeles
+meeting_start: '2024-02-01T10:30:00-08:00'
+sign_in_cutoff: '2024-02-01T09:30:00-08:00'
+stats:
+  total_rows: 925
+  total_testifying: 8
+  total_not_testifying: 917
+  total_pro: 368
+  total_con: 554
+  total_other: 3
+  total_pro_pct: 39.78378378378378
+  total_con_pct: 59.89189189189189
+  total_other_pct: 0.3243243243243243
+source:
+  provider: wa_leg_csi
+  search_query: SHB 2073
+  meeting_family_id: '31826'
+  agenda_item_family_id: '158361'
+  agenda_item_id: '23768'
+  agenda_item_description: SHB 2073 Greenhouse gas other sources
+  short_bill_id: SHB 2073
+  bill_number: '2073'
+  bill_title: Concerning emissions of greenhouse gases from sources other than methane
+    and carbon dioxide. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:41:03.074137+00:00'

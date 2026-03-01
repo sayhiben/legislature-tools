@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB1003-32398-24654
+timezone: America/Los_Angeles
+meeting_start: '2025-01-13T13:30:00-08:00'
+sign_in_cutoff: '2025-01-13T12:30:00-08:00'
+stats:
+  total_rows: 24
+  total_testifying: 5
+  total_not_testifying: 19
+  total_pro: 13
+  total_con: 10
+  total_other: 1
+  total_pro_pct: 54.166666666666664
+  total_con_pct: 41.66666666666667
+  total_other_pct: 4.166666666666666
+source:
+  provider: wa_leg_csi
+  search_query: HB 1003
+  meeting_family_id: '32398'
+  agenda_item_family_id: '161190'
+  agenda_item_id: '24654'
+  agenda_item_description: HB 1003 Service of notice/tenants
+  short_bill_id: HB 1003
+  bill_number: '1003'
+  bill_title: Addressing service of notice by mail in cases involving forcible entry
+    and forcible and unlawful detainer. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:33:31.556933+00:00'

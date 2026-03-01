@@ -1,0 +1,29 @@
+schema_version: 1
+hearing_id: HB2330-33719-27380
+timezone: America/Los_Angeles
+meeting_start: '2026-01-22T13:30:00-08:00'
+sign_in_cutoff: '2026-01-22T12:30:00-08:00'
+stats:
+  total_rows: 138
+  total_testifying: 3
+  total_not_testifying: 135
+  total_pro: 12
+  total_con: 125
+  total_other: 1
+  total_pro_pct: 8.695652173913043
+  total_con_pct: 90.57971014492753
+  total_other_pct: 0.7246376811594203
+source:
+  provider: wa_leg_csi
+  search_query: HB 2330
+  meeting_family_id: '33719'
+  agenda_item_family_id: '168509'
+  agenda_item_id: '27380'
+  agenda_item_description: HB 2330 State campus district energy
+  short_bill_id: HB 2330
+  bill_number: '2330'
+  bill_title: Establishing a prioritization process for capital funding for state
+    campus district energy systems. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:36:12.742771+00:00'

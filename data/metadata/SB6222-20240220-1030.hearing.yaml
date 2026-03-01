@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SB6222-32005-24368
+timezone: America/Los_Angeles
+meeting_start: '2024-02-20T10:30:00-08:00'
+sign_in_cutoff: '2024-02-20T09:30:00-08:00'
+stats:
+  total_rows: 4
+  total_testifying: 1
+  total_not_testifying: 3
+  total_pro: 4
+  total_con: 0
+  total_other: 0
+  total_pro_pct: 100.0
+  total_con_pct: 0.0
+  total_other_pct: 0.0
+source:
+  provider: wa_leg_csi
+  search_query: SB 6222
+  meeting_family_id: '32005'
+  agenda_item_family_id: '159954'
+  agenda_item_id: '24368'
+  agenda_item_description: SB 6222 District court judges
+  short_bill_id: SB 6222
+  bill_number: '6222'
+  bill_title: Concerning the number of district court judges. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: House
+  downloaded_at: '2026-03-01T18:36:49.750010+00:00'

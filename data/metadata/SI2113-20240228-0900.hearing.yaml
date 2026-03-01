@@ -1,0 +1,28 @@
+schema_version: 1
+hearing_id: SI2113-32069-24422
+timezone: America/Los_Angeles
+meeting_start: '2024-02-28T09:00:00-08:00'
+sign_in_cutoff: '2024-02-28T08:00:00-08:00'
+stats:
+  total_rows: 5644
+  total_testifying: 161
+  total_not_testifying: 5483
+  total_pro: 5451
+  total_con: 183
+  total_other: 10
+  total_pro_pct: 96.58043940467753
+  total_con_pct: 3.242381289865344
+  total_other_pct: 0.1771793054571226
+source:
+  provider: wa_leg_csi
+  search_query: SI 2113
+  meeting_family_id: '32069'
+  agenda_item_family_id: '160089'
+  agenda_item_id: '24422'
+  agenda_item_description: SI 2113 Police vehicular pursuits
+  short_bill_id: SI 2113
+  bill_number: '2113'
+  bill_title: Concerning vehicular pursuits by peace officers. (Remote Testimony Available).
+  committee_name: Unknown Committee
+  chamber: Senate
+  downloaded_at: '2026-03-01T18:33:51.928217+00:00'

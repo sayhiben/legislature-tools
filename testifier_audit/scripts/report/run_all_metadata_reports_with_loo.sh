@@ -326,6 +326,10 @@ PY
 
 declare -a SUBMISSION_ROW_COUNT_SOURCE_FILES=()
 declare -a SUBMISSION_ROW_COUNT_VALUES=()
+declare -a SUBMISSION_IMPORT_DECISION_SOURCE_FILES=()
+declare -a SUBMISSION_IMPORT_DECISION_VALUES=()
+declare -a SUBMISSION_IMPORT_DECISION_REASONS=()
+declare -a SUBMISSION_IMPORT_DECISION_HASHES=()
 
 get_cached_submissions_row_count() {
   local source_file="$1"
@@ -353,60 +357,236 @@ set_cached_submissions_row_count() {
   SUBMISSION_ROW_COUNT_VALUES+=("${row_count}")
 }
 
-load_cached_submissions_row_counts() {
+get_cached_submission_import_decision() {
+  local source_file="$1"
+  local idx
+  for idx in "${!SUBMISSION_IMPORT_DECISION_SOURCE_FILES[@]}"; do
+    if [[ "${SUBMISSION_IMPORT_DECISION_SOURCE_FILES[$idx]}" == "${source_file}" ]]; then
+      printf '%s\n' "${SUBMISSION_IMPORT_DECISION_VALUES[$idx]}"
+      return 0
+    fi
+  done
+  printf '\n'
+}
+
+get_cached_submission_import_reason() {
+  local source_file="$1"
+  local idx
+  for idx in "${!SUBMISSION_IMPORT_DECISION_SOURCE_FILES[@]}"; do
+    if [[ "${SUBMISSION_IMPORT_DECISION_SOURCE_FILES[$idx]}" == "${source_file}" ]]; then
+      printf '%s\n' "${SUBMISSION_IMPORT_DECISION_REASONS[$idx]}"
+      return 0
+    fi
+  done
+  printf '\n'
+}
+
+get_cached_submission_import_hash() {
+  local source_file="$1"
+  local idx
+  for idx in "${!SUBMISSION_IMPORT_DECISION_SOURCE_FILES[@]}"; do
+    if [[ "${SUBMISSION_IMPORT_DECISION_SOURCE_FILES[$idx]}" == "${source_file}" ]]; then
+      printf '%s\n' "${SUBMISSION_IMPORT_DECISION_HASHES[$idx]}"
+      return 0
+    fi
+  done
+  printf '\n'
+}
+
+set_cached_submission_import_decision() {
+  local source_file="$1"
+  local decision="$2"
+  local reason="$3"
+  local file_hash="$4"
+  local idx
+  for idx in "${!SUBMISSION_IMPORT_DECISION_SOURCE_FILES[@]}"; do
+    if [[ "${SUBMISSION_IMPORT_DECISION_SOURCE_FILES[$idx]}" == "${source_file}" ]]; then
+      SUBMISSION_IMPORT_DECISION_VALUES[$idx]="${decision}"
+      SUBMISSION_IMPORT_DECISION_REASONS[$idx]="${reason}"
+      SUBMISSION_IMPORT_DECISION_HASHES[$idx]="${file_hash}"
+      return 0
+    fi
+  done
+  SUBMISSION_IMPORT_DECISION_SOURCE_FILES+=("${source_file}")
+  SUBMISSION_IMPORT_DECISION_VALUES+=("${decision}")
+  SUBMISSION_IMPORT_DECISION_REASONS+=("${reason}")
+  SUBMISSION_IMPORT_DECISION_HASHES+=("${file_hash}")
+}
+
+load_bulk_submissions_import_decisions() {
   SUBMISSION_ROW_COUNT_SOURCE_FILES=()
   SUBMISSION_ROW_COUNT_VALUES=()
-  local cache_rows
-  cache_rows="$(python - "${TESTIFIER_AUDIT_DB_URL}" "${SUBMISSIONS_TABLE_NAME}" <<'PY'
+  SUBMISSION_IMPORT_DECISION_SOURCE_FILES=()
+  SUBMISSION_IMPORT_DECISION_VALUES=()
+  SUBMISSION_IMPORT_DECISION_REASONS=()
+  SUBMISSION_IMPORT_DECISION_HASHES=()
+
+  if [[ "${#CSVS[@]}" -eq 0 ]]; then
+    return 0
+  fi
+
+  local decision_rows
+  decision_rows="$(python - "${PROJECT_ROOT}" "${TESTIFIER_AUDIT_DB_URL}" "${SUBMISSIONS_TABLE_NAME}" "${CSVS[@]}" <<'PY'
+from __future__ import annotations
+
+import hashlib
+from pathlib import Path
+import re
 import sys
 
 import psycopg
 from psycopg import sql
 
-db_url = sys.argv[1]
-table_name = sys.argv[2]
+project_root = Path(sys.argv[1]).resolve()
+db_url = sys.argv[2]
+table_name = sys.argv[3]
+csv_paths = [Path(path).resolve() for path in sys.argv[4:]]
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        while True:
+            block = handle.read(1 << 20)
+            if not block:
+                break
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def resolve_importer_version(project_root_path: Path) -> str:
+    source_path = project_root_path / "src" / "testifier_audit" / "io" / "submissions_postgres.py"
+    text = source_path.read_text(encoding="utf-8")
+    match = re.search(
+        r'^SUBMISSIONS_IMPORTER_VERSION\s*=\s*"([^"]+)"',
+        text,
+        flags=re.MULTILINE,
+    )
+    if match is None:
+        return "submissions_csv_v1"
+    return match.group(1).strip() or "submissions_csv_v1"
+
+
+records: list[tuple[str, str]] = []
+for csv_path in csv_paths:
+    if not csv_path.exists():
+        continue
+    records.append((csv_path.name, file_sha256(csv_path)))
+
+importer_version = resolve_importer_version(project_root)
+import_kind = "submissions_csv"
+completed_hashes: set[str] = set()
+row_counts: dict[str, int] = {}
 
 try:
     with psycopg.connect(db_url, connect_timeout=5) as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                sql.SQL(
-                    "SELECT source_file, COUNT(*)::BIGINT "
-                    "FROM {} GROUP BY source_file ORDER BY source_file"
-                ).format(sql.Identifier(table_name))
-            )
-            for source_file, row_count in cur.fetchall():
-                source_value = str(source_file or "").strip()
-                if not source_value:
-                    continue
-                print(f"{source_value}\t{int(row_count or 0)}")
+            unique_hashes = sorted({file_hash for _source_file, file_hash in records})
+            if unique_hashes:
+                cur.execute(
+                    """
+                    SELECT DISTINCT file_hash
+                    FROM data_imports
+                    WHERE
+                      import_kind = %s
+                      AND target_table = %s
+                      AND importer_version = %s
+                      AND status = 'completed'
+                      AND file_hash = ANY(%s)
+                    """,
+                    (
+                        import_kind,
+                        table_name,
+                        importer_version,
+                        unique_hashes,
+                    ),
+                )
+                completed_hashes = {str(row[0]) for row in cur.fetchall() if row and row[0]}
+
+            unique_source_files = sorted({source_file for source_file, _file_hash in records})
+            if unique_source_files:
+                cur.execute(
+                    sql.SQL(
+                        "SELECT source_file, COUNT(*)::BIGINT "
+                        "FROM {} "
+                        "WHERE source_file = ANY(%s) "
+                        "GROUP BY source_file"
+                    ).format(sql.Identifier(table_name)),
+                    (unique_source_files,),
+                )
+                row_counts = {
+                    str(source_file): int(row_count or 0)
+                    for source_file, row_count in cur.fetchall()
+                    if source_file
+                }
 except Exception as exc:
     message = str(exc).replace("\n", " ")
     print(f"ERROR|{exc.__class__.__name__}|{message}")
+    raise SystemExit(0)
+
+for source_file, file_hash in records:
+    row_count = int(row_counts.get(source_file, 0))
+    if file_hash in completed_hashes and row_count > 0:
+        decision = "skip"
+        reason = "checksum_match_rows_present"
+    elif file_hash in completed_hashes:
+        decision = "import"
+        reason = "checksum_match_rows_missing"
+    else:
+        decision = "import"
+        reason = "checksum_miss"
+    print(f"{source_file}\t{file_hash}\t{row_count}\t{decision}\t{reason}")
 PY
 )"
-  if [[ "${cache_rows}" == ERROR\|* ]]; then
-    log_warn "[import-check] unable to preload submission row-count cache (${cache_rows})."
+  if [[ "${decision_rows}" == ERROR\|* ]]; then
+    log_warn "[import-check] unable to preload bulk checksum decisions (${decision_rows})."
     return 0
   fi
 
-  if [[ -n "${cache_rows}" ]]; then
-    while IFS=$'\t' read -r source_file row_count; do
+  local skip_count=0
+  local import_count=0
+  if [[ -n "${decision_rows}" ]]; then
+    while IFS=$'\t' read -r source_file file_hash row_count decision reason; do
       if [[ -z "${source_file}" ]]; then
         continue
       fi
       set_cached_submissions_row_count "${source_file}" "${row_count:-0}"
-    done <<< "${cache_rows}"
+      set_cached_submission_import_decision \
+        "${source_file}" "${decision}" "${reason}" "${file_hash}"
+      if [[ "${decision}" == "skip" ]]; then
+        skip_count=$((skip_count + 1))
+      else
+        import_count=$((import_count + 1))
+      fi
+    done <<< "${decision_rows}"
   fi
-  log_info "[import-check] preloaded submission row-count cache entries=${#SUBMISSION_ROW_COUNT_SOURCE_FILES[@]}"
+  log_info \
+    "[import-check] preloaded bulk submission decisions total=${#SUBMISSION_IMPORT_DECISION_SOURCE_FILES[@]} skip=${skip_count} import=${import_count}"
 }
 
 import_submissions_with_coverage_guard() {
   local csv_path="$1"
   local source_file
   source_file="$(basename "${csv_path}")"
+  local decision
+  decision="$(get_cached_submission_import_decision "${source_file}")"
+  local decision_reason
+  decision_reason="$(get_cached_submission_import_reason "${source_file}")"
+  local decision_hash
+  decision_hash="$(get_cached_submission_import_hash "${source_file}")"
   local cached_row_count
   cached_row_count="$(get_cached_submissions_row_count "${source_file}")"
+  if [[ "${decision}" == "skip" ]] && [[ "${cached_row_count}" -gt 0 ]]; then
+    log_info \
+      "[import-check] source_file=${source_file} rows=${cached_row_count} (bulk-skip reason=${decision_reason} file_hash=${decision_hash})"
+    return 0
+  fi
+
+  if [[ "${decision}" == "import" ]]; then
+    log_info \
+      "[import-check] source_file=${source_file} import_required reason=${decision_reason} file_hash=${decision_hash}"
+  fi
+
   local import_output
   if ! import_output="$(CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/db/import_submissions.sh" "${csv_path}" 2>&1)"; then
     printf '%s\n' "${import_output}"
@@ -426,6 +606,8 @@ import_submissions_with_coverage_guard() {
   row_count="$(count_submissions_rows_for_source_file "${source_file}")"
   set_cached_submissions_row_count "${source_file}" "${row_count}"
   if [[ "${row_count}" -gt 0 ]]; then
+    set_cached_submission_import_decision \
+      "${source_file}" "skip" "rows_present_after_import" "${decision_hash}"
     log_info "[import-check] source_file=${source_file} rows=${row_count}"
     return 0
   fi
@@ -438,6 +620,8 @@ import_submissions_with_coverage_guard() {
     log_error "[import-check] source_file=${source_file} still has 0 rows after forced import."
     return 1
   fi
+  set_cached_submission_import_decision \
+    "${source_file}" "skip" "rows_present_after_forced_import" "${decision_hash}"
   log_info "[import-check] source_file=${source_file} rows=${row_count} (after forced import)"
 }
 
@@ -602,7 +786,7 @@ declare -a PASS1_FAILED=()
 declare -a FINAL_OK=()
 declare -a PASS2_FAILED=()
 CONTEXTUAL_CONFIG_PATH="$(mktemp "${REPO_ROOT}/output/contextual-baseline-config.XXXXXX.yaml")"
-load_cached_submissions_row_counts
+load_bulk_submissions_import_decisions
 
 if [[ "${FAST_CONTEXTUAL}" == "1" ]]; then
   PASS1_TOTAL="${#STEMS[@]}"

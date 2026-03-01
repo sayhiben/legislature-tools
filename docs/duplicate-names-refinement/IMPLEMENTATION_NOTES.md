@@ -1,5 +1,40 @@
 # Duplicate Names Refinement - Implementation Notes
 
+## Work Item ID Policy
+- Keep `DUP-xxx` numbers stable as permanent identifiers.
+- Do not renumber work items to reflect execution order.
+- Track real execution order in this notes file so references in commits/PRs/discussion remain stable.
+
+## Implementation Sequence (Actual + Planned)
+Execution order is tracked here independently from ticket numbering.
+
+### Completed (actual)
+1. `DUP-001` (Done, 2026-02-28)
+
+### Current
+1. `DUP-008` (next in-progress target)
+
+### Planned next order (subject to reprioritization)
+1. `DUP-009`
+2. `DUP-010`
+3. `DUP-002`
+4. `DUP-003`
+5. `DUP-004`
+6. `DUP-005`
+7. `DUP-007`
+8. `DUP-006`
+9. `DUP-011`
+10. `DUP-012`
+11. `DUP-013`
+12. `DUP-014`
+13. `DUP-015`
+14. `DUP-016`
+15. `DUP-017`
+16. `DUP-018`
+17. `DUP-019`
+18. `DUP-020`
+19. `DUP-021`
+
 ## Scope Covered
 These notes capture implementation takeaways from **DUP-001** (statistical contract and report voice rules), including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 

@@ -82,6 +82,18 @@ def default_detectors(config: AppConfig) -> list[Detector]:
             bh_fdr_q=config.name_analysis.bh_fdr_q,
             low_power_min_unique_names=config.name_analysis.low_power_min_unique_names,
             low_power_min_expected_duplicates=config.name_analysis.low_power_min_expected_duplicates,
+            low_power_min_unique_names_scope=config.name_analysis.low_power_min_unique_names_scope,
+            low_power_min_expected_duplicates_scope=(
+                config.name_analysis.low_power_min_expected_duplicates_scope
+            ),
+            low_power_min_unique_names_bucket=config.name_analysis.low_power_min_unique_names_bucket,
+            low_power_min_expected_duplicates_bucket=(
+                config.name_analysis.low_power_min_expected_duplicates_bucket
+            ),
+            low_power_min_unique_names_position=config.name_analysis.low_power_min_unique_names_position,
+            low_power_min_expected_duplicates_position=(
+                config.name_analysis.low_power_min_expected_duplicates_position
+            ),
             max_per_name_rows=config.name_analysis.max_per_name_rows,
             position_hearing_baseline_enabled=config.name_analysis.position_hearing_baseline_enabled,
             position_baseline_shrink_k=config.name_analysis.position_baseline_shrink_k,

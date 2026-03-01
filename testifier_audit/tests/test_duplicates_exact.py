@@ -1381,6 +1381,42 @@ def test_bucket_monte_carlo_draw_budget_skips_guaranteed_low_power() -> None:
     )
 
 
+def test_bucket_monte_carlo_draw_budget_respects_bucket_specific_overrides() -> None:
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        monte_carlo_draws=20_000,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        low_power_min_unique_names_bucket=30,
+        low_power_min_expected_duplicates_bucket=7.0,
+    )
+    assert (
+        detector._bucket_monte_carlo_draw_budget(
+            n_rows=20,
+            expected_primary_metric=10.0,
+            hard_cap=250,
+        )
+        == 0
+    )
+    assert (
+        detector._bucket_monte_carlo_draw_budget(
+            n_rows=40,
+            expected_primary_metric=5.0,
+            hard_cap=250,
+        )
+        == 0
+    )
+    assert (
+        detector._bucket_monte_carlo_draw_budget(
+            n_rows=40,
+            expected_primary_metric=9.0,
+            hard_cap=250,
+        )
+        == 250
+    )
+
+
 def test_collision_outputs_include_monte_carlo_precision_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1475,6 +1511,43 @@ def test_low_power_bucket_skips_bucket_level_null_simulation(
     position_counts = set(frame["position_normalized"].value_counts().astype(int).tolist())
     allowed_n_rows = {len(frame), *position_counts}
     assert set(simulated_n_rows).issubset(allowed_n_rows)
+
+
+def test_collision_methods_and_summary_include_family_specific_low_power_thresholds() -> None:
+    frame = _build_submission_frame({"DOE|JANE": 8, "SMITH|JOHN": 7, "BROWN|AVA": 6})
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_uncertainty_mode="analytic_only",
+        low_power_min_unique_names=11,
+        low_power_min_expected_duplicates=2.5,
+        low_power_min_unique_names_scope=21,
+        low_power_min_expected_duplicates_scope=4.0,
+        low_power_min_unique_names_bucket=31,
+        low_power_min_expected_duplicates_bucket=5.0,
+        low_power_min_unique_names_position=41,
+        low_power_min_expected_duplicates_position=6.0,
+    )
+    result = detector.run(df=frame, features={})
+    methods = result.tables["collision_methods"]
+    assert not methods.empty
+    method_row = methods.iloc[0]
+    assert int(method_row["low_power_min_unique_names_scope"]) == 21
+    assert float(method_row["low_power_min_expected_duplicates_scope"]) == 4.0
+    assert int(method_row["low_power_min_unique_names_bucket"]) == 31
+    assert float(method_row["low_power_min_expected_duplicates_bucket"]) == 5.0
+    assert int(method_row["low_power_min_unique_names_position"]) == 41
+    assert float(method_row["low_power_min_expected_duplicates_position"]) == 6.0
+
+    summary = result.summary
+    assert int(summary["low_power_min_unique_names"]) == 11
+    assert float(summary["low_power_min_expected_duplicates"]) == 2.5
+    assert int(summary["low_power_min_unique_names_scope"]) == 21
+    assert float(summary["low_power_min_expected_duplicates_scope"]) == 4.0
+    assert int(summary["low_power_min_unique_names_bucket"]) == 31
+    assert float(summary["low_power_min_expected_duplicates_bucket"]) == 5.0
+    assert int(summary["low_power_min_unique_names_position"]) == 41
+    assert float(summary["low_power_min_expected_duplicates_position"]) == 6.0
 
 
 def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing() -> None:

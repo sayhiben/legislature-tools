@@ -100,6 +100,12 @@ class NameAnalysisConfig(BaseModel):
     bh_fdr_q: float = Field(default=0.10, gt=0.0, lt=1.0)
     low_power_min_unique_names: int = Field(default=25, ge=1)
     low_power_min_expected_duplicates: float = Field(default=5.0, ge=0.0)
+    low_power_min_unique_names_scope: int | None = Field(default=None, ge=1)
+    low_power_min_expected_duplicates_scope: float | None = Field(default=None, ge=0.0)
+    low_power_min_unique_names_bucket: int | None = Field(default=None, ge=1)
+    low_power_min_expected_duplicates_bucket: float | None = Field(default=None, ge=0.0)
+    low_power_min_unique_names_position: int | None = Field(default=None, ge=1)
+    low_power_min_expected_duplicates_position: float | None = Field(default=None, ge=0.0)
     max_per_name_rows: int = Field(default=1000, ge=10)
     position_hearing_baseline_enabled: bool = True
     position_baseline_shrink_k: float = Field(default=30.0, ge=0.0)

@@ -123,6 +123,12 @@ def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
     assert base_cfg.name_analysis.position_interval_nominal == 0.95
     assert base_cfg.name_analysis.position_interval_draws == 5000
     assert base_cfg.name_analysis.position_claim_min_rows_per_position == 25
+    assert base_cfg.name_analysis.low_power_min_unique_names_scope is None
+    assert base_cfg.name_analysis.low_power_min_expected_duplicates_scope is None
+    assert base_cfg.name_analysis.low_power_min_unique_names_bucket is None
+    assert base_cfg.name_analysis.low_power_min_expected_duplicates_bucket is None
+    assert base_cfg.name_analysis.low_power_min_unique_names_position is None
+    assert base_cfg.name_analysis.low_power_min_expected_duplicates_position is None
     assert base_cfg.voter_registry.status_mode == "single"
 
     override = {
@@ -135,6 +141,12 @@ def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
             "position_interval_nominal": 0.9,
             "position_interval_draws": 1234,
             "position_claim_min_rows_per_position": 40,
+            "low_power_min_unique_names_scope": 22,
+            "low_power_min_expected_duplicates_scope": 4.0,
+            "low_power_min_unique_names_bucket": 30,
+            "low_power_min_expected_duplicates_bucket": 6.0,
+            "low_power_min_unique_names_position": 20,
+            "low_power_min_expected_duplicates_position": 3.0,
         },
     }
     override_path = tmp_path / "override.yaml"
@@ -145,6 +157,12 @@ def test_load_config_report_defaults_and_overrides(tmp_path: Path) -> None:
     assert override_cfg.name_analysis.position_interval_nominal == 0.9
     assert override_cfg.name_analysis.position_interval_draws == 1234
     assert override_cfg.name_analysis.position_claim_min_rows_per_position == 40
+    assert override_cfg.name_analysis.low_power_min_unique_names_scope == 22
+    assert override_cfg.name_analysis.low_power_min_expected_duplicates_scope == 4.0
+    assert override_cfg.name_analysis.low_power_min_unique_names_bucket == 30
+    assert override_cfg.name_analysis.low_power_min_expected_duplicates_bucket == 6.0
+    assert override_cfg.name_analysis.low_power_min_unique_names_position == 20
+    assert override_cfg.name_analysis.low_power_min_expected_duplicates_position == 3.0
 
 
 def test_load_config_off_hours_defaults_and_overrides(tmp_path: Path) -> None:

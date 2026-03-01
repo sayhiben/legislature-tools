@@ -29,15 +29,16 @@ Execution order is tracked here independently from ticket numbering.
 18. `DUP-018` (Done, 2026-03-01)
 19. `DUP-019` (Done, 2026-03-01)
 20. `DUP-020` (Done, 2026-03-01)
+21. `DUP-021` (Done, 2026-03-01)
 
 ### Current
-1. `DUP-021` (next in-progress target)
+1. Queue clear through `DUP-021`
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-021`
+1. No additional DUP work items currently queued.
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, **DUP-018**, **DUP-019**, and **DUP-020**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, **DUP-018**, **DUP-019**, **DUP-020**, and **DUP-021**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1646,3 +1647,132 @@ Work item: DUP-020 (P2)
   - stratification weights are sourced out of sample in historical mode and lineage is emitted.
   - VRDB and historical reference baselines are both executable and comparable.
 - Next ticket in sequence: `DUP-021`.
+
+---
+
+## DUP-021 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-021 (P2)
+
+## What Was Implemented
+- Added a reproducible low-power calibration harness:
+  - new module: `src/testifier_audit/backtests/duplicate_low_power_calibration.py`
+  - covers null and anomaly scenario families requested by the ticket:
+    - clean null
+    - homonym-heavy null
+    - match-coverage loss + missingness
+    - normalization aliasing
+    - geography-conditioned null
+    - stratification-skew null
+    - repeated-name scope anomalies
+    - temporal-burst anomalies
+    - position-concentration anomalies
+- Added explicit operating targets and threshold-grid evaluation:
+  - scope family target includes FPR, power, support, per-name FDR, CI coverage, and secondary power.
+  - bucket/position families include FPR, power, and support targets.
+- Added recommendation export and benchmark summary outputs:
+  - recommendations now include global plus family-specific low-power thresholds.
+  - benchmark summary records selected operating characteristics and whether each family met targets.
+- Added runnable calibration artifact script:
+  - `scripts/tests/calibrate_duplicate_low_power.py`
+  - writes reproducible artifacts under `output/dup021/`:
+    - case summary CSV
+    - bucket details CSV
+    - threshold grid CSV
+    - markdown report
+    - summary JSON
+- Added family-specific threshold config plumbing in duplicate detector stack:
+  - config model:
+    - `low_power_min_unique_names_scope`
+    - `low_power_min_expected_duplicates_scope`
+    - `low_power_min_unique_names_bucket`
+    - `low_power_min_expected_duplicates_bucket`
+    - `low_power_min_unique_names_position`
+    - `low_power_min_expected_duplicates_position`
+  - registry wiring + detector constructor support.
+  - detector applies per-family thresholds in scope/bucket/position low-power gates and draw-budget logic.
+  - detector summary/method tables now expose the active global and family threshold values for provenance.
+- Updated payload runtime contracts for new threshold provenance fields.
+- Updated shipping configs from calibration output:
+  - `configs/default.yaml`
+  - `configs/voter_registry_enabled.yaml`
+  - calibrated thresholds set to:
+    - global/scope: `10`, `1.0`
+    - bucket: `10`, `1.0`
+    - position: `10`, `1.0`
+
+## Calibration Artifacts and Operating Characteristics
+- Calibration run used for baseline recommendations:
+  - script: `python testifier_audit/scripts/tests/calibrate_duplicate_low_power.py --out-dir output/dup021 --scenario-replicates 24 --scope-draws 256 --bucket-draws 128 --position-permutations 400 --seed 6346`
+  - summary artifact: `output/dup021/duplicate_low_power_calibration_summary.json`
+  - markdown artifact: `output/dup021/duplicate_low_power_calibration_report.md`
+- Selected family results from this run:
+  - scope: FPR `0.021`, power `0.042`, support `1.000`, secondary FDR `0.644`, CI coverage `0.927` (`meets_targets=false`)
+  - bucket: FPR `0.093`, power `0.875`, support `1.000` (`meets_targets=true`)
+  - position: FPR `0.051`, power `0.375`, support `1.000` (`meets_targets=false`)
+- Important interpretation note:
+  - bucket-family targets were satisfied under the current scenario envelope.
+  - scope/position target misses are now explicit and versioned in calibration outputs rather than implicit in heuristic constants.
+
+## Tests Added/Updated
+- Added:
+  - `tests/test_duplicate_low_power_calibration.py`
+    - deterministic seed reproducibility
+    - threshold-grid family coverage
+    - report-content sanity checks
+- Updated:
+  - `tests/test_duplicates_exact.py`
+    - bucket draw-budget override test
+    - threshold provenance assertions in collision methods + summary outputs
+  - `tests/test_report_chart_payload.py`
+    - runtime schema assertions for family-specific threshold provenance
+  - `tests/test_config.py`
+    - parsing/default-override coverage for new family-specific low-power config fields
+- Determinism fix applied:
+  - normalized `NaN` handling in benchmark summary comparison so deterministic runs are treated as equivalent when placeholder NaNs are present.
+
+## Validation Runs
+- Focused validation:
+  - `python -m pytest tests/test_duplicate_low_power_calibration.py tests/test_duplicates_exact.py tests/test_report_chart_payload.py tests/test_config.py -q`
+- Full validation:
+  - `./testifier_audit/scripts/ci/test.sh`
+  - result: `379 passed` (warnings only)
+
+## Runtime / Report Validation (ESSB 6346)
+- Unified run attempted first with full imports and logs:
+  - `output/dup021/essb6346_unified.log`
+  - submissions import correctly skipped via checksum memoization.
+  - VRDB import was manually interrupted after it held a long-running update lock.
+- Unified run completed with `--skip-imports` (same hearing/config, imported data reused):
+  - `output/dup021/essb6346_unified_skip_imports.log`
+  - completion:
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Rerender completed:
+  - `output/dup021/essb6346_rerender.log`
+  - completion:
+    - `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified interactions:
+    - sidebar show/hide
+    - bucket switch (`60m -> 30m`) with cross-analysis bucket messaging/fallback notes
+    - theme toggle (`Light/Dark`)
+    - mobile control collapse/expand
+  - diagnostics:
+    - report-data requests returned `200`
+    - only expected local static-server `favicon.ico` `404` observed in console
+
+## Issues Discovered During DUP-021
+- Long-running VRDB import update left a backend relation lock that blocked a subsequent `run-all` query.
+- Mitigation:
+  - identified blocked/locking sessions via `pg_stat_activity` and terminated the stale backend.
+  - reran ESSB validation with `--skip-imports` to avoid re-entering the long import path in this batch.
+
+## Remaining Work / Handoff
+- DUP-021 acceptance criteria are met:
+  - low-power thresholds are selected via explicit operating targets and captured in versioned artifacts.
+  - calibration is deterministic/reproducible under fixed seeds.
+  - inference/path changes now have regression coverage through calibration harness tests and threshold provenance assertions.
+- No remaining DUP work items are currently queued in `docs/duplicate-names-refinement/work-items/`.

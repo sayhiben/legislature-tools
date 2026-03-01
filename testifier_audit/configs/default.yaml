@@ -60,8 +60,15 @@ name_analysis:
   temporal_permutation_draws: 5000
   temporal_null_mode: "hearing_intensity"
   bh_fdr_q: 0.10
-  low_power_min_unique_names: 25
-  low_power_min_expected_duplicates: 5.0
+  # DUP-021 calibrated defaults (seed=6346; output/dup021 calibration artifacts).
+  low_power_min_unique_names: 10
+  low_power_min_expected_duplicates: 1.0
+  low_power_min_unique_names_scope: 10
+  low_power_min_expected_duplicates_scope: 1.0
+  low_power_min_unique_names_bucket: 10
+  low_power_min_expected_duplicates_bucket: 1.0
+  low_power_min_unique_names_position: 10
+  low_power_min_expected_duplicates_position: 1.0
   max_per_name_rows: 1000
   position_hearing_baseline_enabled: true
   position_baseline_shrink_k: 30.0

@@ -234,6 +234,12 @@ class DuplicatesExactDetector(Detector):
         bh_fdr_q: float = 0.10,
         low_power_min_unique_names: int = 25,
         low_power_min_expected_duplicates: float = 5.0,
+        low_power_min_unique_names_scope: int | None = None,
+        low_power_min_expected_duplicates_scope: float | None = None,
+        low_power_min_unique_names_bucket: int | None = None,
+        low_power_min_expected_duplicates_bucket: float | None = None,
+        low_power_min_unique_names_position: int | None = None,
+        low_power_min_expected_duplicates_position: float | None = None,
         max_per_name_rows: int = 1000,
         position_hearing_baseline_enabled: bool = True,
         position_baseline_shrink_k: float = 30.0,
@@ -352,6 +358,38 @@ class DuplicatesExactDetector(Detector):
         self.bh_fdr_q = float(min(max(bh_fdr_q, 0.0), 1.0))
         self.low_power_min_unique_names = max(1, int(low_power_min_unique_names))
         self.low_power_min_expected_duplicates = float(max(low_power_min_expected_duplicates, 0.0))
+        # Keep global low-power thresholds for backward compatibility, and allow
+        # family-specific overrides for scope/bucket/position calibration paths.
+        self.low_power_min_unique_names_scope = (
+            max(1, int(low_power_min_unique_names_scope))
+            if low_power_min_unique_names_scope is not None
+            else self.low_power_min_unique_names
+        )
+        self.low_power_min_expected_duplicates_scope = (
+            float(max(float(low_power_min_expected_duplicates_scope), 0.0))
+            if low_power_min_expected_duplicates_scope is not None
+            else self.low_power_min_expected_duplicates
+        )
+        self.low_power_min_unique_names_bucket = (
+            max(1, int(low_power_min_unique_names_bucket))
+            if low_power_min_unique_names_bucket is not None
+            else self.low_power_min_unique_names
+        )
+        self.low_power_min_expected_duplicates_bucket = (
+            float(max(float(low_power_min_expected_duplicates_bucket), 0.0))
+            if low_power_min_expected_duplicates_bucket is not None
+            else self.low_power_min_expected_duplicates
+        )
+        self.low_power_min_unique_names_position = (
+            max(1, int(low_power_min_unique_names_position))
+            if low_power_min_unique_names_position is not None
+            else self.low_power_min_unique_names
+        )
+        self.low_power_min_expected_duplicates_position = (
+            float(max(float(low_power_min_expected_duplicates_position), 0.0))
+            if low_power_min_expected_duplicates_position is not None
+            else self.low_power_min_expected_duplicates
+        )
         self.max_per_name_rows = max(10, int(max_per_name_rows))
         self.position_hearing_baseline_enabled = bool(position_hearing_baseline_enabled)
         self.position_baseline_shrink_k = float(max(float(position_baseline_shrink_k), 0.0))
@@ -816,9 +854,9 @@ class DuplicatesExactDetector(Detector):
         if n <= 1:
             return 0
         # Buckets that are guaranteed low-power should avoid expensive null simulation.
-        if n < self.low_power_min_unique_names:
+        if n < self.low_power_min_unique_names_bucket:
             return 0
-        if float(expected_primary_metric) < self.low_power_min_expected_duplicates:
+        if float(expected_primary_metric) < self.low_power_min_expected_duplicates_bucket:
             return 0
         return int(min(max(int(self.monte_carlo_draws), 0), max(int(hard_cap), 0)))
 
@@ -3565,6 +3603,20 @@ class DuplicatesExactDetector(Detector):
                     "fallback_policy": self.collision_baseline_failure_policy,
                     "collision_key_mode": self.collision_key_mode,
                     "inferential_key_mode": self.collision_key_mode,
+                    "low_power_min_unique_names_scope": int(self.low_power_min_unique_names_scope),
+                    "low_power_min_expected_duplicates_scope": float(
+                        self.low_power_min_expected_duplicates_scope
+                    ),
+                    "low_power_min_unique_names_bucket": int(self.low_power_min_unique_names_bucket),
+                    "low_power_min_expected_duplicates_bucket": float(
+                        self.low_power_min_expected_duplicates_bucket
+                    ),
+                    "low_power_min_unique_names_position": int(
+                        self.low_power_min_unique_names_position
+                    ),
+                    "low_power_min_expected_duplicates_position": float(
+                        self.low_power_min_expected_duplicates_position
+                    ),
                     "normalization_version": normalization_version_value,
                     "normalization_version_hash": normalization_hash,
                     "stratification": effective_scope_stratification,
@@ -3819,8 +3871,8 @@ class DuplicatesExactDetector(Detector):
                         else 0.0
                     )
                     low_power = bool(
-                        n_unique < self.low_power_min_unique_names
-                        or expected_primary_bucket < self.low_power_min_expected_duplicates
+                        n_unique < self.low_power_min_unique_names_bucket
+                        or expected_primary_bucket < self.low_power_min_expected_duplicates_bucket
                     )
                     for metric in self.collision_metrics:
                         metric_obs = float(metric_values.get(metric, 0.0))
@@ -3985,8 +4037,8 @@ class DuplicatesExactDetector(Detector):
                                 )
                                 n_side_unique = int(side_counts.size)
                                 low_power_position = bool(
-                                    n_side_unique < self.low_power_min_unique_names
-                                    or expected_primary < self.low_power_min_expected_duplicates
+                                    n_side_unique < self.low_power_min_unique_names_position
+                                    or expected_primary < self.low_power_min_expected_duplicates_position
                                 )
                                 position_inference_status = (
                                     "descriptive_only" if low_power_position else "tested"
@@ -4099,9 +4151,9 @@ class DuplicatesExactDetector(Detector):
                 primary_scope_status = scope_status
                 primary_scope_reason = scope_reason
                 primary_scope_low_power = bool(
-                    primary_scope_unique_count < self.low_power_min_unique_names
+                    primary_scope_unique_count < self.low_power_min_unique_names_scope
                     or float(expected_metrics.get(self.collision_primary_metric, 0.0))
-                    < self.low_power_min_expected_duplicates
+                    < self.low_power_min_expected_duplicates_scope
                 )
 
                 if not null_samples.empty:
@@ -4215,8 +4267,8 @@ class DuplicatesExactDetector(Detector):
                     expected_rows = float(interval_stats.get("expected_duplicate_rows", 0.0))
                     low_power = bool(
                         n_subset_rows < self.position_claim_min_rows_per_position
-                        or int(subset_metrics["n_unique_names"]) < self.low_power_min_unique_names
-                        or expected_rows < self.low_power_min_expected_duplicates
+                        or int(subset_metrics["n_unique_names"]) < self.low_power_min_unique_names_position
+                        or expected_rows < self.low_power_min_expected_duplicates_position
                     )
                     has_interval_draws = int(interval_stats.get("interval_draws_effective", 0)) > 0
                     inference_status = (
@@ -5656,6 +5708,20 @@ class DuplicatesExactDetector(Detector):
             "n_significant_per_name": int(primary_scope_significant),
             "bh_fdr_q": float(self.bh_fdr_q),
             "primary_low_power": bool(primary_scope_low_power),
+            "low_power_min_unique_names": int(self.low_power_min_unique_names),
+            "low_power_min_expected_duplicates": float(self.low_power_min_expected_duplicates),
+            "low_power_min_unique_names_scope": int(self.low_power_min_unique_names_scope),
+            "low_power_min_expected_duplicates_scope": float(
+                self.low_power_min_expected_duplicates_scope
+            ),
+            "low_power_min_unique_names_bucket": int(self.low_power_min_unique_names_bucket),
+            "low_power_min_expected_duplicates_bucket": float(
+                self.low_power_min_expected_duplicates_bucket
+            ),
+            "low_power_min_unique_names_position": int(self.low_power_min_unique_names_position),
+            "low_power_min_expected_duplicates_position": float(
+                self.low_power_min_expected_duplicates_position
+            ),
             "collision_scope_primary": self.collision_scope_primary,
             "scope_status": primary_scope_status,
             "scope_reason": primary_scope_reason,

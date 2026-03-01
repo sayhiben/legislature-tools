@@ -184,7 +184,12 @@ def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Pa
             voter_registry=SimpleNamespace(
                 db_url="postgresql://user:pass@localhost:5432/legislature",
                 table_name="voter_registry",
-            )
+            ),
+            names=SimpleNamespace(
+                nickname_map_path=str(tmp_path / "nicknames.csv"),
+                normalize_unicode=True,
+                strip_punctuation=True,
+            ),
         ),
     )
 
@@ -195,12 +200,18 @@ def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Pa
         db_url: str,
         table_name: str,
         chunk_size: int,
+        nickname_map_path: str,
+        normalize_unicode: bool,
+        strip_punctuation: bool,
         force: bool,
     ) -> VRDBImportResult:
         captured["extract_path"] = extract_path
         captured["db_url"] = db_url
         captured["table_name"] = table_name
         captured["chunk_size"] = chunk_size
+        captured["nickname_map_path"] = nickname_map_path
+        captured["normalize_unicode"] = normalize_unicode
+        captured["strip_punctuation"] = strip_punctuation
         captured["force"] = force
         return VRDBImportResult(
             source_file=extract_path.name,
@@ -209,6 +220,8 @@ def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Pa
             rows_upserted=1,
             rows_with_state_voter_id=1,
             rows_with_canonical_name=1,
+            normalization_version="shared_name_normalization_v1:abc123def456",
+            normalization_version_hash="abc123def4567890",
             chunk_size=chunk_size,
             file_hash="abc123",
         )
@@ -233,6 +246,9 @@ def test_import_vrdb_command_runs_with_config_defaults(monkeypatch, tmp_path: Pa
     assert captured["extract_path"] == extract_path
     assert captured["table_name"] == "voter_registry"
     assert captured["chunk_size"] == 2000
+    assert captured["nickname_map_path"] == str(tmp_path / "nicknames.csv")
+    assert captured["normalize_unicode"] is True
+    assert captured["strip_punctuation"] is True
     assert captured["force"] is False
     assert "rows_upserted: 1" in result.stdout
 

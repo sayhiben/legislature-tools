@@ -192,6 +192,10 @@ _COLUMN_DESCRIPTION_OVERRIDES: dict[str, str] = {
     "detector_baseline_family": "Detector baseline family (for example VRDB collision-null).",
     "detector_baseline_family_label": "Human-readable detector baseline family label.",
     "detector_baseline_label": "Detector baseline label propagated from duplicate runtime metadata.",
+    "normalization_version": (
+        "Shared name-normalization policy version used to construct normalized keys."
+    ),
+    "normalization_version_hash": "Hash fingerprint of the active shared name-normalization policy.",
     "off_hours": "Count of records in configured off-hours period.",
     "on_hours": "Count of records in configured on-hours period.",
     "off_hours_ratio": "Fraction of all records submitted during off-hours.",

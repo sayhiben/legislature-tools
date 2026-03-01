@@ -164,6 +164,11 @@ def test_normalize_vrdb_chunk_standardizes_and_filters_names() -> None:
     assert normalized["source_file"].iloc[0] == "sample.txt"
     assert normalized.loc[normalized.index[0], "collision_key_medium"] == "DOE|JANE"
     assert normalized.loc[normalized.index[0], "collision_key_strict"] == "DOE|JANE|A|"
+    assert normalized.loc[normalized.index[0], "full_name_key"] == "DOE|JANE|A|"
+    assert normalized.loc[normalized.index[0], "first_name_key"] == "JANE"
+    assert normalized.loc[normalized.index[0], "last_name_key"] == "DOE"
+    assert normalized.loc[normalized.index[0], "normalization_version"] != ""
+    assert normalized.loc[normalized.index[0], "normalization_version_hash"] != ""
     assert set(normalized["status_code"]) == {"Active", "Inactive"}
 
 
@@ -191,6 +196,7 @@ def test_normalize_vrdb_chunk_without_optional_columns_applies_defaults() -> Non
     assert out.loc[out.index[0], "name_suffix"] == ""
     assert out.loc[out.index[0], "birth_year"] == ""
     assert out.loc[out.index[0], "canonical_name"] == "DOE|JANE"
+    assert out.loc[out.index[0], "full_name_key"] == "DOE|JANE||"
     assert out.loc[out.index[0], "status_code"] == "Active"
 
 
@@ -344,7 +350,7 @@ def test_import_vrdb_extract_to_postgres_aggregates_metrics(
     normalized_two = pd.DataFrame(columns=["state_voter_id", "canonical_name"])
     calls: list[int] = []
 
-    def _fake_normalize(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
+    def _fake_normalize(chunk: pd.DataFrame, source_file: str, **kwargs: object) -> pd.DataFrame:
         calls.append(len(chunk))
         return normalized_one if len(calls) == 1 else normalized_two
 
@@ -363,6 +369,8 @@ def test_import_vrdb_extract_to_postgres_aggregates_metrics(
     assert result.rows_upserted == 2
     assert result.rows_with_state_voter_id == 1
     assert result.rows_with_canonical_name == 2
+    assert result.normalization_version
+    assert result.normalization_version_hash
     assert result.file_hash
     assert conn.commit_count == 3
     assert calls == [2, 1]
@@ -427,6 +435,8 @@ def test_import_vrdb_extract_to_postgres_skips_when_checksum_seen(
     assert result.rows_processed == 0
     assert result.rows_upserted == 0
     assert result.previous_import_id == 11
+    assert result.normalization_version
+    assert result.normalization_version_hash
     assert record_calls and record_calls[0]["status"] == "skipped"
 
 
@@ -629,3 +639,6 @@ def test_submission_and_vrdb_collision_keys_align_for_same_name() -> None:
     assert vrdb.loc[vrdb.index[0], "collision_key_strict"] == submission_name.collision_key_strict
     assert vrdb.loc[vrdb.index[0], "collision_key_medium"] == submission_name.collision_key_medium
     assert vrdb.loc[vrdb.index[0], "canonical_key_medium"] == submission_name.canonical_key_medium
+    assert vrdb.loc[vrdb.index[0], "full_name_key"] == submission_name.collision_key_strict
+    assert vrdb.loc[vrdb.index[0], "first_name_key"] == submission_name.first_primary
+    assert vrdb.loc[vrdb.index[0], "last_name_key"] == submission_name.last

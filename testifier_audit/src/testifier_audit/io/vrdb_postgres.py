@@ -8,12 +8,18 @@ from typing import Iterable
 
 import pandas as pd
 
-from testifier_audit.features.rarity import normalize_name_token
 from testifier_audit.io.import_tracking import (
     compute_file_sha256,
     ensure_import_tracking_schema,
     find_completed_import,
     record_import_result,
+)
+from testifier_audit.names.nickname_map import load_nickname_map
+from testifier_audit.names.normalization import (
+    compose_person_name,
+    normalization_version,
+    normalization_version_hash,
+    normalize_name_record,
 )
 
 ID_COLUMN_CANDIDATES = (
@@ -29,9 +35,12 @@ SUFFIX_COLUMN_CANDIDATES = ("NameSuffix", "Suffix", "name_suffix")
 BIRTH_YEAR_COLUMN_CANDIDATES = ("Birthyear", "BirthYear", "birth_year")
 STATUS_COLUMN_CANDIDATES = ("StatusCode", "status_code", "Status")
 IMPORT_KIND_VRDB = "vrdb_extract"
-VRDB_IMPORTER_VERSION = "vrdb_extract_v2"
+VRDB_IMPORTER_VERSION = "vrdb_extract_v3"
 ALLOWED_NAME_KEY_COLUMNS = frozenset(
     {
+        "full_name_key",
+        "first_name_key",
+        "last_name_key",
         "canonical_name",
         "canonical_key_strict",
         "canonical_key_medium",
@@ -55,6 +64,8 @@ class VRDBImportResult:
     rows_upserted: int
     rows_with_state_voter_id: int
     rows_with_canonical_name: int
+    normalization_version: str
+    normalization_version_hash: str
     chunk_size: int
     file_hash: str = ""
     import_skipped: bool = False
@@ -127,7 +138,16 @@ def _normalize_status_code_series(series: pd.Series) -> pd.Series:
     return normalized
 
 
-def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
+def normalize_vrdb_chunk(
+    chunk: pd.DataFrame,
+    source_file: str,
+    *,
+    nickname_map: dict[str, str] | None = None,
+    normalize_unicode: bool = True,
+    strip_punctuation: bool = True,
+    normalization_version_value: str | None = None,
+    normalization_version_hash_value: str | None = None,
+) -> pd.DataFrame:
     if chunk.empty:
         return pd.DataFrame(
             columns=[
@@ -151,6 +171,12 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
                 "collision_key_strict",
                 "collision_key_medium",
                 "collision_key_loose",
+                "full_name_key",
+                "first_name_key",
+                "last_name_key",
+                "name_normalized",
+                "normalization_version",
+                "normalization_version_hash",
                 "source_file",
                 "source_hash",
             ]
@@ -183,28 +209,62 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
         chunk[birth_year_col].fillna("").astype(str).str.strip() if birth_year_col else ""
     )
     out["status_code"] = _normalize_status_code_series(chunk[status_col]) if status_col else ""
-    out["canonical_first"] = out["first_name"].map(normalize_name_token)
-    out["canonical_last"] = out["last_name"].map(normalize_name_token)
-    out["canonical_name"] = out["canonical_last"] + "|" + out["canonical_first"]
-    out["canonical_middle_initial"] = (
-        out["middle_name"].map(normalize_name_token).str[:1].fillna("").astype(str)
+    nickname_map_value = nickname_map or {}
+    resolved_version_hash = str(normalization_version_hash_value or "").strip() or normalization_version_hash(
+        normalize_unicode=normalize_unicode,
+        strip_punctuation=strip_punctuation,
+        nickname_map=nickname_map_value,
     )
-    out["canonical_suffix"] = out["name_suffix"].map(normalize_name_token)
-    out["canonical_key_strict"] = (
-        out["canonical_last"]
-        + "|"
-        + out["canonical_first"]
-        + "|"
-        + out["canonical_middle_initial"]
-        + "|"
-        + out["canonical_suffix"]
+    resolved_version = str(normalization_version_value or "").strip() or normalization_version(
+        normalize_unicode=normalize_unicode,
+        strip_punctuation=strip_punctuation,
+        nickname_map=nickname_map_value,
     )
-    out["canonical_key_medium"] = out["canonical_last"] + "|" + out["canonical_first"]
-    out["canonical_key_loose"] = out["canonical_last"] + "|" + out["canonical_first"].str[:1]
-    out["canonical_key_nickname"] = out["canonical_key_medium"]
-    out["collision_key_strict"] = out["canonical_key_strict"]
-    out["collision_key_medium"] = out["canonical_key_medium"]
-    out["collision_key_loose"] = out["canonical_key_loose"]
+    canonicalized = pd.Series(
+        (
+            normalize_name_record(
+                compose_person_name(
+                    first_name=first_name,
+                    middle_name=middle_name,
+                    last_name=last_name,
+                    suffix=name_suffix,
+                ),
+                nickname_map=nickname_map_value,
+                normalize_unicode=normalize_unicode,
+                strip_punctuation=strip_punctuation,
+                normalization_version_value=resolved_version,
+                normalization_version_hash_value=resolved_version_hash,
+            )
+            for first_name, middle_name, last_name, name_suffix in zip(
+                out["first_name"].tolist(),
+                out["middle_name"].tolist(),
+                out["last_name"].tolist(),
+                out["name_suffix"].tolist(),
+                strict=False,
+            )
+        ),
+        index=out.index,
+        dtype=object,
+    )
+    canonicalized_name = canonicalized.map(lambda item: item.canonicalized)
+    out["canonical_first"] = canonicalized_name.map(lambda item: item.first_primary)
+    out["canonical_last"] = canonicalized_name.map(lambda item: item.last)
+    out["canonical_name"] = canonicalized_name.map(lambda item: item.canonical_key_medium)
+    out["canonical_middle_initial"] = canonicalized_name.map(lambda item: item.middle_initial)
+    out["canonical_suffix"] = canonicalized_name.map(lambda item: item.suffix_normalized)
+    out["canonical_key_strict"] = canonicalized_name.map(lambda item: item.canonical_key_strict)
+    out["canonical_key_medium"] = canonicalized_name.map(lambda item: item.canonical_key_medium)
+    out["canonical_key_loose"] = canonicalized_name.map(lambda item: item.canonical_key_loose)
+    out["canonical_key_nickname"] = canonicalized_name.map(lambda item: item.canonical_key_nickname)
+    out["collision_key_strict"] = canonicalized_name.map(lambda item: item.collision_key_strict)
+    out["collision_key_medium"] = canonicalized_name.map(lambda item: item.collision_key_medium)
+    out["collision_key_loose"] = canonicalized_name.map(lambda item: item.collision_key_loose)
+    out["full_name_key"] = canonicalized.map(lambda item: item.full_name_key)
+    out["first_name_key"] = canonicalized.map(lambda item: item.first_name_key)
+    out["last_name_key"] = canonicalized.map(lambda item: item.last_name_key)
+    out["name_normalized"] = canonicalized_name.map(lambda item: item.name_normalized)
+    out["normalization_version"] = resolved_version
+    out["normalization_version_hash"] = resolved_version_hash
     out["source_file"] = source_file
 
     fingerprint = (
@@ -226,7 +286,9 @@ def normalize_vrdb_chunk(chunk: pd.DataFrame, source_file: str) -> pd.DataFrame:
     missing_key = out["voter_key"] == ""
     out.loc[missing_key, "voter_key"] = _fallback_voter_key(out.loc[missing_key])
 
-    has_name = (out["canonical_last"] != "") & (out["canonical_first"] != "")
+    has_name = (
+        out["last_name"].fillna("").astype(str).str.strip() != ""
+    ) & (out["first_name"].fillna("").astype(str).str.strip() != "")
     return out[has_name].copy()
 
 
@@ -292,6 +354,12 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
           collision_key_strict TEXT NOT NULL DEFAULT '',
           collision_key_medium TEXT NOT NULL DEFAULT '',
           collision_key_loose TEXT NOT NULL DEFAULT '',
+          full_name_key TEXT NOT NULL DEFAULT '',
+          first_name_key TEXT NOT NULL DEFAULT '',
+          last_name_key TEXT NOT NULL DEFAULT '',
+          name_normalized TEXT NOT NULL DEFAULT '',
+          normalization_version TEXT NOT NULL DEFAULT '',
+          normalization_version_hash TEXT NOT NULL DEFAULT '',
           source_file TEXT NOT NULL,
           source_hash TEXT NOT NULL,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -334,6 +402,30 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
         ),
         sql.SQL(
             "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS collision_key_loose TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS full_name_key TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS first_name_key TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS last_name_key TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS name_normalized TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS normalization_version TEXT "
+            "NOT NULL DEFAULT ''"
+        ),
+        sql.SQL(
+            "ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS normalization_version_hash TEXT "
             "NOT NULL DEFAULT ''"
         ),
     )
@@ -394,6 +486,20 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
             idx_collision_loose=sql.Identifier(f"{table_name}_collision_key_loose_idx"),
             table_name=sql.Identifier(table_name),
         ),
+        sql.SQL("CREATE INDEX IF NOT EXISTS {idx_full_name} ON {table_name} (full_name_key)").format(
+            idx_full_name=sql.Identifier(f"{table_name}_full_name_key_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL(
+            "CREATE INDEX IF NOT EXISTS {idx_first_name} ON {table_name} (first_name_key)"
+        ).format(
+            idx_first_name=sql.Identifier(f"{table_name}_first_name_key_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
+        sql.SQL("CREATE INDEX IF NOT EXISTS {idx_last_name} ON {table_name} (last_name_key)").format(
+            idx_last_name=sql.Identifier(f"{table_name}_last_name_key_idx"),
+            table_name=sql.Identifier(table_name),
+        ),
     )
     backfill_new_keys = sql.SQL(
         """
@@ -429,7 +535,67 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
           ),
           collision_key_strict = COALESCE(
             NULLIF(TRIM(collision_key_strict), ''),
-            COALESCE(canonical_key_strict, '')
+            COALESCE(canonical_last, '')
+            || '|'
+            || COALESCE(canonical_first, '')
+            || '|'
+            || COALESCE(
+              NULLIF(TRIM(canonical_middle_initial), ''),
+              LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
+            )
+            || '|'
+            || COALESCE(
+              NULLIF(TRIM(canonical_suffix), ''),
+              COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
+            )
+          ),
+          full_name_key = COALESCE(
+            NULLIF(TRIM(full_name_key), ''),
+            COALESCE(canonical_last, '')
+            || '|'
+            || COALESCE(canonical_first, '')
+            || '|'
+            || COALESCE(
+              NULLIF(TRIM(canonical_middle_initial), ''),
+              LEFT(COALESCE(LOWER(REGEXP_REPLACE(middle_name, '[^a-z0-9]+', '', 'g')), ''), 1)
+            )
+            || '|'
+            || COALESCE(
+              NULLIF(TRIM(canonical_suffix), ''),
+              COALESCE(LOWER(REGEXP_REPLACE(name_suffix, '[^a-z0-9]+', '', 'g')), '')
+            )
+          ),
+          first_name_key = COALESCE(
+            NULLIF(TRIM(first_name_key), ''),
+            COALESCE(canonical_first, '')
+          ),
+          last_name_key = COALESCE(
+            NULLIF(TRIM(last_name_key), ''),
+            COALESCE(canonical_last, '')
+          ),
+          name_normalized = COALESCE(
+            NULLIF(TRIM(name_normalized), ''),
+            COALESCE(last_name, '')
+            || CASE
+              WHEN COALESCE(NULLIF(TRIM(first_name), ''), '') <> '' THEN ', ' || COALESCE(first_name, '')
+              ELSE ''
+            END
+            || CASE
+              WHEN COALESCE(NULLIF(TRIM(middle_name), ''), '') <> '' THEN ' ' || COALESCE(middle_name, '')
+              ELSE ''
+            END
+            || CASE
+              WHEN COALESCE(NULLIF(TRIM(name_suffix), ''), '') <> '' THEN ' ' || COALESCE(name_suffix, '')
+              ELSE ''
+            END
+          ),
+          normalization_version = COALESCE(
+            NULLIF(TRIM(normalization_version), ''),
+            'legacy_vrdb_import'
+          ),
+          normalization_version_hash = COALESCE(
+            NULLIF(TRIM(normalization_version_hash), ''),
+            ''
           ),
           canonical_key_strict = COALESCE(
             NULLIF(TRIM(canonical_key_strict), ''),
@@ -454,7 +620,11 @@ def ensure_voter_registry_schema(conn, table_name: str) -> None:
           OR canonical_key_strict = ''
           OR collision_key_medium = ''
           OR collision_key_loose = ''
-          OR collision_key_strict = '';
+          OR collision_key_strict = ''
+          OR full_name_key = ''
+          OR first_name_key = ''
+          OR last_name_key = ''
+          OR normalization_version = '';
         """
     ).format(table_name=sql.Identifier(table_name))
     with conn.cursor() as cursor:
@@ -493,6 +663,12 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           collision_key_strict,
           collision_key_medium,
           collision_key_loose,
+          full_name_key,
+          first_name_key,
+          last_name_key,
+          name_normalized,
+          normalization_version,
+          normalization_version_hash,
           source_file,
           source_hash
         )
@@ -517,6 +693,12 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           %(collision_key_strict)s,
           %(collision_key_medium)s,
           %(collision_key_loose)s,
+          %(full_name_key)s,
+          %(first_name_key)s,
+          %(last_name_key)s,
+          %(name_normalized)s,
+          %(normalization_version)s,
+          %(normalization_version_hash)s,
           %(source_file)s,
           %(source_hash)s
         )
@@ -541,6 +723,12 @@ def _upsert_vrdb_rows(conn, table_name: str, rows: pd.DataFrame) -> int:
           collision_key_strict = EXCLUDED.collision_key_strict,
           collision_key_medium = EXCLUDED.collision_key_medium,
           collision_key_loose = EXCLUDED.collision_key_loose,
+          full_name_key = EXCLUDED.full_name_key,
+          first_name_key = EXCLUDED.first_name_key,
+          last_name_key = EXCLUDED.last_name_key,
+          name_normalized = EXCLUDED.name_normalized,
+          normalization_version = EXCLUDED.normalization_version,
+          normalization_version_hash = EXCLUDED.normalization_version_hash,
           source_file = EXCLUDED.source_file,
           source_hash = EXCLUDED.source_hash,
           updated_at = NOW()
@@ -558,6 +746,9 @@ def import_vrdb_extract_to_postgres(
     db_url: str,
     table_name: str = "voter_registry",
     chunk_size: int = 50_000,
+    nickname_map_path: str | None = None,
+    normalize_unicode: bool = True,
+    strip_punctuation: bool = True,
     force: bool = False,
 ) -> VRDBImportResult:
     if chunk_size < 1_000:
@@ -572,6 +763,19 @@ def import_vrdb_extract_to_postgres(
     rows_upserted = 0
     rows_with_state_voter_id = 0
     rows_with_canonical_name = 0
+    nickname_map = load_nickname_map(str(nickname_map_path or "")) if nickname_map_path else {}
+    resolved_normalization_version_hash = normalization_version_hash(
+        normalize_unicode=normalize_unicode,
+        strip_punctuation=strip_punctuation,
+        nickname_map=nickname_map,
+        nickname_map_path=nickname_map_path,
+    )
+    resolved_normalization_version = normalization_version(
+        normalize_unicode=normalize_unicode,
+        strip_punctuation=strip_punctuation,
+        nickname_map=nickname_map,
+        nickname_map_path=nickname_map_path,
+    )
 
     with psycopg.connect(db_url) as conn:
         ensure_voter_registry_schema(conn=conn, table_name=table_name)
@@ -612,6 +816,8 @@ def import_vrdb_extract_to_postgres(
                 rows_upserted=0,
                 rows_with_state_voter_id=0,
                 rows_with_canonical_name=0,
+                normalization_version=resolved_normalization_version,
+                normalization_version_hash=resolved_normalization_version_hash,
                 chunk_size=chunk_size,
                 file_hash=file_hash,
                 import_skipped=True,
@@ -621,7 +827,15 @@ def import_vrdb_extract_to_postgres(
 
         for chunk in _iter_vrdb_chunks(extract_path, chunk_size=chunk_size):
             rows_processed += len(chunk)
-            normalized = normalize_vrdb_chunk(chunk=chunk, source_file=source_file)
+            normalized = normalize_vrdb_chunk(
+                chunk=chunk,
+                source_file=source_file,
+                nickname_map=nickname_map,
+                normalize_unicode=normalize_unicode,
+                strip_punctuation=strip_punctuation,
+                normalization_version_value=resolved_normalization_version,
+                normalization_version_hash_value=resolved_normalization_version_hash,
+            )
             if normalized.empty:
                 continue
 
@@ -652,6 +866,8 @@ def import_vrdb_extract_to_postgres(
         rows_upserted=rows_upserted,
         rows_with_state_voter_id=rows_with_state_voter_id,
         rows_with_canonical_name=rows_with_canonical_name,
+        normalization_version=resolved_normalization_version,
+        normalization_version_hash=resolved_normalization_version_hash,
         chunk_size=chunk_size,
         file_hash=file_hash,
     )
@@ -677,7 +893,7 @@ def fetch_matching_voter_keys(
     table_name: str,
     key_values: list[str],
     *,
-    key_column: str = "canonical_name",
+    key_column: str = "full_name_key",
     active_only: bool = True,
 ) -> pd.DataFrame:
     resolved_column = _validated_name_key_column(key_column)
@@ -805,7 +1021,7 @@ def fetch_voter_name_key_frequencies(
     db_url: str,
     table_name: str,
     *,
-    key_column: str = "canonical_key_medium",
+    key_column: str = "full_name_key",
     active_only: bool = True,
 ) -> pd.DataFrame:
     resolved_column = _validated_name_key_column(key_column)
@@ -836,7 +1052,7 @@ def fetch_voter_name_key_count_histogram(
     db_url: str,
     table_name: str,
     *,
-    key_column: str = "canonical_key_medium",
+    key_column: str = "full_name_key",
     active_only: bool = True,
 ) -> pd.DataFrame:
     resolved_column = _validated_name_key_column(key_column)
@@ -882,7 +1098,7 @@ def fetch_voter_name_key_stratum_frequencies(
     db_url: str,
     table_name: str,
     *,
-    key_column: str = "canonical_key_medium",
+    key_column: str = "full_name_key",
     stratification: str = "birth_decade",
     active_only: bool = True,
 ) -> pd.DataFrame:

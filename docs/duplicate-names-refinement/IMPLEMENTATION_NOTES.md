@@ -13,32 +13,31 @@ Execution order is tracked here independently from ticket numbering.
 2. `DUP-008` (Done, 2026-02-28)
 3. `DUP-009` (Done, 2026-02-28)
 4. `DUP-010` (Done, 2026-02-28)
+5. `DUP-002` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-002` (next in-progress target)
+1. `DUP-003` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-010`
-2. `DUP-002`
-3. `DUP-003`
-4. `DUP-004`
-5. `DUP-005`
-6. `DUP-007`
-7. `DUP-006`
-8. `DUP-011`
-9. `DUP-012`
-10. `DUP-013`
-11. `DUP-014`
-12. `DUP-015`
-13. `DUP-016`
-14. `DUP-017`
-15. `DUP-018`
-16. `DUP-019`
-17. `DUP-020`
-18. `DUP-021`
+1. `DUP-003`
+2. `DUP-004`
+3. `DUP-005`
+4. `DUP-007`
+5. `DUP-006`
+6. `DUP-011`
+7. `DUP-012`
+8. `DUP-013`
+9. `DUP-014`
+10. `DUP-015`
+11. `DUP-016`
+12. `DUP-017`
+13. `DUP-018`
+14. `DUP-019`
+15. `DUP-020`
+16. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, and **DUP-010**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, and **DUP-002**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -298,3 +297,90 @@ Work item: DUP-010 (P0)
 ## Remaining Work / Handoff
 - Move to `DUP-002`.
 - Keep DUP-010 baseline-family naming consistent when subsequent tickets modify duplicate chart/table presentation logic.
+
+---
+
+## DUP-002 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-002 (P0)
+
+## What Was Implemented
+- Added a shared, versioned normalization layer:
+  - new module: `src/testifier_audit/names/normalization.py`
+  - emits:
+    - `full_name_key` (policy-defined full-name collision key; strict key form)
+    - `first_name_key`
+    - `last_name_key`
+    - `normalization_version`
+    - `normalization_version_hash`
+  - centralizes composition + canonicalization for component-based inputs (`compose_person_name`) and raw name strings (`normalize_name_record`)
+- Updated submission-side normalization call site:
+  - `preprocess/names.py` now uses shared normalization module and writes new key/version fields to the working frame while preserving legacy canonical/collision fields.
+- Updated VRDB normalization/import path to use the same normalization module:
+  - `io/vrdb_postgres.py`
+  - `normalize_vrdb_chunk(...)` now canonicalizes VRDB rows via shared normalization (instead of VRDB-specific token normalization logic)
+  - persisted VRDB normalization metadata:
+    - `full_name_key`, `first_name_key`, `last_name_key`
+    - `name_normalized`
+    - `normalization_version`, `normalization_version_hash`
+- Updated VRDB schema/indexes/backfill:
+  - new columns + indexes added in `ensure_voter_registry_schema(...)`
+  - legacy-row backfill populates new key/version fields
+  - importer version bumped to `vrdb_extract_v3` to reflect schema/normalization changes
+- Updated VRDB import orchestration/CLI:
+  - `cli import-vrdb` now passes names config normalization settings (`nickname_map_path`, `normalize_unicode`, `strip_punctuation`) into VRDB import
+  - CLI output now includes normalization version + hash
+- Updated VRDB key-query defaults for collision-oriented helpers to use full-name key by default:
+  - `fetch_matching_voter_keys` default `key_column="full_name_key"`
+  - `fetch_voter_name_key_frequencies` / `fetch_voter_name_key_count_histogram` / `fetch_voter_name_key_stratum_frequencies` defaults now `full_name_key`
+  - `fetch_matching_voter_names(...)` remains explicit on `canonical_name` for voter-linkage behavior
+- Propagated normalization version metadata into duplicates detector/report contracts:
+  - `duplicates_exact.collision_methods` now includes `normalization_version` + `normalization_version_hash`
+  - detector summary now includes same version metadata
+  - payload builder/runtime includes `normalization_version` as expected duplicate methods metadata field.
+
+## Tests Added/Updated
+- `tests/test_names.py`
+  - asserts new shared key/version columns in submission preprocessing output
+- `tests/test_vrdb_postgres.py`
+  - asserts new VRDB normalized key/version fields (`full_name_key`, `first_name_key`, `last_name_key`, normalization metadata)
+  - updated import tests for new VRDB import result metadata
+  - extended parity test to include new key fields between submission canonicalization and VRDB chunk normalization
+- `tests/test_cli.py`
+  - updated `import-vrdb` command test fixture/signature for new normalization parameters and output metadata.
+- Focused suites run:
+  - `tests/test_names.py`
+  - `tests/test_vrdb_postgres.py`
+  - `tests/test_cli.py`
+  - `tests/test_duplicates_exact.py`
+  - `tests/test_report_chart_payload.py`
+- Full suite run via `./testifier_audit/scripts/ci/test.sh`:
+  - `329 passed`
+- Lint run via `./testifier_audit/scripts/ci/lint.sh` passed.
+
+## Runtime / Report Validation (ESSB 6346)
+- Executed:
+  - unified report run on ESSB 6346 (skip-import mode for final QA run after migration-lock issue triage)
+  - report rerender (`python -m testifier_audit.cli report ...`)
+  - Playwright MCP validation on:
+    - desktop `1728x1117`
+    - mobile `390x844`
+- Verified:
+  - duplicate unit toggle (`rows` ↔ `names`) updates baseline wording as expected
+  - names unit note explicitly uses occupancy method wording
+  - bucket synchronization and responsive controls worked in both viewports
+  - data requests returned `200` for report payload shards
+  - only console error was expected local `favicon.ico` `404`.
+
+## Issues Discovered During Implementation
+- First post-schema-change VRDB import can be expensive:
+  - `ensure_voter_registry_schema` backfill over large `voter_registry` table triggered long-running update.
+- Interrupting that one-time backfill left an active DB backend holding relation locks, which blocked subsequent report runs until backend termination.
+- Mitigation used during QA run:
+  - terminated lingering backend
+  - validated ESSB run path using `--skip-vrdb-import --skip-submissions-import` once imports/data were already present.
+
+## Remaining Work / Handoff
+- Move to `DUP-003` (versioned VRDB probability artifacts and geography-aware backoff).
+- Preserve DUP-002 shared normalization layer as the single source for submission + VRDB key generation; do not introduce sidecar-only normalizers in DUP-003+.

@@ -29,6 +29,7 @@ from testifier_audit.names.collision_baseline import (
     simulate_collision_null_from_histogram,
     summarize_collision_observed_vs_null,
 )
+from testifier_audit.names.normalization import normalization_version, normalization_version_hash
 from testifier_audit.names.stat_tests import (
     benjamini_hochberg,
     binomial_tail_p_value,
@@ -159,6 +160,9 @@ class DuplicatesExactDetector(Detector):
         contextual_baseline_path: str | None = None,
         contextual_committee: str = "",
         contextual_chamber: str = "",
+        nickname_map_path: str | None = None,
+        normalize_unicode: bool = True,
+        strip_punctuation: bool = True,
         voter_db_url: str | None = None,
         voter_table_name: str = "voter_registry",
         voter_active_only: bool = True,
@@ -236,6 +240,9 @@ class DuplicatesExactDetector(Detector):
         self.contextual_baseline_path = str(contextual_baseline_path or "").strip()
         self.contextual_committee = str(contextual_committee or "").strip()
         self.contextual_chamber = str(contextual_chamber or "").strip()
+        self.nickname_map_path = str(nickname_map_path or "").strip()
+        self.normalize_unicode = bool(normalize_unicode)
+        self.strip_punctuation = bool(strip_punctuation)
         self.voter_db_url = voter_db_url
         self.voter_table_name = voter_table_name
         self.voter_active_only = bool(voter_active_only)
@@ -536,17 +543,18 @@ class DuplicatesExactDetector(Detector):
     def _scope_list(self) -> list[str]:
         return [self.collision_scope_primary] + [scope for scope in self.collision_scope_overlays if scope != self.collision_scope_primary]
 
-    @staticmethod
-    def _normalization_version_hash(nickname_map_path: str | None = None) -> str:
-        hasher = sha1()
-        canonicalize_path = Path(__file__).resolve().parents[1] / "names" / "canonicalize.py"
-        if canonicalize_path.exists():
-            hasher.update(canonicalize_path.read_bytes())
-        if nickname_map_path:
-            nickname_path = Path(str(nickname_map_path))
-            if nickname_path.exists():
-                hasher.update(nickname_path.read_bytes())
-        return hasher.hexdigest()
+    def _normalization_version_metadata(self) -> tuple[str, str]:
+        version_hash = normalization_version_hash(
+            normalize_unicode=self.normalize_unicode,
+            strip_punctuation=self.strip_punctuation,
+            nickname_map_path=self.nickname_map_path,
+        )
+        version_value = normalization_version(
+            normalize_unicode=self.normalize_unicode,
+            strip_punctuation=self.strip_punctuation,
+            nickname_map_path=self.nickname_map_path,
+        )
+        return version_value, version_hash
 
     def _scope_frames(
         self,
@@ -1607,7 +1615,7 @@ class DuplicatesExactDetector(Detector):
             ),
         )
 
-        normalization_hash = self._normalization_version_hash()
+        normalization_version_value, normalization_hash = self._normalization_version_metadata()
         methods_rows: list[dict[str, object]] = []
         overview_frames: list[pd.DataFrame] = []
         bucket_frames: list[pd.DataFrame] = []
@@ -2325,6 +2333,7 @@ class DuplicatesExactDetector(Detector):
                     "baseline_degraded": scope_degraded,
                     "fallback_policy": self.collision_baseline_failure_policy,
                     "collision_key_mode": self.collision_key_mode,
+                    "normalization_version": normalization_version_value,
                     "normalization_version_hash": normalization_hash,
                     "stratification": effective_scope_stratification,
                     "censored": bool(len(grouped) > self.per_name_display_limit),
@@ -3146,6 +3155,8 @@ class DuplicatesExactDetector(Detector):
             "n_used": int(primary_scope_n_used),
             "N_used": int(primary_scope_n_population),
             "baseline_degraded": bool(primary_scope_degraded),
+            "normalization_version": normalization_version_value,
+            "normalization_version_hash": normalization_hash,
             "stratification": primary_scope_stratification,
             "position_hearing_baseline_enabled": bool(self.position_hearing_baseline_enabled),
             "position_baseline_shrink_k": float(self.position_baseline_shrink_k),

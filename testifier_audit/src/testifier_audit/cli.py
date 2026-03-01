@@ -581,6 +581,9 @@ def import_vrdb(
         db_url=effective_db_url,
         table_name=effective_table_name,
         chunk_size=int(chunk_size),
+        nickname_map_path=cfg.names.nickname_map_path,
+        normalize_unicode=cfg.names.normalize_unicode,
+        strip_punctuation=cfg.names.strip_punctuation,
         force=force,
     )
 
@@ -593,6 +596,8 @@ def import_vrdb(
     typer.echo(f"- rows_upserted: {result.rows_upserted}")
     typer.echo(f"- rows_with_state_voter_id: {result.rows_with_state_voter_id}")
     typer.echo(f"- rows_with_canonical_name: {result.rows_with_canonical_name}")
+    typer.echo(f"- normalization_version: {result.normalization_version}")
+    typer.echo(f"- normalization_version_hash: {result.normalization_version_hash}")
     typer.echo(f"- chunk_size: {result.chunk_size}")
     typer.echo(f"- import_skipped: {str(result.import_skipped).lower()}")
     if result.skip_reason:

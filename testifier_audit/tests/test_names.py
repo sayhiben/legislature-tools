@@ -19,6 +19,11 @@ def test_add_name_features_parses_last_first() -> None:
     assert out.loc[0, "first"] == "JANE"
     assert out.loc[0, "first_initial"] == "J"
     assert out.loc[0, "canonical_name"] == "DOE|JANE"
+    assert out.loc[0, "full_name_key"] == "DOE|JANE||"
+    assert out.loc[0, "first_name_key"] == "JANE"
+    assert out.loc[0, "last_name_key"] == "DOE"
+    assert out.loc[0, "normalization_version"] != ""
+    assert out.loc[0, "normalization_version_hash"] != ""
 
 
 def test_add_name_features_preserves_strict_keys_and_emits_nickname_key(tmp_path: Path) -> None:

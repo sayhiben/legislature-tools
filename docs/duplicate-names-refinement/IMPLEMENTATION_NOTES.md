@@ -19,25 +19,25 @@ Execution order is tracked here independently from ticket numbering.
 8. `DUP-005` (Done, 2026-02-28)
 9. `DUP-007` (Implemented, 2026-02-28; review sign-off pending)
 10. `DUP-006` (Implemented, 2026-02-28; analyst sign-off pending)
+11. `DUP-011` (Done, 2026-02-28)
 
 ### Current
-1. `DUP-011` (next in-progress target)
+1. `DUP-012` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-011`
-2. `DUP-012`
-3. `DUP-013`
-4. `DUP-014`
-5. `DUP-015`
-6. `DUP-016`
-7. `DUP-017`
-8. `DUP-018`
-9. `DUP-019`
-10. `DUP-020`
-11. `DUP-021`
+1. `DUP-012`
+2. `DUP-013`
+3. `DUP-014`
+4. `DUP-015`
+5. `DUP-016`
+6. `DUP-017`
+7. `DUP-018`
+8. `DUP-019`
+9. `DUP-020`
+10. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, and **DUP-006**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, and **DUP-011**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -849,3 +849,103 @@ Work item: DUP-006 (P1)
 ## Remaining Work / Handoff
 - DUP-006 implementation is complete at code/test/runtime-validation level; analyst language sign-off remains the final acceptance step.
 - Next ticket in sequence is `DUP-011`.
+
+---
+
+## DUP-011 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-011 (P1)
+
+## What Was Implemented
+- Added explicit duplicate-detector hypothesis families with backend gating and multiplicity controls:
+  - `A_scope_excess_rows` (primary scope-level endpoint)
+  - `B_bucket_follow_up` (bucket follow-up tests)
+  - `C_per_name_upper_tail` (per-name follow-up tests)
+  - `D_temporal_follow_up` (within-name temporal follow-ups)
+  - `E_position_follow_up` (legacy position follow-up)
+- Added per-row inferential family metadata across duplicate inferential tables:
+  - `family_id`
+  - `adjustment_method`
+  - `n_tests`
+  - `n_tests_in_family`
+  - `eligible_by_gate`
+  - `gate_reason`
+  - `adjusted_p_value`
+  - `is_significant`
+- Implemented gate chain in detector runtime:
+  - Family A significance controls whether Family B/C are inferentially eligible within a scope.
+  - Family D is eligible only for names discovered by the per-name family and only in Family-A-passing scopes.
+- Added adjusted temporal outputs in `temporal_burst_signals`:
+  - `temporal_q_value_min_gap`
+  - `temporal_q_value_within_5m`
+  - `temporal_q_value_within_15m`
+  - corresponding `temporal_is_significant_*` flags.
+- Added detector-side family summary outputs:
+  - new `hypothesis_families` table
+  - summary fields:
+    - `hypothesis_families`
+    - `hypothesis_family_totals`
+    - `n_hypothesis_tests_total`
+- Propagated family metadata into report payload contract and duplicate chart declarations:
+  - duplicate contract now includes family counts + adjustment methods
+  - duplicate callout template now renders a “Hypothesis families” block with `n_tests` and `adjustment`.
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - added regressions for Family-A gate closed/open behavior
+  - asserts downstream family gating and metadata population
+  - asserts `hypothesis_families` summary table content
+- `tests/test_report_chart_payload.py`
+  - added payload regression asserting family-count and adjustment metadata in duplicate contract/declarations
+  - asserts duplicate gating text carries multiplicity-family summary
+- Validation runs:
+  - `python -m pytest tests/test_duplicates_exact.py tests/test_report_chart_payload.py`
+    - passed (`54 passed`)
+  - `./testifier_audit/scripts/ci/test.sh`
+    - passed (`355 passed`)
+
+## Runtime / Report Validation (ESSB 6346)
+- Full `run-all` recompute completed with voter config + hearing metadata:
+  - command:
+    - `TESTIFIER_AUDIT_DB_URL=postgresql://legislature:legislature@localhost:55432/legislature python -m testifier_audit.cli run-all --csv ../data/raw/ESSB6346-20260224-0800.csv --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup011_essb6346_runall_csv.log`
+  - completion evidence:
+    - `Duplicate evidence matrix built: bucket_variants=7 scenario_rows=28`
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Rerender completed:
+  - command:
+    - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log:
+    - `output/run_logs/dup011_essb6346_rerender.log`
+- Post-recompute artifact checks:
+  - `report_data/analyses/duplicates_exact/base.json` now includes non-null family metadata rows (for example `family_id="A_scope_excess_rows"`, `adjustment_method="holm"`).
+  - `summary/duplicates_exact.json` contains:
+    - `hypothesis_families`
+    - `hypothesis_family_totals`
+    - `n_hypothesis_tests_total`
+  - `report.html` renders:
+    - “Hypothesis families” callout with family labels, `n_tests`, and adjustment method.
+- Playwright MCP validation completed (desktop + mobile):
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - verified:
+    - hypothesis-family callout renders in duplicate section
+    - bucket/global-controls/menu interactions remain functional
+    - no console errors/warnings
+    - report-data requests returned `200` across loaded analyses.
+
+## Issues Discovered During DUP-011
+- Initial ESSB recompute attempts appeared stalled because a lingering long-running schema backfill query was holding relation locks on `voter_registry`.
+  - blocked queries were visible in `pg_stat_activity` as `wait_event_type=Lock` on duplicate VRDB lookup SELECTs.
+- Mitigation used:
+  - identified backend PID via `docker exec ... psql ... pg_stat_activity`
+  - terminated stale blocker with `pg_terminate_backend(...)`
+  - reran `run-all` successfully to completion.
+- Additional runtime note:
+  - rerender-only validation can show stale inferential/family metadata when underlying computed artifacts were not regenerated; full recompute is required after detector logic changes.
+
+## Remaining Work / Handoff
+- DUP-011 acceptance criteria are satisfied at detector, payload, and report levels (including ESSB runtime evidence and live Playwright validation).
+- Next ticket in sequence is `DUP-012`.

@@ -1333,3 +1333,181 @@ def test_contextual_shrink_lookup_is_memoized_by_bucket_hour_weekday(
 
     # Same (bucket_minutes, hour_bin, weekday_bin) should resolve once then hit cache.
     assert calls["count"] == 1
+
+
+def test_hypothesis_family_metadata_gates_downstream_when_family_a_not_significant(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 4, "BROWN|AVA": 4})
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1],
+                "n_keys": [50_000],
+                "N": [50_000],
+            }
+        ),
+    )
+
+    def _high_null(**kwargs) -> pd.DataFrame:
+        draws = max(10, int(kwargs.get("max_draws", kwargs.get("draws", 50))))
+        return pd.DataFrame(
+            {
+                "pairs": np.full(draws, 10_000.0),
+                "excess_rows": np.full(draws, 10_000.0),
+                "repeated_group_rows": np.full(draws, 10_000.0),
+            }
+        )
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "simulate_collision_null_from_histogram",
+        _high_null,
+    )
+
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_uncertainty_mode="monte_carlo",
+        voter_db_url="postgresql://example",
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        monte_carlo_draws=400,
+    )
+    result = detector.run(df=frame, features={})
+    primary_scope = detector.collision_scope_primary
+
+    methods = result.tables["collision_methods"]
+    primary_method = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_method.empty
+    assert str(primary_method.loc[0, "family_id"]) == detector.FAMILY_ID_SCOPE
+    assert str(primary_method.loc[0, "adjustment_method"]) == detector.ADJUSTMENT_METHOD_HOLM
+    assert int(primary_method.loc[0, "n_tests"]) >= 1
+    assert bool(primary_method.loc[0, "is_significant"]) is False
+
+    per_name = result.tables["per_name_tests"]
+    primary_per_name = per_name[per_name["scope"] == primary_scope].copy()
+    assert not primary_per_name.empty
+    assert set(primary_per_name["family_id"].astype(str)) == {detector.FAMILY_ID_PER_NAME}
+    assert not primary_per_name["eligible_by_gate"].astype(bool).any()
+    assert set(primary_per_name["gate_reason"].astype(str)) == {
+        detector.GATE_REASON_FAMILY_A_NOT_SIGNIFICANT
+    }
+    assert primary_per_name["p_value"].isna().all()
+    assert primary_per_name["q_value"].isna().all()
+
+    buckets = result.tables["collision_by_bucket"]
+    primary_bucket = buckets[
+        (buckets["scope"] == primary_scope)
+        & (buckets["metric"].astype(str) == detector.PRIMARY_SCOPE_ENDPOINT_METRIC)
+    ].copy()
+    assert not primary_bucket.empty
+    assert set(primary_bucket["family_id"].astype(str)) == {detector.FAMILY_ID_BUCKET}
+    assert not primary_bucket["eligible_by_gate"].astype(bool).any()
+    assert primary_bucket["p_value"].isna().all()
+
+    temporal = result.tables["temporal_burst_signals"]
+    assert not temporal.empty
+    assert set(temporal["family_id"].astype(str)) == {detector.FAMILY_ID_TEMPORAL}
+    assert not temporal["eligible_by_gate"].astype(bool).any()
+    assert temporal["temporal_p_value_min_gap"].isna().all()
+    assert temporal["temporal_q_value_min_gap"].isna().all()
+
+    family_table = result.tables["hypothesis_families"]
+    assert not family_table.empty
+    assert {
+        detector.FAMILY_ID_SCOPE,
+        detector.FAMILY_ID_BUCKET,
+        detector.FAMILY_ID_PER_NAME,
+        detector.FAMILY_ID_TEMPORAL,
+    }.issubset(set(family_table["family_id"].astype(str)))
+
+
+def test_hypothesis_family_metadata_opens_downstream_when_family_a_significant(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 4, "BROWN|AVA": 4})
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1],
+                "n_keys": [50_000],
+                "N": [50_000],
+            }
+        ),
+    )
+
+    def _low_null(**kwargs) -> pd.DataFrame:
+        draws = max(10, int(kwargs.get("max_draws", kwargs.get("draws", 50))))
+        return pd.DataFrame(
+            {
+                "pairs": np.zeros(draws, dtype=float),
+                "excess_rows": np.zeros(draws, dtype=float),
+                "repeated_group_rows": np.zeros(draws, dtype=float),
+            }
+        )
+
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "simulate_collision_null_from_histogram",
+        _low_null,
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "binomial_tail_p_value",
+        lambda **kwargs: 0.0,
+    )
+
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_uncertainty_mode="monte_carlo",
+        voter_db_url="postgresql://example",
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+        monte_carlo_draws=400,
+    )
+    result = detector.run(df=frame, features={})
+    primary_scope = detector.collision_scope_primary
+
+    methods = result.tables["collision_methods"]
+    primary_method = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_method.empty
+    assert bool(primary_method.loc[0, "is_significant"]) is True
+
+    per_name = result.tables["per_name_tests"]
+    primary_per_name = per_name[per_name["scope"] == primary_scope].copy()
+    assert not primary_per_name.empty
+    assert primary_per_name["eligible_by_gate"].astype(bool).all()
+    assert primary_per_name["tested"].astype(bool).all()
+    assert primary_per_name["q_value"].notna().all()
+
+    primary_bucket = result.tables["collision_by_bucket"]
+    primary_bucket = primary_bucket[
+        (primary_bucket["scope"] == primary_scope)
+        & (primary_bucket["metric"].astype(str) == detector.PRIMARY_SCOPE_ENDPOINT_METRIC)
+    ].copy()
+    assert not primary_bucket.empty
+    assert primary_bucket["eligible_by_gate"].astype(bool).all()
+    assert primary_bucket["adjusted_p_value"].notna().all()
+
+    temporal = result.tables["temporal_burst_signals"]
+    assert not temporal.empty
+    assert temporal["eligible_by_gate"].astype(bool).all()
+    assert temporal["temporal_q_value_min_gap"].notna().all()
+
+    family_table = result.tables["hypothesis_families"]
+    scoped_scope = family_table[
+        (family_table["scope"].astype(str) == primary_scope)
+        & (family_table["family_id"].astype(str) == detector.FAMILY_ID_SCOPE)
+    ].reset_index(drop=True)
+    assert not scoped_scope.empty
+    assert int(scoped_scope.loc[0, "n_significant"]) == 1

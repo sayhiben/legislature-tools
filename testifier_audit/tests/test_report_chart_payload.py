@@ -2887,3 +2887,101 @@ def test_voter_position_bounds_chart_falls_back_to_rows_unique_span_when_bounds_
     assert {row["position_normalized"] for row in bounds_rows} == {"Pro", "Other"}
     assert all(row["unit"] == "rows_vs_unique" for row in bounds_rows)
     assert all(row["inference_status"] == "derived_from_rows_and_unique" for row in bounds_rows)
+
+
+def test_duplicate_contract_exposes_hypothesis_family_counts_and_adjustments() -> None:
+    payload = _build_interactive_chart_payload_v2(
+        table_map={
+            "artifacts.counts_per_minute": pd.DataFrame(
+                {
+                    "minute_bucket": pd.to_datetime(["2026-02-01T00:00:00Z"]),
+                    "n_total": [12],
+                    "n_pro": [6],
+                    "n_con": [6],
+                    "pro_rate": [0.5],
+                    "pro_rate_wilson_low": [0.3],
+                    "pro_rate_wilson_high": [0.7],
+                    "is_low_power": [False],
+                }
+            ),
+            "duplicates_exact.collision_methods": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "baseline_source": "vrdb_full_histogram",
+                        "baseline_label": "Statewide registry reference baseline",
+                        "baseline_model": "multinomial",
+                        "uncertainty_model": "monte_carlo",
+                        "n_used": 12,
+                        "N_used": 50000,
+                        "metric_primary": "repeated_group_rows",
+                        "metrics_reported": "repeated_group_rows,excess_rows,pairs",
+                        "claim_class": "collision_signal",
+                        "inferential_status": "reference_model_inference",
+                        "inferential_reason": "reference_model_inference_available",
+                    }
+                ]
+            ),
+            "duplicates_exact.collision_overview": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "metric": "excess_rows",
+                        "observed": 6.0,
+                        "expected": 2.0,
+                        "expected_p05": 1.0,
+                        "expected_p50": 2.0,
+                        "expected_p95": 4.0,
+                        "z_score": 3.0,
+                        "p_value": 0.001,
+                        "n_used": 12,
+                        "N_used": 50000,
+                        "inferential_status": "reference_model_inference",
+                        "inferential_reason": "reference_model_inference_available",
+                    }
+                ]
+            ),
+            "duplicates_exact.hypothesis_families": pd.DataFrame(
+                [
+                    {
+                        "scope": "full_hearing",
+                        "family_id": "A_scope_excess_rows",
+                        "family_label": "Scope-level excess_rows",
+                        "family_order": 1,
+                        "adjustment_method": "holm",
+                        "n_tests": 1,
+                        "n_significant": 1,
+                        "eligible_by_gate": True,
+                        "gate_reason": "eligible",
+                    },
+                    {
+                        "scope": "full_hearing",
+                        "family_id": "C_per_name_upper_tail",
+                        "family_label": "Per-name follow-up",
+                        "family_order": 3,
+                        "adjustment_method": "benjamini_hochberg",
+                        "n_tests": 12,
+                        "n_significant": 3,
+                        "eligible_by_gate": True,
+                        "gate_reason": "eligible",
+                    },
+                ]
+            ),
+        },
+        detector_summaries={},
+    )
+
+    duplicate_contract = payload["controls"]["duplicate_statistical_contract"]
+    assert isinstance(duplicate_contract.get("hypothesis_families"), list)
+    assert duplicate_contract["hypothesis_families"]
+    family_by_id = {
+        str(row.get("family_id")): row for row in duplicate_contract["hypothesis_families"]
+    }
+    assert family_by_id["A_scope_excess_rows"]["adjustment_method"] == "holm"
+    assert int(family_by_id["A_scope_excess_rows"]["n_tests"]) == 1
+    assert family_by_id["C_per_name_upper_tail"]["adjustment_method"] == "benjamini_hochberg"
+    assert int(family_by_id["C_per_name_upper_tail"]["n_tests"]) == 12
+    assert "Multiplicity families:" in str(duplicate_contract.get("gating", ""))
+
+    chart_declaration = duplicate_contract["chart_declarations"]["duplicates_exact_metric_diagnostics"]
+    assert chart_declaration.get("hypothesis_families") == duplicate_contract["hypothesis_families"]

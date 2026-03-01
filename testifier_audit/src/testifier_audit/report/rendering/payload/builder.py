@@ -118,6 +118,7 @@ _DUPLICATE_TABLE_NAMES: tuple[str, ...] = (
     "per_name_submission_timing_by_mode",
     "top_name_timing_by_mode",
     "temporal_burst_signals",
+    "hypothesis_families",
 )
 _EVIDENCE_MATRIX_SIGNAL_SCORE: dict[str, int] = {
     "normal": 0,
@@ -1184,6 +1185,14 @@ def _build_interactive_chart_payload_v2(
             "claim_class",
             "inferential_status",
             "inferential_reason",
+            "family_id",
+            "adjustment_method",
+            "n_tests",
+            "n_tests_in_family",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
+            "is_significant",
             "estimand_primary",
             "non_goals",
             "baseline_semantics",
@@ -1365,6 +1374,14 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "family_id",
+            "adjustment_method",
+            "n_tests",
+            "n_tests_in_family",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
+            "is_significant",
             "claim_class",
         ],
     )
@@ -1650,6 +1667,14 @@ def _build_interactive_chart_payload_v2(
             "inference_status",
             "inferential_status",
             "inferential_reason",
+            "family_id",
+            "adjustment_method",
+            "n_tests",
+            "n_tests_in_family",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
+            "is_significant",
             "claim_class",
         ],
     )
@@ -2447,6 +2472,13 @@ def _build_interactive_chart_payload_v2(
             "scope_reason",
             "inferential_status",
             "inferential_reason",
+            "family_id",
+            "adjustment_method",
+            "n_tests",
+            "n_tests_in_family",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
             "match_mode",
             "display_name",
             "canonical_name",
@@ -2488,6 +2520,13 @@ def _build_interactive_chart_payload_v2(
                 "scope",
                 "inferential_status",
                 "inferential_reason",
+                "family_id",
+                "adjustment_method",
+                "n_tests",
+                "n_tests_in_family",
+                "eligible_by_gate",
+                "gate_reason",
+                "adjusted_p_value",
                 "match_mode",
                 "canonical_name",
                 "display_name",
@@ -2524,6 +2563,13 @@ def _build_interactive_chart_payload_v2(
                 "scope_reason",
                 "inferential_status",
                 "inferential_reason",
+                "family_id",
+                "adjustment_method",
+                "n_tests",
+                "n_tests_in_family",
+                "eligible_by_gate",
+                "gate_reason",
+                "adjusted_p_value",
                 "display_name",
                 "canonical_name",
                 "observed_count",
@@ -2722,6 +2768,66 @@ def _build_interactive_chart_payload_v2(
         dup_exact_swing_impact["inferential_status"] = primary_dup_inferential_status
         dup_exact_swing_impact["inferential_reason"] = primary_dup_inferential_reason
         dup_exact_swing_impact["claim_class"] = dup_claim_class
+    dup_exact_hypothesis_families = _with_expected_columns(
+        table_map.get(_table_key("duplicates_exact", "hypothesis_families"), pd.DataFrame()),
+        [
+            "scope",
+            "family_id",
+            "family_label",
+            "family_order",
+            "adjustment_method",
+            "n_tests",
+            "n_significant",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
+        ],
+    )
+    if dup_exact_hypothesis_families.empty:
+        summary_family_rows = dup_exact_summary.get("hypothesis_families", [])
+        if isinstance(summary_family_rows, list) and summary_family_rows:
+            dup_exact_hypothesis_families = _with_expected_columns(
+                pd.DataFrame(summary_family_rows),
+                [
+                    "scope",
+                    "family_id",
+                    "family_label",
+                    "family_order",
+                    "adjustment_method",
+                    "n_tests",
+                    "n_significant",
+                    "eligible_by_gate",
+                    "gate_reason",
+                    "adjusted_p_value",
+                ],
+            )
+    dup_exact_hypothesis_family_totals = _with_expected_columns(
+        pd.DataFrame(dup_exact_summary.get("hypothesis_family_totals", []))
+        if isinstance(dup_exact_summary.get("hypothesis_family_totals", []), list)
+        else pd.DataFrame(),
+        [
+            "family_id",
+            "family_label",
+            "family_order",
+            "adjustment_method",
+            "n_tests",
+            "n_significant",
+            "n_scopes",
+        ],
+    )
+    if dup_exact_hypothesis_family_totals.empty and not dup_exact_hypothesis_families.empty:
+        dup_exact_hypothesis_family_totals = (
+            dup_exact_hypothesis_families.groupby(
+                ["family_id", "family_label", "family_order", "adjustment_method"],
+                dropna=False,
+            )
+            .agg(
+                n_tests=("n_tests", "sum"),
+                n_significant=("n_significant", "sum"),
+                n_scopes=("scope", "nunique"),
+            )
+            .reset_index()
+        )
 
     vrdb_collision_metrics = _with_expected_columns(
         table_map.get(_table_key("vrdb_collision_evidence", "slice_metrics"), pd.DataFrame()),
@@ -4187,6 +4293,14 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "family_id",
+            "adjustment_method",
+            "n_tests",
+            "n_tests_in_family",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
+            "is_significant",
             "claim_class",
             "baseline_degraded",
             "n_pro",
@@ -4212,6 +4326,14 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "family_id",
+            "adjustment_method",
+            "n_tests",
+            "n_tests_in_family",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
+            "is_significant",
             "claim_class",
         ],
         max_rows=50,
@@ -4281,6 +4403,13 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "family_id",
+            "adjustment_method",
+            "n_tests",
+            "n_tests_in_family",
+            "eligible_by_gate",
+            "gate_reason",
+            "adjusted_p_value",
             "claim_class",
         ],
         max_rows=100_000,
@@ -5071,6 +5200,14 @@ def _build_interactive_chart_payload_v2(
                 "stratification",
                 "inferential_status",
                 "inferential_reason",
+                "family_id",
+                "adjustment_method",
+                "n_tests",
+                "n_tests_in_family",
+                "eligible_by_gate",
+                "gate_reason",
+                "adjusted_p_value",
+                "is_significant",
                 "claim_class",
                 "estimand_primary",
                 "non_goals",
@@ -5078,6 +5215,38 @@ def _build_interactive_chart_payload_v2(
             ],
             max_rows=20,
         )
+    duplicate_hypothesis_families = _records_from_frame(
+        dup_exact_hypothesis_family_totals.sort_values(["family_order", "family_id"]),
+        columns=[
+            "family_id",
+            "family_label",
+            "family_order",
+            "adjustment_method",
+            "n_tests",
+            "n_significant",
+            "n_scopes",
+        ],
+        max_rows=50,
+    )
+    if not duplicate_hypothesis_families:
+        duplicate_hypothesis_families = _records_from_frame(
+            dup_exact_hypothesis_families.sort_values(["scope", "family_order", "family_id"]),
+            columns=[
+                "scope",
+                "family_id",
+                "family_label",
+                "family_order",
+                "adjustment_method",
+                "n_tests",
+                "n_significant",
+                "eligible_by_gate",
+                "gate_reason",
+                "adjusted_p_value",
+            ],
+            max_rows=250,
+        )
+    if duplicate_hypothesis_families:
+        methodology["duplicate_hypothesis_families"] = duplicate_hypothesis_families
     duplicate_low_power_rows = bool(
         pd.to_numeric(
             dup_exact_collision_bucket.get("is_low_power", pd.Series(dtype=float)),
@@ -5099,6 +5268,20 @@ def _build_interactive_chart_payload_v2(
     duplicate_gating_text = _DUPLICATE_DEFAULT_INFERENTIAL_GATING
     if duplicate_low_power_rows:
         duplicate_gating_text += " This run includes low-power flags in collision outputs."
+    if duplicate_hypothesis_families:
+        multiplicity_fragments: list[str] = []
+        for row in duplicate_hypothesis_families:
+            family_id = str(row.get("family_id", "")).strip()
+            n_tests_raw = pd.to_numeric(row.get("n_tests"), errors="coerce")
+            n_tests = int(n_tests_raw) if pd.notna(n_tests_raw) else 0
+            method = str(row.get("adjustment_method", "")).strip().replace("_", " ")
+            if not family_id or not method:
+                continue
+            multiplicity_fragments.append(f"{family_id}: n={n_tests} ({method})")
+        if multiplicity_fragments:
+            duplicate_gating_text += " Multiplicity families: " + "; ".join(
+                multiplicity_fragments
+            ) + "."
 
     duplicate_chart_declarations = {
         chart_id: {
@@ -5107,6 +5290,7 @@ def _build_interactive_chart_payload_v2(
             "inferential_status": primary_dup_inferential_status,
             "inferential_reason": primary_dup_inferential_reason,
             "gating": duplicate_gating_text,
+            "hypothesis_families": duplicate_hypothesis_families,
         }
         for chart_id in _DUPLICATE_CHART_IDS
     }
@@ -5117,6 +5301,7 @@ def _build_interactive_chart_payload_v2(
             "inferential_status": primary_dup_inferential_status,
             "inferential_reason": primary_dup_inferential_reason,
             "gating": duplicate_gating_text,
+            "hypothesis_families": duplicate_hypothesis_families,
         }
         for table_name in _DUPLICATE_TABLE_NAMES
     }
@@ -5130,6 +5315,7 @@ def _build_interactive_chart_payload_v2(
         "inferential_status": primary_dup_inferential_status,
         "inferential_reason": primary_dup_inferential_reason,
         "gating": duplicate_gating_text,
+        "hypothesis_families": duplicate_hypothesis_families,
         "interpretation_callout": (
             "Treat this detector as a collision-burden screen: values above reference-baseline "
             "expectation are follow-up signals, not proof about specific people."

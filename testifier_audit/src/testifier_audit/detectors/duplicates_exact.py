@@ -124,6 +124,29 @@ class DuplicatesExactDetector(Detector):
     POSITION_CLAIM_REASON_NO_POSITION_ROWS = "no_position_rows"
     POSITION_CLAIM_REASON_INSUFFICIENT_SUPPORT = "insufficient_position_support"
     POSITION_CLAIM_REASON_INTERVAL_UNAVAILABLE = "position_interval_unavailable"
+    PRIMARY_SCOPE_ENDPOINT_METRIC = "excess_rows"
+    FAMILY_ID_SCOPE = "A_scope_excess_rows"
+    FAMILY_ID_BUCKET = "B_bucket_follow_up"
+    FAMILY_ID_PER_NAME = "C_per_name_upper_tail"
+    FAMILY_ID_TEMPORAL = "D_temporal_follow_up"
+    FAMILY_ID_POSITION = "E_position_follow_up"
+    ADJUSTMENT_METHOD_HOLM = "holm"
+    ADJUSTMENT_METHOD_BH = "benjamini_hochberg"
+    ADJUSTMENT_METHOD_BY = "benjamini_yekutieli"
+    ADJUSTMENT_METHOD_NONE = "none"
+    GATE_REASON_ELIGIBLE = "eligible"
+    GATE_REASON_SCOPE_UNAVAILABLE = "scope_unavailable"
+    GATE_REASON_SCOPE_NOT_INFERENTIAL = "scope_not_inferential"
+    GATE_REASON_FAMILY_A_NOT_SIGNIFICANT = "family_a_not_significant"
+    GATE_REASON_FAMILY_A_NOT_TESTED = "family_a_not_tested"
+    GATE_REASON_SECONDARY_SCOPE_METRIC = "secondary_scope_metric"
+    GATE_REASON_SECONDARY_BUCKET_METRIC = "secondary_bucket_metric"
+    GATE_REASON_NO_FAMILY_C_DISCOVERIES = "no_family_c_discoveries"
+    GATE_REASON_NAME_NOT_FAMILY_C_DISCOVERY = "name_not_family_c_discovery"
+    INFERENTIAL_REASON_SECONDARY_SCOPE_METRIC = "secondary_scope_metric_descriptive"
+    INFERENTIAL_REASON_SECONDARY_BUCKET_METRIC = "secondary_bucket_metric_descriptive"
+    INFERENTIAL_REASON_FAMILY_A_GATE_NOT_PASSED = "family_a_gate_not_passed"
+    INFERENTIAL_REASON_FAMILY_C_GATE_NOT_PASSED = "family_c_gate_not_passed"
 
     def __init__(
         self,
@@ -524,6 +547,80 @@ class DuplicatesExactDetector(Detector):
             values = np.where(np.isfinite(values), values, 1.0)
             p_values[valid] = np.clip(values, 0.0, 1.0)
         return pd.Series(p_values, index=index, dtype=float)
+
+    @staticmethod
+    def _harmonic_number(n: int) -> float:
+        if n <= 0:
+            return 0.0
+        return float(sum(1.0 / float(index) for index in range(1, int(n) + 1)))
+
+    @classmethod
+    def _holm_adjust(cls, p_values: pd.Series | list[float]) -> pd.Series:
+        if isinstance(p_values, list):
+            p_series = pd.Series(p_values, dtype=float)
+        else:
+            p_series = pd.to_numeric(p_values, errors="coerce").astype(float)
+        if p_series.empty:
+            return pd.Series(dtype=float)
+        order = p_series.sort_values(kind="mergesort").index
+        ordered = p_series.loc[order].to_numpy(dtype=float)
+        adjusted = np.full(len(ordered), np.nan, dtype=float)
+        running = 0.0
+        n_total = float(len(ordered))
+        for i, p_value in enumerate(ordered):
+            if not np.isfinite(p_value):
+                continue
+            multiplier = n_total - float(i)
+            candidate = min(1.0, float(p_value) * multiplier)
+            running = max(running, candidate)
+            adjusted[i] = min(1.0, running)
+        return pd.Series(index=order, data=adjusted, dtype=float).reindex(p_series.index)
+
+    @classmethod
+    def _benjamini_yekutieli(cls, p_values: pd.Series | list[float]) -> pd.Series:
+        bh = benjamini_hochberg(p_values)
+        if bh.empty:
+            return pd.Series(dtype=float)
+        n_tests = int(pd.to_numeric(bh, errors="coerce").dropna().size)
+        if n_tests <= 0:
+            return pd.Series(np.nan, index=bh.index, dtype=float)
+        correction = cls._harmonic_number(n_tests)
+        if correction <= 0.0:
+            correction = 1.0
+        return (bh * float(correction)).clip(lower=0.0, upper=1.0)
+
+    @classmethod
+    def _adjust_p_values(
+        cls,
+        p_values: pd.Series | list[float],
+        *,
+        method: str,
+    ) -> pd.Series:
+        if isinstance(p_values, list):
+            p_series = pd.Series(p_values, dtype=float)
+        else:
+            p_series = pd.to_numeric(p_values, errors="coerce").astype(float)
+        if p_series.empty:
+            return pd.Series(dtype=float)
+        adjusted = pd.Series(np.nan, index=p_series.index, dtype=float)
+        valid = p_series[p_series.notna() & np.isfinite(p_series)]
+        if valid.empty:
+            return adjusted
+        method_norm = str(method or "").strip().lower()
+        if method_norm == cls.ADJUSTMENT_METHOD_HOLM:
+            valid_adjusted = cls._holm_adjust(valid)
+        elif method_norm == cls.ADJUSTMENT_METHOD_BY:
+            valid_adjusted = cls._benjamini_yekutieli(valid)
+        elif method_norm == cls.ADJUSTMENT_METHOD_BH:
+            valid_adjusted = benjamini_hochberg(valid)
+        else:
+            valid_adjusted = valid.copy()
+        adjusted.loc[valid.index] = (
+            pd.to_numeric(valid_adjusted, errors="coerce")
+            .astype(float)
+            .clip(lower=0.0, upper=1.0)
+        )
+        return adjusted
 
     def _resolved_collision_key_column(self, frame: pd.DataFrame) -> str:
         configured = _KEY_TO_COLUMN.get(self.collision_key_mode, "canonical_key_strict")
@@ -3125,6 +3222,1003 @@ class DuplicatesExactDetector(Detector):
             if top_name_timing_frames
             else pd.DataFrame()
         )
+        hypothesis_family_rows: list[dict[str, object]] = []
+        family_a_test_scopes: set[str] = set()
+        family_a_significant_scopes: set[str] = set()
+        family_a_adjusted_by_scope: dict[str, float] = {}
+        family_a_gate_reason_by_scope: dict[str, str] = {}
+        n_family_a_tests = 0
+
+        if not collision_overview.empty:
+            collision_overview["scope"] = (
+                collision_overview.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            collision_overview["metric"] = (
+                collision_overview.get("metric", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            collision_overview["scope_status"] = (
+                collision_overview.get("scope_status", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            collision_overview["inferential_status"] = (
+                collision_overview.get("inferential_status", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            collision_overview["inferential_reason"] = (
+                collision_overview.get("inferential_reason", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            collision_overview["p_value"] = pd.to_numeric(
+                collision_overview.get("p_value", pd.Series(dtype=float)),
+                errors="coerce",
+            )
+            for metadata_column, default_value in (
+                ("family_id", ""),
+                ("adjustment_method", self.ADJUSTMENT_METHOD_NONE),
+                ("n_tests", 0),
+                ("n_tests_in_family", 0),
+                ("eligible_by_gate", False),
+                ("gate_reason", ""),
+                ("adjusted_p_value", np.nan),
+                ("is_significant", pd.NA),
+            ):
+                if metadata_column not in collision_overview.columns:
+                    collision_overview[metadata_column] = default_value
+
+            overview_scope_available = (
+                collision_overview["scope_status"].str.strip().str.lower()
+                == self.SCOPE_STATUS_AVAILABLE
+            )
+            overview_inferential_supported = (
+                collision_overview["inferential_status"].str.strip().str.lower()
+                == "reference_model_inference"
+            )
+            overview_primary_metric = (
+                collision_overview["metric"].str.strip().str.lower()
+                == self.PRIMARY_SCOPE_ENDPOINT_METRIC
+            )
+            overview_primary_rows = overview_primary_metric
+            overview_valid_p = collision_overview["p_value"].notna() & np.isfinite(
+                collision_overview["p_value"]
+            )
+            family_a_eligible = (
+                overview_primary_metric
+                & overview_scope_available
+                & overview_inferential_supported
+                & overview_valid_p
+            )
+            n_family_a_tests = int(family_a_eligible.sum())
+            family_a_adjusted = self._adjust_p_values(
+                collision_overview.loc[family_a_eligible, "p_value"],
+                method=self.ADJUSTMENT_METHOD_HOLM,
+            )
+            collision_overview.loc[overview_primary_rows, "family_id"] = self.FAMILY_ID_SCOPE
+            collision_overview.loc[
+                overview_primary_rows, "adjustment_method"
+            ] = self.ADJUSTMENT_METHOD_HOLM
+            collision_overview.loc[overview_primary_rows, "n_tests"] = int(n_family_a_tests)
+            collision_overview.loc[overview_primary_rows, "n_tests_in_family"] = int(
+                n_family_a_tests
+            )
+            collision_overview.loc[overview_primary_rows, "eligible_by_gate"] = (
+                family_a_eligible.loc[overview_primary_rows].astype(bool)
+            )
+            collision_overview.loc[family_a_eligible, "adjusted_p_value"] = family_a_adjusted
+            collision_overview.loc[family_a_eligible, "is_significant"] = (
+                pd.to_numeric(family_a_adjusted, errors="coerce")
+                .astype(float)
+                .le(float(self.bh_fdr_q))
+                .astype("object")
+            )
+
+            family_a_gate_reason = pd.Series(
+                self.GATE_REASON_FAMILY_A_NOT_TESTED,
+                index=collision_overview.index,
+                dtype="object",
+            )
+            family_a_gate_reason.loc[family_a_eligible] = self.GATE_REASON_ELIGIBLE
+            family_a_gate_reason.loc[
+                overview_primary_metric & (~overview_scope_available)
+            ] = self.GATE_REASON_SCOPE_UNAVAILABLE
+            family_a_gate_reason.loc[
+                overview_primary_metric
+                & overview_scope_available
+                & (~overview_inferential_supported)
+            ] = self.GATE_REASON_SCOPE_NOT_INFERENTIAL
+            collision_overview.loc[overview_primary_rows, "gate_reason"] = family_a_gate_reason.loc[
+                overview_primary_rows
+            ]
+
+            secondary_scope_rows = ~overview_primary_metric
+            collision_overview.loc[secondary_scope_rows, "family_id"] = (
+                f"{self.FAMILY_ID_SCOPE}_secondary"
+            )
+            collision_overview.loc[
+                secondary_scope_rows, "adjustment_method"
+            ] = self.ADJUSTMENT_METHOD_NONE
+            collision_overview.loc[secondary_scope_rows, "n_tests"] = 0
+            collision_overview.loc[secondary_scope_rows, "n_tests_in_family"] = 0
+            collision_overview.loc[secondary_scope_rows, "eligible_by_gate"] = False
+            collision_overview.loc[
+                secondary_scope_rows, "gate_reason"
+            ] = self.GATE_REASON_SECONDARY_SCOPE_METRIC
+            collision_overview.loc[secondary_scope_rows, "adjusted_p_value"] = np.nan
+            collision_overview.loc[secondary_scope_rows, "is_significant"] = pd.NA
+            secondary_with_inference = (
+                secondary_scope_rows
+                & (
+                    collision_overview["inferential_status"].str.strip().str.lower()
+                    == "reference_model_inference"
+                )
+            )
+            collision_overview.loc[
+                secondary_with_inference, "inferential_status"
+            ] = "descriptive_only"
+            collision_overview.loc[
+                secondary_with_inference, "inferential_reason"
+            ] = self.INFERENTIAL_REASON_SECONDARY_SCOPE_METRIC
+            for inferential_column in (
+                "expected_p05",
+                "expected_p50",
+                "expected_p95",
+                "z_score",
+                "p_value",
+            ):
+                if inferential_column in collision_overview.columns:
+                    collision_overview.loc[secondary_scope_rows, inferential_column] = np.nan
+
+            if bool(family_a_eligible.any()):
+                scope_level = (
+                    collision_overview.loc[family_a_eligible, ["scope", "adjusted_p_value"]]
+                    .dropna(subset=["scope"])
+                    .drop_duplicates(subset=["scope"], keep="first")
+                )
+                family_a_test_scopes = {
+                    str(value).strip()
+                    for value in scope_level["scope"].tolist()
+                    if str(value).strip()
+                }
+                family_a_adjusted_by_scope = {
+                    str(row.scope): float(row.adjusted_p_value)
+                    for row in scope_level.itertuples(index=False)
+                    if pd.notna(row.adjusted_p_value)
+                }
+                family_a_significant_scopes = {
+                    scope
+                    for scope, adjusted in family_a_adjusted_by_scope.items()
+                    if math.isfinite(float(adjusted)) and float(adjusted) <= float(self.bh_fdr_q)
+                }
+
+        if not collision_methods.empty:
+            collision_methods["scope"] = (
+                collision_methods.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            collision_methods["scope_status"] = (
+                collision_methods.get("scope_status", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            collision_methods["inferential_status"] = (
+                collision_methods.get("inferential_status", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            for metadata_column, default_value in (
+                ("family_id", self.FAMILY_ID_SCOPE),
+                ("adjustment_method", self.ADJUSTMENT_METHOD_HOLM),
+                ("n_tests", int(n_family_a_tests)),
+                ("n_tests_in_family", int(n_family_a_tests)),
+                ("eligible_by_gate", False),
+                ("gate_reason", self.GATE_REASON_FAMILY_A_NOT_TESTED),
+                ("adjusted_p_value", np.nan),
+                ("is_significant", pd.NA),
+            ):
+                if metadata_column not in collision_methods.columns:
+                    collision_methods[metadata_column] = default_value
+            collision_methods["family_id"] = self.FAMILY_ID_SCOPE
+            collision_methods["adjustment_method"] = self.ADJUSTMENT_METHOD_HOLM
+            collision_methods["n_tests"] = int(n_family_a_tests)
+            collision_methods["n_tests_in_family"] = int(n_family_a_tests)
+            collision_methods["eligible_by_gate"] = collision_methods["scope"].isin(
+                family_a_test_scopes
+            )
+            collision_methods["adjusted_p_value"] = (
+                collision_methods["scope"].map(family_a_adjusted_by_scope).astype(float)
+            )
+            collision_methods["is_significant"] = (
+                collision_methods["scope"].isin(family_a_significant_scopes).astype("object")
+            )
+
+        scope_methods_by_scope: dict[str, dict[str, object]] = {}
+        if not collision_methods.empty:
+            scope_methods_by_scope = {
+                str(row.scope): {
+                    "scope_status": str(getattr(row, "scope_status", "")).strip(),
+                    "inferential_status": str(getattr(row, "inferential_status", "")).strip(),
+                }
+                for row in collision_methods.drop_duplicates(subset=["scope"], keep="first").itertuples(
+                    index=False
+                )
+            }
+        for scope_name in scope_names:
+            normalized_scope = str(scope_name).strip()
+            if not normalized_scope:
+                continue
+            if normalized_scope in family_a_significant_scopes:
+                gate_reason_value = self.GATE_REASON_ELIGIBLE
+            elif normalized_scope in family_a_test_scopes:
+                gate_reason_value = self.GATE_REASON_FAMILY_A_NOT_SIGNIFICANT
+            else:
+                scope_meta = scope_methods_by_scope.get(normalized_scope, {})
+                scope_status = str(scope_meta.get("scope_status", "")).strip().lower()
+                inferential_status = str(scope_meta.get("inferential_status", "")).strip().lower()
+                if scope_status and scope_status != self.SCOPE_STATUS_AVAILABLE:
+                    gate_reason_value = self.GATE_REASON_SCOPE_UNAVAILABLE
+                elif inferential_status and inferential_status != "reference_model_inference":
+                    gate_reason_value = self.GATE_REASON_SCOPE_NOT_INFERENTIAL
+                else:
+                    gate_reason_value = self.GATE_REASON_FAMILY_A_NOT_TESTED
+            family_a_gate_reason_by_scope[normalized_scope] = gate_reason_value
+
+        if not collision_methods.empty:
+            collision_methods["gate_reason"] = (
+                collision_methods["scope"].map(family_a_gate_reason_by_scope).fillna(
+                    self.GATE_REASON_FAMILY_A_NOT_TESTED
+                )
+            )
+
+        if not per_name_tests.empty:
+            per_name_tests["scope"] = (
+                per_name_tests.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            per_name_tests["canonical_name"] = (
+                per_name_tests.get("canonical_name", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            per_name_tests["p_value"] = pd.to_numeric(
+                per_name_tests.get("p_value", pd.Series(dtype=float)),
+                errors="coerce",
+            )
+            per_name_tests["q_value"] = pd.to_numeric(
+                per_name_tests.get("q_value", pd.Series(dtype=float)),
+                errors="coerce",
+            )
+            if "tested" not in per_name_tests.columns:
+                per_name_tests["tested"] = False
+            per_name_tests["inferential_status"] = (
+                per_name_tests.get("inferential_status", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            per_name_tests["inferential_reason"] = (
+                per_name_tests.get("inferential_reason", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            for metadata_column, default_value in (
+                ("family_id", self.FAMILY_ID_PER_NAME),
+                ("adjustment_method", self.ADJUSTMENT_METHOD_BH),
+                ("n_tests", 0),
+                ("n_tests_in_family", 0),
+                ("eligible_by_gate", False),
+                ("gate_reason", self.GATE_REASON_FAMILY_A_NOT_TESTED),
+                ("adjusted_p_value", np.nan),
+            ):
+                if metadata_column not in per_name_tests.columns:
+                    per_name_tests[metadata_column] = default_value
+            per_name_tests["family_id"] = self.FAMILY_ID_PER_NAME
+            per_name_tests["adjustment_method"] = self.ADJUSTMENT_METHOD_BH
+            per_name_tests["is_significant"] = pd.to_numeric(
+                per_name_tests.get(
+                    "is_significant",
+                    pd.Series(pd.NA, index=per_name_tests.index, dtype="object"),
+                ),
+                errors="coerce",
+            ).astype("object")
+            for scope_value, scope_frame in per_name_tests.groupby("scope", dropna=False):
+                scope_name = str(scope_value).strip()
+                scope_index = scope_frame.index
+                scope_passes_family_a = scope_name in family_a_significant_scopes
+                scope_gate_reason = family_a_gate_reason_by_scope.get(
+                    scope_name, self.GATE_REASON_FAMILY_A_NOT_TESTED
+                )
+                scope_inferential_supported = (
+                    per_name_tests.loc[scope_index, "inferential_status"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "reference_model_inference"
+                )
+                scope_valid_p = per_name_tests.loc[scope_index, "p_value"].notna() & np.isfinite(
+                    per_name_tests.loc[scope_index, "p_value"]
+                )
+                scope_eligible = (
+                    pd.Series(scope_passes_family_a, index=scope_index, dtype=bool)
+                    & scope_inferential_supported
+                    & scope_valid_p
+                )
+                n_scope_tests = int(scope_eligible.sum())
+                per_name_tests.loc[scope_index, "n_tests"] = n_scope_tests
+                per_name_tests.loc[scope_index, "n_tests_in_family"] = n_scope_tests
+                per_name_tests.loc[scope_index, "eligible_by_gate"] = scope_eligible.astype(bool)
+
+                scope_gate_reason_series = pd.Series(
+                    scope_gate_reason,
+                    index=scope_index,
+                    dtype="object",
+                )
+                scope_gate_reason_series.loc[scope_eligible] = self.GATE_REASON_ELIGIBLE
+                scope_gate_reason_series.loc[
+                    (~scope_eligible) & scope_passes_family_a & (~scope_inferential_supported)
+                ] = self.GATE_REASON_SCOPE_NOT_INFERENTIAL
+                per_name_tests.loc[scope_index, "gate_reason"] = scope_gate_reason_series
+
+                if n_scope_tests > 0:
+                    scope_adjusted = self._adjust_p_values(
+                        per_name_tests.loc[scope_eligible, "p_value"],
+                        method=self.ADJUSTMENT_METHOD_BH,
+                    )
+                    per_name_tests.loc[scope_eligible, "q_value"] = scope_adjusted
+                    per_name_tests.loc[scope_eligible, "adjusted_p_value"] = scope_adjusted
+                    per_name_tests.loc[scope_eligible, "is_significant"] = (
+                        pd.to_numeric(scope_adjusted, errors="coerce")
+                        .astype(float)
+                        .le(float(self.bh_fdr_q))
+                        .astype("object")
+                    )
+                    per_name_tests.loc[scope_eligible, "tested"] = True
+
+                non_eligible = ~scope_eligible
+                if bool(non_eligible.any()):
+                    for inferential_column in ("p_value", "q_value", "adjusted_p_value"):
+                        per_name_tests.loc[scope_index[non_eligible], inferential_column] = np.nan
+                    per_name_tests.loc[scope_index[non_eligible], "is_significant"] = pd.NA
+                    per_name_tests.loc[scope_index[non_eligible], "tested"] = False
+                downgraded = non_eligible & (
+                    per_name_tests.loc[scope_index, "inferential_status"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "reference_model_inference"
+                )
+                if bool(downgraded.any()):
+                    per_name_tests.loc[scope_index[downgraded], "inferential_status"] = (
+                        "descriptive_only"
+                    )
+                    if scope_passes_family_a:
+                        per_name_tests.loc[scope_index[downgraded], "inferential_reason"] = (
+                            self.INFERENTIAL_REASON_FAMILY_C_GATE_NOT_PASSED
+                        )
+                    else:
+                        per_name_tests.loc[scope_index[downgraded], "inferential_reason"] = (
+                            self.INFERENTIAL_REASON_FAMILY_A_GATE_NOT_PASSED
+                        )
+
+            per_name_tests = per_name_tests.sort_values(
+                ["scope", "q_value", "p_value", "observed_count"],
+                ascending=[True, True, True, False],
+            )
+
+        if not per_name_display.empty and not per_name_tests.empty:
+            per_name_display["scope"] = (
+                per_name_display.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            per_name_display["canonical_name"] = (
+                per_name_display.get("canonical_name", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            merge_columns = [
+                "scope",
+                "canonical_name",
+                "p_value",
+                "q_value",
+                "is_significant",
+                "tested",
+                "inferential_status",
+                "inferential_reason",
+                "family_id",
+                "adjustment_method",
+                "n_tests",
+                "n_tests_in_family",
+                "eligible_by_gate",
+                "gate_reason",
+                "adjusted_p_value",
+            ]
+            display_merge = per_name_tests[merge_columns].drop_duplicates(
+                subset=["scope", "canonical_name"], keep="first"
+            )
+            per_name_display = per_name_display.drop(
+                columns=[column for column in merge_columns if column in per_name_display.columns and column not in {"scope", "canonical_name"}],
+                errors="ignore",
+            ).merge(
+                display_merge,
+                on=["scope", "canonical_name"],
+                how="left",
+            )
+
+        if not per_name_display.empty:
+            legacy_per_name_anomalies = per_name_display.rename(
+                columns={"observed_count": "n"}
+            ).copy()
+            if "inferential_status" in legacy_per_name_anomalies.columns:
+                legacy_per_name_anomalies["inference_status"] = legacy_per_name_anomalies[
+                    "inferential_status"
+                ]
+            if "inferential_reason" in legacy_per_name_anomalies.columns:
+                legacy_per_name_anomalies["inference_reason"] = legacy_per_name_anomalies[
+                    "inferential_reason"
+                ]
+            legacy_top_repeated = legacy_per_name_anomalies[
+                legacy_per_name_anomalies.get("n", pd.Series(dtype=float)).astype(float) >= 2
+            ][["display_name", "canonical_name", "n", "n_pro", "n_con", "time_span_minutes"]].copy()
+            legacy_top_repeated = legacy_top_repeated.sort_values(
+                "n", ascending=False
+            ).head(self.top_n)
+
+        if not per_name_tests.empty:
+            primary_scope_significant = int(
+                pd.to_numeric(
+                    per_name_tests.loc[
+                        per_name_tests["scope"].astype(str) == self.collision_scope_primary,
+                        "is_significant",
+                    ],
+                    errors="coerce",
+                )
+                .fillna(0.0)
+                .astype(float)
+                .sum()
+            )
+
+        if not collision_by_bucket.empty:
+            collision_by_bucket["scope"] = (
+                collision_by_bucket.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            collision_by_bucket["metric"] = (
+                collision_by_bucket.get("metric", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            collision_by_bucket["inferential_status"] = (
+                collision_by_bucket.get("inferential_status", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            collision_by_bucket["inferential_reason"] = (
+                collision_by_bucket.get("inferential_reason", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            collision_by_bucket["p_value"] = pd.to_numeric(
+                collision_by_bucket.get("p_value", pd.Series(dtype=float)),
+                errors="coerce",
+            )
+            for metadata_column, default_value in (
+                ("family_id", self.FAMILY_ID_BUCKET),
+                ("adjustment_method", self.ADJUSTMENT_METHOD_BH),
+                ("n_tests", 0),
+                ("n_tests_in_family", 0),
+                ("eligible_by_gate", False),
+                ("gate_reason", self.GATE_REASON_FAMILY_A_NOT_TESTED),
+                ("adjusted_p_value", np.nan),
+                ("is_significant", pd.NA),
+            ):
+                if metadata_column not in collision_by_bucket.columns:
+                    collision_by_bucket[metadata_column] = default_value
+
+            primary_bucket_metric = (
+                collision_by_bucket["metric"].str.strip().str.lower()
+                == self.PRIMARY_SCOPE_ENDPOINT_METRIC
+            )
+            secondary_bucket_metric = ~primary_bucket_metric
+            collision_by_bucket.loc[primary_bucket_metric, "family_id"] = self.FAMILY_ID_BUCKET
+            collision_by_bucket.loc[
+                primary_bucket_metric, "adjustment_method"
+            ] = self.ADJUSTMENT_METHOD_BH
+            collision_by_bucket.loc[secondary_bucket_metric, "family_id"] = (
+                f"{self.FAMILY_ID_BUCKET}_secondary"
+            )
+            collision_by_bucket.loc[
+                secondary_bucket_metric, "adjustment_method"
+            ] = self.ADJUSTMENT_METHOD_NONE
+            collision_by_bucket.loc[secondary_bucket_metric, "n_tests"] = 0
+            collision_by_bucket.loc[secondary_bucket_metric, "n_tests_in_family"] = 0
+            collision_by_bucket.loc[secondary_bucket_metric, "eligible_by_gate"] = False
+            collision_by_bucket.loc[
+                secondary_bucket_metric, "gate_reason"
+            ] = self.GATE_REASON_SECONDARY_BUCKET_METRIC
+            collision_by_bucket.loc[secondary_bucket_metric, "adjusted_p_value"] = np.nan
+            collision_by_bucket.loc[secondary_bucket_metric, "is_significant"] = pd.NA
+            secondary_bucket_with_inference = (
+                secondary_bucket_metric
+                & (
+                    collision_by_bucket["inferential_status"].str.strip().str.lower()
+                    == "reference_model_inference"
+                )
+            )
+            collision_by_bucket.loc[
+                secondary_bucket_with_inference, "inferential_status"
+            ] = "descriptive_only"
+            collision_by_bucket.loc[
+                secondary_bucket_with_inference, "inferential_reason"
+            ] = self.INFERENTIAL_REASON_SECONDARY_BUCKET_METRIC
+            for inferential_column in ("expected_p05", "expected_p95", "z_score", "p_value"):
+                if inferential_column in collision_by_bucket.columns:
+                    collision_by_bucket.loc[secondary_bucket_metric, inferential_column] = np.nan
+
+            for scope_value, scope_frame in collision_by_bucket.groupby("scope", dropna=False):
+                scope_name = str(scope_value).strip()
+                scope_index = scope_frame.index
+                scope_gate_passes = scope_name in family_a_significant_scopes
+                scope_gate_reason = family_a_gate_reason_by_scope.get(
+                    scope_name, self.GATE_REASON_FAMILY_A_NOT_TESTED
+                )
+                scope_primary_rows = (
+                    pd.Series(False, index=scope_index)
+                    | primary_bucket_metric.loc[scope_index]
+                )
+                scope_inferential_supported = (
+                    collision_by_bucket.loc[scope_index, "inferential_status"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "reference_model_inference"
+                )
+                scope_valid_p = collision_by_bucket.loc[scope_index, "p_value"].notna() & np.isfinite(
+                    collision_by_bucket.loc[scope_index, "p_value"]
+                )
+                scope_eligible = (
+                    scope_primary_rows
+                    & pd.Series(scope_gate_passes, index=scope_index, dtype=bool)
+                    & scope_inferential_supported
+                    & scope_valid_p
+                )
+                n_scope_tests = int(scope_eligible.sum())
+                collision_by_bucket.loc[scope_index[scope_primary_rows], "n_tests"] = n_scope_tests
+                collision_by_bucket.loc[
+                    scope_index[scope_primary_rows], "n_tests_in_family"
+                ] = n_scope_tests
+                collision_by_bucket.loc[
+                    scope_index[scope_primary_rows], "eligible_by_gate"
+                ] = scope_eligible.loc[scope_primary_rows].astype(bool)
+
+                scope_gate_reason_series = pd.Series(
+                    scope_gate_reason,
+                    index=scope_index,
+                    dtype="object",
+                )
+                scope_gate_reason_series.loc[scope_eligible] = self.GATE_REASON_ELIGIBLE
+                scope_gate_reason_series.loc[
+                    (~scope_eligible)
+                    & scope_primary_rows
+                    & scope_gate_passes
+                    & (~scope_inferential_supported)
+                ] = self.GATE_REASON_SCOPE_NOT_INFERENTIAL
+                collision_by_bucket.loc[
+                    scope_index[scope_primary_rows], "gate_reason"
+                ] = scope_gate_reason_series.loc[scope_primary_rows]
+
+                if n_scope_tests > 0:
+                    scope_adjusted = self._adjust_p_values(
+                        collision_by_bucket.loc[scope_eligible, "p_value"],
+                        method=self.ADJUSTMENT_METHOD_BH,
+                    )
+                    collision_by_bucket.loc[scope_eligible, "adjusted_p_value"] = scope_adjusted
+                    collision_by_bucket.loc[scope_eligible, "is_significant"] = (
+                        pd.to_numeric(scope_adjusted, errors="coerce")
+                        .astype(float)
+                        .le(float(self.bh_fdr_q))
+                        .astype("object")
+                    )
+
+                non_eligible_primary = scope_primary_rows & (~scope_eligible)
+                if bool(non_eligible_primary.any()):
+                    for inferential_column in (
+                        "expected_p05",
+                        "expected_p95",
+                        "z_score",
+                        "p_value",
+                        "adjusted_p_value",
+                    ):
+                        if inferential_column in collision_by_bucket.columns:
+                            collision_by_bucket.loc[
+                                scope_index[non_eligible_primary], inferential_column
+                            ] = np.nan
+                    collision_by_bucket.loc[
+                        scope_index[non_eligible_primary], "is_significant"
+                    ] = pd.NA
+                downgraded = non_eligible_primary & (
+                    collision_by_bucket.loc[scope_index, "inferential_status"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "reference_model_inference"
+                )
+                if bool(downgraded.any()):
+                    collision_by_bucket.loc[
+                        scope_index[downgraded], "inferential_status"
+                    ] = "descriptive_only"
+                    if scope_gate_passes:
+                        collision_by_bucket.loc[
+                            scope_index[downgraded], "inferential_reason"
+                        ] = self.INFERENTIAL_REASON_FAMILY_C_GATE_NOT_PASSED
+                    else:
+                        collision_by_bucket.loc[
+                            scope_index[downgraded], "inferential_reason"
+                        ] = self.INFERENTIAL_REASON_FAMILY_A_GATE_NOT_PASSED
+
+            if "inference_status" in collision_by_bucket.columns:
+                collision_by_bucket["inference_status"] = np.where(
+                    collision_by_bucket["inferential_status"].astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "reference_model_inference",
+                    "tested",
+                    collision_by_bucket["inferential_status"],
+                )
+
+        if not temporal_burst.empty:
+            temporal_burst["scope"] = (
+                temporal_burst.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+            )
+            temporal_burst["canonical_name"] = (
+                temporal_burst.get("canonical_name", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            temporal_burst["inferential_status"] = (
+                temporal_burst.get("inferential_status", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            temporal_burst["inferential_reason"] = (
+                temporal_burst.get("inferential_reason", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+            )
+            for temporal_p_column in (
+                "temporal_p_value_min_gap",
+                "temporal_p_value_within_5m",
+                "temporal_p_value_within_15m",
+            ):
+                temporal_burst[temporal_p_column] = pd.to_numeric(
+                    temporal_burst.get(temporal_p_column, pd.Series(dtype=float)),
+                    errors="coerce",
+                )
+            for metadata_column, default_value in (
+                ("family_id", self.FAMILY_ID_TEMPORAL),
+                ("adjustment_method", self.ADJUSTMENT_METHOD_BH),
+                ("n_tests", 0),
+                ("n_tests_in_family", 0),
+                ("eligible_by_gate", False),
+                ("gate_reason", self.GATE_REASON_FAMILY_A_NOT_TESTED),
+                ("temporal_q_value_min_gap", np.nan),
+                ("temporal_q_value_within_5m", np.nan),
+                ("temporal_q_value_within_15m", np.nan),
+                ("temporal_is_significant_min_gap", pd.NA),
+                ("temporal_is_significant_within_5m", pd.NA),
+                ("temporal_is_significant_within_15m", pd.NA),
+            ):
+                if metadata_column not in temporal_burst.columns:
+                    temporal_burst[metadata_column] = default_value
+            temporal_burst["family_id"] = self.FAMILY_ID_TEMPORAL
+            temporal_burst["adjustment_method"] = self.ADJUSTMENT_METHOD_BH
+
+            significant_name_lookup: dict[str, set[str]] = {}
+            if not per_name_tests.empty:
+                significant_rows = per_name_tests[
+                    pd.to_numeric(
+                        per_name_tests.get("is_significant", pd.Series(dtype=float)),
+                        errors="coerce",
+                    )
+                    .fillna(0.0)
+                    .astype(float)
+                    .gt(0.0)
+                ].copy()
+                if not significant_rows.empty:
+                    significant_rows["scope"] = (
+                        significant_rows.get("scope", pd.Series(dtype=str))
+                        .fillna("")
+                        .astype(str)
+                    )
+                    significant_rows["canonical_name"] = (
+                        significant_rows.get("canonical_name", pd.Series(dtype=str))
+                        .fillna("")
+                        .astype(str)
+                    )
+                    for scope_value, scope_frame in significant_rows.groupby("scope", dropna=False):
+                        scope_name = str(scope_value).strip()
+                        significant_name_lookup[scope_name] = {
+                            str(value).strip()
+                            for value in scope_frame["canonical_name"].tolist()
+                            if str(value).strip()
+                        }
+
+            for scope_value, scope_frame in temporal_burst.groupby("scope", dropna=False):
+                scope_name = str(scope_value).strip()
+                scope_index = scope_frame.index
+                scope_gate_passes = scope_name in family_a_significant_scopes
+                scope_gate_reason = family_a_gate_reason_by_scope.get(
+                    scope_name, self.GATE_REASON_FAMILY_A_NOT_TESTED
+                )
+                eligible_names = significant_name_lookup.get(scope_name, set())
+                scope_name_eligible = temporal_burst.loc[scope_index, "canonical_name"].map(
+                    lambda value: str(value).strip() in eligible_names
+                )
+                scope_inferential_supported = (
+                    temporal_burst.loc[scope_index, "inferential_status"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "reference_model_inference"
+                )
+                scope_eligible = (
+                    pd.Series(scope_gate_passes, index=scope_index, dtype=bool)
+                    & scope_name_eligible
+                    & scope_inferential_supported
+                )
+                n_scope_tests = int(scope_eligible.sum())
+                temporal_burst.loc[scope_index, "n_tests"] = n_scope_tests
+                temporal_burst.loc[scope_index, "n_tests_in_family"] = n_scope_tests
+                temporal_burst.loc[scope_index, "eligible_by_gate"] = scope_eligible.astype(bool)
+
+                scope_gate_reason_series = pd.Series(
+                    scope_gate_reason,
+                    index=scope_index,
+                    dtype="object",
+                )
+                scope_gate_reason_series.loc[scope_eligible] = self.GATE_REASON_ELIGIBLE
+                scope_gate_reason_series.loc[
+                    (~scope_eligible) & scope_gate_passes & (~scope_name_eligible)
+                ] = self.GATE_REASON_NAME_NOT_FAMILY_C_DISCOVERY
+                scope_gate_reason_series.loc[
+                    (~scope_eligible) & scope_gate_passes & (~scope_inferential_supported)
+                ] = self.GATE_REASON_SCOPE_NOT_INFERENTIAL
+                temporal_burst.loc[scope_index, "gate_reason"] = scope_gate_reason_series
+
+                for p_column, q_column, significant_column in (
+                    (
+                        "temporal_p_value_min_gap",
+                        "temporal_q_value_min_gap",
+                        "temporal_is_significant_min_gap",
+                    ),
+                    (
+                        "temporal_p_value_within_5m",
+                        "temporal_q_value_within_5m",
+                        "temporal_is_significant_within_5m",
+                    ),
+                    (
+                        "temporal_p_value_within_15m",
+                        "temporal_q_value_within_15m",
+                        "temporal_is_significant_within_15m",
+                    ),
+                ):
+                    p_values = pd.to_numeric(
+                        temporal_burst.loc[scope_index, p_column],
+                        errors="coerce",
+                    )
+                    valid_mask = scope_eligible & p_values.notna() & np.isfinite(p_values)
+                    if bool(valid_mask.any()):
+                        adjusted = self._adjust_p_values(
+                            temporal_burst.loc[scope_index[valid_mask], p_column],
+                            method=self.ADJUSTMENT_METHOD_BH,
+                        )
+                        temporal_burst.loc[scope_index[valid_mask], q_column] = adjusted
+                        temporal_burst.loc[scope_index[valid_mask], significant_column] = (
+                            pd.to_numeric(adjusted, errors="coerce")
+                            .astype(float)
+                            .le(float(self.bh_fdr_q))
+                            .astype("object")
+                        )
+                    temporal_burst.loc[scope_index[~scope_eligible], p_column] = np.nan
+                    temporal_burst.loc[scope_index[~scope_eligible], q_column] = np.nan
+                    temporal_burst.loc[scope_index[~scope_eligible], significant_column] = pd.NA
+
+                downgraded = (~scope_eligible) & (
+                    temporal_burst.loc[scope_index, "inferential_status"]
+                    .fillna("")
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    == "reference_model_inference"
+                )
+                if bool(downgraded.any()):
+                    temporal_burst.loc[scope_index[downgraded], "inferential_status"] = (
+                        "descriptive_only"
+                    )
+                    if scope_gate_passes:
+                        temporal_burst.loc[scope_index[downgraded], "inferential_reason"] = (
+                            self.INFERENTIAL_REASON_FAMILY_C_GATE_NOT_PASSED
+                        )
+                    else:
+                        temporal_burst.loc[scope_index[downgraded], "inferential_reason"] = (
+                            self.INFERENTIAL_REASON_FAMILY_A_GATE_NOT_PASSED
+                        )
+
+        if not legacy_position_tests.empty:
+            legacy_position_tests["family_id"] = self.FAMILY_ID_POSITION
+            legacy_position_tests["adjustment_method"] = self.ADJUSTMENT_METHOD_HOLM
+            position_gate_passes = self.collision_scope_primary in family_a_significant_scopes
+            position_gate_reason = (
+                self.GATE_REASON_ELIGIBLE
+                if position_gate_passes
+                else family_a_gate_reason_by_scope.get(
+                    self.collision_scope_primary, self.GATE_REASON_FAMILY_A_NOT_TESTED
+                )
+            )
+            legacy_position_tests["n_tests"] = int(
+                len(legacy_position_tests) if position_gate_passes else 0
+            )
+            legacy_position_tests["n_tests_in_family"] = int(
+                len(legacy_position_tests) if position_gate_passes else 0
+            )
+            legacy_position_tests["eligible_by_gate"] = bool(position_gate_passes)
+            legacy_position_tests["gate_reason"] = position_gate_reason
+            if not position_gate_passes and "permutation_p_value_one_sided" in legacy_position_tests.columns:
+                legacy_position_tests["permutation_p_value_one_sided"] = np.nan
+
+        for scope_name in scope_names:
+            scope_key = str(scope_name).strip()
+            if not scope_key:
+                continue
+            family_a_significant = scope_key in family_a_significant_scopes
+            family_a_gate = family_a_gate_reason_by_scope.get(
+                scope_key, self.GATE_REASON_FAMILY_A_NOT_TESTED
+            )
+            family_a_tests = 1 if scope_key in family_a_test_scopes else 0
+            family_a_adjusted = family_a_adjusted_by_scope.get(scope_key, np.nan)
+            hypothesis_family_rows.append(
+                {
+                    "scope": scope_key,
+                    "family_id": self.FAMILY_ID_SCOPE,
+                    "family_label": "Scope-level excess_rows",
+                    "family_order": 1,
+                    "adjustment_method": self.ADJUSTMENT_METHOD_HOLM,
+                    "n_tests": int(family_a_tests),
+                    "n_significant": int(1 if family_a_significant else 0),
+                    "eligible_by_gate": bool(scope_key in family_a_test_scopes),
+                    "gate_reason": family_a_gate,
+                    "adjusted_p_value": float(family_a_adjusted)
+                    if pd.notna(family_a_adjusted)
+                    else np.nan,
+                }
+            )
+            if not collision_by_bucket.empty:
+                bucket_scope = collision_by_bucket[
+                    (collision_by_bucket["scope"].astype(str) == scope_key)
+                    & (collision_by_bucket["family_id"].astype(str) == self.FAMILY_ID_BUCKET)
+                ].copy()
+                hypothesis_family_rows.append(
+                    {
+                        "scope": scope_key,
+                        "family_id": self.FAMILY_ID_BUCKET,
+                        "family_label": "Bucket follow-up",
+                        "family_order": 2,
+                        "adjustment_method": self.ADJUSTMENT_METHOD_BH,
+                        "n_tests": int(bucket_scope["eligible_by_gate"].fillna(False).astype(bool).sum()),
+                        "n_significant": int(
+                            pd.to_numeric(bucket_scope.get("is_significant", pd.Series(dtype=float)), errors="coerce")
+                            .fillna(0.0)
+                            .astype(float)
+                            .sum()
+                        ),
+                        "eligible_by_gate": bool(scope_key in family_a_significant_scopes),
+                        "gate_reason": family_a_gate
+                        if scope_key not in family_a_significant_scopes
+                        else self.GATE_REASON_ELIGIBLE,
+                    }
+                )
+            if not per_name_tests.empty:
+                per_name_scope = per_name_tests[
+                    (per_name_tests["scope"].astype(str) == scope_key)
+                    & (per_name_tests["family_id"].astype(str) == self.FAMILY_ID_PER_NAME)
+                ].copy()
+                hypothesis_family_rows.append(
+                    {
+                        "scope": scope_key,
+                        "family_id": self.FAMILY_ID_PER_NAME,
+                        "family_label": "Per-name follow-up",
+                        "family_order": 3,
+                        "adjustment_method": self.ADJUSTMENT_METHOD_BH,
+                        "n_tests": int(per_name_scope["eligible_by_gate"].fillna(False).astype(bool).sum()),
+                        "n_significant": int(
+                            pd.to_numeric(per_name_scope.get("is_significant", pd.Series(dtype=float)), errors="coerce")
+                            .fillna(0.0)
+                            .astype(float)
+                            .sum()
+                        ),
+                        "eligible_by_gate": bool(scope_key in family_a_significant_scopes),
+                        "gate_reason": family_a_gate
+                        if scope_key not in family_a_significant_scopes
+                        else self.GATE_REASON_ELIGIBLE,
+                    }
+                )
+            if not temporal_burst.empty:
+                temporal_scope = temporal_burst[
+                    (temporal_burst["scope"].astype(str) == scope_key)
+                    & (temporal_burst["family_id"].astype(str) == self.FAMILY_ID_TEMPORAL)
+                ].copy()
+                temporal_tests = int(
+                    temporal_scope["eligible_by_gate"].fillna(False).astype(bool).sum()
+                )
+                temporal_significant = int(
+                    pd.to_numeric(
+                        temporal_scope.get(
+                            "temporal_is_significant_within_5m",
+                            pd.Series(dtype=float),
+                        ),
+                        errors="coerce",
+                    )
+                    .fillna(0.0)
+                    .astype(float)
+                    .sum()
+                )
+                hypothesis_family_rows.append(
+                    {
+                        "scope": scope_key,
+                        "family_id": self.FAMILY_ID_TEMPORAL,
+                        "family_label": "Within-name temporal follow-up",
+                        "family_order": 4,
+                        "adjustment_method": self.ADJUSTMENT_METHOD_BH,
+                        "n_tests": temporal_tests,
+                        "n_significant": temporal_significant,
+                        "eligible_by_gate": bool(scope_key in family_a_significant_scopes),
+                        "gate_reason": family_a_gate
+                        if scope_key not in family_a_significant_scopes
+                        else self.GATE_REASON_ELIGIBLE,
+                    }
+                )
+
+        if not legacy_position_tests.empty:
+            hypothesis_family_rows.append(
+                {
+                    "scope": self.collision_scope_primary,
+                    "family_id": self.FAMILY_ID_POSITION,
+                    "family_label": "Position follow-up",
+                    "family_order": 5,
+                    "adjustment_method": self.ADJUSTMENT_METHOD_HOLM,
+                    "n_tests": int(
+                        pd.to_numeric(
+                            legacy_position_tests.get("n_tests", pd.Series(dtype=float)),
+                            errors="coerce",
+                        )
+                        .fillna(0.0)
+                        .astype(float)
+                        .sum()
+                    ),
+                    "n_significant": int(
+                        pd.to_numeric(
+                            legacy_position_tests.get("permutation_p_value_one_sided", pd.Series(dtype=float)),
+                            errors="coerce",
+                        )
+                        .le(float(self.bh_fdr_q))
+                        .fillna(False)
+                        .astype(int)
+                        .sum()
+                    ),
+                    "eligible_by_gate": bool(
+                        self.collision_scope_primary in family_a_significant_scopes
+                    ),
+                    "gate_reason": (
+                        self.GATE_REASON_ELIGIBLE
+                        if self.collision_scope_primary in family_a_significant_scopes
+                        else family_a_gate_reason_by_scope.get(
+                            self.collision_scope_primary,
+                            self.GATE_REASON_FAMILY_A_NOT_TESTED,
+                        )
+                    ),
+                }
+            )
+
+        hypothesis_families = (
+            pd.DataFrame(hypothesis_family_rows).sort_values(
+                ["scope", "family_order", "family_id"],
+                ascending=[True, True, True],
+            )
+            if hypothesis_family_rows
+            else pd.DataFrame()
+        )
 
         primary_scope_overview = collision_overview[
             collision_overview["scope"] == self.collision_scope_primary
@@ -3133,6 +4227,53 @@ class DuplicatesExactDetector(Detector):
             scope_overview=primary_scope_overview,
             n_rows=primary_scope_n_used,
         )
+        hypothesis_family_records: list[dict[str, object]] = []
+        hypothesis_family_totals: list[dict[str, object]] = []
+        if not hypothesis_families.empty:
+            hypothesis_family_records = [
+                {
+                    "scope": str(getattr(row, "scope", "") or ""),
+                    "family_id": str(getattr(row, "family_id", "") or ""),
+                    "family_label": str(getattr(row, "family_label", "") or ""),
+                    "family_order": int(getattr(row, "family_order", 0) or 0),
+                    "adjustment_method": str(getattr(row, "adjustment_method", "") or ""),
+                    "n_tests": int(getattr(row, "n_tests", 0) or 0),
+                    "n_significant": int(getattr(row, "n_significant", 0) or 0),
+                    "eligible_by_gate": bool(getattr(row, "eligible_by_gate", False)),
+                    "gate_reason": str(getattr(row, "gate_reason", "") or ""),
+                    "adjusted_p_value": (
+                        float(getattr(row, "adjusted_p_value"))
+                        if pd.notna(getattr(row, "adjusted_p_value", np.nan))
+                        else None
+                    ),
+                }
+                for row in hypothesis_families.itertuples(index=False)
+            ]
+            totals_frame = (
+                hypothesis_families.groupby(
+                    ["family_id", "family_label", "family_order", "adjustment_method"],
+                    dropna=False,
+                )
+                .agg(
+                    n_tests=("n_tests", "sum"),
+                    n_significant=("n_significant", "sum"),
+                    n_scopes=("scope", "nunique"),
+                )
+                .reset_index()
+                .sort_values(["family_order", "family_id"])
+            )
+            hypothesis_family_totals = [
+                {
+                    "family_id": str(getattr(row, "family_id", "") or ""),
+                    "family_label": str(getattr(row, "family_label", "") or ""),
+                    "family_order": int(getattr(row, "family_order", 0) or 0),
+                    "adjustment_method": str(getattr(row, "adjustment_method", "") or ""),
+                    "n_tests": int(getattr(row, "n_tests", 0) or 0),
+                    "n_significant": int(getattr(row, "n_significant", 0) or 0),
+                    "n_scopes": int(getattr(row, "n_scopes", 0) or 0),
+                }
+                for row in totals_frame.itertuples(index=False)
+            ]
 
         summary = {
             "name_key": self.collision_key_mode,
@@ -3170,12 +4311,19 @@ class DuplicatesExactDetector(Detector):
             "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
             "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
             "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
+            "hypothesis_families": hypothesis_family_records,
+            "hypothesis_family_totals": hypothesis_family_totals,
+            "n_hypothesis_tests_total": int(
+                sum(int(row.get("n_tests", 0) or 0) for row in hypothesis_family_totals)
+            ),
             "statistical_contract": {
                 "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
                 "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
                 "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
                 "inferential_status": primary_scope_inferential_status,
                 "inferential_reason": primary_scope_inferential_reason,
+                "hypothesis_families": hypothesis_family_records,
+                "hypothesis_family_totals": hypothesis_family_totals,
             },
             "scope_availability": [
                 {
@@ -3215,6 +4363,7 @@ class DuplicatesExactDetector(Detector):
                 "per_name_submission_timing_by_mode": per_name_submission_timing_by_mode,
                 "temporal_burst_signals": temporal_burst,
                 "top_name_timing_by_mode": top_name_timing_by_mode,
+                "hypothesis_families": hypothesis_families,
                 # Legacy compatibility tables retained while render contracts migrate.
                 "duplicate_metrics_overview": legacy_overview,
                 "duplicate_by_bucket": legacy_duplicate_by_bucket,

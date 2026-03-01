@@ -45,6 +45,18 @@
               {% endfor %}
             </ul>
           {% endif %}
+          {% if duplicate_contract.get("hypothesis_families") %}
+            <p><strong>Hypothesis families:</strong></p>
+            <ul>
+              {% for family in duplicate_contract.get("hypothesis_families", []) %}
+                <li>
+                  {{ family.get("family_label") or family.get("family_id") }}:
+                  n_tests={{ family.get("n_tests", 0) }},
+                  adjustment={{ family.get("adjustment_method", "none") }}
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
         </aside>
       {% endif %}
       {% if analysis.id == "duplicate_evidence_matrix" and duplicate_evidence_policy %}

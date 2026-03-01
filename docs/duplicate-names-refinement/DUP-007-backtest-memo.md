@@ -81,3 +81,18 @@ Synthetic (4):
 - Review sign-off before rollout: pending.
 
 Operational rollout should remain blocked until review explicitly accepts the observed control behavior and scenario defaults.
+
+## 2026-03-01 Addendum (Sign-off Refresh)
+- Re-analyzed `output/dup007/vrdb_collision_backtest_case_metrics.csv` to add explicit sample-size and interval context.
+- Produced:
+  - `output/dup007/vrdb_collision_backtest_threshold_feasibility.csv`
+- Key additions from this addendum:
+  - holdout-normal sample size per scenario is small (`n=2`), yielding wide Wilson intervals;
+  - despite uncertainty width, point estimates remain elevated (`0.5` to `1.0` depending on scenario);
+  - threshold-feasibility scan found no threshold on `full_tail_prob_pairs` that simultaneously met:
+    - holdout-normal alert rate `<= 0.20`, and
+    - synthetic-injected alert rate `>= 0.80`.
+- Conclusion remains unchanged:
+  - synthetic null/injected separation is strong;
+  - historical-control false-positive behavior is still too high for rollout approval;
+  - review sign-off should remain pending and rollout blocked.

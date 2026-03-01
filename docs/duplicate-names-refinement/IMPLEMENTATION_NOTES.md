@@ -1856,3 +1856,30 @@ Scope: Non-coding sign-off validation sweep after DUP-021.
 ## Updated Handoff State
 - Engineering queue remains clear through `DUP-021`.
 - Remaining open item is non-coding review sign-off for `DUP-007`.
+
+---
+
+## DUP-007 Additional Blocker Analysis
+
+Date: 2026-03-01  
+Scope: Quantify whether current DUP-007 scenario results admit a practical threshold operating point.
+
+## What Was Run
+- Derived threshold-feasibility and interval diagnostics from existing case metrics artifact:
+  - source: `output/dup007/vrdb_collision_backtest_case_metrics.csv`
+  - output: `output/dup007/vrdb_collision_backtest_threshold_feasibility.csv`
+- Analysis criterion scanned per scenario:
+  - holdout-normal alert rate `<= 0.20`
+  - synthetic-injected alert rate `>= 0.80`
+  - threshold variable: `full_tail_prob_pairs`
+
+## Findings
+- Holdout-normal sample size is small (`n=2` per scenario in the current backtest cohort split), so Wilson intervals are wide.
+- Even with interval caveats, point estimates remain elevated:
+  - holdout-normal alert rates range from `0.50` to `1.00` across scenarios.
+- Threshold-feasibility scan results:
+  - no scenario had a feasible threshold meeting both operating constraints above (`threshold_feasible_count=0` for all scenarios).
+
+## Interpretation / Impact
+- The pending DUP-007 blocker is not only calibration-split variance; current score distributions do not provide a threshold tradeoff that simultaneously preserves strong injected detection and acceptable normal-control alerting under the tested criterion.
+- This supports keeping DUP-007 in pending-review state with rollout blocked until reviewers accept the current control behavior or approve revised operating policy/cohort design.

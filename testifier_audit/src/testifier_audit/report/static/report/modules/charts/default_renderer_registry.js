@@ -214,6 +214,8 @@ const BASE_CHART_RENDERER_IDS = Object.freeze([
   "duplicates_exact_metric_diagnostics",
   "duplicates_exact_null_distribution",
   "duplicates_exact_swing_impact",
+  "duplicate_evidence_matrix_overview",
+  "duplicate_evidence_matrix_scenario_counts",
   "vrdb_collision_evidence_overrun_names",
   "voter_registry_match_by_position",
   "voter_registry_linkage_by_position_rows",
@@ -253,6 +255,10 @@ export function buildDefaultChartRendererRegistry(deps) {
   const renderDuplicateTopNameTiming = requiredFunction(
     "renderDuplicateTopNameTiming",
     config.renderDuplicateTopNameTiming
+  );
+  const renderEvidenceMatrix = requiredFunction(
+    "renderEvidenceMatrix",
+    config.renderEvidenceMatrix
   );
   const renderOffHoursFunnel = requiredFunction(
     "renderOffHoursFunnel",
@@ -353,6 +359,14 @@ export function buildDefaultChartRendererRegistry(deps) {
   registry.register("duplicates_exact_swing_impact", (mount, rows) =>
     renderSimpleBar(mount, rows, "scenario", "pro_share", "pro share", {
       observedSeriesName: "Scenario pro share",
+    })
+  );
+  registry.register("duplicate_evidence_matrix_overview", (mount, rows) =>
+    renderEvidenceMatrix(mount, rows)
+  );
+  registry.register("duplicate_evidence_matrix_scenario_counts", (mount, rows) =>
+    renderSimpleBar(mount, rows, "scenario_label", "window_count", "window count", {
+      observedSeriesName: "Matching windows",
     })
   );
   registry.register("vrdb_collision_evidence_overrun_names", (mount, rows) =>

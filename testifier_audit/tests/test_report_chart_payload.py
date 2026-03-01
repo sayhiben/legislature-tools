@@ -474,6 +474,184 @@ def test_payload_includes_vrdb_collision_sidecar_charts_when_tables_are_present(
     assert "vrdb_collision_evidence_max_name_count" in absolute_time
 
 
+def test_payload_builds_duplicate_evidence_matrix_disagreement_scenarios() -> None:
+    bucket_starts = pd.to_datetime(
+        [
+            "2026-02-01T00:00:00Z",
+            "2026-02-01T01:00:00Z",
+            "2026-02-01T02:00:00Z",
+            "2026-02-01T03:00:00Z",
+        ]
+    )
+    table_map = {
+        "artifacts.counts_per_minute": pd.DataFrame(
+            {
+                "minute_bucket": pd.to_datetime(
+                    [
+                        "2026-02-01T00:00:00Z",
+                        "2026-02-01T00:01:00Z",
+                    ]
+                ),
+                "n_total": [8, 9],
+                "n_pro": [4, 4],
+                "n_con": [4, 5],
+                "pro_rate": [0.5, 0.4444],
+                "pro_rate_wilson_low": [0.24, 0.22],
+                "pro_rate_wilson_high": [0.76, 0.78],
+                "is_low_power": [False, False],
+            }
+        ),
+        "duplicates_exact.collision_methods": pd.DataFrame(
+            {
+                "scope": ["full_hearing"],
+                "metric_primary": ["repeated_group_rows"],
+                "collision_key_mode": ["strict"],
+                "n_used": [48],
+                "N_used": [48],
+                "baseline_source": ["vrdb_full_histogram"],
+                "baseline_model": ["multinomial"],
+            }
+        ),
+        "duplicates_exact.collision_by_bucket": pd.DataFrame(
+            {
+                "scope": ["full_hearing"] * 4,
+                "metric": ["repeated_group_rows"] * 4,
+                "bucket_start": bucket_starts,
+                "bucket_minutes": [60, 60, 60, 60],
+                "n_bucket": [12, 12, 12, 12],
+                "n_used": [48, 48, 48, 48],
+                "N_used": [48, 48, 48, 48],
+                "n_unique_names": [8, 8, 8, 8],
+                "n_pro": [6, 5, 6, 5],
+                "n_con": [6, 7, 6, 7],
+                "observed": [2.0, 6.0, 7.0, 2.0],
+                "expected": [3.0, 4.0, 4.0, 2.5],
+                "excess": [-1.0, 2.0, 3.0, -0.5],
+                "baseline_model": ["multinomial"] * 4,
+                "baseline_source": ["vrdb_full_histogram"] * 4,
+                "inferential_status": ["reference_model_inference"] * 4,
+                "inferential_reason": ["reference_model_inference_available"] * 4,
+            }
+        ),
+        "vrdb_collision_evidence.slice_metrics": pd.DataFrame(
+            {
+                "slice_id": [
+                    "bucket_60m:2026-02-01T00:00:00+0000",
+                    "bucket_60m:2026-02-01T01:00:00+0000",
+                    "bucket_60m:2026-02-01T02:00:00+0000",
+                    "bucket_60m:2026-02-01T03:00:00+0000",
+                ],
+                "slice_type": ["bucket_60m"] * 4,
+                "bucket_start": bucket_starts,
+                "bucket_minutes": [60, 60, 60, 60],
+                "n_rows": [12, 12, 12, 12],
+                "n_unique_names": [8, 8, 8, 8],
+                "baseline_variant": ["all_registrants"] * 4,
+                "requested_geo_level": ["state"] * 4,
+                "requested_geo_value": ["WA"] * 4,
+                "effective_geo_level": ["state"] * 4,
+                "effective_geo_value": ["WA"] * 4,
+                "observed_pairs": [6.0, 2.0, 7.0, 2.0],
+                "expected_pairs_analytic": [2.5, 2.0, 2.8, 2.0],
+                "expected_pairs_mean": [2.7, 2.1, 3.0, 2.1],
+                "expected_pairs_median": [2.6, 2.0, 2.9, 2.0],
+                "expected_pairs_p95": [4.0, 5.0, 4.5, 5.0],
+                "expected_pairs_p99": [5.0, 6.0, 5.5, 6.0],
+                "tail_prob_pairs": [0.01, 0.40, 0.01, 0.35],
+                "observed_max_name_count": [4.0, 3.0, 5.0, 3.0],
+                "expected_max_name_count_mean": [2.0, 2.0, 2.1, 2.0],
+                "expected_max_name_count_p95": [3.0, 3.0, 3.1, 3.0],
+                "expected_max_name_count_p99": [3.5, 3.5, 3.6, 3.5],
+                "tail_prob_max_name": [0.05, 0.50, 0.03, 0.55],
+                "max_count_reference_available": [True, True, True, True],
+                "max_count_reference_reason": ["", "", "", ""],
+                "inferential_status": ["reference_model_inference"] * 4,
+                "inferential_reason": ["reference_model_inference_available"] * 4,
+                "normalization_version": ["name_norm_v1"] * 4,
+                "vrdb_version": ["vrdb_extract_v4"] * 4,
+            }
+        ),
+        "off_hours.window_control_profile": pd.DataFrame(
+            {
+                "bucket_start": bucket_starts,
+                "bucket_minutes": [60, 60, 60, 60],
+                "n_total": [12, 12, 12, 12],
+                "n_pro": [6, 5, 6, 5],
+                "n_con": [6, 7, 6, 7],
+                "n_known": [12, 12, 12, 12],
+                "pro_rate": [0.5, 0.4167, 0.5, 0.4167],
+                "pro_rate_wilson_low": [0.3, 0.2, 0.3, 0.2],
+                "pro_rate_wilson_high": [0.7, 0.65, 0.7, 0.65],
+                "is_low_power": [False, False, False, False],
+                "is_alert_off_hours_window": [False, False, False, True],
+                "is_primary_alert_window": [False, False, False, True],
+                "is_primary_two_sided_alert_window": [False, False, False, True],
+            }
+        ),
+    }
+    detector_summaries = {
+        "duplicates_exact": {"enabled": True, "active": True},
+        "vrdb_collision_evidence": {"enabled": True, "active": True},
+        "off_hours": {"enabled": True, "active": True},
+    }
+
+    payload = _build_interactive_chart_payload_v2(
+        table_map=table_map,
+        detector_summaries=detector_summaries,
+    )
+
+    analysis_map = {entry["id"]: entry for entry in payload["analysis_catalog"]}
+    matrix_analysis = analysis_map["duplicate_evidence_matrix"]
+    assert matrix_analysis["status"] == "ready"
+    assert matrix_analysis["hero_chart_id"] == "duplicate_evidence_matrix_overview"
+    assert matrix_analysis["detail_chart_ids"] == ["duplicate_evidence_matrix_scenario_counts"]
+    assert matrix_analysis["bucket_options"] == EXPECTED_BASELINE_BUCKETS
+
+    matrix_cells = payload["charts"]["duplicate_evidence_matrix_overview"]
+    scenario_rows = payload["charts"]["duplicate_evidence_matrix_scenario_counts"]
+    assert len(matrix_cells) == 12
+    assert len(scenario_rows) == 4
+
+    counts_by_scenario = {
+        row["scenario_id"]: int(row["window_count"])
+        for row in scenario_rows
+    }
+    assert counts_by_scenario == {
+        "vrdb_high_duplicate_normal": 1,
+        "duplicate_high_vrdb_normal": 1,
+        "both_name_families_high": 1,
+        "name_families_normal_behavioral_high": 1,
+    }
+
+    both_high_cells = [
+        row
+        for row in matrix_cells
+        if row["scenario_id"] == "both_name_families_high"
+    ]
+    signal_by_family = {row["family_id"]: row["signal_level"] for row in both_high_cells}
+    assert signal_by_family["duplicate_collision"] == "high"
+    assert signal_by_family["vrdb_collision"] == "high"
+    assert signal_by_family["behavioral_timing"] == "any"
+
+    controls = payload["controls"]
+    evidence_policy = controls["duplicate_evidence_matrix_policy"]
+    assert evidence_policy["title"] == "Cross-family disagreement handling"
+    assert any(
+        "no composite score" in str(rule).lower()
+        for rule in evidence_policy["rules"]
+    )
+    methodology = controls["methodology"]
+    assert any(
+        "cross-family evidence matrix" in str(item.get("term", "")).lower()
+        for item in methodology["definitions"]
+        if isinstance(item, dict)
+    )
+    assert any(
+        "disagreement across evidence families" in str(caveat).lower()
+        for caveat in methodology["caveats"]
+    )
+
+
 def test_payload_color_semantics_cover_key_chart_families() -> None:
     payload = _build_interactive_chart_payload_v2(
         table_map={

@@ -40,6 +40,7 @@ ANALYSES_TO_PERFORM: tuple[str, ...] = (
     "bursts",
     "duplicates_exact",
     "vrdb_collision_evidence",
+    "duplicate_evidence_matrix",
     "org_anomalies",
     "voter_registry_match",
     "off_hours",
@@ -152,6 +153,33 @@ _ANALYSIS_DEFINITIONS: tuple[AnalysisDefinition, ...] = (
         expected_metric_keys=("observed_pairs", "expected_pairs_mean", "tail_prob_pairs"),
     ),
     AnalysisDefinition(
+        id="duplicate_evidence_matrix",
+        title="Cross-Family Evidence Matrix",
+        detector=None,
+        hero_chart_id="duplicate_evidence_matrix_overview",
+        detail_chart_ids=("duplicate_evidence_matrix_scenario_counts",),
+        how_to_read=(
+            "Use this matrix to compare duplicate-collision, VRDB collision-null, and "
+            "behavioral timing evidence side by side. Each row is an interpretation "
+            "scenario; each column is one evidence family. No composite score is used."
+        ),
+        what_to_look_for=(
+            "Prioritize scenarios where name-evidence families agree (both high), then "
+            "separately review discordant scenarios to understand which question each "
+            "family is answering."
+        ),
+        common_benign_causes=(
+            "Differences in null-model assumptions, sparse support windows, and campaign "
+            "timing effects can produce disagreement without indicating detector failure."
+        ),
+        expected_metric_keys=(
+            "window_count",
+            "duplicate_signal_level",
+            "vrdb_signal_level",
+            "behavioral_signal_level",
+        ),
+    ),
+    AnalysisDefinition(
         id="org_anomalies",
         title="Organization Field Anomalies",
         detector="org_anomalies",
@@ -211,6 +239,7 @@ _ANALYSIS_GROUP_PRIORITY: dict[str, tuple[str, int]] = {
     "off_hours": ("window_signals", 86),
     "duplicates_exact": ("identity_forensics", 88),
     "vrdb_collision_evidence": ("identity_forensics", 83),
+    "duplicate_evidence_matrix": ("identity_forensics", 82),
     "org_anomalies": ("field_quality", 78),
     "voter_registry_match": ("external_enrichment", 65),
 }

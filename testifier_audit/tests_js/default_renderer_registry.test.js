@@ -15,6 +15,7 @@ function makeDependencies(overrides = {}) {
     renderDuplicateNamesByPosition: () => true,
     renderDuplicatePositionBucketDeviance: () => true,
     renderDuplicateTopNameTiming: () => true,
+    renderEvidenceMatrix: () => true,
     renderOffHoursFunnel: () => true,
     renderOffHoursPrimaryFlagChannels: () => true,
     renderOverviewPositionVolumeByBucket: () => true,

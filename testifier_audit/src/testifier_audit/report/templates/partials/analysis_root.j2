@@ -5,6 +5,7 @@
 <section id="analysis-root" class="report-section">
   {% set analysis_items = interactive_charts.analysis_catalog %}
   {% set duplicate_contract = interactive_charts.get("controls", {}).get("duplicate_statistical_contract", {}) %}
+  {% set duplicate_evidence_policy = interactive_charts.get("controls", {}).get("duplicate_evidence_matrix_policy", {}) %}
   {% for analysis in analysis_items %}
     <section
       class="analysis-section"
@@ -44,6 +45,16 @@
               {% endfor %}
             </ul>
           {% endif %}
+        </aside>
+      {% endif %}
+      {% if analysis.id == "duplicate_evidence_matrix" and duplicate_evidence_policy %}
+        <aside class="definition-callout duplicate-contract-callout">
+          <p><strong>{{ duplicate_evidence_policy.get("title", "Cross-family disagreement handling") }}:</strong></p>
+          <ul>
+            {% for bullet in duplicate_evidence_policy.get("rules", []) %}
+              <li>{{ bullet }}</li>
+            {% endfor %}
+          </ul>
         </aside>
       {% endif %}
 

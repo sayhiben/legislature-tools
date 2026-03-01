@@ -74,6 +74,20 @@ def _detailed_what_to_look_for_by_analysis() -> dict[str, list[str]]:
                 "evidence families."
             ),
         ],
+        "duplicate_evidence_matrix": [
+            (
+                "Read matrix rows as interpretation scenarios, not a ranking score. "
+                "Each column keeps one evidence family separate so disagreement remains visible."
+            ),
+            (
+                "Concordant rows (both duplicate and VRDB high) increase follow-up "
+                "priority; discordant rows narrow the question instead of invalidating one method."
+            ),
+            (
+                "If both name-evidence families are normal while behavioral timing "
+                "is high, prioritize behavioral hypotheses and avoid name-based escalation."
+            ),
+        ],
         "org_anomalies": [
             (
                 "Start with sustained changes in overall blank-organization rate "
@@ -164,6 +178,21 @@ def _analysis_help_hints() -> dict[str, dict[str, str]]:
             ),
             "extended_low": (
                 "sustained collision rates tracking or below VRDB null expectations"
+            ),
+        },
+        "duplicate_evidence_matrix": {
+            "primary_metric": (
+                "cross-family agreement/disagreement across duplicate, VRDB, and behavioral signals"
+            ),
+            "momentary_high": (
+                "a short-lived discordant bucket where one family rises and the other stays normal"
+            ),
+            "momentary_low": "a brief return to normal levels across all families",
+            "extended_high": (
+                "persistent concordant elevation in multiple evidence families"
+            ),
+            "extended_low": (
+                "sustained normal levels where no family contributes escalation evidence"
             ),
         },
         "org_anomalies": {
@@ -1078,6 +1107,69 @@ def _default_chart_legend_docs() -> dict[str, dict[str, Any]]:
                     "description": "Effective pro share under each collision-adjustment scenario.",
                 },
                 {"label": "X-axis", "description": "Scenario (raw, strict dedupe, excess-adjusted)."},
+            ],
+        },
+        "duplicate_evidence_matrix_overview": {
+            "summary": (
+                "Scenario-by-family matrix for duplicate-name, VRDB collision-null, and "
+                "behavioral timing evidence."
+            ),
+            "items": [
+                {
+                    "label": "Rows",
+                    "description": (
+                        "Interpretation scenarios (discordant and concordant) derived from "
+                        "aligned bucket windows."
+                    ),
+                },
+                {
+                    "label": "Columns",
+                    "description": (
+                        "Evidence families are shown side by side: duplicate collision burden, "
+                        "VRDB collision-null, and behavioral timing alerts."
+                    ),
+                },
+                {
+                    "label": "Cell value",
+                    "description": (
+                        "High/Normal/Any signal state for that scenario-family pair. "
+                        "`Any` means the scenario does not constrain that family."
+                    ),
+                },
+                {
+                    "label": "Window count",
+                    "description": (
+                        "Tooltip count is the number of aligned windows in the selected bucket "
+                        "that match the scenario."
+                    ),
+                },
+                {
+                    "label": "Policy",
+                    "description": (
+                        "No composite score in v1; disagreement narrows interpretation and does "
+                        "not imply detector failure."
+                    ),
+                },
+            ],
+        },
+        "duplicate_evidence_matrix_scenario_counts": {
+            "summary": "Count of aligned windows per evidence-matrix scenario.",
+            "items": [
+                {
+                    "label": "Bar height",
+                    "description": "Number of windows matching the scenario in the selected bucket.",
+                },
+                {
+                    "label": "X-axis",
+                    "description": "Scenario label (discordant/concordant interpretation class).",
+                },
+                {
+                    "label": "Tooltip",
+                    "description": (
+                        "Includes scenario interpretation, policy guidance, and first/last "
+                        "matching window timestamps."
+                    ),
+                },
             ],
         },
         "org_anomalies_blank_rate": timebar(

@@ -18,26 +18,26 @@ Execution order is tracked here independently from ticket numbering.
 7. `DUP-004` (Done, 2026-02-28)
 8. `DUP-005` (Done, 2026-02-28)
 9. `DUP-007` (Implemented, 2026-02-28; review sign-off pending)
+10. `DUP-006` (Implemented, 2026-02-28; analyst sign-off pending)
 
 ### Current
-1. `DUP-006` (next in-progress target)
+1. `DUP-011` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-006`
-2. `DUP-011`
-3. `DUP-012`
-4. `DUP-013`
-5. `DUP-014`
-6. `DUP-015`
-7. `DUP-016`
-8. `DUP-017`
-9. `DUP-018`
-10. `DUP-019`
-11. `DUP-020`
-12. `DUP-021`
+1. `DUP-011`
+2. `DUP-012`
+3. `DUP-013`
+4. `DUP-014`
+5. `DUP-015`
+6. `DUP-016`
+7. `DUP-017`
+8. `DUP-018`
+9. `DUP-019`
+10. `DUP-020`
+11. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, and **DUP-007**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, and **DUP-006**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -768,3 +768,84 @@ Work item: DUP-007 (P0)
 ## Remaining Work / Handoff
 - DUP-007 implementation deliverables are in place (pipeline + memo + artifacts), but rollout sign-off is still pending review of control-behavior findings.
 - Next ticket in planned sequence remains `DUP-006`.
+
+---
+
+## DUP-006 Implementation Addendum
+
+Date: 2026-02-28  
+Work item: DUP-006 (P1)
+
+## What Was Implemented
+- Added a dedicated cross-family evidence-matrix analysis section:
+  - analysis id: `duplicate_evidence_matrix`
+  - hero chart id: `duplicate_evidence_matrix_overview`
+  - detail chart id: `duplicate_evidence_matrix_scenario_counts`
+- Kept evidence families additive and separate:
+  - no composite score added
+  - matrix columns explicitly separate:
+    - duplicate collision burden
+    - VRDB collision-null
+    - behavioral timing
+- Implemented explicit disagreement scenario classification in report payload builder:
+  - `vrdb_high_duplicate_normal`
+  - `duplicate_high_vrdb_normal`
+  - `both_name_families_high`
+  - `name_families_normal_behavioral_high`
+- Added disagreement policy metadata to controls:
+  - `controls.duplicate_evidence_matrix_policy`
+  - rules preserve “additive, non-suppressive” interpretation between families.
+- Added matrix interpretation and methodology content:
+  - cross-family definition entry
+  - disagreement caveat text
+  - interpretation guidance entry tied to concordant/discordant triage
+- Added report template callout in the matrix section that renders policy rules directly for analysts.
+- Added dedicated frontend renderer for the evidence matrix:
+  - heatmap-style matrix with scenario rows and evidence-family columns
+  - tooltips include scenario interpretation, policy note, and window counts/shares
+  - companion scenario-count chart retained for quick count comparison
+- Added a checked-in analyst guidance memo:
+  - `docs/duplicate-names-refinement/DUP-006-evidence-matrix-guidance.md`
+
+## Tests Added/Updated
+- `tests/test_analysis_registry.py`
+  - asserts new matrix analysis metadata, chart ids, and priority/group.
+- `tests/test_report_chart_payload.py`
+  - new regression verifies scenario classification counts and policy/methodology payload surfaces.
+- `tests/test_report_render_helpers.py`
+  - asserts rendered report includes matrix section title and disagreement-policy callout.
+- `tests_js/default_renderer_registry.test.js`
+  - updated dependency fixture to include `renderEvidenceMatrix` for registry construction.
+- Verification runs:
+  - focused: `python -m pytest tests/test_analysis_registry.py tests/test_report_chart_payload.py tests/test_report_render_helpers.py -q`
+  - lint: `./testifier_audit/scripts/ci/lint.sh`
+  - full suite: `./testifier_audit/scripts/ci/test.sh` passed (`352 passed`)
+
+## Runtime / Report Validation (ESSB 6346)
+- Unified run executed (skip-import mode):
+  - `CI_SKIP_INSTALL=1 ./testifier_audit/scripts/report/run_unified_report.sh --skip-imports /Users/sayhiben/dev/legislature-tools/data/raw/ESSB6346-20260224-0800.csv /Users/sayhiben/dev/legislature-tools/data/raw/20260202_VRDB_Extract.txt /Users/sayhiben/dev/legislature-tools/data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log: `output/run_logs/dup006_essb6346_unified.log`
+- Rerender executed:
+  - `python -m testifier_audit.cli report --out ../reports/ESSB6346-20260224-0800 --config ./configs/voter_registry_enabled.yaml --hearing-metadata ../data/metadata/ESSB6346-20260224-0800.hearing.yaml`
+  - log: `output/run_logs/dup006_essb6346_rerender.log`
+- Runtime evidence in both logs:
+  - `Duplicate evidence matrix built: bucket_variants=7 scenario_rows=28`
+- Playwright MCP validation completed:
+  - desktop: `1728x1117`
+  - mobile: `390x844`
+  - verified:
+    - matrix section and policy callout render
+    - both matrix charts render (`duplicate_evidence_matrix_overview`, `duplicate_evidence_matrix_scenario_counts`)
+    - shard requests for matrix analysis return `200`:
+      - `report_data/analyses/duplicate_evidence_matrix/base.json`
+      - `report_data/analyses/duplicate_evidence_matrix/bucket-30m.json`
+    - no console warnings/errors observed during validation.
+
+## Issues Discovered During Implementation
+- JS unit registry tests failed initially because the new renderer dependency (`renderEvidenceMatrix`) was required but not provided in `tests_js/default_renderer_registry.test.js`.
+- Mitigation:
+  - extended test dependency fixture with a `renderEvidenceMatrix` stub.
+
+## Remaining Work / Handoff
+- DUP-006 implementation is complete at code/test/runtime-validation level; analyst language sign-off remains the final acceptance step.
+- Next ticket in sequence is `DUP-011`.

@@ -119,6 +119,402 @@ _DUPLICATE_TABLE_NAMES: tuple[str, ...] = (
     "top_name_timing_by_mode",
     "temporal_burst_signals",
 )
+_EVIDENCE_MATRIX_SIGNAL_SCORE: dict[str, int] = {
+    "normal": 0,
+    "any": 1,
+    "high": 2,
+}
+_EVIDENCE_MATRIX_SCENARIOS: tuple[dict[str, str], ...] = (
+    {
+        "scenario_id": "vrdb_high_duplicate_normal",
+        "scenario_label": "VRDB high + duplicate normal",
+        "disagreement_kind": "discordant",
+        "duplicate_signal_level": "normal",
+        "vrdb_signal_level": "high",
+        "behavioral_signal_level": "any",
+        "interpretation": (
+            "VRDB collision-null evidence is elevated while duplicate burden remains normal. "
+            "Treat this as a string-collision null concern, not as suppression of other families."
+        ),
+    },
+    {
+        "scenario_id": "duplicate_high_vrdb_normal",
+        "scenario_label": "Duplicate high + VRDB normal",
+        "disagreement_kind": "discordant",
+        "duplicate_signal_level": "high",
+        "vrdb_signal_level": "normal",
+        "behavioral_signal_level": "any",
+        "interpretation": (
+            "Duplicate collision burden is elevated without VRDB-null elevation. "
+            "Interpret as duplicate concentration above report baseline, not as VRDB anomaly."
+        ),
+    },
+    {
+        "scenario_id": "both_name_families_high",
+        "scenario_label": "Duplicate high + VRDB high",
+        "disagreement_kind": "concordant",
+        "duplicate_signal_level": "high",
+        "vrdb_signal_level": "high",
+        "behavioral_signal_level": "any",
+        "interpretation": (
+            "Both name-evidence families are elevated in the same windows. "
+            "Concordance raises follow-up priority."
+        ),
+    },
+    {
+        "scenario_id": "name_families_normal_behavioral_high",
+        "scenario_label": "Name families normal + behavioral high",
+        "disagreement_kind": "behavioral_primary",
+        "duplicate_signal_level": "normal",
+        "vrdb_signal_level": "normal",
+        "behavioral_signal_level": "high",
+        "interpretation": (
+            "Name-evidence families are normal while behavioral timing alerts are elevated. "
+            "Use behavioral explanations as the primary hypothesis."
+        ),
+    },
+)
+_DUPLICATE_EVIDENCE_MATRIX_POLICY_RULES: tuple[str, ...] = (
+    "VRDB collision evidence may increase concern, but does not suppress other flags.",
+    "Existing timing/content/metadata evidence may increase concern, but does not erase a VRDB extreme.",
+    "Agreement across evidence families strengthens follow-up priority.",
+    "Disagreement narrows the question being answered; it does not imply one method failed.",
+    "No composite score in v1; review separate evidence-family columns.",
+)
+
+
+def _build_duplicate_evidence_matrix_frames(
+    *,
+    dup_exact_bucket: pd.DataFrame,
+    vrdb_collision_bucket: pd.DataFrame,
+    off_hours_window_control: pd.DataFrame,
+    primary_scope: str,
+    primary_match_mode: str,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    matrix_columns = [
+        "bucket_minutes",
+        "scenario_id",
+        "scenario_label",
+        "scenario_order",
+        "disagreement_kind",
+        "family_id",
+        "family_label",
+        "family_order",
+        "signal_level",
+        "signal_score",
+        "signal_label",
+        "window_count",
+        "window_share",
+        "first_bucket_start",
+        "last_bucket_start",
+        "interpretation",
+        "policy_note",
+    ]
+    summary_columns = [
+        "bucket_minutes",
+        "scenario_id",
+        "scenario_label",
+        "scenario_order",
+        "disagreement_kind",
+        "window_count",
+        "window_share",
+        "first_bucket_start",
+        "last_bucket_start",
+        "interpretation",
+        "policy_note",
+    ]
+    if dup_exact_bucket.empty or vrdb_collision_bucket.empty:
+        return (
+            _with_expected_columns(pd.DataFrame(), matrix_columns),
+            _with_expected_columns(pd.DataFrame(), summary_columns),
+        )
+
+    dup_rows = dup_exact_bucket.copy()
+    dup_rows["metric"] = dup_rows.get("metric", pd.Series(dtype=str)).fillna("").astype(str)
+    dup_rows["scope"] = dup_rows.get("scope", pd.Series(dtype=str)).fillna("").astype(str)
+    dup_rows["match_mode"] = (
+        dup_rows.get("match_mode", pd.Series(dtype=str))
+        .fillna(primary_match_mode)
+        .map(lambda value: _normalize_report_match_mode(value, default=primary_match_mode))
+        .astype(str)
+    )
+    dup_rows["bucket_start"] = pd.to_datetime(
+        dup_rows.get("bucket_start", pd.Series(dtype=object)),
+        errors="coerce",
+    )
+    dup_rows["bucket_minutes"] = pd.to_numeric(
+        dup_rows.get("bucket_minutes", pd.Series(dtype=float)),
+        errors="coerce",
+    ).fillna(0).astype(int)
+    dup_rows = dup_rows[
+        (dup_rows["metric"] == "rows_anywhere")
+        & (dup_rows["scope"] == primary_scope)
+        & (dup_rows["match_mode"] == primary_match_mode)
+        & (dup_rows["bucket_minutes"] > 0)
+    ].copy()
+    if dup_rows.empty:
+        dup_rows = dup_exact_bucket.copy()
+        dup_rows["metric"] = dup_rows.get("metric", pd.Series(dtype=str)).fillna("").astype(str)
+        dup_rows["bucket_start"] = pd.to_datetime(
+            dup_rows.get("bucket_start", pd.Series(dtype=object)),
+            errors="coerce",
+        )
+        dup_rows["bucket_minutes"] = pd.to_numeric(
+            dup_rows.get("bucket_minutes", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0).astype(int)
+        dup_rows = dup_rows[
+            (dup_rows["metric"] == "rows_anywhere") & (dup_rows["bucket_minutes"] > 0)
+        ].copy()
+    if dup_rows.empty:
+        return (
+            _with_expected_columns(pd.DataFrame(), matrix_columns),
+            _with_expected_columns(pd.DataFrame(), summary_columns),
+        )
+    dup_rows["duplicate_rows"] = pd.to_numeric(
+        dup_rows.get("duplicate_rows", pd.Series(dtype=float)),
+        errors="coerce",
+    ).fillna(0.0)
+    dup_rows["expected_duplicate_rows"] = pd.to_numeric(
+        dup_rows.get("expected_duplicate_rows", pd.Series(dtype=float)),
+        errors="coerce",
+    ).fillna(0.0)
+    dup_rows["duplicate_excess"] = pd.to_numeric(
+        dup_rows.get("excess_duplicate_rows", pd.Series(dtype=float)),
+        errors="coerce",
+    ).fillna(dup_rows["duplicate_rows"] - dup_rows["expected_duplicate_rows"])
+    dup_rows["duplicate_signal_high"] = dup_rows["duplicate_excess"] > 0.0
+    dup_rows = dup_rows.dropna(subset=["bucket_start"])
+    dup_signal = (
+        dup_rows.groupby(["bucket_minutes", "bucket_start"], dropna=False)
+        .agg(
+            duplicate_signal_high=("duplicate_signal_high", "max"),
+            duplicate_observed=("duplicate_rows", "mean"),
+            duplicate_expected=("expected_duplicate_rows", "mean"),
+            duplicate_excess=("duplicate_excess", "mean"),
+        )
+        .reset_index()
+    )
+    if dup_signal.empty:
+        return (
+            _with_expected_columns(pd.DataFrame(), matrix_columns),
+            _with_expected_columns(pd.DataFrame(), summary_columns),
+        )
+
+    vrdb_rows = vrdb_collision_bucket.copy()
+    vrdb_rows["bucket_start"] = pd.to_datetime(
+        vrdb_rows.get("bucket_start", pd.Series(dtype=object)),
+        errors="coerce",
+    )
+    vrdb_rows["bucket_minutes"] = pd.to_numeric(
+        vrdb_rows.get("bucket_minutes", pd.Series(dtype=float)),
+        errors="coerce",
+    ).fillna(0).astype(int)
+    vrdb_rows = vrdb_rows[vrdb_rows["bucket_minutes"] > 0].dropna(subset=["bucket_start"]).copy()
+    vrdb_rows["observed_pairs"] = pd.to_numeric(
+        vrdb_rows.get("observed_pairs", pd.Series(dtype=float)),
+        errors="coerce",
+    )
+    vrdb_rows["expected_pairs_p95"] = pd.to_numeric(
+        vrdb_rows.get("expected_pairs_p95", pd.Series(dtype=float)),
+        errors="coerce",
+    )
+    vrdb_rows["tail_prob_pairs"] = pd.to_numeric(
+        vrdb_rows.get("tail_prob_pairs", pd.Series(dtype=float)),
+        errors="coerce",
+    )
+    vrdb_rows["vrdb_signal_high"] = (
+        (
+            vrdb_rows["observed_pairs"].notna()
+            & vrdb_rows["expected_pairs_p95"].notna()
+            & (vrdb_rows["observed_pairs"] > vrdb_rows["expected_pairs_p95"])
+        )
+        | (
+            vrdb_rows["tail_prob_pairs"].notna()
+            & (vrdb_rows["tail_prob_pairs"] <= 0.05)
+        )
+    )
+    vrdb_signal = (
+        vrdb_rows.groupby(["bucket_minutes", "bucket_start"], dropna=False)
+        .agg(
+            vrdb_signal_high=("vrdb_signal_high", "max"),
+            vrdb_observed_pairs=("observed_pairs", "mean"),
+            vrdb_expected_pairs_p95=("expected_pairs_p95", "mean"),
+            vrdb_min_tail_prob=("tail_prob_pairs", "min"),
+        )
+        .reset_index()
+    )
+    if vrdb_signal.empty:
+        return (
+            _with_expected_columns(pd.DataFrame(), matrix_columns),
+            _with_expected_columns(pd.DataFrame(), summary_columns),
+        )
+
+    aligned = dup_signal.merge(
+        vrdb_signal,
+        on=["bucket_minutes", "bucket_start"],
+        how="inner",
+    )
+    if aligned.empty:
+        LOGGER.info(
+            "Duplicate evidence matrix: no aligned duplicate/VRDB bucket windows; matrix disabled."
+        )
+        return (
+            _with_expected_columns(pd.DataFrame(), matrix_columns),
+            _with_expected_columns(pd.DataFrame(), summary_columns),
+        )
+
+    behavioral_signal = pd.DataFrame(
+        columns=["bucket_minutes", "bucket_start", "behavioral_signal_high"]
+    )
+    if not off_hours_window_control.empty:
+        off_hours_rows = off_hours_window_control.copy()
+        off_hours_rows["bucket_start"] = pd.to_datetime(
+            off_hours_rows.get("bucket_start", pd.Series(dtype=object)),
+            errors="coerce",
+        )
+        off_hours_rows["bucket_minutes"] = pd.to_numeric(
+            off_hours_rows.get("bucket_minutes", pd.Series(dtype=float)),
+            errors="coerce",
+        ).fillna(0).astype(int)
+        off_hours_rows = off_hours_rows[
+            off_hours_rows["bucket_minutes"] > 0
+        ].dropna(subset=["bucket_start"])
+        if not off_hours_rows.empty:
+            robust_alert = pd.to_numeric(
+                off_hours_rows.get(
+                    "is_primary_two_sided_alert_window",
+                    pd.Series(dtype=float),
+                ),
+                errors="coerce",
+            ).fillna(0.0)
+            fallback_alert = pd.to_numeric(
+                off_hours_rows.get("is_primary_alert_window", pd.Series(dtype=float)),
+                errors="coerce",
+            ).fillna(0.0)
+            eligibility_alert = pd.to_numeric(
+                off_hours_rows.get("is_alert_off_hours_window", pd.Series(dtype=float)),
+                errors="coerce",
+            ).fillna(0.0)
+            off_hours_rows["behavioral_signal_high"] = (
+                robust_alert.gt(0.0) | fallback_alert.gt(0.0) | eligibility_alert.gt(0.0)
+            )
+            behavioral_signal = (
+                off_hours_rows.groupby(["bucket_minutes", "bucket_start"], dropna=False)
+                .agg(behavioral_signal_high=("behavioral_signal_high", "max"))
+                .reset_index()
+            )
+
+    aligned = aligned.merge(
+        behavioral_signal,
+        on=["bucket_minutes", "bucket_start"],
+        how="left",
+    )
+    aligned["behavioral_signal_high"] = (
+        aligned.get("behavioral_signal_high", pd.Series(dtype=bool))
+        .fillna(False)
+        .astype(bool)
+    )
+
+    scenario_rows: list[dict[str, Any]] = []
+    for bucket_minutes, bucket_frame in aligned.groupby("bucket_minutes", dropna=False):
+        total_windows = int(len(bucket_frame))
+        if total_windows <= 0:
+            continue
+        for scenario_order, scenario in enumerate(_EVIDENCE_MATRIX_SCENARIOS, start=1):
+            scenario_id = str(scenario["scenario_id"])
+            if scenario_id == "vrdb_high_duplicate_normal":
+                mask = bucket_frame["vrdb_signal_high"] & (~bucket_frame["duplicate_signal_high"])
+            elif scenario_id == "duplicate_high_vrdb_normal":
+                mask = bucket_frame["duplicate_signal_high"] & (~bucket_frame["vrdb_signal_high"])
+            elif scenario_id == "both_name_families_high":
+                mask = bucket_frame["duplicate_signal_high"] & bucket_frame["vrdb_signal_high"]
+            else:
+                mask = (
+                    (~bucket_frame["duplicate_signal_high"])
+                    & (~bucket_frame["vrdb_signal_high"])
+                    & bucket_frame["behavioral_signal_high"]
+                )
+            matching = bucket_frame.loc[mask].copy()
+            window_count = int(len(matching))
+            first_bucket_start = matching["bucket_start"].min() if window_count else pd.NaT
+            last_bucket_start = matching["bucket_start"].max() if window_count else pd.NaT
+            scenario_rows.append(
+                {
+                    "bucket_minutes": int(bucket_minutes),
+                    "scenario_id": scenario_id,
+                    "scenario_label": scenario["scenario_label"],
+                    "scenario_order": scenario_order,
+                    "disagreement_kind": scenario["disagreement_kind"],
+                    "window_count": window_count,
+                    "window_share": (
+                        float(window_count) / float(total_windows) if total_windows else 0.0
+                    ),
+                    "first_bucket_start": first_bucket_start,
+                    "last_bucket_start": last_bucket_start,
+                    "interpretation": scenario["interpretation"],
+                    "policy_note": (
+                        "No composite score. Evidence families remain additive and separately interpreted."
+                    ),
+                    "duplicate_signal_level": scenario["duplicate_signal_level"],
+                    "vrdb_signal_level": scenario["vrdb_signal_level"],
+                    "behavioral_signal_level": scenario["behavioral_signal_level"],
+                }
+            )
+
+    scenario_summary = _with_expected_columns(pd.DataFrame(scenario_rows), summary_columns)
+    if scenario_summary.empty:
+        return (
+            _with_expected_columns(pd.DataFrame(), matrix_columns),
+            _with_expected_columns(pd.DataFrame(), summary_columns),
+        )
+
+    family_rows: list[dict[str, Any]] = []
+    family_config = (
+        ("duplicate_signal_level", "duplicate_collision", "Duplicate collision", 1),
+        ("vrdb_signal_level", "vrdb_collision", "VRDB collision-null", 2),
+        ("behavioral_signal_level", "behavioral_timing", "Behavioral timing", 3),
+    )
+    for row in scenario_summary.itertuples(index=False):
+        for signal_field, family_id, family_label, family_order in family_config:
+            signal_level = str(getattr(row, signal_field, "any")).strip().lower() or "any"
+            signal_score = _EVIDENCE_MATRIX_SIGNAL_SCORE.get(signal_level, 1)
+            signal_label = (
+                "High"
+                if signal_level == "high"
+                else "Normal"
+                if signal_level == "normal"
+                else "Any"
+            )
+            family_rows.append(
+                {
+                    "bucket_minutes": int(getattr(row, "bucket_minutes", 0)),
+                    "scenario_id": str(getattr(row, "scenario_id", "")),
+                    "scenario_label": str(getattr(row, "scenario_label", "")),
+                    "scenario_order": int(getattr(row, "scenario_order", 0)),
+                    "disagreement_kind": str(getattr(row, "disagreement_kind", "")),
+                    "family_id": family_id,
+                    "family_label": family_label,
+                    "family_order": family_order,
+                    "signal_level": signal_level,
+                    "signal_score": signal_score,
+                    "signal_label": signal_label,
+                    "window_count": int(getattr(row, "window_count", 0)),
+                    "window_share": float(getattr(row, "window_share", 0.0)),
+                    "first_bucket_start": getattr(row, "first_bucket_start", pd.NaT),
+                    "last_bucket_start": getattr(row, "last_bucket_start", pd.NaT),
+                    "interpretation": str(getattr(row, "interpretation", "")),
+                    "policy_note": str(getattr(row, "policy_note", "")),
+                }
+            )
+    matrix_cells = _with_expected_columns(pd.DataFrame(family_rows), matrix_columns)
+    if not matrix_cells.empty:
+        LOGGER.info(
+            "Duplicate evidence matrix built: bucket_variants=%s scenario_rows=%s",
+            int(matrix_cells["bucket_minutes"].nunique()),
+            int(len(scenario_summary)),
+        )
+    return matrix_cells, scenario_summary
 
 
 def _normalized_optional_string(value: object) -> str:
@@ -4102,6 +4498,59 @@ def _build_interactive_chart_payload_v2(
         ],
         max_rows=100,
     )
+    duplicate_evidence_matrix_cells, duplicate_evidence_matrix_summary = (
+        _build_duplicate_evidence_matrix_frames(
+            dup_exact_bucket=dup_exact_bucket,
+            vrdb_collision_bucket=vrdb_collision_bucket,
+            off_hours_window_control=off_hours_window_control,
+            primary_scope=primary_dup_scope_control,
+            primary_match_mode=primary_dup_match_mode,
+        )
+    )
+    charts["duplicate_evidence_matrix_overview"] = _records_from_frame(
+        duplicate_evidence_matrix_cells.sort_values(
+            ["bucket_minutes", "scenario_order", "family_order", "scenario_id", "family_id"]
+        ),
+        columns=[
+            "bucket_minutes",
+            "scenario_id",
+            "scenario_label",
+            "scenario_order",
+            "disagreement_kind",
+            "family_id",
+            "family_label",
+            "family_order",
+            "signal_level",
+            "signal_score",
+            "signal_label",
+            "window_count",
+            "window_share",
+            "first_bucket_start",
+            "last_bucket_start",
+            "interpretation",
+            "policy_note",
+        ],
+        max_rows=5_000,
+    )
+    charts["duplicate_evidence_matrix_scenario_counts"] = _records_from_frame(
+        duplicate_evidence_matrix_summary.sort_values(
+            ["bucket_minutes", "scenario_order", "scenario_id"]
+        ),
+        columns=[
+            "bucket_minutes",
+            "scenario_id",
+            "scenario_label",
+            "scenario_order",
+            "disagreement_kind",
+            "window_count",
+            "window_share",
+            "first_bucket_start",
+            "last_bucket_start",
+            "interpretation",
+            "policy_note",
+        ],
+        max_rows=2_000,
+    )
 
     charts["org_anomalies_blank_rate"] = _records_from_frame(
         org_blank_rates.sort_values(["bucket_minutes", "bucket_start"]),
@@ -4335,6 +4784,10 @@ def _build_interactive_chart_payload_v2(
             vrdb_collision_bucket,
             vrdb_collision_overrun,
         ),
+        "duplicate_evidence_matrix": _extract_bucket_options(
+            duplicate_evidence_matrix_summary,
+            duplicate_evidence_matrix_cells,
+        ),
         "org_anomalies": _extract_bucket_options(org_blank_rates, org_position_rates),
         "voter_registry_match": _extract_bucket_options(voter_bucket, voter_bucket_position),
     }
@@ -4499,6 +4952,26 @@ def _build_interactive_chart_payload_v2(
     process_markers = hearing_context_panel.get("process_markers", [])
     evidence_taxonomy = default_evidence_taxonomy()
     methodology = build_methodology_content(evidence_taxonomy=evidence_taxonomy)
+    duplicate_evidence_matrix_policy = {
+        "title": "Cross-family disagreement handling",
+        "rules": list(_DUPLICATE_EVIDENCE_MATRIX_POLICY_RULES),
+    }
+    methodology["definitions"].append(
+        {
+            "term": "Cross-family evidence matrix",
+            "definition": (
+                "Side-by-side interpretation layer for duplicate collision, VRDB "
+                "collision-null, and behavioral timing signals. It preserves disagreement "
+                "without collapsing families into one composite score."
+            ),
+        }
+    )
+    methodology["caveats"].append(
+        "Disagreement across evidence families does not mean one method failed; it narrows the question."
+    )
+    methodology["interpretation_guidance"].append(
+        "Use the evidence matrix to triage concordant versus discordant scenarios before escalation."
+    )
     if "dup_exact_methods" in locals() and isinstance(dup_exact_methods, pd.DataFrame) and not dup_exact_methods.empty:
         baseline_models = sorted(
             {
@@ -4708,6 +5181,7 @@ def _build_interactive_chart_payload_v2(
             "duplicate_match_mode_default": primary_dup_match_mode,
             "duplicate_match_mode_options": duplicate_match_mode_options,
             "duplicate_statistical_contract": duplicate_statistical_contract,
+            "duplicate_evidence_matrix_policy": duplicate_evidence_matrix_policy,
             "voter_match_mode_default": voter_default_mode,
             "voter_match_mode_options": voter_match_mode_options,
             "timezone": timezone_name,

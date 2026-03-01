@@ -615,9 +615,11 @@ def test_render_report_uses_disk_fallback_when_results_are_empty(tmp_path: Path)
     elif _configured_focus_analysis_ids():
         assert "Composite Evidence Score" not in rendered
         assert "Duplicate-Name Collisions" in rendered
+        assert "Cross-Family Evidence Matrix" in rendered
         assert "Registered Voter Match" in rendered
         assert "cannot infer identity" in rendered
         assert "reference model; not the data-generating process" in rendered
+        assert "Cross-family disagreement handling" in rendered
     assert 'data-analysis-id="composite_score"' not in rendered
     assert 'data-analysis-id="rare_names"' not in rendered
     assert 'data-analysis-id="periodicity"' not in rendered

@@ -44,6 +44,13 @@ def test_default_analysis_definitions_have_unique_ids_and_hero_chart_ids() -> No
     assert "additive vrdb collision-null evidence" in vrdb_sidecar["how_to_read"].lower()
     assert vrdb_sidecar["group"] == "identity_forensics"
     assert vrdb_sidecar["priority"] == 83
+    evidence_matrix = next(entry for entry in definitions if entry["id"] == "duplicate_evidence_matrix")
+    assert evidence_matrix["title"] == "Cross-Family Evidence Matrix"
+    assert evidence_matrix["hero_chart_id"] == "duplicate_evidence_matrix_overview"
+    assert evidence_matrix["detail_chart_ids"] == ["duplicate_evidence_matrix_scenario_counts"]
+    assert "no composite score" in evidence_matrix["how_to_read"].lower()
+    assert evidence_matrix["group"] == "identity_forensics"
+    assert evidence_matrix["priority"] == 82
     off_hours = next(entry for entry in definitions if entry["id"] == "off_hours")
     assert "off_hours_model_fit_diagnostics" not in off_hours["detail_chart_ids"]
     org = next(entry for entry in definitions if entry["id"] == "org_anomalies")

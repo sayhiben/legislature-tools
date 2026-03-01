@@ -6353,6 +6353,235 @@ export async function runReportApp() {
     return true;
   }
 
+  function renderEvidenceMatrix(mount, rows) {
+    const theme = currentChartTheme();
+    const normalized = rows
+      .map((row) => {
+        const scenarioId = String((row || {}).scenario_id || "").trim();
+        const scenarioLabel = String((row || {}).scenario_label || "").trim();
+        const scenarioOrder = toFiniteNumberOrNull((row || {}).scenario_order);
+        const familyId = String((row || {}).family_id || "").trim();
+        const familyLabel = String((row || {}).family_label || "").trim();
+        const familyOrder = toFiniteNumberOrNull((row || {}).family_order);
+        const signalScore = toFiniteNumberOrNull((row || {}).signal_score);
+        const signalLevel = String((row || {}).signal_level || "").trim().toLowerCase();
+        const signalLabel = String((row || {}).signal_label || "").trim();
+        if (
+          !scenarioId ||
+          !scenarioLabel ||
+          !familyId ||
+          !familyLabel ||
+          signalScore === null ||
+          !Number.isFinite(signalScore)
+        ) {
+          return null;
+        }
+        return {
+          scenarioId: scenarioId,
+          scenarioLabel: scenarioLabel,
+          scenarioOrder: Number.isFinite(scenarioOrder) ? Math.round(scenarioOrder) : 0,
+          familyId: familyId,
+          familyLabel: familyLabel,
+          familyOrder: Number.isFinite(familyOrder) ? Math.round(familyOrder) : 0,
+          signalScore: Number(signalScore),
+          signalLevel: signalLevel || "any",
+          signalLabel: signalLabel || (signalLevel ? signalLevel : "any"),
+          windowCount: Math.max(0, Math.round(toNumber((row || {}).window_count))),
+          windowShare: toFiniteNumberOrNull((row || {}).window_share),
+          firstBucketStart: toEpochMillis((row || {}).first_bucket_start),
+          lastBucketStart: toEpochMillis((row || {}).last_bucket_start),
+          interpretation: String((row || {}).interpretation || "").trim(),
+          policyNote: String((row || {}).policy_note || "").trim(),
+        };
+      })
+      .filter((row) => !!row);
+    if (!normalized.length) {
+      return false;
+    }
+
+    const scenarioEntries = Array.from(
+      normalized.reduce((acc, row) => {
+        const existing = acc.get(row.scenarioId);
+        if (!existing || row.scenarioOrder < existing.scenarioOrder) {
+          acc.set(row.scenarioId, {
+            scenarioId: row.scenarioId,
+            scenarioLabel: row.scenarioLabel,
+            scenarioOrder: row.scenarioOrder,
+          });
+        }
+        return acc;
+      }, new Map())
+    )
+      .map((entry) => entry[1])
+      .sort((left, right) => {
+        const orderDelta = left.scenarioOrder - right.scenarioOrder;
+        if (orderDelta !== 0) {
+          return orderDelta;
+        }
+        return String(left.scenarioLabel || "").localeCompare(String(right.scenarioLabel || ""));
+      });
+
+    const familyEntries = Array.from(
+      normalized.reduce((acc, row) => {
+        const existing = acc.get(row.familyId);
+        if (!existing || row.familyOrder < existing.familyOrder) {
+          acc.set(row.familyId, {
+            familyId: row.familyId,
+            familyLabel: row.familyLabel,
+            familyOrder: row.familyOrder,
+          });
+        }
+        return acc;
+      }, new Map())
+    )
+      .map((entry) => entry[1])
+      .sort((left, right) => {
+        const orderDelta = left.familyOrder - right.familyOrder;
+        if (orderDelta !== 0) {
+          return orderDelta;
+        }
+        return String(left.familyLabel || "").localeCompare(String(right.familyLabel || ""));
+      });
+
+    if (!scenarioEntries.length || !familyEntries.length) {
+      return false;
+    }
+
+    const scenarioIndex = new Map(
+      scenarioEntries.map((entry, index) => [entry.scenarioId, index])
+    );
+    const familyIndex = new Map(familyEntries.map((entry, index) => [entry.familyId, index]));
+    const plotRows = normalized
+      .filter(
+        (row) =>
+          scenarioIndex.has(row.scenarioId) &&
+          familyIndex.has(row.familyId)
+      )
+      .map((row) => ({
+        value: [
+          familyIndex.get(row.familyId),
+          scenarioIndex.get(row.scenarioId),
+          row.signalScore,
+        ],
+        signalLabel: row.signalLabel,
+        signalLevel: row.signalLevel,
+        windowCount: row.windowCount,
+        windowShare: row.windowShare,
+        interpretation: row.interpretation,
+        policyNote: row.policyNote,
+        firstBucketStart: row.firstBucketStart,
+        lastBucketStart: row.lastBucketStart,
+        familyLabel: row.familyLabel,
+        scenarioLabel: row.scenarioLabel,
+      }));
+    if (!plotRows.length) {
+      return false;
+    }
+
+    const option = {
+      animation: false,
+      tooltip: {
+        trigger: "item",
+        formatter: (params) => {
+          const raw = params && typeof params.data === "object" ? params.data : {};
+          const lines = [
+            "<strong>Scenario:</strong> " + escapeHtml(String(raw.scenarioLabel || "")),
+            "<strong>Evidence family:</strong> " + escapeHtml(String(raw.familyLabel || "")),
+            "<strong>Signal:</strong> " + escapeHtml(String(raw.signalLabel || "")),
+            "<strong>Matching windows:</strong> " + Number(toNumber(raw.windowCount)).toLocaleString(),
+          ];
+          if (Number.isFinite(raw.windowShare)) {
+            lines.push(
+              "<strong>Share of aligned windows:</strong> " +
+                (toNumber(raw.windowShare) * 100).toFixed(1) +
+                "%"
+            );
+          }
+          if (Number.isFinite(raw.firstBucketStart)) {
+            lines.push(
+              "<strong>First matching window:</strong> " + formatEpochMillis(raw.firstBucketStart)
+            );
+          }
+          if (Number.isFinite(raw.lastBucketStart)) {
+            lines.push(
+              "<strong>Last matching window:</strong> " + formatEpochMillis(raw.lastBucketStart)
+            );
+          }
+          if (raw.interpretation) {
+            lines.push("<strong>Interpretation:</strong> " + escapeHtml(String(raw.interpretation)));
+          }
+          if (raw.policyNote) {
+            lines.push("<strong>Policy:</strong> " + escapeHtml(String(raw.policyNote)));
+          }
+          return lines.join("<br/>");
+        },
+      },
+      grid: { left: 196, right: 28, top: 30, bottom: 84 },
+      xAxis: {
+        type: "category",
+        name: "Evidence family",
+        data: familyEntries.map((entry) => entry.familyLabel),
+        axisLabel: {
+          interval: 0,
+          rotate: 20,
+          color: theme.axisText,
+        },
+      },
+      yAxis: {
+        type: "category",
+        name: "Interpretation scenario",
+        data: scenarioEntries.map((entry) => entry.scenarioLabel),
+        axisLabel: {
+          color: theme.axisText,
+          width: 168,
+          overflow: "truncate",
+        },
+      },
+      visualMap: {
+        show: false,
+        type: "piecewise",
+        dimension: 2,
+        pieces: [
+          { value: 0, color: theme.contextLine },
+          { value: 1, color: theme.referenceLine },
+          { value: 2, color: theme.alertLower },
+        ],
+      },
+      series: [
+        {
+          name: "Evidence matrix",
+          type: "heatmap",
+          data: plotRows,
+          label: {
+            show: true,
+            color: theme.axisText,
+            fontSize: 11,
+            formatter: (params) => {
+              const raw = params && typeof params.data === "object" ? params.data : {};
+              return String(raw.signalLabel || "");
+            },
+          },
+          itemStyle: {
+            borderColor: theme.axisLine,
+            borderWidth: 1,
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 6,
+              shadowColor: "rgba(0, 0, 0, 0.18)",
+            },
+          },
+        },
+      ],
+    };
+    mount.chart.setOption(ensureReadableAxes(option, mount), true);
+    mount.customChartNote =
+      "No composite score is used. Read each evidence-family column separately and compare scenarios.";
+    mount.isTimeSeries = false;
+    mount.isAbsoluteTime = false;
+    return true;
+  }
+
   function renderDuplicateNamesByPosition(mount, rows) {
     const theme = currentChartTheme();
     const subset = rows
@@ -7551,6 +7780,7 @@ export async function runReportApp() {
     renderDuplicateNamesByPosition: renderDuplicateNamesByPosition,
     renderDuplicatePositionBucketDeviance: renderDuplicatePositionBucketDeviance,
     renderDuplicateTopNameTiming: renderDuplicateTopNameTiming,
+    renderEvidenceMatrix: renderEvidenceMatrix,
     renderOffHoursFunnel: renderOffHoursFunnel,
     renderOffHoursPrimaryFlagChannels: renderOffHoursPrimaryFlagChannels,
     renderOverviewPositionVolumeByBucket: renderOverviewPositionVolumeByBucket,

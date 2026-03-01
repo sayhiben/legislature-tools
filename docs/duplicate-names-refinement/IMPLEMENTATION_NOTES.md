@@ -18,7 +18,7 @@ Execution order is tracked here independently from ticket numbering.
 7. `DUP-004` (Done, 2026-02-28)
 8. `DUP-005` (Done, 2026-02-28)
 9. `DUP-007` (Implemented, 2026-02-28; review sign-off pending)
-10. `DUP-006` (Implemented, 2026-02-28; analyst sign-off pending)
+10. `DUP-006` (Done, 2026-03-01)
 11. `DUP-011` (Done, 2026-02-28)
 12. `DUP-012` (Done, 2026-02-28)
 13. `DUP-013` (Done, 2026-02-28)
@@ -35,11 +35,10 @@ Execution order is tracked here independently from ticket numbering.
 1. Engineering implementation queue clear through `DUP-021`
 2. Non-coding sign-off holds still tracked:
    - `DUP-007` review sign-off pending
-   - `DUP-006` analyst sign-off pending
 
 ### Planned next order (subject to reprioritization)
 1. No additional DUP engineering work items currently queued.
-2. Awaiting sign-off closure for `DUP-006` and `DUP-007`.
+2. Awaiting review sign-off closure for `DUP-007`.
 
 ## Scope Covered
 These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, **DUP-018**, **DUP-019**, **DUP-020**, and **DUP-021**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
@@ -1803,4 +1802,57 @@ Scope: Documentation/state consistency pass after DUP-021 completion.
 - No acceptance-criteria drift identified in remaining work-item markdown files during this sweep.
 
 ## Handoff State
-- Next action is sign-off closure for `DUP-006` and `DUP-007`, or creation of a new `DUP-xxx` ticket if additional engineering scope is added.
+- Next action is review sign-off closure for `DUP-007`, or creation of a new `DUP-xxx` ticket if additional engineering scope is added.
+
+---
+
+## DUP-006/DUP-007 Sign-off Refresh
+
+Date: 2026-03-01  
+Scope: Non-coding sign-off validation sweep after DUP-021.
+
+## What Was Run
+- Focused regressions:
+  - `python -m pytest tests/test_analysis_registry.py tests/test_report_chart_payload.py tests/test_vrdb_collision_backtest.py tests/test_vrdb_collision_null.py tests/test_vrdb_collision_evidence_detector.py -q`
+  - result: pass (warnings only).
+- ESSB 6346 unified generation (using imported data, skip-imports):
+  - `output/run_logs/dup006_dup007_signoff_unified_essb6346_skip_imports.log`
+  - completion:
+    - `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- ESSB 6346 rerender:
+  - `output/run_logs/dup006_dup007_signoff_rerender_essb6346.log`
+  - completion:
+    - `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Playwright MCP validation on:
+  - desktop `1728x1117`
+  - mobile `390x844`
+
+## DUP-006 Outcome
+- Evidence-matrix section rendered correctly with explicit disagreement policy callout.
+- Scenario-count chart remained wired in section and followed linked bucket changes.
+- Sidebar/global controls and bucket synchronization behaved correctly on both viewports.
+- Console/network diagnostics:
+  - report-data requests returned `200`
+  - only expected local static-server `favicon.ico` `404`.
+- Status advanced to done (`docs/duplicate-names-refinement/work-items/DUP-006.md`).
+
+## DUP-007 Outcome
+- Reviewed current backtest artifacts:
+  - `output/dup007/vrdb_collision_backtest_summary.json`
+  - `output/dup007/vrdb_collision_backtest_memo.md`
+  - `output/dup007/vrdb_collision_backtest_scenario_summary.csv`
+- Findings unchanged from prior pending-review state:
+  - synthetic null vs injected separation remains strong.
+  - several historical-control scenarios still show very high holdout-normal alert rates (up to `1.000`).
+- Fresh rerun attempt with seed `6346` was started and then stopped after confirming no new evidence changed the rollout decision.
+- `DUP-007` remains implemented with review sign-off pending.
+
+## Issues Encountered During Refresh
+- A long-running `import-vrdb` backend from an interrupted earlier run left a relation lock that blocked a subsequent `run-all` query.
+- Mitigation:
+  - verified blocker in `pg_stat_activity`;
+  - reran ESSB validation via `run_unified_report.sh --skip-imports` for this sign-off sweep.
+
+## Updated Handoff State
+- Engineering queue remains clear through `DUP-021`.
+- Remaining open item is non-coding review sign-off for `DUP-007`.

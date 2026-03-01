@@ -232,6 +232,25 @@ export async function runReportApp() {
         .map((value) => String(value || "").trim().toLowerCase())
         .filter((value) => value === "strict" || value === "loose")
     : [];
+  const duplicateMatchModePolicy = Array.isArray(controls.duplicate_match_mode_policy)
+    ? controls.duplicate_match_mode_policy
+        .map((entry) => ({
+          matchMode: normalizeReportMatchMode(
+            (entry && entry.match_mode) || "",
+            "strict"
+          ),
+          matchModeLabel:
+            typeof (entry && entry.match_mode_label) === "string"
+              ? String(entry.match_mode_label).trim()
+              : "",
+          matchModeRole:
+            typeof (entry && entry.match_mode_role) === "string"
+              ? String(entry.match_mode_role).trim().toLowerCase()
+              : "",
+          inferentialEnabled: Boolean(entry && entry.inferential_enabled),
+        }))
+        .filter((entry) => !!entry.matchMode)
+    : [];
   const duplicateStatisticalContract =
     controls.duplicate_statistical_contract &&
     typeof controls.duplicate_statistical_contract === "object"
@@ -262,6 +281,46 @@ export async function runReportApp() {
     duplicateMatchModeOptions.includes(String(controls.duplicate_match_mode_default).trim().toLowerCase())
       ? String(controls.duplicate_match_mode_default).trim().toLowerCase()
       : duplicateMatchModeOptions[0] || "strict";
+  const duplicateInferentialKeyMode = normalizeReportMatchMode(
+    typeof controls.duplicate_inferential_key_mode === "string"
+      ? controls.duplicate_inferential_key_mode
+      : defaultDuplicateMatchMode,
+    "strict"
+  );
+  const duplicateInferentialKeyLabel =
+    typeof controls.duplicate_inferential_key_label === "string" &&
+    controls.duplicate_inferential_key_label.trim()
+      ? controls.duplicate_inferential_key_label.trim()
+      : duplicateInferentialKeyMode === "loose"
+        ? "Loose (nickname) (Primary inferential key)"
+        : "Strict (Primary inferential key)";
+  const duplicateMatchModePolicyByMode = new Map();
+  duplicateMatchModePolicy.forEach((entry) => {
+    const mode = normalizeReportMatchMode(entry.matchMode, "strict");
+    if (!mode) {
+      return;
+    }
+    duplicateMatchModePolicyByMode.set(mode, entry);
+  });
+  duplicateMatchModeOptions.forEach((mode) => {
+    const normalizedMode = normalizeReportMatchMode(mode, "strict");
+    if (duplicateMatchModePolicyByMode.has(normalizedMode)) {
+      return;
+    }
+    const isPrimary = normalizedMode === duplicateInferentialKeyMode;
+    const fallbackLabel =
+      normalizedMode === "loose"
+        ? "Loose (nickname)"
+        : normalizedMode === "strict"
+          ? "Strict"
+          : normalizedMode.replace(/_/g, " ");
+    duplicateMatchModePolicyByMode.set(normalizedMode, {
+      matchMode: normalizedMode,
+      matchModeLabel: fallbackLabel + (isPrimary ? " (Primary inferential key)" : " (Sensitivity view)"),
+      matchModeRole: isPrimary ? "primary_inferential" : "sensitivity_only",
+      inferentialEnabled: isPrimary,
+    });
+  });
   const voterMatchModeOptions = Array.isArray(controls.voter_match_mode_options)
     ? controls.voter_match_mode_options
         .map((value) => String(value || "").trim().toLowerCase())
@@ -2347,6 +2406,40 @@ export async function runReportApp() {
     return source ? humanizeToken(source) : "";
   }
 
+  function duplicateModePolicyFor(mode) {
+    const normalizedMode = normalizeReportMatchMode(
+      mode,
+      state.defaultDuplicateMatchMode || "strict"
+    );
+    return duplicateMatchModePolicyByMode.get(normalizedMode) || null;
+  }
+
+  function duplicateModeRoleLabel(mode) {
+    const policy = duplicateModePolicyFor(mode);
+    if (policy && typeof policy.matchModeRole === "string" && policy.matchModeRole.trim()) {
+      return policy.matchModeRole.trim().replace(/_/g, " ");
+    }
+    return normalizeReportMatchMode(mode, state.defaultDuplicateMatchMode || "strict") ===
+      duplicateInferentialKeyMode
+      ? "primary inferential"
+      : "sensitivity only";
+  }
+
+  function duplicateModeLabel(mode) {
+    const policy = duplicateModePolicyFor(mode);
+    if (policy && typeof policy.matchModeLabel === "string" && policy.matchModeLabel.trim()) {
+      return policy.matchModeLabel.trim();
+    }
+    const normalizedMode = normalizeReportMatchMode(mode, state.defaultDuplicateMatchMode || "strict");
+    if (normalizedMode === "loose") {
+      return "Loose (nickname)";
+    }
+    if (normalizedMode === "strict") {
+      return "Strict";
+    }
+    return normalizedMode.replace(/_/g, " ");
+  }
+
   function duplicateDeclarationNoteFrom(entry, rows) {
     const declaration = entry && typeof entry === "object" ? entry : {};
     const baselineLabel = firstNonEmptyString([
@@ -2368,12 +2461,26 @@ export async function runReportApp() {
       declaration.gating,
       duplicateStatisticalContract.gating,
     ]);
+    const inferentialKeyLabel = firstNonEmptyString([
+      declaration.inferential_key_label,
+      duplicateStatisticalContract.inferential_key_label,
+      duplicateInferentialKeyLabel,
+    ]);
+    const inferentialKeyMode = firstNonEmptyString([
+      declaration.inferential_key_mode,
+      duplicateStatisticalContract.inferential_key_mode,
+      duplicateInferentialKeyMode,
+    ]);
     const parts = [];
     if (baselineLabel) {
       parts.push("Baseline: " + baselineLabel + ".");
     }
     if (inferentialStatus) {
       parts.push("Inferential status: " + inferentialStatus + ".");
+    }
+    if (inferentialKeyLabel || inferentialKeyMode) {
+      const keyText = inferentialKeyLabel || duplicateModeLabel(inferentialKeyMode);
+      parts.push("Inferential key: " + keyText + ".");
     }
     if (gating) {
       parts.push("Gating: " + gating);
@@ -10269,6 +10376,7 @@ export async function runReportApp() {
   function initDuplicateCollisionControls() {
     const panel = document.getElementById("duplicate-collision-panel");
     const matchModeSelect = document.getElementById("duplicate-match-mode-select");
+    const matchModeBadge = document.getElementById("duplicate-match-mode-badge");
     const scopeSelect = document.getElementById("duplicate-scope-select");
     const metricSelect = document.getElementById("duplicate-metric-select");
     const matchModeLabel = panel ? panel.querySelector('label[for="duplicate-match-mode-select"]') : null;
@@ -10351,7 +10459,7 @@ export async function runReportApp() {
     matchModeOptions.forEach((value) => {
       const option = document.createElement("option");
       option.value = value;
-      option.textContent = value === "loose" ? "Loose" : "Strict";
+      option.textContent = duplicateModeLabel(value);
       matchModeSelect.appendChild(option);
     });
     matchModeSelect.value = state.activeDuplicateMatchMode;
@@ -10361,6 +10469,30 @@ export async function runReportApp() {
     if (matchModeLabel) {
       matchModeLabel.classList.toggle("hidden", hideMatchModeControl);
     }
+    const updateDuplicateMatchModeBadge = () => {
+      if (!matchModeBadge) {
+        return;
+      }
+      const activeMode = normalizeReportMatchMode(
+        state.activeDuplicateMatchMode,
+        state.defaultDuplicateMatchMode || "strict"
+      );
+      const activeIsPrimary = activeMode === duplicateInferentialKeyMode;
+      const badgeText = activeIsPrimary
+        ? "Primary inferential key"
+        : "Sensitivity view";
+      const roleLabel = duplicateModeRoleLabel(activeMode);
+      matchModeBadge.textContent = badgeText;
+      matchModeBadge.title =
+        roleLabel +
+        ". Inferential outputs remain keyed to " +
+        duplicateModeLabel(duplicateInferentialKeyMode) +
+        ".";
+      matchModeBadge.classList.remove("hidden");
+      matchModeBadge.classList.toggle("status-empty", activeIsPrimary);
+      matchModeBadge.classList.toggle("status-disabled", !activeIsPrimary);
+    };
+    updateDuplicateMatchModeBadge();
 
     scopeSelect.innerHTML = "";
     scopeOptions.forEach((value) => {
@@ -10414,6 +10546,7 @@ export async function runReportApp() {
         window.localStorage.setItem("testifier_audit_dup_scope", state.activeDuplicateScope);
         window.localStorage.setItem("testifier_audit_dup_metric", state.activeDuplicateMetric);
       } catch (_error) {}
+      updateDuplicateMatchModeBadge();
       syncControlOverridesToUrl();
       runWithBusyIndicator("Applying duplicate name/collision view...", async () => {
         await rerenderDuplicateCollisionCharts();

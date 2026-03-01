@@ -313,11 +313,17 @@ def test_payload_contract_exposes_catalog_controls_and_chart_ids() -> None:
     assert isinstance(controls["duplicate_collision_metric_options"], list)
     assert isinstance(controls["duplicate_match_mode_default"], str)
     assert isinstance(controls["duplicate_match_mode_options"], list)
+    assert isinstance(controls["duplicate_inferential_key_mode"], str)
+    assert isinstance(controls["duplicate_inferential_key_label"], str)
+    assert isinstance(controls["duplicate_match_mode_policy"], list)
     assert isinstance(controls["duplicate_statistical_contract"], dict)
     duplicate_contract = controls["duplicate_statistical_contract"]
     assert "name-key collision burden" in str(duplicate_contract.get("estimand_primary", ""))
     assert "cannot infer identity" in str(duplicate_contract.get("non_goals", ""))
     assert "reference model" in str(duplicate_contract.get("baseline_semantics", ""))
+    assert isinstance(duplicate_contract.get("inferential_key_mode"), str)
+    assert isinstance(duplicate_contract.get("inferential_key_label"), str)
+    assert isinstance(duplicate_contract.get("match_mode_policy"), list)
     assert isinstance(duplicate_contract.get("chart_declarations"), dict)
     assert isinstance(duplicate_contract.get("table_declarations"), dict)
     assert "duplicates_exact_bucket_concentration" in duplicate_contract["chart_declarations"]
@@ -1106,6 +1112,8 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     names_row = rows_by_metric["names_anywhere"]
     assert rows_row["scope"] == "matched_only"
     assert rows_row["match_mode"] == "strict"
+    assert rows_row["match_mode_role"] == "primary_inferential"
+    assert rows_row["inferential_key_mode"] == "strict"
     assert rows_row["n_used"] == 100
     assert rows_row["N_used"] == 1000
     assert rows_row["baseline_model"] == "multinomial"
@@ -1136,6 +1144,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert all(row.get("baseline_label") == "Same-hearing empirical baseline" for row in diagnostics)
     assert all(row.get("inferential_status") == "descriptive_only" for row in diagnostics)
     assert all(row.get("inferential_reason") == "self_referential_baseline" for row in diagnostics)
+    assert all(row.get("inferential_key_mode") == "strict" for row in diagnostics)
     assert all(row.get("p_value") is None for row in diagnostics)
     assert all(row.get("z_score") is None for row in diagnostics)
 
@@ -1147,6 +1156,8 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
         "match_mode",
         "match_label",
         "match_definition",
+        "match_mode_role",
+        "inferential_key_mode",
         "rank",
         "name_key",
         "display_name",
@@ -1164,6 +1175,7 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert all(row.get("baseline_label") == "Same-hearing empirical baseline" for row in timing_exact_rows)
     assert all(row.get("inferential_status") == "descriptive_only" for row in timing_exact_rows)
     assert all(row.get("inferential_reason") == "self_referential_baseline" for row in timing_exact_rows)
+    assert all(row.get("inferential_key_mode") == "strict" for row in timing_exact_rows)
 
     controls = payload["controls"]
     assert controls["duplicate_collision_scope_default"] == "matched_only"
@@ -1172,16 +1184,35 @@ def test_payload_uses_collision_metric_tables_and_provenance_fields() -> None:
     assert controls["duplicate_collision_metric_options"] == ["rows_anywhere", "names_anywhere"]
     assert controls["duplicate_match_mode_default"] in {"strict", "loose"}
     assert set(controls["duplicate_match_mode_options"]).issubset({"strict", "loose"})
+    assert controls["duplicate_inferential_key_mode"] == "strict"
+    assert isinstance(controls["duplicate_inferential_key_label"], str)
+    assert isinstance(controls["duplicate_match_mode_policy"], list)
+    assert controls["duplicate_match_mode_policy"]
+    policy_by_mode = {entry["match_mode"]: entry for entry in controls["duplicate_match_mode_policy"]}
+    assert policy_by_mode["strict"]["match_mode_role"] == "primary_inferential"
+    assert policy_by_mode["strict"]["inferential_enabled"] is True
     duplicate_contract = controls["duplicate_statistical_contract"]
     assert duplicate_contract["claim_class"] == "collision_signal"
     assert duplicate_contract["baseline_label"] == "Same-hearing empirical baseline"
     assert duplicate_contract["inferential_status"] == "descriptive_only"
     assert duplicate_contract["inferential_reason"] == "self_referential_baseline"
+    assert duplicate_contract["inferential_key_mode"] == "strict"
+    assert isinstance(duplicate_contract["inferential_key_label"], str)
+    assert isinstance(duplicate_contract["match_mode_policy"], list)
     assert "duplicates_exact_metric_diagnostics" in duplicate_contract["chart_declarations"]
     assert "collision_overview" in duplicate_contract["table_declarations"]
 
     methodology = payload["controls"]["methodology"]
     assert methodology["duplicate_runtime"]
+    runtime_row = methodology["duplicate_runtime"][0]
+    for column in (
+        "stratification_weight_source",
+        "stratification_leakage_control",
+        "stratification_weight_uncertainty",
+        "stratification_endogeneity_uncontrolled",
+        "inferential_key_mode",
+    ):
+        assert column in runtime_row
     assert any("degraded" in str(item).lower() for item in methodology["caveats"])
 
 

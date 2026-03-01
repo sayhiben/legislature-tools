@@ -41,6 +41,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 1,
             "canonical_name": "DOE|ROBERT",
             "name_display": "DOE, ROBERT",
+            "collision_key_strict": "DOE|ROBERT",
             "collision_key_medium": "DOE|ROBERT",
             "canonical_key_nickname": "DOE|ROBERT",
             "collision_key_loose": "DOE|B",
@@ -51,6 +52,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 2,
             "canonical_name": "DOE|ROBERT",
             "name_display": "DOE, ROBERT",
+            "collision_key_strict": "DOE|ROBERT",
             "collision_key_medium": "DOE|ROBERT",
             "canonical_key_nickname": "DOE|ROBERT",
             "collision_key_loose": "DOE|B",
@@ -61,6 +63,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 3,
             "canonical_name": "DOE|BOB",
             "name_display": "DOE, BOB",
+            "collision_key_strict": "DOE|BOB",
             "collision_key_medium": "DOE|BOB",
             "canonical_key_nickname": "DOE|ROBERT",
             "collision_key_loose": "DOE|B",
@@ -71,6 +74,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 4,
             "canonical_name": "DOE|BOB",
             "name_display": "DOE, BOB",
+            "collision_key_strict": "DOE|BOB",
             "collision_key_medium": "DOE|BOB",
             "canonical_key_nickname": "DOE|ROBERT",
             "collision_key_loose": "DOE|B",
@@ -81,6 +85,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 5,
             "canonical_name": "DOE|BEN",
             "name_display": "DOE, BEN",
+            "collision_key_strict": "DOE|BEN",
             "collision_key_medium": "DOE|BEN",
             "canonical_key_nickname": "DOE|BEN",
             "collision_key_loose": "DOE|B",
@@ -91,6 +96,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 6,
             "canonical_name": "DOE|BEN",
             "name_display": "DOE, BEN",
+            "collision_key_strict": "DOE|BEN",
             "collision_key_medium": "DOE|BEN",
             "canonical_key_nickname": "DOE|BEN",
             "collision_key_loose": "DOE|B",
@@ -101,6 +107,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 7,
             "canonical_name": "LEE|ALICE",
             "name_display": "LEE, ALICE",
+            "collision_key_strict": "LEE|ALICE",
             "collision_key_medium": "LEE|ALICE",
             "canonical_key_nickname": "LEE|ALICE",
             "collision_key_loose": "LEE|A",
@@ -111,6 +118,7 @@ def _build_top_name_timing_frame() -> pd.DataFrame:
             "id": 8,
             "canonical_name": "LEE|ALICE",
             "name_display": "LEE, ALICE",
+            "collision_key_strict": "LEE|ALICE",
             "collision_key_medium": "LEE|ALICE",
             "canonical_key_nickname": "LEE|ALICE",
             "collision_key_loose": "LEE|A",
@@ -165,6 +173,15 @@ def test_collision_baseline_failure_policy_fail_and_degrade() -> None:
     )
     with pytest.raises(RuntimeError, match="collision baseline requires voter_registry.db_url"):
         fail_fast.run(df=frame, features={})
+
+
+def test_collision_key_mode_guard_rejects_non_strict_inferential_mode() -> None:
+    with pytest.raises(ValueError, match="collision_key_mode must be 'strict'"):
+        DuplicatesExactDetector(
+            top_n=10,
+            bucket_minutes=[5],
+            collision_key_mode="medium",
+        )
 
 
 def test_duplicate_statistical_contract_is_emitted_in_summary_and_methods() -> None:
@@ -859,6 +876,116 @@ def test_birth_decade_stratification_monte_carlo_uses_stratified_sampler(
     assert len(frame) not in set(simulated_n_rows)
 
 
+def test_stratified_same_hearing_weights_are_descriptive_only_with_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _build_submission_frame({"DOE|JANE": 4, "SMITH|JOHN": 1})
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_count_histogram",
+        lambda **kwargs: pd.DataFrame(
+            {
+                "name_count": [1000],
+                "n_keys": [2],
+                "N": [2000],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        duplicates_exact_module,
+        "fetch_voter_name_key_stratum_frequencies",
+        lambda **kwargs: pd.DataFrame(
+            [
+                {"name_key": "DOE|JANE", "stratum": "1980s", "n_registry_rows": 900},
+                {"name_key": "DOE|JANE", "stratum": "1990s", "n_registry_rows": 100},
+                {"name_key": "SMITH|JOHN", "stratum": "1980s", "n_registry_rows": 100},
+                {"name_key": "SMITH|JOHN", "stratum": "1990s", "n_registry_rows": 900},
+            ]
+        ),
+    )
+
+    detector = DuplicatesExactDetector(
+        top_n=20,
+        bucket_minutes=[5],
+        collision_baseline_source="vrdb_full_histogram",
+        collision_baseline_model="multinomial",
+        collision_stratification="birth_decade",
+        collision_baseline_failure_policy="fail",
+        collision_uncertainty_mode="monte_carlo",
+        voter_db_url="postgresql://example",
+        monte_carlo_draws=300,
+        low_power_min_unique_names=1,
+        low_power_min_expected_duplicates=0.0,
+    )
+    result = detector.run(df=frame, features={})
+    primary_scope = detector.collision_scope_primary
+
+    methods = result.tables["collision_methods"]
+    primary_methods = methods[methods["scope"] == primary_scope].reset_index(drop=True)
+    assert not primary_methods.empty
+    assert str(primary_methods.loc[0, "stratification"]) == "birth_decade"
+    assert (
+        str(primary_methods.loc[0, "inferential_status"])
+        == "descriptive_only"
+    )
+    assert (
+        str(primary_methods.loc[0, "inferential_reason"])
+        == detector.INFERENTIAL_REASON_STRATIFICATION_ENDOGENEITY_UNCONTROLLED
+    )
+    assert (
+        str(primary_methods.loc[0, "stratification_weight_source"])
+        == detector.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING
+    )
+    assert (
+        str(primary_methods.loc[0, "stratification_leakage_control"])
+        == detector.STRATIFICATION_LEAKAGE_CONTROL_NONE
+    )
+    assert (
+        str(primary_methods.loc[0, "stratification_weight_uncertainty"])
+        == detector.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED
+    )
+    assert bool(primary_methods.loc[0, "stratification_endogeneity_uncontrolled"]) is True
+
+    summary = result.summary
+    assert (
+        str(summary.get("stratification_weight_source", ""))
+        == detector.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING
+    )
+    assert (
+        str(summary.get("stratification_leakage_control", ""))
+        == detector.STRATIFICATION_LEAKAGE_CONTROL_NONE
+    )
+    assert (
+        str(summary.get("stratification_weight_uncertainty", ""))
+        == detector.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED
+    )
+    assert bool(summary.get("stratification_endogeneity_uncontrolled")) is True
+    assert (
+        str(summary.get("inferential_reason", ""))
+        == detector.INFERENTIAL_REASON_STRATIFICATION_ENDOGENEITY_UNCONTROLLED
+    )
+
+    overview = result.tables["collision_overview"]
+    primary_overview = overview[overview["scope"] == primary_scope].copy()
+    assert not primary_overview.empty
+    assert primary_overview["p_value"].isna().all()
+    assert primary_overview["z_score"].isna().all()
+
+    sensitivity = result.tables["collision_stratification_sensitivity"]
+    primary_sensitivity = sensitivity[sensitivity["scope"] == primary_scope].copy()
+    assert not primary_sensitivity.empty
+    assert set(primary_sensitivity["stratification_weight_source"].astype(str)) == {
+        detector.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING
+    }
+    assert set(primary_sensitivity["stratification_leakage_control"].astype(str)) == {
+        detector.STRATIFICATION_LEAKAGE_CONTROL_NONE
+    }
+    assert set(primary_sensitivity["stratification_weight_uncertainty"].astype(str)) == {
+        detector.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED
+    }
+    assert primary_sensitivity["stratification_endogeneity_uncontrolled"].astype(bool).all()
+
+
 def test_collision_monte_carlo_draw_budget_is_not_row_scaled() -> None:
     detector = DuplicatesExactDetector(
         top_n=20,
@@ -1010,6 +1137,7 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
         collision_uncertainty_mode="analytic_only",
     )
     result = detector.run(df=frame, features={})
+    assert result.summary["inferential_key_mode"] == "strict"
     timing = result.tables["top_name_timing_by_mode"]
 
     required = {
@@ -1017,6 +1145,8 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
         "match_mode",
         "match_label",
         "match_definition",
+        "match_mode_role",
+        "inferential_key_mode",
         "rank",
         "name_key",
         "display_name",
@@ -1033,6 +1163,11 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     assert required.issubset(timing.columns)
     assert not timing.empty
     assert set(timing["match_mode"]) == {"strict", "loose"}
+    assert set(timing["inferential_key_mode"].astype(str)) == {"strict"}
+    assert set(timing["match_mode_role"].astype(str)) == {
+        detector.MATCH_MODE_ROLE_PRIMARY_INFERENTIAL,
+        detector.MATCH_MODE_ROLE_SENSITIVITY,
+    }
     assert (timing["duplicate_rows"] >= 1).all()
     assert (timing["duplicate_rows"] == 1).any()
     assert (timing["n_other"] >= 0).all()
@@ -1061,6 +1196,11 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
     per_name_by_mode = result.tables["per_name_duplicates_by_mode"]
     assert not per_name_by_mode.empty
     assert set(per_name_by_mode["match_mode"]) == {"strict", "loose"}
+    assert set(per_name_by_mode["inferential_key_mode"].astype(str)) == {"strict"}
+    assert set(per_name_by_mode["match_mode_role"].astype(str)) == {
+        detector.MATCH_MODE_ROLE_PRIMARY_INFERENTIAL,
+        detector.MATCH_MODE_ROLE_SENSITIVITY,
+    }
     assert (per_name_by_mode["observed_count"].astype(int) >= 2).all()
 
     full_timing = result.tables["per_name_submission_timing_by_mode"]
@@ -1069,6 +1209,8 @@ def test_top_name_timing_by_mode_emits_ranked_rows_with_expected_mode_collapsing
         "match_mode",
         "match_label",
         "match_definition",
+        "match_mode_role",
+        "inferential_key_mode",
         "canonical_name",
         "name_key",
         "display_name",

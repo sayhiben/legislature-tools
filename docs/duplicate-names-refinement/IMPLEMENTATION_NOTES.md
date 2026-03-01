@@ -25,19 +25,19 @@ Execution order is tracked here independently from ticket numbering.
 14. `DUP-014` (Done, 2026-03-01)
 15. `DUP-015` (Done, 2026-03-01)
 16. `DUP-016` (Done, 2026-03-01)
+17. `DUP-017` (Done, 2026-03-01)
+18. `DUP-018` (Done, 2026-03-01)
 
 ### Current
-1. `DUP-017` (next in-progress target)
+1. `DUP-019` (next in-progress target)
 
 ### Planned next order (subject to reprioritization)
-1. `DUP-017`
-2. `DUP-018`
-3. `DUP-019`
-4. `DUP-020`
-5. `DUP-021`
+1. `DUP-019`
+2. `DUP-020`
+3. `DUP-021`
 
 ## Scope Covered
-These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, and **DUP-016**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
+These notes capture implementation takeaways from **DUP-001**, **DUP-008**, **DUP-009**, **DUP-010**, **DUP-002**, **DUP-003**, **DUP-004**, **DUP-005**, **DUP-007**, **DUP-006**, **DUP-011**, **DUP-012**, **DUP-013**, **DUP-014**, **DUP-015**, **DUP-016**, **DUP-017**, and **DUP-018**, including code-level contract decisions, QA observations, and planning impacts for upcoming work items.
 
 Date: 2026-02-28  
 Work item: DUP-001 (P0)
@@ -1359,3 +1359,124 @@ Work item: DUP-016 (P2)
   - mode-guard regression tests protect against accidental re-enablement.
   - expectation-only outputs remain available with inferential suppression.
 - Next ticket in sequence is `DUP-017`.
+
+---
+
+## DUP-017 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-017 (P2)
+
+## What Was Implemented
+- Implemented near-term endogeneity guardrails for stratified collision inference in `duplicates_exact`:
+  - when stratified mixture weights are same-hearing observed weights and leakage-control/uncertainty propagation are absent, inferential status is forced to `descriptive_only`.
+  - new inferential reason: `stratification_endogeneity_uncontrolled`.
+- Preserved `DUP-016` rounded-hypergeometric guard precedence:
+  - stratified rounded hypergeometric remains `unavailable` with reason `stratified_hypergeometric_rounding_inference_disabled`.
+- Added stratification provenance fields across detector outputs:
+  - `stratification_weight_source`
+  - `stratification_leakage_control`
+  - `stratification_weight_uncertainty`
+  - `stratification_endogeneity_uncontrolled`
+- Propagated provenance to:
+  - `collision_methods`
+  - `collision_stratification_sensitivity`
+  - duplicate summary primary-scope metadata
+  - report payload duplicate-runtime rows.
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - `test_stratified_same_hearing_weights_are_descriptive_only_with_provenance`
+- `tests/test_report_chart_payload.py`
+  - duplicate runtime contract assertions include new stratification provenance columns.
+- Focused validation passed:
+  - `python -m pytest tests/test_duplicates_exact.py tests/test_report_chart_payload.py -q`
+  - `python -m pytest tests/test_analysis_registry.py tests/test_report_render_helpers.py -q`
+
+## Runtime / Report Validation (ESSB 6346)
+- Run-all completed with DB URL set:
+  - log: `output/run_logs/dup017_essb6346_runall_csv.log`
+- Rerender completed:
+  - log: `output/run_logs/dup017_essb6346_rerender.log`
+- Playwright MCP validation completed:
+  - desktop `1728x1117`
+  - mobile `390x844`
+  - report-data requests returned `200`; only expected local `favicon.ico` `404` observed.
+
+## Issues Discovered During DUP-017
+- Initial implementation briefly regressed `DUP-016` test expectations by emitting `descriptive_only` instead of `unavailable` for rounded stratified hypergeometric paths.
+- Mitigation:
+  - reordered inferential guard precedence so rounded-hypergeometric unavailability is evaluated before endogeneity-descriptive suppression.
+
+## Remaining Work / Handoff
+- DUP-017 acceptance criteria are met:
+  - no inferential stratified output proceeds under uncontrolled same-hearing endogeneity.
+  - provenance fields are emitted and propagated.
+  - unresolved uncertainty paths are explicitly suppressed to descriptive-only.
+- Next ticket in sequence: `DUP-018`.
+
+---
+
+## DUP-018 Implementation Addendum
+
+Date: 2026-03-01  
+Work item: DUP-018 (P2)
+
+## What Was Implemented
+- Enforced single inferential key policy in `duplicates_exact`:
+  - detector now requires `collision_key_mode="strict"`; non-strict inferential mode configuration raises with explicit guidance.
+- Fixed strict timing/per-name mode drift:
+  - strict mode is aligned to the active inferential key column (no hidden medium-key fallback semantics in strict mode labeling).
+- Added primary-vs-sensitivity mode metadata to duplicate mode tables:
+  - `match_mode_role` (`primary_inferential` / `sensitivity_only`)
+  - `inferential_key_mode` (`strict`)
+- Added inferential-key provenance to inferential surfaces:
+  - duplicate summary/statistical contract include `inferential_key_mode`
+  - inferential tables and payload rows carry inferential key mode metadata.
+- Added payload control/contract policy fields:
+  - `controls.duplicate_inferential_key_mode`
+  - `controls.duplicate_inferential_key_label`
+  - `controls.duplicate_match_mode_policy`
+  - duplicate chart/table declarations now include inferential key and mode policy.
+- Updated duplicate UI control rendering:
+  - mode options now explicitly label policy role:
+    - `Strict (Primary inferential key)`
+    - `Loose (nickname) (Sensitivity view)`
+  - added duplicate-mode status badge (`Primary inferential key` / `Sensitivity view`).
+  - duplicate declaration notes now include inferential-key statement.
+
+## Tests Added/Updated
+- `tests/test_duplicates_exact.py`
+  - added `test_collision_key_mode_guard_rejects_non_strict_inferential_mode`
+  - expanded top-name timing mode test for `match_mode_role` / `inferential_key_mode` assertions.
+- `tests/test_report_chart_payload.py`
+  - added control/contract assertions for inferential key + mode-policy fields.
+  - added duplicate chart/runtime row assertions for inferential-key metadata.
+- Focused suites passed:
+  - `python -m pytest tests/test_duplicates_exact.py tests/test_report_chart_payload.py -q`
+  - `python -m pytest tests/test_report_render_helpers.py tests/test_analysis_registry.py -q`
+  - `python -m pytest tests/test_expected_duplicate_rate_fixtures.py -q`
+
+## Runtime / Report Validation (ESSB 6346)
+- Run-all completed:
+  - log: `output/run_logs/dup018_essb6346_runall_csv.log`
+  - completion line: `Run complete. Report: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Rerender completed:
+  - log: `output/run_logs/dup018_essb6346_rerender.log`
+  - completion line: `Report written to: /Users/sayhiben/dev/legislature-tools/reports/ESSB6346-20260224-0800/report.html`
+- Playwright MCP checks completed:
+  - desktop `1728x1117`: bucket/theme interactions and duplicate mode policy label/badge transitions verified.
+  - mobile `390x844`: global-controls/sidebar toggles plus bucket/theme interactions verified.
+  - diagnostics: report-data requests `200`; only expected local `favicon.ico` `404` console error.
+
+## Issues Discovered During DUP-018
+- Duplicate mode controls are available in DOM even when section-control panel is not visibly expanded for the current viewport/anchor state.
+- Mitigation:
+  - validated mode-policy label and badge transitions via direct control change events and chart/data rerender behavior.
+
+## Remaining Work / Handoff
+- DUP-018 acceptance criteria are met:
+  - inferential key is explicit and stable (`strict`).
+  - nickname/loose mode is explicitly labeled sensitivity-only in controls/declarations.
+  - UI no longer presents strict/loose as unlabeled interchangeable match semantics.
+- Next ticket in sequence: `DUP-019`.

@@ -572,6 +572,27 @@ def _duplicate_default_scope_status_for_reason(scope_reason: str) -> str:
     return "unavailable"
 
 
+def _duplicate_match_mode_role(mode: str, *, inferential_key_mode: str) -> str:
+    normalized_mode = _normalize_report_match_mode(mode, default="strict")
+    normalized_key_mode = _normalize_report_match_mode(inferential_key_mode, default="strict")
+    if normalized_mode == normalized_key_mode:
+        return "primary_inferential"
+    return "sensitivity_only"
+
+
+def _duplicate_match_mode_label(mode: str, *, inferential_key_mode: str) -> str:
+    normalized_mode = _normalize_report_match_mode(mode, default="strict")
+    if normalized_mode == "strict":
+        base = "Strict"
+    elif normalized_mode == "loose":
+        base = "Loose (nickname)"
+    else:
+        base = normalized_mode.replace("_", " ")
+    role = _duplicate_match_mode_role(normalized_mode, inferential_key_mode=inferential_key_mode)
+    suffix = "Primary inferential key" if role == "primary_inferential" else "Sensitivity view"
+    return f"{base} ({suffix})"
+
+
 def _duplicate_inferential_supported_mask(
     frame: pd.DataFrame,
     *,
@@ -1178,9 +1199,14 @@ def _build_interactive_chart_payload_v2(
             "baseline_degraded",
             "fallback_policy",
             "collision_key_mode",
+            "inferential_key_mode",
             "normalization_version",
             "normalization_version_hash",
             "stratification",
+            "stratification_weight_source",
+            "stratification_leakage_control",
+            "stratification_weight_uncertainty",
+            "stratification_endogeneity_uncontrolled",
             "censored",
             "claim_class",
             "inferential_status",
@@ -1252,6 +1278,23 @@ def _build_interactive_chart_payload_v2(
                     _duplicate_default_inferential_reason_for_status
                 ),
             )
+        )
+        dup_exact_methods["inferential_key_mode"] = (
+            dup_exact_methods.get("inferential_key_mode", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_methods.get("inferential_key_mode", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_methods.get("collision_key_mode", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str),
+            )
+            .replace("", "strict")
+            .map(lambda value: _normalize_report_match_mode(value, default="strict"))
         )
         dup_exact_methods["scope_status"] = (
             dup_exact_methods.get("scope_status", pd.Series(dtype=str))
@@ -1389,6 +1432,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "inferential_key_mode",
             "family_id",
             "adjustment_method",
             "n_tests",
@@ -1401,13 +1445,23 @@ def _build_interactive_chart_payload_v2(
         ],
     )
     duplicate_metric_options = ["rows_anywhere", "names_anywhere"]
-    primary_dup_match_mode = (
-        _normalize_report_match_mode(
+    primary_dup_match_mode = _normalize_report_match_mode(
+        (
+            dup_exact_methods.get("inferential_key_mode", pd.Series(dtype=str)).iloc[0]
+            if not dup_exact_methods.empty
+            else dup_exact_summary.get("inferential_key_mode")
+        )
+        or (
             dup_exact_methods.get("collision_key_mode", pd.Series(dtype=str)).iloc[0]
             if not dup_exact_methods.empty
-            else "strict",
-            default="strict",
-        )
+            else "strict"
+        ),
+        default="strict",
+    )
+    primary_dup_inferential_key_mode = primary_dup_match_mode
+    primary_dup_inferential_key_label = _duplicate_match_mode_label(
+        primary_dup_inferential_key_mode,
+        inferential_key_mode=primary_dup_inferential_key_mode,
     )
     duplicate_match_mode_options: list[str] = []
     dup_scope_metadata_columns = [
@@ -1418,6 +1472,7 @@ def _build_interactive_chart_payload_v2(
         "baseline_label",
         "inferential_status",
         "inferential_reason",
+        "inferential_key_mode",
         "claim_class",
     ]
     if not dup_exact_methods.empty:
@@ -1438,6 +1493,7 @@ def _build_interactive_chart_payload_v2(
                     "baseline_label": primary_dup_baseline_label,
                     "inferential_status": primary_dup_inferential_status,
                     "inferential_reason": primary_dup_inferential_reason,
+                    "inferential_key_mode": primary_dup_inferential_key_mode,
                     "claim_class": dup_claim_class,
                 }
             ]
@@ -1453,6 +1509,7 @@ def _build_interactive_chart_payload_v2(
                     "baseline_label": primary_dup_baseline_label,
                     "inferential_status": primary_dup_inferential_status,
                     "inferential_reason": primary_dup_inferential_reason,
+                    "inferential_key_mode": primary_dup_inferential_key_mode,
                     "claim_class": dup_claim_class,
                 }
             ]
@@ -1488,6 +1545,13 @@ def _build_interactive_chart_payload_v2(
             > 0,
             dup_scope_metadata["scope_status"].map(_duplicate_default_scope_reason_for_status),
         )
+    )
+    dup_scope_metadata["inferential_key_mode"] = (
+        dup_scope_metadata.get("inferential_key_mode", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .replace("", primary_dup_inferential_key_mode)
+        .map(lambda value: _normalize_report_match_mode(value, default=primary_dup_inferential_key_mode))
     )
     duplicate_scope_availability = _records_from_frame(
         dup_scope_metadata[["scope", "scope_status", "scope_reason"]],
@@ -1534,6 +1598,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "inferential_key_mode",
             "claim_class",
         ):
             fallback_column = f"{column}_scope_meta"
@@ -1629,6 +1694,21 @@ def _build_interactive_chart_payload_v2(
             working["inferential_reason"] = working["inferential_status"].map(
                 _duplicate_default_inferential_reason_for_status
             )
+        if "inferential_key_mode" in working.columns:
+            working["inferential_key_mode"] = (
+                working["inferential_key_mode"]
+                .fillna("")
+                .astype(str)
+                .replace("", primary_dup_inferential_key_mode)
+                .map(
+                    lambda value: _normalize_report_match_mode(
+                        value,
+                        default=primary_dup_inferential_key_mode,
+                    )
+                )
+            )
+        else:
+            working["inferential_key_mode"] = primary_dup_inferential_key_mode
         if "claim_class" in working.columns:
             working["claim_class"] = (
                 working["claim_class"]
@@ -1732,6 +1812,8 @@ def _build_interactive_chart_payload_v2(
             "match_mode",
             "match_label",
             "match_definition",
+            "match_mode_role",
+            "inferential_key_mode",
             "display_name",
             "canonical_name",
             "name_key",
@@ -1756,6 +1838,31 @@ def _build_interactive_chart_payload_v2(
             .map(lambda value: _normalize_report_match_mode(value, default="strict"))
             .astype(str)
         )
+        dup_exact_per_name_by_mode["inferential_key_mode"] = (
+            dup_exact_per_name_by_mode.get("inferential_key_mode", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_inferential_key_mode)
+            .map(lambda value: _normalize_report_match_mode(value, default=primary_dup_inferential_key_mode))
+        )
+        dup_exact_per_name_by_mode["match_mode_role"] = (
+            dup_exact_per_name_by_mode.get("match_mode_role", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_per_name_by_mode.get("match_mode_role", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_per_name_by_mode["match_mode"].map(
+                    lambda mode: _duplicate_match_mode_role(
+                        mode,
+                        inferential_key_mode=primary_dup_inferential_key_mode,
+                    )
+                ),
+            )
+        )
         dup_exact_per_name_by_mode["name_key"] = (
             dup_exact_per_name_by_mode.get("name_key", pd.Series(dtype=str))
             .fillna(dup_exact_per_name_by_mode.get("canonical_name", pd.Series(dtype=str)))
@@ -1773,6 +1880,8 @@ def _build_interactive_chart_payload_v2(
             "match_mode",
             "match_label",
             "match_definition",
+            "match_mode_role",
+            "inferential_key_mode",
             "canonical_name",
             "name_key",
             "display_name",
@@ -1791,6 +1900,31 @@ def _build_interactive_chart_payload_v2(
             dup_exact_per_name_timing_by_mode["match_mode"]
             .map(lambda value: _normalize_report_match_mode(value, default="strict"))
             .astype(str)
+        )
+        dup_exact_per_name_timing_by_mode["inferential_key_mode"] = (
+            dup_exact_per_name_timing_by_mode.get("inferential_key_mode", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_inferential_key_mode)
+            .map(lambda value: _normalize_report_match_mode(value, default=primary_dup_inferential_key_mode))
+        )
+        dup_exact_per_name_timing_by_mode["match_mode_role"] = (
+            dup_exact_per_name_timing_by_mode.get("match_mode_role", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_per_name_timing_by_mode.get("match_mode_role", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_per_name_timing_by_mode["match_mode"].map(
+                    lambda mode: _duplicate_match_mode_role(
+                        mode,
+                        inferential_key_mode=primary_dup_inferential_key_mode,
+                    )
+                ),
+            )
         )
         dup_exact_per_name_timing_by_mode["name_key"] = (
             dup_exact_per_name_timing_by_mode.get("name_key", pd.Series(dtype=str))
@@ -1970,6 +2104,19 @@ def _build_interactive_chart_payload_v2(
             .fillna(primary_dup_match_mode)
             .map(lambda value: _normalize_report_match_mode(value, default="strict"))
             .astype(str)
+        )
+        dup_exact_bucket["inferential_key_mode"] = (
+            dup_exact_bucket.get("inferential_key_mode", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_inferential_key_mode)
+            .map(lambda value: _normalize_report_match_mode(value, default=primary_dup_inferential_key_mode))
+        )
+        dup_exact_bucket["match_mode_role"] = dup_exact_bucket["match_mode"].map(
+            lambda mode: _duplicate_match_mode_role(
+                mode,
+                inferential_key_mode=primary_dup_inferential_key_mode,
+            )
         )
 
         dup_exact_timing_bucket = pd.DataFrame()
@@ -2640,6 +2787,19 @@ def _build_interactive_chart_payload_v2(
     dup_exact_per_name["match_mode"] = dup_exact_per_name.get(
         "match_mode", pd.Series("strict", index=dup_exact_per_name.index)
     ).map(lambda value: _normalize_report_match_mode(value, default="strict"))
+    dup_exact_per_name["inferential_key_mode"] = (
+        dup_exact_per_name.get("inferential_key_mode", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+        .replace("", primary_dup_inferential_key_mode)
+        .map(lambda value: _normalize_report_match_mode(value, default=primary_dup_inferential_key_mode))
+    )
+    dup_exact_per_name["match_mode_role"] = dup_exact_per_name["match_mode"].map(
+        lambda mode: _duplicate_match_mode_role(
+            mode,
+            inferential_key_mode=primary_dup_inferential_key_mode,
+        )
+    )
     dup_exact_per_name["expected_count"] = dup_exact_per_name.get("expected_count", pd.Series(dtype=float))
     dup_exact_per_name["p_value"] = dup_exact_per_name.get("p_value", pd.Series(dtype=float)).fillna(pd.NA)
     dup_exact_per_name["q_value"] = dup_exact_per_name.get("q_value", pd.Series(dtype=float)).fillna(pd.NA)
@@ -2691,6 +2851,8 @@ def _build_interactive_chart_payload_v2(
             "match_mode",
             "match_label",
             "match_definition",
+            "match_mode_role",
+            "inferential_key_mode",
             "rank",
             "name_key",
             "display_name",
@@ -2708,6 +2870,31 @@ def _build_interactive_chart_payload_v2(
     if not dup_exact_top_name_timing.empty:
         dup_exact_top_name_timing["match_mode"] = dup_exact_top_name_timing["match_mode"].map(
             lambda value: _normalize_report_match_mode(value, default="strict")
+        )
+        dup_exact_top_name_timing["inferential_key_mode"] = (
+            dup_exact_top_name_timing.get("inferential_key_mode", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .replace("", primary_dup_inferential_key_mode)
+            .map(lambda value: _normalize_report_match_mode(value, default=primary_dup_inferential_key_mode))
+        )
+        dup_exact_top_name_timing["match_mode_role"] = (
+            dup_exact_top_name_timing.get("match_mode_role", pd.Series(dtype=str))
+            .fillna("")
+            .astype(str)
+            .where(
+                dup_exact_top_name_timing.get("match_mode_role", pd.Series(dtype=str))
+                .fillna("")
+                .astype(str)
+                .str.len()
+                > 0,
+                dup_exact_top_name_timing["match_mode"].map(
+                    lambda mode: _duplicate_match_mode_role(
+                        mode,
+                        inferential_key_mode=primary_dup_inferential_key_mode,
+                    )
+                ),
+            )
         )
         dup_exact_top_name_timing["scope"] = (
             dup_exact_top_name_timing.get("scope", pd.Series(dtype=str))
@@ -2738,6 +2925,21 @@ def _build_interactive_chart_payload_v2(
         primary_dup_match_mode = (
             "strict" if "strict" in duplicate_match_mode_options else duplicate_match_mode_options[0]
         )
+    duplicate_match_mode_policy = [
+        {
+            "match_mode": mode,
+            "match_mode_label": _duplicate_match_mode_label(
+                mode,
+                inferential_key_mode=primary_dup_inferential_key_mode,
+            ),
+            "match_mode_role": _duplicate_match_mode_role(
+                mode,
+                inferential_key_mode=primary_dup_inferential_key_mode,
+            ),
+            "inferential_enabled": bool(mode == primary_dup_inferential_key_mode),
+        }
+        for mode in duplicate_match_mode_options
+    ]
 
     dup_exact_bucket_position = _with_expected_columns(
         table_map.get(
@@ -2791,6 +2993,7 @@ def _build_interactive_chart_payload_v2(
         dup_exact_null_distribution["baseline_label"] = primary_dup_baseline_label
         dup_exact_null_distribution["inferential_status"] = primary_dup_inferential_status
         dup_exact_null_distribution["inferential_reason"] = primary_dup_inferential_reason
+        dup_exact_null_distribution["inferential_key_mode"] = primary_dup_inferential_key_mode
         dup_exact_null_distribution["claim_class"] = dup_claim_class
     dup_exact_swing_impact = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "swing_impact_scenarios"), pd.DataFrame()),
@@ -2806,6 +3009,7 @@ def _build_interactive_chart_payload_v2(
         dup_exact_swing_impact["baseline_label"] = primary_dup_baseline_label
         dup_exact_swing_impact["inferential_status"] = primary_dup_inferential_status
         dup_exact_swing_impact["inferential_reason"] = primary_dup_inferential_reason
+        dup_exact_swing_impact["inferential_key_mode"] = primary_dup_inferential_key_mode
         dup_exact_swing_impact["claim_class"] = dup_claim_class
     dup_exact_hypothesis_families = _with_expected_columns(
         table_map.get(_table_key("duplicates_exact", "hypothesis_families"), pd.DataFrame()),
@@ -4309,6 +4513,8 @@ def _build_interactive_chart_payload_v2(
             "bucket_minutes",
             "scope",
             "match_mode",
+            "match_mode_role",
+            "inferential_key_mode",
             "metric",
             "n_rows",
             "n_unique_names",
@@ -4337,6 +4543,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "inferential_key_mode",
             "family_id",
             "adjustment_method",
             "n_tests",
@@ -4370,6 +4577,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "inferential_key_mode",
             "family_id",
             "adjustment_method",
             "n_tests",
@@ -4425,6 +4633,8 @@ def _build_interactive_chart_payload_v2(
         columns=[
             "scope",
             "match_mode",
+            "match_mode_role",
+            "inferential_key_mode",
             "display_name",
             "canonical_name",
             "n",
@@ -4468,6 +4678,8 @@ def _build_interactive_chart_payload_v2(
             "match_mode",
             "match_label",
             "match_definition",
+            "match_mode_role",
+            "inferential_key_mode",
             "rank",
             "name_key",
             "display_name",
@@ -4484,6 +4696,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "inferential_key_mode",
             "claim_class",
         ],
         max_rows=100_000,
@@ -4498,6 +4711,8 @@ def _build_interactive_chart_payload_v2(
             "match_mode",
             "match_label",
             "match_definition",
+            "match_mode_role",
+            "inferential_key_mode",
             "rank",
             "name_key",
             "display_name",
@@ -4559,6 +4774,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "inferential_key_mode",
             "claim_class",
         ],
         max_rows=25_000,
@@ -4574,6 +4790,7 @@ def _build_interactive_chart_payload_v2(
             "baseline_label",
             "inferential_status",
             "inferential_reason",
+            "inferential_key_mode",
             "claim_class",
         ],
         max_rows=20,
@@ -5233,6 +5450,10 @@ def _build_interactive_chart_payload_v2(
                     "Duplicate names expected lines used row-share fallback because occupancy "
                     "multiplicity profiles were unavailable in this payload build."
                 )
+        methodology["caveats"].append(
+            "Duplicate match modes are not interchangeable inferentially: strict is the primary "
+            "inferential key and loose nickname matching is sensitivity-only."
+        )
         methodology["duplicate_runtime"] = _records_from_frame(
             dup_exact_methods,
             columns=[
@@ -5249,9 +5470,14 @@ def _build_interactive_chart_payload_v2(
                 "baseline_degraded",
                 "fallback_policy",
                 "collision_key_mode",
+                "inferential_key_mode",
                 "normalization_version",
                 "normalization_version_hash",
                 "stratification",
+                "stratification_weight_source",
+                "stratification_leakage_control",
+                "stratification_weight_uncertainty",
+                "stratification_endogeneity_uncontrolled",
                 "inferential_status",
                 "inferential_reason",
                 "family_id",
@@ -5353,6 +5579,9 @@ def _build_interactive_chart_payload_v2(
             "baseline_label": primary_dup_baseline_label,
             "inferential_status": primary_dup_inferential_status,
             "inferential_reason": primary_dup_inferential_reason,
+            "inferential_key_mode": primary_dup_inferential_key_mode,
+            "inferential_key_label": primary_dup_inferential_key_label,
+            "match_mode_policy": duplicate_match_mode_policy,
             "gating": duplicate_gating_text,
             "hypothesis_families": duplicate_hypothesis_families,
         }
@@ -5364,6 +5593,9 @@ def _build_interactive_chart_payload_v2(
             "baseline_label": primary_dup_baseline_label,
             "inferential_status": primary_dup_inferential_status,
             "inferential_reason": primary_dup_inferential_reason,
+            "inferential_key_mode": primary_dup_inferential_key_mode,
+            "inferential_key_label": primary_dup_inferential_key_label,
+            "match_mode_policy": duplicate_match_mode_policy,
             "gating": duplicate_gating_text,
             "hypothesis_families": duplicate_hypothesis_families,
         }
@@ -5378,6 +5610,9 @@ def _build_interactive_chart_payload_v2(
         "baseline_label": primary_dup_baseline_label,
         "inferential_status": primary_dup_inferential_status,
         "inferential_reason": primary_dup_inferential_reason,
+        "inferential_key_mode": primary_dup_inferential_key_mode,
+        "inferential_key_label": primary_dup_inferential_key_label,
+        "match_mode_policy": duplicate_match_mode_policy,
         "gating": duplicate_gating_text,
         "hypothesis_families": duplicate_hypothesis_families,
         "interpretation_callout": (
@@ -5430,6 +5665,9 @@ def _build_interactive_chart_payload_v2(
             "duplicate_collision_metric_options": duplicate_metric_options,
             "duplicate_match_mode_default": primary_dup_match_mode,
             "duplicate_match_mode_options": duplicate_match_mode_options,
+            "duplicate_inferential_key_mode": primary_dup_inferential_key_mode,
+            "duplicate_inferential_key_label": primary_dup_inferential_key_label,
+            "duplicate_match_mode_policy": duplicate_match_mode_policy,
             "duplicate_statistical_contract": duplicate_statistical_contract,
             "duplicate_evidence_matrix_policy": duplicate_evidence_matrix_policy,
             "voter_match_mode_default": voter_default_mode,

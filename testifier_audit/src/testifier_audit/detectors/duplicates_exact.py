@@ -57,16 +57,16 @@ _ALLOWED_STRATIFICATIONS = {"none", "birth_decade"}
 _TOP_NAME_TIMING_MATCH_MODES: tuple[dict[str, str], ...] = (
     {
         "match_mode": "strict",
-        "key_column": "collision_key_medium",
-        "match_label": "Strict (last + first)",
-        "match_definition": "Exact match on last-name and first-name tokens.",
+        "key_column": "collision_key_strict",
+        "match_label": "Strict (primary inferential key)",
+        "match_definition": "Primary inferential key: strict full-name canonicalization.",
     },
     {
         "match_mode": "loose",
         "key_column": "canonical_key_nickname",
-        "match_label": "Loose (last + nickname-root first)",
+        "match_label": "Loose (nickname sensitivity)",
         "match_definition": (
-            "Matches last-name exactly and applies nickname equivalence to first-name tokens only."
+            "Sensitivity view: matches last-name exactly and applies nickname equivalence to first-name tokens only."
         ),
     },
 )
@@ -94,6 +94,7 @@ def _uses_default_hypergeometric_tail() -> bool:
 
 class DuplicatesExactDetector(Detector):
     name = "duplicates_exact"
+    INFERENTIAL_KEY_MODE = "strict"
     DEFAULT_BUCKET_MINUTES = [1, 5, 15, 30, 60, 120, 240, 480, 720, 1440]
     RNG_STREAM_SCOPE_COLLISION = "scope_collision"
     RNG_STREAM_SCOPE_STRATIFIED_COLLISION = "scope_stratified_collision"
@@ -137,8 +138,20 @@ class DuplicatesExactDetector(Detector):
     INFERENTIAL_REASON_HYPERGEOMETRIC_STRATIFIED_ROUNDING_DISABLED = (
         "stratified_hypergeometric_rounding_inference_disabled"
     )
+    INFERENTIAL_REASON_STRATIFICATION_ENDOGENEITY_UNCONTROLLED = (
+        "stratification_endogeneity_uncontrolled"
+    )
     INFERENTIAL_REASON_LOW_POWER = "low_power_support"
     INFERENTIAL_REASON_SCOPE_UNAVAILABLE = "scope_unavailable"
+    STRATIFICATION_WEIGHT_SOURCE_NONE = "none"
+    STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING = "same_hearing_observed_counts"
+    STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL = "registry_global_fallback"
+    STRATIFICATION_LEAKAGE_CONTROL_NONE = "none"
+    STRATIFICATION_LEAKAGE_CONTROL_NOT_APPLICABLE = "not_applicable"
+    STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED = "not_propagated"
+    STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_APPLICABLE = "not_applicable"
+    MATCH_MODE_ROLE_PRIMARY_INFERENTIAL = "primary_inferential"
+    MATCH_MODE_ROLE_SENSITIVITY = "sensitivity_only"
     POSITION_INTERVAL_METHOD_ID = "position_duplicate_interval_multinomial_mc_v1"
     POSITION_RATE_DIFF_INTERVAL_METHOD_ID = "position_rate_difference_cluster_bootstrap_v1"
     POSITION_PERMUTATION_TEST_ID = "position_rate_difference_permutation_abs_two_sided_v1"
@@ -242,7 +255,14 @@ class DuplicatesExactDetector(Detector):
         self.collision_primary_metric = (
             primary_metric if primary_metric in self.collision_metrics else self.collision_metrics[0]
         )
-        self.collision_key_mode = str(collision_key_mode or "strict").strip().lower()
+        requested_collision_key_mode = str(collision_key_mode or "strict").strip().lower()
+        if requested_collision_key_mode != self.INFERENTIAL_KEY_MODE:
+            raise ValueError(
+                "duplicates_exact collision_key_mode must be 'strict' so inferential outputs use "
+                "a single primary entity definition; use top-name/per-name match_mode sensitivity "
+                "views for nickname grouping."
+            )
+        self.collision_key_mode = self.INFERENTIAL_KEY_MODE
         source = str(collision_baseline_source or "hearing_empirical").strip().lower()
         self.collision_baseline_source: CollisionBaselineSource = (
             source if source in {"vrdb_full_histogram", "vrdb_full_keys", "hearing_empirical"} else "hearing_empirical"
@@ -354,6 +374,7 @@ class DuplicatesExactDetector(Detector):
         baseline_degraded: bool,
         null_samples: pd.DataFrame,
         uses_rounded_hypergeometric_approximation: bool = False,
+        stratification_endogeneity_uncontrolled: bool = False,
     ) -> tuple[str, str]:
         source_norm = str(baseline_source or "").strip().lower()
         if source_norm == "hearing_empirical":
@@ -370,6 +391,11 @@ class DuplicatesExactDetector(Detector):
             return (
                 "unavailable",
                 cls.INFERENTIAL_REASON_HYPERGEOMETRIC_STRATIFIED_ROUNDING_DISABLED,
+            )
+        if stratification_endogeneity_uncontrolled:
+            return (
+                "descriptive_only",
+                cls.INFERENTIAL_REASON_STRATIFICATION_ENDOGENEITY_UNCONTROLLED,
             )
         if null_samples.empty:
             return ("unavailable", cls.INFERENTIAL_REASON_NO_NULL_SAMPLES)
@@ -1056,10 +1082,10 @@ class DuplicatesExactDetector(Detector):
         *,
         observed_counts: pd.Series,
         stratum_frequencies: pd.DataFrame,
-    ) -> pd.Series:
+    ) -> tuple[pd.Series, str]:
         global_weights = self._global_stratum_weights(stratum_frequencies)
         if observed_counts.empty or stratum_frequencies.empty:
-            return global_weights
+            return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
         observed = (
             observed_counts.rename_axis("name_key")
             .reset_index(name="observed_count")
@@ -1067,16 +1093,16 @@ class DuplicatesExactDetector(Detector):
         )
         observed = observed[observed["name_key"] != ""].copy()
         if observed.empty:
-            return global_weights
+            return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
         joined = stratum_frequencies.merge(observed, on="name_key", how="inner")
         if joined.empty:
-            return global_weights
+            return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
         joined["name_total"] = (
             joined.groupby("name_key", dropna=False)["n_registry_rows"].transform("sum").astype(float)
         )
         joined = joined[joined["name_total"] > 0.0].copy()
         if joined.empty:
-            return global_weights
+            return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
         joined["assigned_rows"] = (
             joined["observed_count"].astype(float)
             * joined["n_registry_rows"].astype(float)
@@ -1085,23 +1111,31 @@ class DuplicatesExactDetector(Detector):
         by_stratum = joined.groupby("stratum", dropna=False)["assigned_rows"].sum().astype(float)
         total = float(by_stratum.sum())
         if total <= 0.0:
-            return global_weights
-        return (by_stratum / total).sort_index()
+            return global_weights, self.STRATIFICATION_WEIGHT_SOURCE_REGISTRY_GLOBAL
+        return (
+            (by_stratum / total).sort_index(),
+            self.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING,
+        )
 
     def _mixture_probabilities_from_strata(
         self,
         *,
         observed_counts: pd.Series,
         stratum_frequencies: pd.DataFrame,
-    ) -> tuple[pd.Series, pd.Series, int]:
+    ) -> tuple[pd.Series, pd.Series, int, str]:
         if stratum_frequencies.empty:
-            return pd.Series(dtype=float), pd.Series(dtype=float), 0
-        weights = self._scope_stratum_weights(
+            return (
+                pd.Series(dtype=float),
+                pd.Series(dtype=float),
+                0,
+                self.STRATIFICATION_WEIGHT_SOURCE_NONE,
+            )
+        weights, weight_source = self._scope_stratum_weights(
             observed_counts=observed_counts,
             stratum_frequencies=stratum_frequencies,
         )
         if weights.empty:
-            return pd.Series(dtype=float), weights, 0
+            return pd.Series(dtype=float), weights, 0, weight_source
         working = stratum_frequencies.copy()
         stratum_totals = (
             working.groupby("stratum", dropna=False)["n_registry_rows"].sum().astype(float)
@@ -1110,7 +1144,12 @@ class DuplicatesExactDetector(Detector):
         working["weight"] = working["stratum"].map(weights).fillna(0.0).astype(float)
         working = working[(working["stratum_total"] > 0.0) & (working["weight"] > 0.0)].copy()
         if working.empty:
-            return pd.Series(dtype=float), weights, int(max(float(stratum_totals.sum()), 0.0))
+            return (
+                pd.Series(dtype=float),
+                weights,
+                int(max(float(stratum_totals.sum()), 0.0)),
+                weight_source,
+            )
         working["prob_component"] = (
             working["weight"] * working["n_registry_rows"].astype(float) / working["stratum_total"]
         )
@@ -1119,13 +1158,23 @@ class DuplicatesExactDetector(Detector):
         )
         probabilities = probabilities[np.isfinite(probabilities) & (probabilities > 0.0)]
         if probabilities.empty:
-            return pd.Series(dtype=float), weights, int(max(float(stratum_totals.sum()), 0.0))
+            return (
+                pd.Series(dtype=float),
+                weights,
+                int(max(float(stratum_totals.sum()), 0.0)),
+                weight_source,
+            )
         total_probability = float(probabilities.sum())
         if total_probability <= 0.0:
-            return pd.Series(dtype=float), weights, int(max(float(stratum_totals.sum()), 0.0))
+            return (
+                pd.Series(dtype=float),
+                weights,
+                int(max(float(stratum_totals.sum()), 0.0)),
+                weight_source,
+            )
         probabilities = probabilities / total_probability
         n_population = int(max(float(stratum_totals.sum()), 0.0))
-        return probabilities.sort_index(), weights, n_population
+        return probabilities.sort_index(), weights, n_population, weight_source
 
     @staticmethod
     def _build_stratified_sampling_inputs(
@@ -2235,6 +2284,14 @@ class DuplicatesExactDetector(Detector):
         primary_scope_n_population = 0
         primary_scope_low_power = True
         primary_scope_stratification = "none"
+        primary_scope_stratification_weight_source = self.STRATIFICATION_WEIGHT_SOURCE_NONE
+        primary_scope_stratification_leakage_control = (
+            self.STRATIFICATION_LEAKAGE_CONTROL_NOT_APPLICABLE
+        )
+        primary_scope_stratification_weight_uncertainty = (
+            self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_APPLICABLE
+        )
+        primary_scope_stratification_endogeneity_uncontrolled = False
         primary_scope_inferential_status = "descriptive_only"
         primary_scope_inferential_reason = self.INFERENTIAL_REASON_SELF_REFERENTIAL_BASELINE
         primary_scope_status = self.SCOPE_STATUS_UNAVAILABLE
@@ -2349,7 +2406,16 @@ class DuplicatesExactDetector(Detector):
             scope_top_name_started = perf_counter()
             scope_top_name_timing: list[pd.DataFrame] = []
             for mode_spec in _TOP_NAME_TIMING_MATCH_MODES:
+                mode_value = str(mode_spec.get("match_mode", "")).strip().lower()
+                mode_role = (
+                    self.MATCH_MODE_ROLE_PRIMARY_INFERENTIAL
+                    if mode_value == self.collision_key_mode
+                    else self.MATCH_MODE_ROLE_SENSITIVITY
+                )
                 mode_key_column = str(mode_spec.get("key_column", "")).strip()
+                # Keep timing/per-name strict mode aligned with the active inferential key column.
+                if mode_value == self.collision_key_mode and key_column in scope_frame.columns:
+                    mode_key_column = key_column
                 if not mode_key_column or mode_key_column not in scope_frame.columns:
                     continue
                 mode_frame = scope_frame.copy()
@@ -2385,9 +2451,11 @@ class DuplicatesExactDetector(Detector):
                     / 60.0
                 ).fillna(0.0)
                 mode_totals_all["scope"] = scope
-                mode_totals_all["match_mode"] = str(mode_spec.get("match_mode", ""))
+                mode_totals_all["match_mode"] = mode_value
                 mode_totals_all["match_label"] = str(mode_spec.get("match_label", ""))
                 mode_totals_all["match_definition"] = str(mode_spec.get("match_definition", ""))
+                mode_totals_all["match_mode_role"] = mode_role
+                mode_totals_all["inferential_key_mode"] = self.collision_key_mode
                 mode_totals_all["canonical_name"] = mode_totals_all["name_key"].astype(str)
                 per_name_duplicates_by_mode_frames.append(
                     mode_totals_all[
@@ -2396,6 +2464,8 @@ class DuplicatesExactDetector(Detector):
                             "match_mode",
                             "match_label",
                             "match_definition",
+                            "match_mode_role",
+                            "inferential_key_mode",
                             "canonical_name",
                             "name_key",
                             "display_name",
@@ -2414,9 +2484,11 @@ class DuplicatesExactDetector(Detector):
                     mode_duplicate_rows = mode_frame[mode_frame["name_key"].isin(duplicate_name_keys)].copy()
                     if not mode_duplicate_rows.empty:
                         mode_duplicate_rows["scope"] = scope
-                        mode_duplicate_rows["match_mode"] = str(mode_spec.get("match_mode", ""))
+                        mode_duplicate_rows["match_mode"] = mode_value
                         mode_duplicate_rows["match_label"] = str(mode_spec.get("match_label", ""))
                         mode_duplicate_rows["match_definition"] = str(mode_spec.get("match_definition", ""))
+                        mode_duplicate_rows["match_mode_role"] = mode_role
+                        mode_duplicate_rows["inferential_key_mode"] = self.collision_key_mode
                         mode_duplicate_rows["canonical_name"] = mode_duplicate_rows["name_key"].astype(str)
                         mode_duplicate_rows = mode_duplicate_rows.rename(
                             columns={
@@ -2436,6 +2508,8 @@ class DuplicatesExactDetector(Detector):
                                         "match_mode",
                                         "match_label",
                                         "match_definition",
+                                        "match_mode_role",
+                                        "inferential_key_mode",
                                         "canonical_name",
                                         "name_key",
                                         "display_name",
@@ -2492,9 +2566,11 @@ class DuplicatesExactDetector(Detector):
                     if merged.empty:
                         continue
                     merged["scope"] = scope
-                    merged["match_mode"] = str(mode_spec.get("match_mode", ""))
+                    merged["match_mode"] = mode_value
                     merged["match_label"] = str(mode_spec.get("match_label", ""))
                     merged["match_definition"] = str(mode_spec.get("match_definition", ""))
+                    merged["match_mode_role"] = mode_role
+                    merged["inferential_key_mode"] = self.collision_key_mode
                     merged["bucket_minutes"] = int(bucket_minutes)
                     scope_top_name_timing.append(
                         merged[
@@ -2503,6 +2579,8 @@ class DuplicatesExactDetector(Detector):
                                 "match_mode",
                                 "match_label",
                                 "match_definition",
+                                "match_mode_role",
+                                "inferential_key_mode",
                                 "rank",
                                 "name_key",
                                 "display_name",
@@ -2573,16 +2651,35 @@ class DuplicatesExactDetector(Detector):
             stratified_sampling_keys: list[np.ndarray] = []
             stratified_sampling_probabilities: list[np.ndarray] = []
             effective_scope_stratification = effective_stratification
+            stratification_weight_source = self.STRATIFICATION_WEIGHT_SOURCE_NONE
+            stratification_leakage_control = self.STRATIFICATION_LEAKAGE_CONTROL_NOT_APPLICABLE
+            stratification_weight_uncertainty = (
+                self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_APPLICABLE
+            )
+            stratification_endogeneity_uncontrolled = False
             if (
                 effective_scope_stratification != "none"
                 and effective_baseline_source != "hearing_empirical"
                 and not stratum_frequencies.empty
             ):
-                stratified_probabilities, scope_stratum_weights, stratified_n_population = (
-                    self._mixture_probabilities_from_strata(
-                        observed_counts=observed_counts.astype(float),
-                        stratum_frequencies=stratum_frequencies,
-                    )
+                (
+                    stratified_probabilities,
+                    scope_stratum_weights,
+                    stratified_n_population,
+                    stratification_weight_source,
+                ) = self._mixture_probabilities_from_strata(
+                    observed_counts=observed_counts.astype(float),
+                    stratum_frequencies=stratum_frequencies,
+                )
+                stratification_leakage_control = self.STRATIFICATION_LEAKAGE_CONTROL_NONE
+                stratification_weight_uncertainty = (
+                    self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED
+                )
+                stratification_endogeneity_uncontrolled = bool(
+                    stratification_weight_source == self.STRATIFICATION_WEIGHT_SOURCE_SAME_HEARING
+                    and stratification_leakage_control == self.STRATIFICATION_LEAKAGE_CONTROL_NONE
+                    and stratification_weight_uncertainty
+                    == self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_PROPAGATED
                 )
                 if not stratified_probabilities.empty and stratified_n_population > 0:
                     n_population = int(stratified_n_population)
@@ -2596,6 +2693,14 @@ class DuplicatesExactDetector(Detector):
                     )
                 else:
                     effective_scope_stratification = "none"
+                    stratification_weight_source = self.STRATIFICATION_WEIGHT_SOURCE_NONE
+                    stratification_leakage_control = (
+                        self.STRATIFICATION_LEAKAGE_CONTROL_NOT_APPLICABLE
+                    )
+                    stratification_weight_uncertainty = (
+                        self.STRATIFICATION_WEIGHT_UNCERTAINTY_NOT_APPLICABLE
+                    )
+                    stratification_endogeneity_uncontrolled = False
                     stratification_degraded = True
 
             stratified_null_histogram = pd.DataFrame()
@@ -2695,6 +2800,7 @@ class DuplicatesExactDetector(Detector):
                 baseline_degraded=scope_degraded,
                 null_samples=null_samples,
                 uses_rounded_hypergeometric_approximation=uses_rounded_hypergeometric_approximation,
+                stratification_endogeneity_uncontrolled=stratification_endogeneity_uncontrolled,
             )
             if scope_status != self.SCOPE_STATUS_AVAILABLE:
                 scope_inferential_status = "unavailable"
@@ -2738,6 +2844,7 @@ class DuplicatesExactDetector(Detector):
             overview["scope_reason"] = scope_reason
             overview["inferential_status"] = scope_inferential_status
             overview["inferential_reason"] = scope_inferential_reason
+            overview["inferential_key_mode"] = self.collision_key_mode
             overview_frames.append(overview)
 
             stratified_sensitivity_frames.append(
@@ -2761,6 +2868,12 @@ class DuplicatesExactDetector(Detector):
                         "N_used": int(n_population),
                         "stratification_requested": requested_stratification,
                         "stratification_effective": effective_scope_stratification,
+                        "stratification_weight_source": stratification_weight_source,
+                        "stratification_leakage_control": stratification_leakage_control,
+                        "stratification_weight_uncertainty": stratification_weight_uncertainty,
+                        "stratification_endogeneity_uncontrolled": bool(
+                            stratification_endogeneity_uncontrolled
+                        ),
                     }
                 )
             )
@@ -2796,6 +2909,7 @@ class DuplicatesExactDetector(Detector):
             grouped["scope_reason"] = scope_reason
             grouped["inferential_status"] = scope_inferential_status
             grouped["inferential_reason"] = scope_inferential_reason
+            grouped["inferential_key_mode"] = self.collision_key_mode
             if scope_inferential_status == "reference_model_inference":
                 if grouped.empty:
                     grouped["p_value"] = pd.Series(dtype=float)
@@ -2852,6 +2966,7 @@ class DuplicatesExactDetector(Detector):
                         "scope_reason",
                         "inferential_status",
                         "inferential_reason",
+                        "inferential_key_mode",
                         "canonical_name",
                         "display_name",
                         "observed_count",
@@ -2879,6 +2994,7 @@ class DuplicatesExactDetector(Detector):
                         "scope_reason",
                         "inferential_status",
                         "inferential_reason",
+                        "inferential_key_mode",
                         "canonical_name",
                         "display_name",
                         "observed_count",
@@ -2928,6 +3044,7 @@ class DuplicatesExactDetector(Detector):
                 temporal["scope_reason"] = scope_reason
                 temporal["inferential_status"] = scope_inferential_status
                 temporal["inferential_reason"] = scope_inferential_reason
+                temporal["inferential_key_mode"] = self.collision_key_mode
                 if scope_inferential_status != "reference_model_inference":
                     for temporal_column in (
                         "temporal_p_value_min_gap",
@@ -2957,9 +3074,16 @@ class DuplicatesExactDetector(Detector):
                     "baseline_degraded": scope_degraded,
                     "fallback_policy": self.collision_baseline_failure_policy,
                     "collision_key_mode": self.collision_key_mode,
+                    "inferential_key_mode": self.collision_key_mode,
                     "normalization_version": normalization_version_value,
                     "normalization_version_hash": normalization_hash,
                     "stratification": effective_scope_stratification,
+                    "stratification_weight_source": stratification_weight_source,
+                    "stratification_leakage_control": stratification_leakage_control,
+                    "stratification_weight_uncertainty": stratification_weight_uncertainty,
+                    "stratification_endogeneity_uncontrolled": bool(
+                        stratification_endogeneity_uncontrolled
+                    ),
                     "censored": bool(len(grouped) > self.per_name_display_limit),
                     "claim_class": self.COLLISION_CLAIM_CLASS,
                     "inferential_status": scope_inferential_status,
@@ -3392,6 +3516,14 @@ class DuplicatesExactDetector(Detector):
                 primary_scope_n_used = int(n_scope)
                 primary_scope_n_population = int(n_population)
                 primary_scope_stratification = effective_scope_stratification
+                primary_scope_stratification_weight_source = str(stratification_weight_source)
+                primary_scope_stratification_leakage_control = str(stratification_leakage_control)
+                primary_scope_stratification_weight_uncertainty = str(
+                    stratification_weight_uncertainty
+                )
+                primary_scope_stratification_endogeneity_uncontrolled = bool(
+                    stratification_endogeneity_uncontrolled
+                )
                 primary_scope_inferential_status = scope_inferential_status
                 primary_scope_inferential_reason = scope_inferential_reason
                 primary_scope_status = scope_status
@@ -4867,6 +4999,20 @@ class DuplicatesExactDetector(Detector):
             if hypothesis_family_rows
             else pd.DataFrame()
         )
+        # Every inferential-capable table carries the active inferential key explicitly.
+        for inferential_frame in (
+            collision_methods,
+            collision_overview,
+            collision_by_bucket,
+            collision_by_bucket_position,
+            per_name_tests,
+            per_name_display,
+            temporal_burst,
+        ):
+            if inferential_frame is None:
+                continue
+            if "inferential_key_mode" not in inferential_frame.columns:
+                inferential_frame["inferential_key_mode"] = self.collision_key_mode
 
         primary_scope_overview = collision_overview[
             collision_overview["scope"] == self.collision_scope_primary
@@ -4947,6 +5093,12 @@ class DuplicatesExactDetector(Detector):
             "normalization_version": normalization_version_value,
             "normalization_version_hash": normalization_hash,
             "stratification": primary_scope_stratification,
+            "stratification_weight_source": primary_scope_stratification_weight_source,
+            "stratification_leakage_control": primary_scope_stratification_leakage_control,
+            "stratification_weight_uncertainty": primary_scope_stratification_weight_uncertainty,
+            "stratification_endogeneity_uncontrolled": bool(
+                primary_scope_stratification_endogeneity_uncontrolled
+            ),
             "position_hearing_baseline_enabled": bool(self.position_hearing_baseline_enabled),
             "position_baseline_shrink_k": float(self.position_baseline_shrink_k),
             "position_interval_nominal": float(self.position_interval_nominal),
@@ -4956,6 +5108,7 @@ class DuplicatesExactDetector(Detector):
             "claim_class": self.COLLISION_CLAIM_CLASS,
             "inferential_status": primary_scope_inferential_status,
             "inferential_reason": primary_scope_inferential_reason,
+            "inferential_key_mode": self.collision_key_mode,
             "estimand_primary": self.STATISTICAL_CONTRACT_ESTIMAND_PRIMARY,
             "non_goals": self.STATISTICAL_CONTRACT_NON_GOALS,
             "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
@@ -4970,6 +5123,7 @@ class DuplicatesExactDetector(Detector):
                 "baseline_semantics": self.STATISTICAL_CONTRACT_BASELINE_SEMANTICS,
                 "inferential_status": primary_scope_inferential_status,
                 "inferential_reason": primary_scope_inferential_reason,
+                "inferential_key_mode": self.collision_key_mode,
                 "hypothesis_families": hypothesis_family_records,
                 "hypothesis_family_totals": hypothesis_family_totals,
             },

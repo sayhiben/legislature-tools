@@ -324,14 +324,107 @@ print(count)
 PY
 }
 
+declare -a SUBMISSION_ROW_COUNT_SOURCE_FILES=()
+declare -a SUBMISSION_ROW_COUNT_VALUES=()
+
+get_cached_submissions_row_count() {
+  local source_file="$1"
+  local idx
+  for idx in "${!SUBMISSION_ROW_COUNT_SOURCE_FILES[@]}"; do
+    if [[ "${SUBMISSION_ROW_COUNT_SOURCE_FILES[$idx]}" == "${source_file}" ]]; then
+      printf '%s\n' "${SUBMISSION_ROW_COUNT_VALUES[$idx]}"
+      return 0
+    fi
+  done
+  printf '0\n'
+}
+
+set_cached_submissions_row_count() {
+  local source_file="$1"
+  local row_count="$2"
+  local idx
+  for idx in "${!SUBMISSION_ROW_COUNT_SOURCE_FILES[@]}"; do
+    if [[ "${SUBMISSION_ROW_COUNT_SOURCE_FILES[$idx]}" == "${source_file}" ]]; then
+      SUBMISSION_ROW_COUNT_VALUES[$idx]="${row_count}"
+      return 0
+    fi
+  done
+  SUBMISSION_ROW_COUNT_SOURCE_FILES+=("${source_file}")
+  SUBMISSION_ROW_COUNT_VALUES+=("${row_count}")
+}
+
+load_cached_submissions_row_counts() {
+  SUBMISSION_ROW_COUNT_SOURCE_FILES=()
+  SUBMISSION_ROW_COUNT_VALUES=()
+  local cache_rows
+  cache_rows="$(python - "${TESTIFIER_AUDIT_DB_URL}" "${SUBMISSIONS_TABLE_NAME}" <<'PY'
+import sys
+
+import psycopg
+from psycopg import sql
+
+db_url = sys.argv[1]
+table_name = sys.argv[2]
+
+try:
+    with psycopg.connect(db_url, connect_timeout=5) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL(
+                    "SELECT source_file, COUNT(*)::BIGINT "
+                    "FROM {} GROUP BY source_file ORDER BY source_file"
+                ).format(sql.Identifier(table_name))
+            )
+            for source_file, row_count in cur.fetchall():
+                source_value = str(source_file or "").strip()
+                if not source_value:
+                    continue
+                print(f"{source_value}\t{int(row_count or 0)}")
+except Exception as exc:
+    message = str(exc).replace("\n", " ")
+    print(f"ERROR|{exc.__class__.__name__}|{message}")
+PY
+)"
+  if [[ "${cache_rows}" == ERROR\|* ]]; then
+    log_warn "[import-check] unable to preload submission row-count cache (${cache_rows})."
+    return 0
+  fi
+
+  if [[ -n "${cache_rows}" ]]; then
+    while IFS=$'\t' read -r source_file row_count; do
+      if [[ -z "${source_file}" ]]; then
+        continue
+      fi
+      set_cached_submissions_row_count "${source_file}" "${row_count:-0}"
+    done <<< "${cache_rows}"
+  fi
+  log_info "[import-check] preloaded submission row-count cache entries=${#SUBMISSION_ROW_COUNT_SOURCE_FILES[@]}"
+}
+
 import_submissions_with_coverage_guard() {
   local csv_path="$1"
   local source_file
   source_file="$(basename "${csv_path}")"
+  local cached_row_count
+  cached_row_count="$(get_cached_submissions_row_count "${source_file}")"
+  local import_output
+  if ! import_output="$(CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/db/import_submissions.sh" "${csv_path}" 2>&1)"; then
+    printf '%s\n' "${import_output}"
+    return 1
+  fi
+  printf '%s\n' "${import_output}"
 
-  CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/db/import_submissions.sh" "${csv_path}"
+  if [[ "${cached_row_count}" -gt 0 ]] && (
+    [[ "${import_output}" == *"Skipping submissions import."* ]] ||
+    [[ "${import_output}" == *"- import_skipped: true"* ]]
+  ); then
+    log_info "[import-check] source_file=${source_file} rows=${cached_row_count} (cached)"
+    return 0
+  fi
+
   local row_count
   row_count="$(count_submissions_rows_for_source_file "${source_file}")"
+  set_cached_submissions_row_count "${source_file}" "${row_count}"
   if [[ "${row_count}" -gt 0 ]]; then
     log_info "[import-check] source_file=${source_file} rows=${row_count}"
     return 0
@@ -340,6 +433,7 @@ import_submissions_with_coverage_guard() {
   log_warn "[import-check] source_file=${source_file} has 0 rows after import; forcing re-import."
   CI_SKIP_INSTALL=1 "${PROJECT_ROOT}/scripts/db/import_submissions.sh" "${csv_path}" --force
   row_count="$(count_submissions_rows_for_source_file "${source_file}")"
+  set_cached_submissions_row_count "${source_file}" "${row_count}"
   if [[ "${row_count}" -le 0 ]]; then
     log_error "[import-check] source_file=${source_file} still has 0 rows after forced import."
     return 1
@@ -508,6 +602,7 @@ declare -a PASS1_FAILED=()
 declare -a FINAL_OK=()
 declare -a PASS2_FAILED=()
 CONTEXTUAL_CONFIG_PATH="$(mktemp "${REPO_ROOT}/output/contextual-baseline-config.XXXXXX.yaml")"
+load_cached_submissions_row_counts
 
 if [[ "${FAST_CONTEXTUAL}" == "1" ]]; then
   PASS1_TOTAL="${#STEMS[@]}"

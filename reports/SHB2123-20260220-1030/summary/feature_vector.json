@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SHB2123-20260220-1030",
+  "generated_at_utc": "2026-03-01T23:52:17.088995+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-13T12:42:00-08:00",
+  "date_range_end": "2026-02-20T09:29:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 901,
+    "overall_pro_rate": 0.0732519422863485,
+    "overall_con_rate": 0.925638179800222,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.11123470522803114,
+    "window_min_q_value": null,
+    "top_name_max_records": 5,
+    "off_hours_ratio": 0.04550499445061043,
+    "blank_org_ratio": 0.9012208657047724,
+    "blank_org_gap_pro_minus_con": -0.025288859821233967,
+    "dedup_drop_fraction": 0.005549389567147614
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "RIDINGS|BETH||",
+      "display_name": "RIDINGS, BETH",
+      "n_records": 5,
+      "n_pro": 0,
+      "n_con": 5
+    },
+    {
+      "canonical_name": "LEBRUN|PATRICK||",
+      "display_name": "LEBRUN, PATRICK",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "BORDEN|BRETT||",
+      "display_name": "BORDEN, BRETT",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "CHARLES|CHERYL||",
+      "display_name": "CHARLES, CHERYL",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "CONNELLY|BARBARA||",
+      "display_name": "CONNELLY, BARBARA",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 901,
+  "overall_pro_rate": 0.0732519422863485,
+  "overall_con_rate": 0.925638179800222,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

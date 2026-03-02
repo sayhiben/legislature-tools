@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "2SHB2071-20240220-0800",
+  "generated_at_utc": "2026-03-01T22:47:28.796348+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-02-14T15:53:00-08:00",
+  "date_range_end": "2024-02-20T06:59:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 1805,
+    "overall_pro_rate": 0.09418282548476455,
+    "overall_con_rate": 0.9047091412742382,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.12590529247910864,
+    "window_min_q_value": null,
+    "top_name_max_records": 4,
+    "off_hours_ratio": 0.039889196675900275,
+    "blank_org_ratio": 0.9202216066481994,
+    "blank_org_gap_pro_minus_con": -0.1716076510212169,
+    "dedup_drop_fraction": 0.0033240997229916896
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CREIGHTON|DIANNE||",
+      "display_name": "CREIGHTON, DIANNE",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "HENSEL|BOB||",
+      "display_name": "HENSEL, BOB",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "HOLLAND|RYAN||",
+      "display_name": "HOLLAND, RYAN",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "SCHICK|DORIS||",
+      "display_name": "SCHICK, DORIS",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "WAGNER|JEANNETTE||",
+      "display_name": "WAGNER, JEANNETTE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 1805,
+  "overall_pro_rate": 0.09418282548476455,
+  "overall_con_rate": 0.9047091412742382,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

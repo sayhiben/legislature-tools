@@ -1,0 +1,75 @@
+{
+  "schema_version": 2,
+  "report_id": "HJR4200-20250116-1330",
+  "generated_at_utc": "2026-03-01T23:26:12.729770+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-09T18:12:00-08:00",
+  "date_range_end": "2025-01-16T12:29:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 52,
+    "overall_pro_rate": 0.9423076923076923,
+    "overall_con_rate": 0.057692307692307696,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.15384615384615385,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.038461538461538464,
+    "blank_org_ratio": 0.7307692307692307,
+    "blank_org_gap_pro_minus_con": 0.06802721088435382,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "HUBBARD|PATRICIA||",
+      "display_name": "HUBBARD, PATRICIA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "JONES|SUSANNA||",
+      "display_name": "JONES, SUSANNA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "LOGUE|CAROLYN||",
+      "display_name": "LOGUE, CAROLYN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MARTIN|STEVE||",
+      "display_name": "MARTIN, STEVE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 52,
+  "overall_pro_rate": 0.9423076923076923,
+  "overall_con_rate": 0.057692307692307696,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

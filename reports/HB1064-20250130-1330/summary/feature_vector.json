@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB1064-20250130-1330",
+  "generated_at_utc": "2026-03-01T22:58:11.270525+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-24T08:25:00-08:00",
+  "date_range_end": "2025-01-30T09:46:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 7,
+    "overall_pro_rate": 1.0,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.0,
+    "window_min_q_value": null,
+    "top_name_max_records": 1,
+    "off_hours_ratio": 0.14285714285714285,
+    "blank_org_ratio": 0.0,
+    "blank_org_gap_pro_minus_con": null,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CLARY|JUSTIN||",
+      "display_name": "CLARY, JUSTIN",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "GOURLIE|DON||",
+      "display_name": "GOURLIE, DON",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HAZLEGROVE|SCOTT||",
+      "display_name": "HAZLEGROVE, SCOTT",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "PRINGLE|DAVE||",
+      "display_name": "PRINGLE, DAVE",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "PROBART|ASHLEY||",
+      "display_name": "PROBART, ASHLEY",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 7,
+  "overall_pro_rate": 1.0,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -1,0 +1,477 @@
+{
+  "N_used": 5088118,
+  "baseline_degraded": false,
+  "baseline_label": "Statewide registry reference baseline",
+  "baseline_model": "multinomial",
+  "baseline_semantics": "reference model; not the data-generating process",
+  "baseline_source": "vrdb_full_histogram",
+  "bh_fdr_q": 0.1,
+  "claim_class": "collision_signal",
+  "collision_scope_primary": "full_hearing",
+  "duplicate_pairs": 3.0,
+  "duplicate_row_rate": 0.09523809523809523,
+  "duplicate_rows": 6,
+  "estimand_primary": "name-key collision burden relative to reference baseline",
+  "historical_reference_channel": "",
+  "historical_reference_excluded_target": false,
+  "historical_reference_loo_source_path": "",
+  "historical_reference_missing_table_count": 0,
+  "historical_reference_reason": "",
+  "historical_reference_report_count": 0,
+  "historical_reference_reports_loaded": 0,
+  "historical_reference_target_report_id": "",
+  "hypothesis_families": [
+    {
+      "adjusted_p_value": 0.007751937984496124,
+      "adjustment_method": "holm",
+      "eligible_by_gate": true,
+      "family_id": "A_scope_excess_rows",
+      "family_label": "Scope-level excess_rows",
+      "family_order": 1,
+      "gate_reason": "eligible",
+      "n_significant": 1,
+      "n_tests": 1,
+      "scope": "full_hearing"
+    },
+    {
+      "adjusted_p_value": null,
+      "adjustment_method": "benjamini_hochberg",
+      "eligible_by_gate": true,
+      "family_id": "B_bucket_follow_up",
+      "family_label": "Bucket follow-up",
+      "family_order": 2,
+      "gate_reason": "eligible",
+      "n_significant": 0,
+      "n_tests": 0,
+      "scope": "full_hearing"
+    },
+    {
+      "adjusted_p_value": null,
+      "adjustment_method": "benjamini_hochberg",
+      "eligible_by_gate": true,
+      "family_id": "C_per_name_upper_tail",
+      "family_label": "Per-name follow-up",
+      "family_order": 3,
+      "gate_reason": "eligible",
+      "n_significant": 60,
+      "n_tests": 60,
+      "scope": "full_hearing"
+    },
+    {
+      "adjusted_p_value": null,
+      "adjustment_method": "benjamini_hochberg",
+      "eligible_by_gate": true,
+      "family_id": "D_temporal_follow_up",
+      "family_label": "Within-name temporal follow-up",
+      "family_order": 4,
+      "gate_reason": "eligible",
+      "n_significant": 0,
+      "n_tests": 3,
+      "scope": "full_hearing"
+    },
+    {
+      "adjusted_p_value": null,
+      "adjustment_method": "holm",
+      "eligible_by_gate": true,
+      "family_id": "E_position_follow_up",
+      "family_label": "Position follow-up",
+      "family_order": 5,
+      "gate_reason": "eligible",
+      "n_significant": 0,
+      "n_tests": 1,
+      "scope": "full_hearing"
+    }
+  ],
+  "hypothesis_family_totals": [
+    {
+      "adjustment_method": "holm",
+      "family_id": "A_scope_excess_rows",
+      "family_label": "Scope-level excess_rows",
+      "family_order": 1,
+      "n_scopes": 1,
+      "n_significant": 1,
+      "n_tests": 1
+    },
+    {
+      "adjustment_method": "benjamini_hochberg",
+      "family_id": "B_bucket_follow_up",
+      "family_label": "Bucket follow-up",
+      "family_order": 2,
+      "n_scopes": 1,
+      "n_significant": 0,
+      "n_tests": 0
+    },
+    {
+      "adjustment_method": "benjamini_hochberg",
+      "family_id": "C_per_name_upper_tail",
+      "family_label": "Per-name follow-up",
+      "family_order": 3,
+      "n_scopes": 1,
+      "n_significant": 60,
+      "n_tests": 60
+    },
+    {
+      "adjustment_method": "benjamini_hochberg",
+      "family_id": "D_temporal_follow_up",
+      "family_label": "Within-name temporal follow-up",
+      "family_order": 4,
+      "n_scopes": 1,
+      "n_significant": 0,
+      "n_tests": 3
+    },
+    {
+      "adjustment_method": "holm",
+      "family_id": "E_position_follow_up",
+      "family_label": "Position follow-up",
+      "family_order": 5,
+      "n_scopes": 1,
+      "n_significant": 0,
+      "n_tests": 1
+    }
+  ],
+  "inferential_key_mode": "strict",
+  "inferential_reason": "reference_model_inference_available",
+  "inferential_status": "reference_model_inference",
+  "low_power_min_expected_duplicates": 1.0,
+  "low_power_min_expected_duplicates_bucket": 1.0,
+  "low_power_min_expected_duplicates_position": 1.0,
+  "low_power_min_expected_duplicates_scope": 1.0,
+  "low_power_min_unique_names": 10,
+  "low_power_min_unique_names_bucket": 10,
+  "low_power_min_unique_names_position": 10,
+  "low_power_min_unique_names_scope": 10,
+  "n_hypothesis_tests_total": 65,
+  "n_records": 63,
+  "n_significant_per_name": 60,
+  "n_unique_names": 60,
+  "n_used": 63,
+  "name_key": "strict",
+  "non_goals": "cannot infer identity, intent, IP-based behavior, or per-person duplication from the public dataset",
+  "normalization_version": "shared_name_normalization_v1:0324180c27b0",
+  "normalization_version_hash": "0324180c27b01caefc05e99b1e8a019cc23ffb49",
+  "position_baseline_shrink_k": 30.0,
+  "position_claim_eligible": false,
+  "position_claim_reason": "insufficient_position_support",
+  "position_hearing_baseline_enabled": true,
+  "position_interval_method_id": "position_duplicate_interval_multinomial_mc_v1",
+  "position_interval_nominal": 0.95,
+  "primary_low_power": true,
+  "rng_root_seed": 42,
+  "rng_root_stream_id": "root:cd540ab79f1e2e6d79fb94b6d57873dc",
+  "rng_seed_lineage": {
+    "root_seed": 42,
+    "root_stream_id": "root:cd540ab79f1e2e6d79fb94b6d57873dc",
+    "streams": {
+      "bucket_collision": {
+        "stream_id": "2:0de6c5eda102097ac9f23d3f957ebe91"
+      },
+      "bucket_stratified_collision": {
+        "stream_id": "3:c34fc8c534037e9d48019fd6ed87f1b5"
+      },
+      "position_cluster_bootstrap": {
+        "stream_id": "6:d32ef4d729c9993cff4364113e11d0f1"
+      },
+      "position_interval": {
+        "stream_id": "4:d937245689658ff42d54d61813388249"
+      },
+      "position_permutation": {
+        "stream_id": "5:47e66971092d57f3f42e4f2ec3a0a0dd"
+      },
+      "scope_collision": {
+        "stream_id": "0:a001c6a4dff6ed7d64d84a1f43239888"
+      },
+      "scope_stratified_collision": {
+        "stream_id": "1:f3e63cba01dcb76315de6f6e6aee7dd6"
+      },
+      "temporal_permutation": {
+        "stream_id": "7:cf67d34ae08024ce50ce4ca2d55f0378"
+      }
+    }
+  },
+  "runtime": {
+    "flag_rows_written": 0,
+    "flags_written": 0,
+    "profiling": {
+      "counters": {
+        "detector.duplicates_exact.contextual_shrink.cache_hit": 93,
+        "detector.duplicates_exact.contextual_shrink.cache_miss": 156,
+        "detector.duplicates_exact.contextual_shrink.cache_size": 156,
+        "detector.duplicates_exact.rows.inference": 63,
+        "detector.duplicates_exact.rows.working": 63,
+        "detector.duplicates_exact.scope.bucketed_frame_cache.entries": 10,
+        "detector.duplicates_exact.scope.count": 1,
+        "detector.duplicates_exact.scope.iterations": 1,
+        "detector.duplicates_exact.scope.rows_total": 63,
+        "detector.duplicates_exact.scope.unavailable_count": 0,
+        "detector.duplicates_exact.scope.unique_names_total": 60,
+        "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_miss": 1,
+        "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_size": 1,
+        "simulation.collision_null_from_histogram.calls": 3,
+        "simulation.collision_null_from_histogram.draws_effective": 10128,
+        "simulation.collision_null_from_histogram.draws_requested": 30000,
+        "simulation.collision_null_from_histogram.draws_target": 10475,
+        "simulation.collision_null_from_histogram.n_rows": 126,
+        "simulation.collision_null_from_histogram.output_samples": 10128,
+        "simulation.collision_null_from_histogram.parallel_chunks": 81,
+        "simulation.collision_null_from_histogram.parallel_enabled": 0,
+        "simulation.collision_null_from_histogram.parallel_fallback": 0,
+        "simulation.collision_null_from_histogram.parallel_workers": 17,
+        "simulation.duplicates_exact_position_permutation.calls": 1,
+        "simulation.duplicates_exact_position_permutation.permutations": 256,
+        "simulation.duplicates_exact_position_permutation.successful_results": 1,
+        "simulation.duplicates_exact_temporal_null.cached_conditioned_signatures": 1,
+        "simulation.duplicates_exact_temporal_null.cached_sample_sizes": 0,
+        "simulation.duplicates_exact_temporal_null.calls": 1,
+        "simulation.duplicates_exact_temporal_null.conditioned_downgraded_rows": 0,
+        "simulation.duplicates_exact_temporal_null.draws_effective": 1000,
+        "simulation.duplicates_exact_temporal_null.output_rows": 3
+      },
+      "timed_event_count": 17,
+      "timings": {
+        "detector.duplicates_exact.assemble_outputs": {
+          "avg_ms": 42.124,
+          "calls": 1,
+          "max_ms": 42.124,
+          "min_ms": 42.124,
+          "total_ms": 42.124
+        },
+        "detector.duplicates_exact.load_contextual_baseline": {
+          "avg_ms": 115.15,
+          "calls": 1,
+          "max_ms": 115.15,
+          "min_ms": 115.15,
+          "total_ms": 115.15
+        },
+        "detector.duplicates_exact.prepare_stratification": {
+          "avg_ms": 0.001,
+          "calls": 1,
+          "max_ms": 0.001,
+          "min_ms": 0.001,
+          "total_ms": 0.001
+        },
+        "detector.duplicates_exact.prepare_working": {
+          "avg_ms": 1.072,
+          "calls": 1,
+          "max_ms": 1.072,
+          "min_ms": 1.072,
+          "total_ms": 1.072
+        },
+        "detector.duplicates_exact.resolve_scope_frames": {
+          "avg_ms": 0.036,
+          "calls": 1,
+          "max_ms": 0.036,
+          "min_ms": 0.036,
+          "total_ms": 0.036
+        },
+        "detector.duplicates_exact.scope.bucket_scan": {
+          "avg_ms": 353.95,
+          "calls": 1,
+          "max_ms": 353.95,
+          "min_ms": 353.95,
+          "total_ms": 353.95
+        },
+        "detector.duplicates_exact.scope.expected_metrics_and_null": {
+          "avg_ms": 3261.581,
+          "calls": 1,
+          "max_ms": 3261.581,
+          "min_ms": 3261.581,
+          "total_ms": 3261.581
+        },
+        "detector.duplicates_exact.scope.per_name_tests": {
+          "avg_ms": 15.261,
+          "calls": 1,
+          "max_ms": 15.261,
+          "min_ms": 15.261,
+          "total_ms": 15.261
+        },
+        "detector.duplicates_exact.scope.prepare_frame": {
+          "avg_ms": 1.507,
+          "calls": 1,
+          "max_ms": 1.507,
+          "min_ms": 1.507,
+          "total_ms": 1.507
+        },
+        "detector.duplicates_exact.scope.primary_legacy_outputs": {
+          "avg_ms": 280.295,
+          "calls": 1,
+          "max_ms": 280.295,
+          "min_ms": 280.295,
+          "total_ms": 280.295
+        },
+        "detector.duplicates_exact.scope.temporal_metrics": {
+          "avg_ms": 15.119,
+          "calls": 1,
+          "max_ms": 15.119,
+          "min_ms": 15.119,
+          "total_ms": 15.119
+        },
+        "detector.duplicates_exact.scope.top_name_timing": {
+          "avg_ms": 106.825,
+          "calls": 1,
+          "max_ms": 106.825,
+          "min_ms": 106.825,
+          "total_ms": 106.825
+        },
+        "simulation.collision_null_from_histogram": {
+          "avg_ms": 81.236,
+          "calls": 3,
+          "max_ms": 181.125,
+          "min_ms": 5.805,
+          "total_ms": 243.707
+        },
+        "simulation.duplicates_exact_position_permutation": {
+          "avg_ms": 9.857,
+          "calls": 1,
+          "max_ms": 9.857,
+          "min_ms": 9.857,
+          "total_ms": 9.857
+        },
+        "simulation.duplicates_exact_temporal_null": {
+          "avg_ms": 14.736,
+          "calls": 1,
+          "max_ms": 14.736,
+          "min_ms": 14.736,
+          "total_ms": 14.736
+        }
+      },
+      "total_timed_ms": 4461.221
+    },
+    "run_ms": 4197.084,
+    "table_rows_written": 1679,
+    "tables_written": 24,
+    "total_ms": 4226.357,
+    "write_flags_ms": 0.0,
+    "write_tables_ms": 29.273
+  },
+  "scope_availability": [
+    {
+      "scope": "full_hearing",
+      "scope_reason": "available",
+      "scope_status": "available"
+    }
+  ],
+  "scope_reason": "available",
+  "scope_status": "available",
+  "statistical_contract": {
+    "baseline_semantics": "reference model; not the data-generating process",
+    "estimand_primary": "name-key collision burden relative to reference baseline",
+    "hypothesis_families": [
+      {
+        "adjusted_p_value": 0.007751937984496124,
+        "adjustment_method": "holm",
+        "eligible_by_gate": true,
+        "family_id": "A_scope_excess_rows",
+        "family_label": "Scope-level excess_rows",
+        "family_order": 1,
+        "gate_reason": "eligible",
+        "n_significant": 1,
+        "n_tests": 1,
+        "scope": "full_hearing"
+      },
+      {
+        "adjusted_p_value": null,
+        "adjustment_method": "benjamini_hochberg",
+        "eligible_by_gate": true,
+        "family_id": "B_bucket_follow_up",
+        "family_label": "Bucket follow-up",
+        "family_order": 2,
+        "gate_reason": "eligible",
+        "n_significant": 0,
+        "n_tests": 0,
+        "scope": "full_hearing"
+      },
+      {
+        "adjusted_p_value": null,
+        "adjustment_method": "benjamini_hochberg",
+        "eligible_by_gate": true,
+        "family_id": "C_per_name_upper_tail",
+        "family_label": "Per-name follow-up",
+        "family_order": 3,
+        "gate_reason": "eligible",
+        "n_significant": 60,
+        "n_tests": 60,
+        "scope": "full_hearing"
+      },
+      {
+        "adjusted_p_value": null,
+        "adjustment_method": "benjamini_hochberg",
+        "eligible_by_gate": true,
+        "family_id": "D_temporal_follow_up",
+        "family_label": "Within-name temporal follow-up",
+        "family_order": 4,
+        "gate_reason": "eligible",
+        "n_significant": 0,
+        "n_tests": 3,
+        "scope": "full_hearing"
+      },
+      {
+        "adjusted_p_value": null,
+        "adjustment_method": "holm",
+        "eligible_by_gate": true,
+        "family_id": "E_position_follow_up",
+        "family_label": "Position follow-up",
+        "family_order": 5,
+        "gate_reason": "eligible",
+        "n_significant": 0,
+        "n_tests": 1,
+        "scope": "full_hearing"
+      }
+    ],
+    "hypothesis_family_totals": [
+      {
+        "adjustment_method": "holm",
+        "family_id": "A_scope_excess_rows",
+        "family_label": "Scope-level excess_rows",
+        "family_order": 1,
+        "n_scopes": 1,
+        "n_significant": 1,
+        "n_tests": 1
+      },
+      {
+        "adjustment_method": "benjamini_hochberg",
+        "family_id": "B_bucket_follow_up",
+        "family_label": "Bucket follow-up",
+        "family_order": 2,
+        "n_scopes": 1,
+        "n_significant": 0,
+        "n_tests": 0
+      },
+      {
+        "adjustment_method": "benjamini_hochberg",
+        "family_id": "C_per_name_upper_tail",
+        "family_label": "Per-name follow-up",
+        "family_order": 3,
+        "n_scopes": 1,
+        "n_significant": 60,
+        "n_tests": 60
+      },
+      {
+        "adjustment_method": "benjamini_hochberg",
+        "family_id": "D_temporal_follow_up",
+        "family_label": "Within-name temporal follow-up",
+        "family_order": 4,
+        "n_scopes": 1,
+        "n_significant": 0,
+        "n_tests": 3
+      },
+      {
+        "adjustment_method": "holm",
+        "family_id": "E_position_follow_up",
+        "family_label": "Position follow-up",
+        "family_order": 5,
+        "n_scopes": 1,
+        "n_significant": 0,
+        "n_tests": 1
+      }
+    ],
+    "inferential_key_mode": "strict",
+    "inferential_reason": "reference_model_inference_available",
+    "inferential_status": "reference_model_inference",
+    "non_goals": "cannot infer identity, intent, IP-based behavior, or per-person duplication from the public dataset"
+  },
+  "stratification": "none",
+  "stratification_endogeneity_uncontrolled": false,
+  "stratification_leakage_control": "not_applicable",
+  "stratification_weight_source": "none",
+  "stratification_weight_uncertainty": "not_applicable"
+}

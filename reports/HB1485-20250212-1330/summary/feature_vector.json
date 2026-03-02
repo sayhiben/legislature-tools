@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB1485-20250212-1330",
+  "generated_at_utc": "2026-03-01T23:05:27.268865+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-02-05T23:20:00-08:00",
+  "date_range_end": "2025-02-12T12:09:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 1269,
+    "overall_pro_rate": 0.49487785657998423,
+    "overall_con_rate": 0.5019700551615445,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.05059288537549407,
+    "window_min_q_value": null,
+    "top_name_max_records": 8,
+    "off_hours_ratio": 0.03152088258471237,
+    "blank_org_ratio": 0.644602048857368,
+    "blank_org_gap_pro_minus_con": -0.5078317951384375,
+    "dedup_drop_fraction": 0.0070921985815602835
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MERRITT|BECKY||",
+      "display_name": "MERRITT, BECKY",
+      "n_records": 8,
+      "n_pro": 0,
+      "n_con": 8
+    },
+    {
+      "canonical_name": "GRAHAM|JOHN||",
+      "display_name": "GRAHAM, JOHN",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "STRIPLING|IRIS||",
+      "display_name": "STRIPLING, IRIS",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "THOMPSON|RODNEY||",
+      "display_name": "THOMPSON, RODNEY",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "TRACY|PAMELA||",
+      "display_name": "TRACY, PAMELA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 1269,
+  "overall_pro_rate": 0.49487785657998423,
+  "overall_con_rate": 0.5019700551615445,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

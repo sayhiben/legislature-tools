@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5082-20250113-1400",
+  "generated_at_utc": "2026-03-01T23:28:26.822708+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-09T11:07:00-08:00",
+  "date_range_end": "2025-01-14T12:47:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 472,
+    "overall_pro_rate": 0.527542372881356,
+    "overall_con_rate": 0.4724576271186441,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.08936170212765958,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.01694915254237288,
+    "blank_org_ratio": 0.7690677966101694,
+    "blank_org_gap_pro_minus_con": -0.23374214346173938,
+    "dedup_drop_fraction": 0.00211864406779661
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "LEBOLD|MARY|A|",
+      "display_name": "LEBOLD, MARY ANN",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "OSTER|BRENDA||",
+      "display_name": "OSTER, BRENDA",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "AVERY|JANIS||",
+      "display_name": "AVERY, JANIS",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "FOWLER|PETER||",
+      "display_name": "FOWLER, PETER",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ROGERS|SIERRA||",
+      "display_name": "ROGERS, SIERRA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 472,
+  "overall_pro_rate": 0.527542372881356,
+  "overall_con_rate": 0.4724576271186441,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SSB6037-20260203-1600",
+  "generated_at_utc": "2026-03-01T23:58:09.081962+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-28T21:19:00-08:00",
+  "date_range_end": "2026-02-03T14:37:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 218,
+    "overall_pro_rate": 0.06880733944954129,
+    "overall_con_rate": 0.926605504587156,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.13425925925925927,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.03669724770642202,
+    "blank_org_ratio": 0.7477064220183486,
+    "blank_org_gap_pro_minus_con": -0.7353135313531354,
+    "dedup_drop_fraction": 0.0045871559633027525
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "LAYNE|LAURIE||",
+      "display_name": "LAYNE, LAURIE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "COX|MARK||",
+      "display_name": "COX, MARK",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "HERTTER|KARI||",
+      "display_name": "HERTTER, KARI",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "INLOW|GINA||",
+      "display_name": "INLOW, GINA",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "MURRAY|BRIAHNA||",
+      "display_name": "MURRAY, BRIAHNA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 218,
+  "overall_pro_rate": 0.06880733944954129,
+  "overall_con_rate": 0.926605504587156,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5484-20250206-1600",
+  "generated_at_utc": "2026-03-01T23:34:27.309374+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-02-01T00:14:00-08:00",
+  "date_range_end": "2025-02-06T12:11:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Transportation"
+  },
+  "chamber": "Senate",
+  "committee_name": "Transportation",
+  "metrics": {
+    "total_submissions": 36,
+    "overall_pro_rate": 0.5,
+    "overall_con_rate": 0.5,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.16666666666666666,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.1111111111111111,
+    "blank_org_ratio": 0.4722222222222222,
+    "blank_org_gap_pro_minus_con": -0.7222222222222223,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CROWLEY|HOLLY||",
+      "display_name": "CROWLEY, HOLLY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "PADELFORD|AMARILYS||",
+      "display_name": "PADELFORD, AMARILYS",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "SEGLA|LESLIE||",
+      "display_name": "SEGLA, LESLIE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 36,
+  "overall_pro_rate": 0.5,
+  "overall_con_rate": 0.5,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

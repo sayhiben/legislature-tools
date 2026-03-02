@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2206-20260113-1330",
+  "generated_at_utc": "2026-03-01T23:16:27.419821+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-08T11:54:00-08:00",
+  "date_range_end": "2026-01-13T12:29:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "State Government & Tribal Relations"
+  },
+  "chamber": "House",
+  "committee_name": "State Government & Tribal Relations",
+  "metrics": {
+    "total_submissions": 694,
+    "overall_pro_rate": 0.03170028818443804,
+    "overall_con_rate": 0.9668587896253602,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.17723342939481268,
+    "window_min_q_value": null,
+    "top_name_max_records": 63,
+    "off_hours_ratio": 0.03890489913544669,
+    "blank_org_ratio": 0.909221902017291,
+    "blank_org_gap_pro_minus_con": -0.14232488822652756,
+    "dedup_drop_fraction": 0.053314121037463975
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MERRITT|BECKY||",
+      "display_name": "MERRITT, BECKY",
+      "n_records": 63,
+      "n_pro": 0,
+      "n_con": 63
+    },
+    {
+      "canonical_name": "HIGGINS|SANDRA||",
+      "display_name": "HIGGINS, SANDRA",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "LAFLEUR|MARY||",
+      "display_name": "LAFLEUR, MARY",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "OSTERMAN|LEANA||",
+      "display_name": "OSTERMAN, LEANA",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "SHORT|JERALDINE||",
+      "display_name": "SHORT, JERALDINE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    }
+  ],
+  "material_quality_metric_count": 1,
+  "total_submissions": 694,
+  "overall_pro_rate": 0.03170028818443804,
+  "overall_con_rate": 0.9668587896253602,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

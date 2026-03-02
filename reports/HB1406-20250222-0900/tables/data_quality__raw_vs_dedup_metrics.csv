@@ -1,0 +1,6 @@
+metric,label,raw_value,exact_row_dedup_value,absolute_delta,relative_delta,material_change
+total_submissions,Total submissions,81.0,80.0,-1.0,-0.012345679012345678,False
+overall_pro_rate,Overall pro rate,0.9876543209876543,0.9875,-0.00015432098765422175,-0.00015624999999989952,False
+overall_con_rate,Overall con rate,0.012345679012345678,0.0125,0.00015432098765432237,0.012500000000000112,False
+mean_duplicate_fraction,Mean duplicate fraction,0.012345679012345678,0.0,-0.012345679012345678,-1.0,False
+high_tier_windows,High-tier windows,0.0,0.0,0.0,,False

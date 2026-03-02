@@ -1,0 +1,415 @@
+{
+  "generated_at": "2026-03-01T15:22:13.120494-08:00",
+  "interactive_payload_build_ms": 398.242,
+  "template_render_ms": 19.901,
+  "report_write_ms": 0.166,
+  "report_total_ms": 561.198,
+  "report_html_bytes": 140325,
+  "report_data_json_bytes": 536537,
+  "report_data_shards_json_bytes": 2298465,
+  "context_load_ms": 58.77,
+  "table_docs_build_ms": 1.506,
+  "investigation_artifacts_ms": 2.332,
+  "serialization_ms": 26.467,
+  "report_data_payload_build_ms": 43.255,
+  "report_data_write_ms": 0.303,
+  "report_assets_copy_ms": 4.84,
+  "pipeline_runtime": {
+    "pipeline": {
+      "prepare_base_dataframe_ms": 70.803,
+      "profile_artifacts_ms": 30.335,
+      "detector_pass_ms": 5601.046
+    },
+    "detectors": {
+      "detectors": {
+        "voter_registry_match": {
+          "run_ms": 435.306,
+          "write_tables_ms": 10.834,
+          "write_flags_ms": 0.0,
+          "total_ms": 446.382,
+          "tables_written": 11,
+          "table_rows_written": 531,
+          "flags_written": 0,
+          "flag_rows_written": 0,
+          "profiling": {
+            "timings": {
+              "detector.voter_registry_match.assemble_tables": {
+                "calls": 1,
+                "total_ms": 2.383,
+                "avg_ms": 2.383,
+                "min_ms": 2.383,
+                "max_ms": 2.383
+              },
+              "detector.voter_registry_match.build_linkage_by_position": {
+                "calls": 4,
+                "total_ms": 13.212,
+                "avg_ms": 3.303,
+                "min_ms": 2.944,
+                "max_ms": 3.701
+              },
+              "detector.voter_registry_match.build_match_by_bucket": {
+                "calls": 2,
+                "total_ms": 130.755,
+                "avg_ms": 65.378,
+                "min_ms": 64.124,
+                "max_ms": 66.632
+              },
+              "detector.voter_registry_match.build_pairwise_tests": {
+                "calls": 4,
+                "total_ms": 5.083,
+                "avg_ms": 1.271,
+                "min_ms": 1.111,
+                "max_ms": 1.478
+              },
+              "detector.voter_registry_match.build_submission_name_index": {
+                "calls": 1,
+                "total_ms": 0.077,
+                "avg_ms": 0.077,
+                "min_ms": 0.077,
+                "max_ms": 0.077
+              },
+              "detector.voter_registry_match.build_summary_and_assignments": {
+                "calls": 1,
+                "total_ms": 1.223,
+                "avg_ms": 1.223,
+                "min_ms": 1.223,
+                "max_ms": 1.223
+              },
+              "detector.voter_registry_match.classify_name_linkage": {
+                "calls": 1,
+                "total_ms": 5.945,
+                "avg_ms": 5.945,
+                "min_ms": 5.945,
+                "max_ms": 5.945
+              },
+              "detector.voter_registry_match.derive_unique_positions": {
+                "calls": 1,
+                "total_ms": 4.805,
+                "avg_ms": 4.805,
+                "min_ms": 4.805,
+                "max_ms": 4.805
+              },
+              "detector.voter_registry_match.fetch_registry_data": {
+                "calls": 1,
+                "total_ms": 212.17,
+                "avg_ms": 212.17,
+                "min_ms": 212.17,
+                "max_ms": 212.17
+              },
+              "detector.voter_registry_match.merge_assignments_into_rows": {
+                "calls": 1,
+                "total_ms": 2.125,
+                "avg_ms": 2.125,
+                "min_ms": 2.125,
+                "max_ms": 2.125
+              },
+              "detector.voter_registry_match.mode.loop_total": {
+                "calls": 1,
+                "total_ms": 159.614,
+                "avg_ms": 159.614,
+                "min_ms": 159.614,
+                "max_ms": 159.614
+              },
+              "detector.voter_registry_match.mode.total": {
+                "calls": 2,
+                "total_ms": 159.605,
+                "avg_ms": 79.802,
+                "min_ms": 77.21,
+                "max_ms": 82.394
+              },
+              "detector.voter_registry_match.normalize_assignments": {
+                "calls": 1,
+                "total_ms": 2.073,
+                "avg_ms": 2.073,
+                "min_ms": 2.073,
+                "max_ms": 2.073
+              },
+              "detector.voter_registry_match.normalize_lookup_frames": {
+                "calls": 1,
+                "total_ms": 7.08,
+                "avg_ms": 7.08,
+                "min_ms": 7.08,
+                "max_ms": 7.08
+              },
+              "detector.voter_registry_match.prepare_bucket_cache": {
+                "calls": 1,
+                "total_ms": 36.168,
+                "avg_ms": 36.168,
+                "min_ms": 36.168,
+                "max_ms": 36.168
+              },
+              "detector.voter_registry_match.prepare_working": {
+                "calls": 1,
+                "total_ms": 1.001,
+                "avg_ms": 1.001,
+                "min_ms": 1.001,
+                "max_ms": 1.001
+              }
+            },
+            "counters": {
+              "detector.voter_registry_match.assignments.rows": 20,
+              "detector.voter_registry_match.build_linkage_by_position.rows": 12,
+              "detector.voter_registry_match.build_match_by_bucket.position_rows": 248,
+              "detector.voter_registry_match.build_match_by_bucket.rows": 222,
+              "detector.voter_registry_match.build_pairwise_tests.rows": 12,
+              "detector.voter_registry_match.fetch_registry_data.cache_enabled": 1,
+              "detector.voter_registry_match.fetch_registry_data.cache_miss": 1,
+              "detector.voter_registry_match.lookup.candidate_last_count": 7,
+              "detector.voter_registry_match.lookup.exact_name_count": 12,
+              "detector.voter_registry_match.mode.iterations": 2,
+              "detector.voter_registry_match.mode.rows_processed": 42,
+              "detector.voter_registry_match.prepare_bucket_cache.entries": 10,
+              "detector.voter_registry_match.rows.working": 21,
+              "detector.voter_registry_match.submission_last_names.count": 20,
+              "detector.voter_registry_match.submission_names.count": 20,
+              "detector.voter_registry_match.unresolved_last_names.count": 8
+            },
+            "total_timed_ms": 743.319,
+            "timed_event_count": 24
+          },
+          "write_summary_ms": 0.242
+        },
+        "duplicates_exact": {
+          "run_ms": 4106.408,
+          "write_tables_ms": 27.416,
+          "write_flags_ms": 0.0,
+          "total_ms": 4134.267,
+          "tables_written": 24,
+          "table_rows_written": 826,
+          "flags_written": 0,
+          "flag_rows_written": 0,
+          "profiling": {
+            "timings": {
+              "detector.duplicates_exact.assemble_outputs": {
+                "calls": 1,
+                "total_ms": 36.785,
+                "avg_ms": 36.785,
+                "min_ms": 36.785,
+                "max_ms": 36.785
+              },
+              "detector.duplicates_exact.load_contextual_baseline": {
+                "calls": 1,
+                "total_ms": 115.081,
+                "avg_ms": 115.081,
+                "min_ms": 115.081,
+                "max_ms": 115.081
+              },
+              "detector.duplicates_exact.prepare_stratification": {
+                "calls": 1,
+                "total_ms": 0.001,
+                "avg_ms": 0.001,
+                "min_ms": 0.001,
+                "max_ms": 0.001
+              },
+              "detector.duplicates_exact.prepare_working": {
+                "calls": 1,
+                "total_ms": 0.941,
+                "avg_ms": 0.941,
+                "min_ms": 0.941,
+                "max_ms": 0.941
+              },
+              "detector.duplicates_exact.resolve_scope_frames": {
+                "calls": 1,
+                "total_ms": 0.034,
+                "avg_ms": 0.034,
+                "min_ms": 0.034,
+                "max_ms": 0.034
+              },
+              "detector.duplicates_exact.scope.bucket_scan": {
+                "calls": 1,
+                "total_ms": 211.941,
+                "avg_ms": 211.941,
+                "min_ms": 211.941,
+                "max_ms": 211.941
+              },
+              "detector.duplicates_exact.scope.expected_metrics_and_null": {
+                "calls": 1,
+                "total_ms": 3330.908,
+                "avg_ms": 3330.908,
+                "min_ms": 3330.908,
+                "max_ms": 3330.908
+              },
+              "detector.duplicates_exact.scope.per_name_tests": {
+                "calls": 1,
+                "total_ms": 14.184,
+                "avg_ms": 14.184,
+                "min_ms": 14.184,
+                "max_ms": 14.184
+              },
+              "detector.duplicates_exact.scope.prepare_frame": {
+                "calls": 1,
+                "total_ms": 1.541,
+                "avg_ms": 1.541,
+                "min_ms": 1.541,
+                "max_ms": 1.541
+              },
+              "detector.duplicates_exact.scope.primary_legacy_outputs": {
+                "calls": 1,
+                "total_ms": 279.633,
+                "avg_ms": 279.633,
+                "min_ms": 279.633,
+                "max_ms": 279.633
+              },
+              "detector.duplicates_exact.scope.temporal_metrics": {
+                "calls": 1,
+                "total_ms": 2.527,
+                "avg_ms": 2.527,
+                "min_ms": 2.527,
+                "max_ms": 2.527
+              },
+              "detector.duplicates_exact.scope.top_name_timing": {
+                "calls": 1,
+                "total_ms": 108.728,
+                "avg_ms": 108.728,
+                "min_ms": 108.728,
+                "max_ms": 108.728
+              },
+              "simulation.collision_null_from_histogram": {
+                "calls": 4,
+                "total_ms": 245.591,
+                "avg_ms": 61.398,
+                "min_ms": 4.221,
+                "max_ms": 128.865
+              },
+              "simulation.duplicates_exact_position_permutation": {
+                "calls": 1,
+                "total_ms": 10.298,
+                "avg_ms": 10.298,
+                "min_ms": 10.298,
+                "max_ms": 10.298
+              },
+              "simulation.duplicates_exact_temporal_null": {
+                "calls": 1,
+                "total_ms": 2.183,
+                "avg_ms": 2.183,
+                "min_ms": 2.183,
+                "max_ms": 2.183
+              }
+            },
+            "counters": {
+              "detector.duplicates_exact.contextual_shrink.cache_hit": 23,
+              "detector.duplicates_exact.contextual_shrink.cache_miss": 101,
+              "detector.duplicates_exact.contextual_shrink.cache_size": 101,
+              "detector.duplicates_exact.rows.inference": 21,
+              "detector.duplicates_exact.rows.working": 21,
+              "detector.duplicates_exact.scope.bucketed_frame_cache.entries": 10,
+              "detector.duplicates_exact.scope.count": 1,
+              "detector.duplicates_exact.scope.iterations": 1,
+              "detector.duplicates_exact.scope.rows_total": 21,
+              "detector.duplicates_exact.scope.unavailable_count": 0,
+              "detector.duplicates_exact.scope.unique_names_total": 20,
+              "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_miss": 1,
+              "detector.duplicates_exact.simulation.collision_null_from_histogram.cache_size": 1,
+              "simulation.collision_null_from_histogram.calls": 4,
+              "simulation.collision_null_from_histogram.draws_effective": 15128,
+              "simulation.collision_null_from_histogram.draws_requested": 35000,
+              "simulation.collision_null_from_histogram.draws_target": 15475,
+              "simulation.collision_null_from_histogram.n_rows": 42,
+              "simulation.collision_null_from_histogram.output_samples": 15128,
+              "simulation.collision_null_from_histogram.parallel_chunks": 121,
+              "simulation.collision_null_from_histogram.parallel_enabled": 0,
+              "simulation.collision_null_from_histogram.parallel_fallback": 0,
+              "simulation.collision_null_from_histogram.parallel_workers": 25,
+              "simulation.duplicates_exact_position_permutation.calls": 1,
+              "simulation.duplicates_exact_position_permutation.permutations": 256,
+              "simulation.duplicates_exact_position_permutation.successful_results": 1,
+              "simulation.duplicates_exact_temporal_null.cached_conditioned_signatures": 0,
+              "simulation.duplicates_exact_temporal_null.cached_sample_sizes": 0,
+              "simulation.duplicates_exact_temporal_null.calls": 1,
+              "simulation.duplicates_exact_temporal_null.conditioned_downgraded_rows": 1,
+              "simulation.duplicates_exact_temporal_null.draws_effective": 1000,
+              "simulation.duplicates_exact_temporal_null.output_rows": 1
+            },
+            "total_timed_ms": 4360.375,
+            "timed_event_count": 18
+          },
+          "write_summary_ms": 0.443
+        },
+        "vrdb_collision_evidence": {
+          "run_ms": 0.211,
+          "write_tables_ms": 0.421,
+          "write_flags_ms": 0.0,
+          "total_ms": 0.765,
+          "tables_written": 2,
+          "table_rows_written": 0,
+          "flags_written": 0,
+          "flag_rows_written": 0,
+          "profiling": {
+            "timings": {},
+            "counters": {},
+            "total_timed_ms": 0.0,
+            "timed_event_count": 0
+          },
+          "write_summary_ms": 0.133
+        },
+        "bursts": {
+          "run_ms": 449.486,
+          "write_tables_ms": 20.609,
+          "write_flags_ms": 0.0,
+          "total_ms": 470.263,
+          "tables_written": 3,
+          "table_rows_written": 79362,
+          "flags_written": 0,
+          "flag_rows_written": 0,
+          "profiling": {
+            "timings": {
+              "simulation.poisson_max_rolling_sums_stratified": {
+                "calls": 10,
+                "total_ms": 52.844,
+                "avg_ms": 5.284,
+                "min_ms": 5.233,
+                "max_ms": 5.332
+              }
+            },
+            "counters": {
+              "simulation.poisson_max_rolling_sums_stratified.calls": 10,
+              "simulation.poisson_max_rolling_sums_stratified.iterations": 500,
+              "simulation.poisson_max_rolling_sums_stratified.n_minutes": 81910,
+              "simulation.poisson_max_rolling_sums_stratified.output_samples": 500
+            },
+            "total_timed_ms": 52.844,
+            "timed_event_count": 10
+          },
+          "write_summary_ms": 0.168
+        },
+        "off_hours": {
+          "run_ms": 441.485,
+          "write_tables_ms": 15.165,
+          "write_flags_ms": 0.0,
+          "total_ms": 456.81,
+          "tables_written": 9,
+          "table_rows_written": 264,
+          "flags_written": 0,
+          "flag_rows_written": 0,
+          "profiling": {
+            "timings": {},
+            "counters": {},
+            "total_timed_ms": 0.0,
+            "timed_event_count": 0
+          },
+          "write_summary_ms": 0.16
+        },
+        "org_anomalies": {
+          "run_ms": 86.613,
+          "write_tables_ms": 3.351,
+          "write_flags_ms": 0.0,
+          "total_ms": 90.115,
+          "tables_written": 3,
+          "table_rows_written": 245,
+          "flags_written": 0,
+          "flag_rows_written": 0,
+          "profiling": {
+            "timings": {},
+            "counters": {},
+            "total_timed_ms": 0.0,
+            "timed_event_count": 0
+          },
+          "write_summary_ms": 0.151
+        }
+      },
+      "detector_total_ms": 5598.602,
+      "figure_render_ms": 0.0,
+      "run_detectors_total_ms": 5600.608
+    }
+  }
+}

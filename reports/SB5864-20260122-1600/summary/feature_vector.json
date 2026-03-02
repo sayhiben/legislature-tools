@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5864-20260122-1600",
+  "generated_at_utc": "2026-03-01T23:39:57.820723+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-15T09:52:00-08:00",
+  "date_range_end": "2026-01-22T14:57:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 223,
+    "overall_pro_rate": 0.273542600896861,
+    "overall_con_rate": 0.7085201793721974,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.09049773755656108,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.02242152466367713,
+    "blank_org_ratio": 0.874439461883408,
+    "blank_org_gap_pro_minus_con": -0.2053330566507574,
+    "dedup_drop_fraction": 0.004484304932735426
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BLUMER|JANET||",
+      "display_name": "BLUMER, JANET",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "CHURCHILL|NANCY||",
+      "display_name": "CHURCHILL, NANCY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "CRELEY|MARK||",
+      "display_name": "CRELEY, MARK",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "CULLENS|FAITH||",
+      "display_name": "CULLENS, FAITH",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HOLM|LES||",
+      "display_name": "HOLM, LES",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 223,
+  "overall_pro_rate": 0.273542600896861,
+  "overall_con_rate": 0.7085201793721974,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

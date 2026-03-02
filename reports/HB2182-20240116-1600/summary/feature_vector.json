@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2182-20240116-1600",
+  "generated_at_utc": "2026-03-01T23:15:38.292881+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-12T14:00:00-08:00",
+  "date_range_end": "2024-01-16T12:30:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 18,
+    "overall_pro_rate": 0.6666666666666666,
+    "overall_con_rate": 0.2777777777777778,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.0,
+    "window_min_q_value": null,
+    "top_name_max_records": 1,
+    "off_hours_ratio": 0.05555555555555555,
+    "blank_org_ratio": 0.2222222222222222,
+    "blank_org_gap_pro_minus_con": -0.5166666666666666,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CHRISTOPHERSEN|VICKI||",
+      "display_name": "CHRISTOPHERSEN, VICKI",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "EICKMEYER|EZRA||",
+      "display_name": "EICKMEYER, EZRA",
+      "n_records": 1,
+      "n_pro": 0,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "FRIEDLANDER|MATTHEW||",
+      "display_name": "FRIEDLANDER, MATTHEW",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HARDISON|ROBERT||",
+      "display_name": "HARDISON, ROBERT",
+      "n_records": 1,
+      "n_pro": 0,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "HIRSCHBURG|BAILEY||",
+      "display_name": "HIRSCHBURG, BAILEY",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 18,
+  "overall_pro_rate": 0.6666666666666666,
+  "overall_con_rate": 0.2777777777777778,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

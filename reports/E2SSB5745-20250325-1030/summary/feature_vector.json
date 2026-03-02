@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "report_id": "E2SSB5745-20250325-1030",
+  "generated_at_utc": "2026-03-01T22:48:53.344653+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-03-20T14:42:00-07:00",
+  "date_range_end": "2025-03-25T08:58:00-07:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 63,
+    "overall_pro_rate": 0.9206349206349206,
+    "overall_con_rate": 0.06349206349206349,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.06349206349206349,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.06349206349206349,
+    "blank_org_ratio": 0.6666666666666666,
+    "blank_org_gap_pro_minus_con": -0.3448275862068966,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "KOLAN|KATIE||",
+      "display_name": "KOLAN, KATIE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "LAMKIN|RACHEL||",
+      "display_name": "LAMKIN, RACHEL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 63,
+  "overall_pro_rate": 0.9206349206349206,
+  "overall_con_rate": 0.06349206349206349,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

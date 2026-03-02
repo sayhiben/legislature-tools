@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5862-20240216-1030",
+  "generated_at_utc": "2026-03-01T23:39:46.818563+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-02-15T22:37:00-08:00",
+  "date_range_end": "2024-02-16T07:43:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 2,
+    "overall_pro_rate": 1.0,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.0,
+    "window_min_q_value": null,
+    "top_name_max_records": 1,
+    "off_hours_ratio": 0.0,
+    "blank_org_ratio": 0.5,
+    "blank_org_gap_pro_minus_con": null,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "KROHN|HERB||",
+      "display_name": "KROHN, HERB",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "NEUMILLER|MARIE||",
+      "display_name": "NEUMILLER, MARIE",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 2,
+  "overall_pro_rate": 1.0,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

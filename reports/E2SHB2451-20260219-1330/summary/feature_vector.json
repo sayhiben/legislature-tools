@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "report_id": "E2SHB2451-20260219-1330",
+  "generated_at_utc": "2026-03-01T22:48:28.705059+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-17T09:54:00-08:00",
+  "date_range_end": "2026-02-19T12:11:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 83,
+    "overall_pro_rate": 0.9879518072289156,
+    "overall_con_rate": 0.012048192771084338,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.08433734939759036,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.07228915662650602,
+    "blank_org_ratio": 0.6626506024096386,
+    "blank_org_gap_pro_minus_con": -0.3414634146341463,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "TURNER|WAYNE||",
+      "display_name": "TURNER, WAYNE",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BROCK|DAVID||",
+      "display_name": "BROCK, DAVID",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MURRAY|BRIAHNA||",
+      "display_name": "MURRAY, BRIAHNA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 83,
+  "overall_pro_rate": 0.9879518072289156,
+  "overall_con_rate": 0.012048192771084338,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

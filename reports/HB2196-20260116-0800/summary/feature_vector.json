@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2196-20260116-0800",
+  "generated_at_utc": "2026-03-01T23:16:03.114539+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-08T00:09:00-08:00",
+  "date_range_end": "2026-01-16T06:45:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 498,
+    "overall_pro_rate": 0.9859437751004017,
+    "overall_con_rate": 0.002008032128514056,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.046370967741935484,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.04417670682730924,
+    "blank_org_ratio": 0.8654618473895582,
+    "blank_org_gap_pro_minus_con": -0.1344195519348269,
+    "dedup_drop_fraction": 0.002008032128514056
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MARCHER|MINA||",
+      "display_name": "MARCHER, MINA",
+      "n_records": 3,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BLANCHARD|BRYNN||",
+      "display_name": "BLANCHARD, BRYNN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BLYDEN|DANA||",
+      "display_name": "BLYDEN, DANA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ENDSLEY|NICOLE||",
+      "display_name": "ENDSLEY, NICOLE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "E|NICOLE||",
+      "display_name": "E, NICOLE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 498,
+  "overall_pro_rate": 0.9859437751004017,
+  "overall_con_rate": 0.002008032128514056,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

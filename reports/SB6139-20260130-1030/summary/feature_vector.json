@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "report_id": "SB6139-20260130-1030",
+  "generated_at_utc": "2026-03-01T23:45:41.744641+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-26T20:48:00-08:00",
+  "date_range_end": "2026-01-30T08:55:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 29,
+    "overall_pro_rate": 0.20689655172413793,
+    "overall_con_rate": 0.6206896551724138,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.20689655172413793,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.0,
+    "blank_org_ratio": 0.5172413793103449,
+    "blank_org_gap_pro_minus_con": 0.11111111111111105,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BURNSIDE|KERRI||",
+      "display_name": "BURNSIDE, KERRI",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "HENDERSON|JIM||",
+      "display_name": "HENDERSON, JIM",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "KNAPP|ANNE||",
+      "display_name": "KNAPP, ANNE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 29,
+  "overall_pro_rate": 0.20689655172413793,
+  "overall_con_rate": 0.6206896551724138,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

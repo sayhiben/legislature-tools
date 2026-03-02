@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SSB6183-20260224-1330",
+  "generated_at_utc": "2026-03-01T23:59:08.216283+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-20T06:06:00-08:00",
+  "date_range_end": "2026-02-24T12:26:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Health Care & Wellness"
+  },
+  "chamber": "House",
+  "committee_name": "Health Care & Wellness",
+  "metrics": {
+    "total_submissions": 336,
+    "overall_pro_rate": 0.5446428571428571,
+    "overall_con_rate": 0.45535714285714285,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.14583333333333334,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.0625,
+    "blank_org_ratio": 0.9077380952380952,
+    "blank_org_gap_pro_minus_con": 0.01060752169720347,
+    "dedup_drop_fraction": 0.008928571428571428
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "KLUDT|GREGORY||",
+      "display_name": "KLUDT, GREGORY",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "KLUDT|MICHELLE||",
+      "display_name": "KLUDT, MICHELLE",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "SLAATTHAUG|KORY||",
+      "display_name": "SLAATTHAUG, KORY",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "POWERS-MORALES|MARTA||",
+      "display_name": "POWERS-MORALES, MARTA",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "YOUNG|CATHERINE||",
+      "display_name": "YOUNG, CATHERINE",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 336,
+  "overall_pro_rate": 0.5446428571428571,
+  "overall_con_rate": 0.45535714285714285,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

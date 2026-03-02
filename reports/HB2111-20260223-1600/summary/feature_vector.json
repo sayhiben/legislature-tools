@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2111-20260223-1600",
+  "generated_at_utc": "2026-03-01T23:13:46.754302+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-18T19:55:00-08:00",
+  "date_range_end": "2026-02-23T14:55:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Transportation"
+  },
+  "chamber": "Senate",
+  "committee_name": "Transportation",
+  "metrics": {
+    "total_submissions": 181,
+    "overall_pro_rate": 0.9834254143646409,
+    "overall_con_rate": 0.016574585635359115,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.12777777777777777,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.049723756906077346,
+    "blank_org_ratio": 0.850828729281768,
+    "blank_org_gap_pro_minus_con": -0.151685393258427,
+    "dedup_drop_fraction": 0.0055248618784530384
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MARTIN|DENNIS|K|",
+      "display_name": "MARTIN, DENNIS K",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BURKE|ROBERT||",
+      "display_name": "BURKE, ROBERT",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "INGMIRE|BARBARA||",
+      "display_name": "INGMIRE, BARBARA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MOONEY|PATRICK||",
+      "display_name": "MOONEY, PATRICK",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "PAYNE|BRAD||",
+      "display_name": "PAYNE, BRAD",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 181,
+  "overall_pro_rate": 0.9834254143646409,
+  "overall_con_rate": 0.016574585635359115,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

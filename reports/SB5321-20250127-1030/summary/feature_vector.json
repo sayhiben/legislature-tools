@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5321-20250127-1030",
+  "generated_at_utc": "2026-03-01T23:32:43.658870+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-22T18:24:00-08:00",
+  "date_range_end": "2025-01-27T09:29:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 3098,
+    "overall_pro_rate": 0.2591994835377663,
+    "overall_con_rate": 0.7401549386701097,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.31797534068786504,
+    "window_min_q_value": null,
+    "top_name_max_records": 6,
+    "off_hours_ratio": 0.04131697869593286,
+    "blank_org_ratio": 0.9280180761781794,
+    "blank_org_gap_pro_minus_con": -0.06416572393428699,
+    "dedup_drop_fraction": 0.013234344738540994
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "HOLLAND|RYAN||",
+      "display_name": "HOLLAND, RYAN",
+      "n_records": 6,
+      "n_pro": 0,
+      "n_con": 6
+    },
+    {
+      "canonical_name": "DORN|ROSEMARIE||",
+      "display_name": "DORN, ROSEMARIE",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "MASTOR|BEVERELY||",
+      "display_name": "MASTOR, BEVERELY",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "MCCUTCHIN|NANCY||",
+      "display_name": "MCCUTCHIN, NANCY",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "RATZLAFF|KRISTIN||",
+      "display_name": "RATZLAFF, KRISTIN",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 3098,
+  "overall_pro_rate": 0.2591994835377663,
+  "overall_con_rate": 0.7401549386701097,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

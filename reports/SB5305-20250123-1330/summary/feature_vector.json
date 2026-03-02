@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5305-20250123-1330",
+  "generated_at_utc": "2026-03-01T23:31:59.913600+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-17T13:55:00-08:00",
+  "date_range_end": "2025-01-23T12:28:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Agriculture & Natural Resources"
+  },
+  "chamber": "Senate",
+  "committee_name": "Agriculture & Natural Resources",
+  "metrics": {
+    "total_submissions": 21,
+    "overall_pro_rate": 0.6190476190476191,
+    "overall_con_rate": 0.3333333333333333,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.0,
+    "window_min_q_value": null,
+    "top_name_max_records": 1,
+    "off_hours_ratio": 0.0,
+    "blank_org_ratio": 0.38095238095238093,
+    "blank_org_gap_pro_minus_con": -0.7802197802197801,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BALASBAS|JAY||",
+      "display_name": "BALASBAS, JAY",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BOWEN|ED||",
+      "display_name": "BOWEN, ED",
+      "n_records": 1,
+      "n_pro": 0,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "EDWARDS|ARIEL||",
+      "display_name": "EDWARDS, ARIEL",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "GILCREASE|BRYANT||",
+      "display_name": "GILCREASE, BRYANT",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "GRUDIN|JONATHAN||",
+      "display_name": "GRUDIN, JONATHAN",
+      "n_records": 1,
+      "n_pro": 0,
+      "n_con": 1
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 21,
+  "overall_pro_rate": 0.6190476190476191,
+  "overall_con_rate": 0.3333333333333333,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

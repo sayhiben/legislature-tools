@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5967-20260115-0800",
+  "generated_at_utc": "2026-03-01T23:42:06.525467+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-09T11:03:00-08:00",
+  "date_range_end": "2026-01-15T06:59:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 2390,
+    "overall_pro_rate": 0.2489539748953975,
+    "overall_con_rate": 0.7497907949790795,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.15378151260504203,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.03682008368200837,
+    "blank_org_ratio": 0.9,
+    "blank_org_gap_pro_minus_con": -0.19571953781512608,
+    "dedup_drop_fraction": 0.00502092050209205
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "ANDREW|BARBEE||",
+      "display_name": "ANDREW, BARBEE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "COLLINS|GAYLE||",
+      "display_name": "COLLINS, GAYLE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "ROBINSON|DAVE||",
+      "display_name": "ROBINSON, DAVE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "VAN CLEAVE|ALAN||",
+      "display_name": "VAN CLEAVE, ALAN",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "WILSON-CODEGA|LILY||",
+      "display_name": "WILSON-CODEGA, LILY",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 2390,
+  "overall_pro_rate": 0.2489539748953975,
+  "overall_con_rate": 0.7497907949790795,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

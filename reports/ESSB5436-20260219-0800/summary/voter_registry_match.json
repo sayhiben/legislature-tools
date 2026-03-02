@@ -1,0 +1,184 @@
+{
+  "active": true,
+  "active_only": true,
+  "attribution_caveat": "Voter linkage is supporting evidence only and cannot independently establish identity or intent.",
+  "bucket_minutes": [
+    1,
+    5,
+    15,
+    30,
+    60,
+    120,
+    240,
+    480,
+    720,
+    1440
+  ],
+  "enabled": true,
+  "match_mode_default": "loose",
+  "match_mode_options": [
+    "strict",
+    "loose"
+  ],
+  "matched_rate_rows": 0.9025522041763341,
+  "n_matched_ambiguous_rows": 137,
+  "n_matched_unique_rows": 252,
+  "n_rows": 431,
+  "n_unique_names": 410,
+  "n_unmatched_rows": 42,
+  "n_unmatched_unique": 38,
+  "primary_match_mode": "loose",
+  "primary_outcome_column": "loose_outcome",
+  "registry_row_count": 5088118,
+  "registry_snapshot_date": null,
+  "runtime": {
+    "flag_rows_written": 0,
+    "flags_written": 0,
+    "profiling": {
+      "counters": {
+        "detector.voter_registry_match.assignments.rows": 410,
+        "detector.voter_registry_match.build_linkage_by_position.rows": 12,
+        "detector.voter_registry_match.build_match_by_bucket.position_rows": 1688,
+        "detector.voter_registry_match.build_match_by_bucket.rows": 1628,
+        "detector.voter_registry_match.build_pairwise_tests.rows": 12,
+        "detector.voter_registry_match.fetch_registry_data.cache_enabled": 1,
+        "detector.voter_registry_match.fetch_registry_data.cache_miss": 1,
+        "detector.voter_registry_match.lookup.candidate_last_count": 49,
+        "detector.voter_registry_match.lookup.exact_name_count": 354,
+        "detector.voter_registry_match.mode.iterations": 2,
+        "detector.voter_registry_match.mode.rows_processed": 862,
+        "detector.voter_registry_match.prepare_bucket_cache.entries": 10,
+        "detector.voter_registry_match.rows.working": 431,
+        "detector.voter_registry_match.submission_last_names.count": 359,
+        "detector.voter_registry_match.submission_names.count": 410,
+        "detector.voter_registry_match.unresolved_last_names.count": 56
+      },
+      "timed_event_count": 24,
+      "timings": {
+        "detector.voter_registry_match.assemble_tables": {
+          "avg_ms": 3.045,
+          "calls": 1,
+          "max_ms": 3.045,
+          "min_ms": 3.045,
+          "total_ms": 3.045
+        },
+        "detector.voter_registry_match.build_linkage_by_position": {
+          "avg_ms": 3.198,
+          "calls": 4,
+          "max_ms": 3.339,
+          "min_ms": 2.927,
+          "total_ms": 12.791
+        },
+        "detector.voter_registry_match.build_match_by_bucket": {
+          "avg_ms": 66.499,
+          "calls": 2,
+          "max_ms": 66.657,
+          "min_ms": 66.342,
+          "total_ms": 132.999
+        },
+        "detector.voter_registry_match.build_pairwise_tests": {
+          "avg_ms": 1.072,
+          "calls": 4,
+          "max_ms": 1.157,
+          "min_ms": 1.011,
+          "total_ms": 4.287
+        },
+        "detector.voter_registry_match.build_submission_name_index": {
+          "avg_ms": 0.272,
+          "calls": 1,
+          "max_ms": 0.272,
+          "min_ms": 0.272,
+          "total_ms": 0.272
+        },
+        "detector.voter_registry_match.build_summary_and_assignments": {
+          "avg_ms": 1.473,
+          "calls": 1,
+          "max_ms": 1.473,
+          "min_ms": 1.473,
+          "total_ms": 1.473
+        },
+        "detector.voter_registry_match.classify_name_linkage": {
+          "avg_ms": 68.322,
+          "calls": 1,
+          "max_ms": 68.322,
+          "min_ms": 68.322,
+          "total_ms": 68.322
+        },
+        "detector.voter_registry_match.derive_unique_positions": {
+          "avg_ms": 5.18,
+          "calls": 1,
+          "max_ms": 5.18,
+          "min_ms": 5.18,
+          "total_ms": 5.18
+        },
+        "detector.voter_registry_match.fetch_registry_data": {
+          "avg_ms": 313.538,
+          "calls": 1,
+          "max_ms": 313.538,
+          "min_ms": 313.538,
+          "total_ms": 313.538
+        },
+        "detector.voter_registry_match.merge_assignments_into_rows": {
+          "avg_ms": 2.387,
+          "calls": 1,
+          "max_ms": 2.387,
+          "min_ms": 2.387,
+          "total_ms": 2.387
+        },
+        "detector.voter_registry_match.mode.loop_total": {
+          "avg_ms": 172.057,
+          "calls": 1,
+          "max_ms": 172.057,
+          "min_ms": 172.057,
+          "total_ms": 172.057
+        },
+        "detector.voter_registry_match.mode.total": {
+          "avg_ms": 86.023,
+          "calls": 2,
+          "max_ms": 87.716,
+          "min_ms": 84.329,
+          "total_ms": 172.045
+        },
+        "detector.voter_registry_match.normalize_assignments": {
+          "avg_ms": 2.577,
+          "calls": 1,
+          "max_ms": 2.577,
+          "min_ms": 2.577,
+          "total_ms": 2.577
+        },
+        "detector.voter_registry_match.normalize_lookup_frames": {
+          "avg_ms": 38.566,
+          "calls": 1,
+          "max_ms": 38.566,
+          "min_ms": 38.566,
+          "total_ms": 38.566
+        },
+        "detector.voter_registry_match.prepare_bucket_cache": {
+          "avg_ms": 32.544,
+          "calls": 1,
+          "max_ms": 32.544,
+          "min_ms": 32.544,
+          "total_ms": 32.544
+        },
+        "detector.voter_registry_match.prepare_working": {
+          "avg_ms": 1.596,
+          "calls": 1,
+          "max_ms": 1.596,
+          "min_ms": 1.596,
+          "total_ms": 1.596
+        }
+      },
+      "total_timed_ms": 963.678
+    },
+    "run_ms": 643.983,
+    "table_rows_written": 3848,
+    "tables_written": 11,
+    "total_ms": 657.506,
+    "write_flags_ms": 0.0,
+    "write_tables_ms": 13.523
+  },
+  "status_mode": "single",
+  "unmatched_rate_rows": 0.09744779582366589,
+  "unmatched_rate_unique": 0.09268292682926829,
+  "voter_signal_role": "supporting_evidence_only"
+}

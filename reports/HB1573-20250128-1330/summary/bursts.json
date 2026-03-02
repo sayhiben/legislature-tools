@@ -1,0 +1,49 @@
+{
+  "baseline_rate_per_minute": 0.011918951132300357,
+  "calibration_enabled": true,
+  "calibration_iterations": 50,
+  "calibration_mode": "hour_of_day",
+  "max_abs_delta_pro_rate": 0.5,
+  "max_observed_window_count": 46.0,
+  "max_significant_abs_delta_pro_rate": 0.5,
+  "min_q_value": 1.3650819791593446e-08,
+  "n_calibration_supported_windows": 1691,
+  "n_permutation_fdr_significant_windows": 0,
+  "n_permutation_raw_significant_windows": 0,
+  "n_permutation_significant_windows": 0,
+  "n_poisson_fdr_significant_windows": 3049,
+  "n_significant_composition_shifts": 1571,
+  "n_significant_windows": 3049,
+  "n_tests": 38849,
+  "runtime": {
+    "flag_rows_written": 0,
+    "flags_written": 0,
+    "profiling": {
+      "counters": {
+        "simulation.poisson_max_rolling_sums_stratified.calls": 10,
+        "simulation.poisson_max_rolling_sums_stratified.iterations": 500,
+        "simulation.poisson_max_rolling_sums_stratified.n_minutes": 41950,
+        "simulation.poisson_max_rolling_sums_stratified.output_samples": 500
+      },
+      "timed_event_count": 10,
+      "timings": {
+        "simulation.poisson_max_rolling_sums_stratified": {
+          "avg_ms": 3.147,
+          "calls": 10,
+          "max_ms": 3.263,
+          "min_ms": 3.096,
+          "total_ms": 31.471
+        }
+      },
+      "total_timed_ms": 31.471
+    },
+    "run_ms": 232.328,
+    "table_rows_written": 42398,
+    "tables_written": 3,
+    "total_ms": 246.484,
+    "write_flags_ms": 0.0,
+    "write_tables_ms": 14.156
+  },
+  "significance_policy_effective": "parametric_fdr",
+  "significance_policy_requested": "parametric_fdr"
+}

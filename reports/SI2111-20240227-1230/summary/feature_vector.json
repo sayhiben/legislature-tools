@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SI2111-20240227-1230",
+  "generated_at_utc": "2026-03-01T23:53:34.997234+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-02-21T18:57:00-08:00",
+  "date_range_end": "2024-02-27T11:29:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 6887,
+    "overall_pro_rate": 0.898649629737186,
+    "overall_con_rate": 0.09772034267460433,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.26121794871794873,
+    "window_min_q_value": null,
+    "top_name_max_records": 5,
+    "off_hours_ratio": 0.05198199506316248,
+    "blank_org_ratio": 0.9343691012051691,
+    "blank_org_gap_pro_minus_con": 0.0317267106453788,
+    "dedup_drop_fraction": 0.004791636416436765
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "ARRANTS|MICHELE||",
+      "display_name": "ARRANTS, MICHELE",
+      "n_records": 5,
+      "n_pro": 4,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "ARRANTS|TIMOTHY||",
+      "display_name": "ARRANTS, TIMOTHY",
+      "n_records": 5,
+      "n_pro": 4,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "MCCUTCHIN|NANCY||",
+      "display_name": "MCCUTCHIN, NANCY",
+      "n_records": 5,
+      "n_pro": 5,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "SCHICK|DORIS||",
+      "display_name": "SCHICK, DORIS",
+      "n_records": 5,
+      "n_pro": 4,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "SCHULTZ|BARBARA||",
+      "display_name": "SCHULTZ, BARBARA",
+      "n_records": 5,
+      "n_pro": 5,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 6887,
+  "overall_pro_rate": 0.898649629737186,
+  "overall_con_rate": 0.09772034267460433,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5966-20240122-1330",
+  "generated_at_utc": "2026-03-01T23:41:42.447684+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-18T08:55:00-08:00",
+  "date_range_end": "2024-01-22T12:25:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 579,
+    "overall_pro_rate": 0.12607944732297063,
+    "overall_con_rate": 0.8013816925734024,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.08304498269896193,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.0535405872193437,
+    "blank_org_ratio": 0.8376511226252159,
+    "blank_org_gap_pro_minus_con": -0.14250708549834668,
+    "dedup_drop_fraction": 0.0017271157167530224
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CHACON|MARIAN||",
+      "display_name": "CHACON, MARIAN",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "GARRETT|JOHN||",
+      "display_name": "GARRETT, JOHN",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "SHERRILL|ROY||",
+      "display_name": "SHERRILL, ROY",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "STEPHENS|CHRISTINE||",
+      "display_name": "STEPHENS, CHRISTINE",
+      "n_records": 2,
+      "n_pro": 1,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "STICKNEY|POLLYANNA||",
+      "display_name": "STICKNEY, POLLYANNA",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 579,
+  "overall_pro_rate": 0.12607944732297063,
+  "overall_con_rate": 0.8013816925734024,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB1893-20240109-1030",
+  "generated_at_utc": "2026-03-01T23:10:15.807858+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-04T18:03:00-08:00",
+  "date_range_end": "2024-01-09T11:26:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 262,
+    "overall_pro_rate": 0.7290076335877863,
+    "overall_con_rate": 0.25572519083969464,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.1,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.03435114503816794,
+    "blank_org_ratio": 0.6183206106870229,
+    "blank_org_gap_pro_minus_con": 0.34859732749863254,
+    "dedup_drop_fraction": 0.007633587786259542
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "ALFANO|RUSSELL||",
+      "display_name": "ALFANO, RUSSELL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "CHEA|AMANDA||",
+      "display_name": "CHEA, AMANDA",
+      "n_records": 2,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "DASCHER|PAUL||",
+      "display_name": "DASCHER, PAUL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "GEREN|ANTHONY||",
+      "display_name": "GEREN, ANTHONY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HARRELL|WILLIE||",
+      "display_name": "HARRELL, WILLIE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 262,
+  "overall_pro_rate": 0.7290076335877863,
+  "overall_con_rate": 0.25572519083969464,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

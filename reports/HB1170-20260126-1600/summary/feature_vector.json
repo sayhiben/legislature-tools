@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB1170-20260126-1600",
+  "generated_at_utc": "2026-03-01T23:00:59.020217+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-21T16:05:00-08:00",
+  "date_range_end": "2026-01-26T14:59:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Appropriations"
+  },
+  "chamber": "House",
+  "committee_name": "Appropriations",
+  "metrics": {
+    "total_submissions": 347,
+    "overall_pro_rate": 0.8559077809798271,
+    "overall_con_rate": 0.1440922190201729,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.12753623188405797,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.02881844380403458,
+    "blank_org_ratio": 0.8847262247838616,
+    "blank_org_gap_pro_minus_con": 0.05225589225589233,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "HILLS|LARRY||",
+      "display_name": "HILLS, LARRY",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "WILSON-CODEGA|LILY||",
+      "display_name": "WILSON-CODEGA, LILY",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ALLEN|KATHRYN||",
+      "display_name": "ALLEN, KATHRYN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HARRIS|AMY||",
+      "display_name": "HARRIS, AMY",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "MONTGOMERY|NAOMI||",
+      "display_name": "MONTGOMERY, NAOMI",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 347,
+  "overall_pro_rate": 0.8559077809798271,
+  "overall_con_rate": 0.1440922190201729,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

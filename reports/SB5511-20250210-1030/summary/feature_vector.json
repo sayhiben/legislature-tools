@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5511-20250210-1030",
+  "generated_at_utc": "2026-03-01T23:35:05.300243+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-02-06T16:21:00-08:00",
+  "date_range_end": "2025-02-10T09:20:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 143,
+    "overall_pro_rate": 0.8951048951048951,
+    "overall_con_rate": 0.09090909090909091,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.04195804195804196,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.0,
+    "blank_org_ratio": 0.5454545454545454,
+    "blank_org_gap_pro_minus_con": 0.43209134615384615,
+    "dedup_drop_fraction": 0.006993006993006993
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "BONEBRAKE|DEB||",
+      "display_name": "BONEBRAKE, DEB",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "GRAHAM-SQUIRE|MIKE||",
+      "display_name": "GRAHAM-SQUIRE, MIKE",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "WEBER|KRISTI||",
+      "display_name": "WEBER, KRISTI",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 143,
+  "overall_pro_rate": 0.8951048951048951,
+  "overall_con_rate": 0.09090909090909091,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

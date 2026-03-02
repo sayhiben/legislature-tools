@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "ESHB1385-20250317-1330",
+  "generated_at_utc": "2026-03-01T22:50:55.907350+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-03-14T16:11:00-07:00",
+  "date_range_end": "2025-03-17T12:15:00-07:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 188,
+    "overall_pro_rate": 1.0,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.11827956989247312,
+    "window_min_q_value": null,
+    "top_name_max_records": 4,
+    "off_hours_ratio": 0.07446808510638298,
+    "blank_org_ratio": 0.8936170212765957,
+    "blank_org_gap_pro_minus_con": null,
+    "dedup_drop_fraction": 0.005319148936170213
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "OSTER|BRENDA||",
+      "display_name": "OSTER, BRENDA",
+      "n_records": 4,
+      "n_pro": 4,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BOULTER|TERESA||",
+      "display_name": "BOULTER, TERESA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "DONALDSON|MICHAEL||",
+      "display_name": "DONALDSON, MICHAEL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "KORD|SANDRA||",
+      "display_name": "KORD, SANDRA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MOREHEAD|JEFFREY||",
+      "display_name": "MOREHEAD, JEFFREY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 188,
+  "overall_pro_rate": 1.0,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

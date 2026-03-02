@@ -1,0 +1,40 @@
+{
+  "blank_org_gap_pro_minus_con": -0.3414634146341463,
+  "blank_org_ratio": 0.6626506024096386,
+  "con_blank_org_rate": 1.0,
+  "low_power_min_total": 30,
+  "n_blank_org_rows": 55,
+  "n_distinct_orgs": 28,
+  "n_low_power_blank_org_buckets": 319,
+  "n_nonblank_org_rows": 28,
+  "nonblank_org_ratio": 0.3373493975903614,
+  "organization_blank_bucket_minutes": [
+    1,
+    5,
+    15,
+    30,
+    60,
+    120,
+    240,
+    480,
+    720,
+    1440
+  ],
+  "pro_blank_org_rate": 0.6585365853658537,
+  "runtime": {
+    "flag_rows_written": 0,
+    "flags_written": 0,
+    "profiling": {
+      "counters": {},
+      "timed_event_count": 0,
+      "timings": {},
+      "total_timed_ms": 0.0
+    },
+    "run_ms": 87.631,
+    "table_rows_written": 658,
+    "tables_written": 3,
+    "total_ms": 90.829,
+    "write_flags_ms": 0.0,
+    "write_tables_ms": 3.198
+  }
+}

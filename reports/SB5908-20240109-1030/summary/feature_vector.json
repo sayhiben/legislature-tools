@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5908-20240109-1030",
+  "generated_at_utc": "2026-03-01T23:40:49.635042+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-03T17:09:00-08:00",
+  "date_range_end": "2024-01-09T09:28:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 60,
+    "overall_pro_rate": 0.9666666666666667,
+    "overall_con_rate": 0.016666666666666666,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.03333333333333333,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.0,
+    "blank_org_ratio": 0.4,
+    "blank_org_gap_pro_minus_con": 0.41379310344827586,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "URS|TARA||",
+      "display_name": "URS, TARA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 60,
+  "overall_pro_rate": 0.9666666666666667,
+  "overall_con_rate": 0.016666666666666666,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

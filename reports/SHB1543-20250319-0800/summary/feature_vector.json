@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "report_id": "SHB1543-20250319-0800",
+  "generated_at_utc": "2026-03-01T23:50:57.742284+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-03-14T13:41:00-07:00",
+  "date_range_end": "2025-03-19T06:43:00-07:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 75,
+    "overall_pro_rate": 0.64,
+    "overall_con_rate": 0.29333333333333333,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.08,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.04,
+    "blank_org_ratio": 0.48,
+    "blank_org_gap_pro_minus_con": -0.24431818181818177,
+    "dedup_drop_fraction": 0.013333333333333334
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "GRANT|NICOLE||",
+      "display_name": "GRANT, NICOLE",
+      "n_records": 2,
+      "n_pro": 1,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "JAHSHAN|AMANDA||",
+      "display_name": "JAHSHAN, AMANDA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MEADE|KERRY||",
+      "display_name": "MEADE, KERRY",
+      "n_records": 2,
+      "n_pro": 1,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 75,
+  "overall_pro_rate": 0.64,
+  "overall_con_rate": 0.29333333333333333,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

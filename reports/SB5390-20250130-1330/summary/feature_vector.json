@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5390-20250130-1330",
+  "generated_at_utc": "2026-03-01T23:33:31.939660+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-01-24T15:20:00-08:00",
+  "date_range_end": "2025-01-30T12:18:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 488,
+    "overall_pro_rate": 0.07991803278688525,
+    "overall_con_rate": 0.9200819672131147,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.061855670103092786,
+    "window_min_q_value": null,
+    "top_name_max_records": 2,
+    "off_hours_ratio": 0.06967213114754098,
+    "blank_org_ratio": 0.8831967213114754,
+    "blank_org_gap_pro_minus_con": -0.43041516760893156,
+    "dedup_drop_fraction": 0.004098360655737705
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CLANCEY|GARY||",
+      "display_name": "CLANCEY, GARY",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "CYRUS|JUDI||",
+      "display_name": "CYRUS, JUDI",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "FOURNIER|ART||",
+      "display_name": "FOURNIER, ART",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "HOLLAND|RYAN||",
+      "display_name": "HOLLAND, RYAN",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "LETTAU|DIANNA||",
+      "display_name": "LETTAU, DIANNA",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 488,
+  "overall_pro_rate": 0.07991803278688525,
+  "overall_con_rate": 0.9200819672131147,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

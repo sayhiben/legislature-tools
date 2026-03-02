@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5491-20250210-1330",
+  "generated_at_utc": "2026-03-01T23:34:37.437604+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-02-05T21:40:00-08:00",
+  "date_range_end": "2025-02-10T12:27:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Agriculture & Natural Resources"
+  },
+  "chamber": "Senate",
+  "committee_name": "Agriculture & Natural Resources",
+  "metrics": {
+    "total_submissions": 169,
+    "overall_pro_rate": 0.9881656804733728,
+    "overall_con_rate": 0.005917159763313609,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.11834319526627218,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.01775147928994083,
+    "blank_org_ratio": 0.7337278106508875,
+    "blank_org_gap_pro_minus_con": -0.26347305389221554,
+    "dedup_drop_fraction": 0.005917159763313609
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CHURCHILL|NANCY||",
+      "display_name": "CHURCHILL, NANCY",
+      "n_records": 3,
+      "n_pro": 2,
+      "n_con": 1
+    },
+    {
+      "canonical_name": "PARIBELLO|JAMES||",
+      "display_name": "PARIBELLO, JAMES",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "CASTNER|TERESA||",
+      "display_name": "CASTNER, TERESA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ENTZ|RAY||",
+      "display_name": "ENTZ, RAY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "FRITZ|STANISLAV||",
+      "display_name": "FRITZ, STANISLAV",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 169,
+  "overall_pro_rate": 0.9881656804733728,
+  "overall_con_rate": 0.005917159763313609,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

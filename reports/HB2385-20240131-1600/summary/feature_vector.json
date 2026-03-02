@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2385-20240131-1600",
+  "generated_at_utc": "2026-03-01T23:20:36.246577+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-28T20:02:00-08:00",
+  "date_range_end": "2024-01-31T14:54:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 557,
+    "overall_pro_rate": 0.02154398563734291,
+    "overall_con_rate": 0.9766606822262118,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.06678700361010831,
+    "window_min_q_value": null,
+    "top_name_max_records": 4,
+    "off_hours_ratio": 0.05206463195691203,
+    "blank_org_ratio": 0.9084380610412927,
+    "blank_org_gap_pro_minus_con": -0.16360294117647056,
+    "dedup_drop_fraction": 0.008976660682226212
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "EVEY|MARY||",
+      "display_name": "EVEY, MARY",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "MANNING|CHARLES||",
+      "display_name": "MANNING, CHARLES",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "GARRETT|JOHN||",
+      "display_name": "GARRETT, JOHN",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "NICHOLS|FAYE||",
+      "display_name": "NICHOLS, FAYE",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "STICKNEY|POLLYANNA||",
+      "display_name": "STICKNEY, POLLYANNA",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 557,
+  "overall_pro_rate": 0.02154398563734291,
+  "overall_con_rate": 0.9766606822262118,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

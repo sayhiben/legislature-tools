@@ -1,0 +1,75 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5808-20240109-1030",
+  "generated_at_utc": "2026-03-01T23:38:49.168355+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-05T08:21:00-08:00",
+  "date_range_end": "2024-01-09T09:27:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 122,
+    "overall_pro_rate": 0.9836065573770492,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.07377049180327869,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.02459016393442623,
+    "blank_org_ratio": 0.7540983606557377,
+    "blank_org_gap_pro_minus_con": null,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "WOODROW|KRISTIN||",
+      "display_name": "WOODROW, KRISTIN",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "LEVELLE|ELIZABETH||",
+      "display_name": "LEVELLE, ELIZABETH",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MITCHELL|SHAWN||",
+      "display_name": "MITCHELL, SHAWN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MUHAJJUDDIN|JABAL||",
+      "display_name": "MUHAJJUDDIN, JABAL",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 122,
+  "overall_pro_rate": 0.9836065573770492,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

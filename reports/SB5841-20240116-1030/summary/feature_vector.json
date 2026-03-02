@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SB5841-20240116-1030",
+  "generated_at_utc": "2026-03-01T23:39:11.390336+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2024-01-14T13:01:00-08:00",
+  "date_range_end": "2024-01-16T08:37:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 7,
+    "overall_pro_rate": 0.8571428571428571,
+    "overall_con_rate": 0.0,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.0,
+    "window_min_q_value": null,
+    "top_name_max_records": 1,
+    "off_hours_ratio": 0.14285714285714285,
+    "blank_org_ratio": 0.2857142857142857,
+    "blank_org_gap_pro_minus_con": null,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "CLOUGH|ERIKA||",
+      "display_name": "CLOUGH, ERIKA",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ESPINO|ADN||",
+      "display_name": "ESPINO, ADN",
+      "n_records": 1,
+      "n_pro": 0,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "KROHN|HERB||",
+      "display_name": "KROHN, HERB",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "MCMAHAN|JAMES||",
+      "display_name": "MCMAHAN, JAMES",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "WALLER|SCOTT||",
+      "display_name": "WALLER, SCOTT",
+      "n_records": 1,
+      "n_pro": 1,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 7,
+  "overall_pro_rate": 0.8571428571428571,
+  "overall_con_rate": 0.0,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

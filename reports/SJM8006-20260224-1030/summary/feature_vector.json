@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SJM8006-20260224-1030",
+  "generated_at_utc": "2026-03-01T23:54:19.764188+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-19T15:39:00-08:00",
+  "date_range_end": "2026-02-24T08:11:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Civil Rights & Judiciary"
+  },
+  "chamber": "House",
+  "committee_name": "Civil Rights & Judiciary",
+  "metrics": {
+    "total_submissions": 129,
+    "overall_pro_rate": 0.9767441860465116,
+    "overall_con_rate": 0.023255813953488372,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.16279069767441862,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.05426356589147287,
+    "blank_org_ratio": 0.8837209302325582,
+    "blank_org_gap_pro_minus_con": -0.11904761904761907,
+    "dedup_drop_fraction": 0.0
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MARTIN|DENNIS|K|",
+      "display_name": "MARTIN, DENNIS K",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BLOOM|GINA||",
+      "display_name": "BLOOM, GINA",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BRADRICK|SUSAN||",
+      "display_name": "BRADRICK, SUSAN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "COOPER|TAUREAN||",
+      "display_name": "COOPER, TAUREAN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "KLUDT|MICHELLE||",
+      "display_name": "KLUDT, MICHELLE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 129,
+  "overall_pro_rate": 0.9767441860465116,
+  "overall_con_rate": 0.023255813953488372,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

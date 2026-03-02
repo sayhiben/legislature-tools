@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "SSB6117-20260205-1330",
+  "generated_at_utc": "2026-03-01T23:58:56.272607+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-03T21:28:00-08:00",
+  "date_range_end": "2026-02-05T12:26:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "Senate",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 553,
+    "overall_pro_rate": 0.039783001808318265,
+    "overall_con_rate": 0.9566003616636528,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.05818181818181818,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.06871609403254973,
+    "blank_org_ratio": 0.7540687160940326,
+    "blank_org_gap_pro_minus_con": -0.6443547001202956,
+    "dedup_drop_fraction": 0.0054249547920434
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "STONECIPHER|LINDA||",
+      "display_name": "STONECIPHER, LINDA",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "WILSON-CODEGA|LILY||",
+      "display_name": "WILSON-CODEGA, LILY",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "BLAKEMAN|PAM||",
+      "display_name": "BLAKEMAN, PAM",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "DURIS|TOM||",
+      "display_name": "DURIS, TOM",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    },
+    {
+      "canonical_name": "EMBERSON-NASH|WALLY||",
+      "display_name": "EMBERSON-NASH, WALLY",
+      "n_records": 2,
+      "n_pro": 0,
+      "n_con": 2
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 553,
+  "overall_pro_rate": 0.039783001808318265,
+  "overall_con_rate": 0.9566003616636528,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

@@ -1,0 +1,36 @@
+{
+  "active": false,
+  "baseline_variant": "all_registrants",
+  "bucket_minutes": [
+    30,
+    60,
+    120,
+    240,
+    480,
+    720,
+    1440
+  ],
+  "enabled": false,
+  "monte_carlo_draws": 400,
+  "name_key_type": "full_name_key",
+  "random_seed": 42,
+  "reason": "missing_probability_artifact",
+  "requested_geo_level": "state",
+  "requested_geo_value": "WA",
+  "runtime": {
+    "flag_rows_written": 0,
+    "flags_written": 0,
+    "profiling": {
+      "counters": {},
+      "timed_event_count": 0,
+      "timings": {},
+      "total_timed_ms": 0.0
+    },
+    "run_ms": 0.257,
+    "table_rows_written": 0,
+    "tables_written": 2,
+    "total_ms": 0.792,
+    "write_flags_ms": 0.0,
+    "write_tables_ms": 0.535
+  }
+}

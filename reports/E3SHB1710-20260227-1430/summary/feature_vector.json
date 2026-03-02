@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "E3SHB1710-20260227-1430",
+  "generated_at_utc": "2026-03-01T22:49:40.762153+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-02-25T16:08:00-08:00",
+  "date_range_end": "2026-02-27T13:29:00-08:00",
+  "cohort": {
+    "chamber": "Senate",
+    "committee_name": "Ways & Means"
+  },
+  "chamber": "Senate",
+  "committee_name": "Ways & Means",
+  "metrics": {
+    "total_submissions": 1098,
+    "overall_pro_rate": 0.17577413479052822,
+    "overall_con_rate": 0.8224043715846995,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.09780621572212066,
+    "window_min_q_value": null,
+    "top_name_max_records": 10,
+    "off_hours_ratio": 0.040983606557377046,
+    "blank_org_ratio": 0.9025500910746812,
+    "blank_org_gap_pro_minus_con": -0.015785034341486925,
+    "dedup_drop_fraction": 0.011839708561020037
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MERRITT|BECKY||",
+      "display_name": "MERRITT, BECKY",
+      "n_records": 10,
+      "n_pro": 0,
+      "n_con": 10
+    },
+    {
+      "canonical_name": "CHARLES|CHERYL||",
+      "display_name": "CHARLES, CHERYL",
+      "n_records": 7,
+      "n_pro": 0,
+      "n_con": 7
+    },
+    {
+      "canonical_name": "BEISEL|DAVID||",
+      "display_name": "BEISEL, DAVID",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "BORDEN|BRETT||",
+      "display_name": "BORDEN, BRETT",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "KEATON|MICHELLE||",
+      "display_name": "KEATON, MICHELLE",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 1098,
+  "overall_pro_rate": 0.17577413479052822,
+  "overall_con_rate": 0.8224043715846995,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

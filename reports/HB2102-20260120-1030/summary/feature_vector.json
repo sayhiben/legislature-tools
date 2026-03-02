@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "HB2102-20260120-1030",
+  "generated_at_utc": "2026-03-01T23:13:11.362859+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2026-01-16T11:33:00-08:00",
+  "date_range_end": "2026-01-20T09:26:00-08:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Unknown Committee"
+  },
+  "chamber": "House",
+  "committee_name": "Unknown Committee",
+  "metrics": {
+    "total_submissions": 378,
+    "overall_pro_rate": 0.6825396825396826,
+    "overall_con_rate": 0.3148148148148148,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.09308510638297872,
+    "window_min_q_value": null,
+    "top_name_max_records": 3,
+    "off_hours_ratio": 0.03968253968253968,
+    "blank_org_ratio": 0.8333333333333334,
+    "blank_org_gap_pro_minus_con": -0.0806787831411635,
+    "dedup_drop_fraction": 0.0026455026455026454
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "JENSEN|CLAUDIA||",
+      "display_name": "JENSEN, CLAUDIA",
+      "n_records": 3,
+      "n_pro": 3,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "ANDREWS|TONY||",
+      "display_name": "ANDREWS, TONY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "HOWARD|JOY||",
+      "display_name": "HOWARD, JOY",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "OLSON|MICHAELYN||",
+      "display_name": "OLSON, MICHAELYN",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    },
+    {
+      "canonical_name": "STARR|JANIE||",
+      "display_name": "STARR, JANIE",
+      "n_records": 2,
+      "n_pro": 2,
+      "n_con": 0
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 378,
+  "overall_pro_rate": 0.6825396825396826,
+  "overall_con_rate": 0.3148148148148148,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}

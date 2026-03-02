@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "report_id": "ESSB5801-20250422-0900",
+  "generated_at_utc": "2026-03-01T22:53:53.039911+00:00",
+  "lens": "side_by_side",
+  "date_range_start": "2025-04-17T08:59:00-07:00",
+  "date_range_end": "2025-04-23T09:14:00-07:00",
+  "cohort": {
+    "chamber": "House",
+    "committee_name": "Transportation"
+  },
+  "chamber": "House",
+  "committee_name": "Transportation",
+  "metrics": {
+    "total_submissions": 2197,
+    "overall_pro_rate": 0.005917159763313609,
+    "overall_con_rate": 0.9872553482020938,
+    "window_queue_size": 0,
+    "record_queue_size": 0,
+    "cluster_queue_size": 0,
+    "window_high_count": 0,
+    "window_medium_count": 0,
+    "window_watch_count": 0,
+    "window_high_share": null,
+    "window_top_score": null,
+    "window_top_abs_z": null,
+    "window_top_dup_fraction": 0.13248058474189128,
+    "window_min_q_value": null,
+    "top_name_max_records": 10,
+    "off_hours_ratio": 0.0760127446517979,
+    "blank_org_ratio": 0.8593536640873919,
+    "blank_org_gap_pro_minus_con": -0.6346065184239458,
+    "dedup_drop_fraction": 0.0063723258989531175
+  },
+  "top_repeated_names": [
+    {
+      "canonical_name": "MERRITT|BECKY||",
+      "display_name": "MERRITT, BECKY",
+      "n_records": 10,
+      "n_pro": 0,
+      "n_con": 10
+    },
+    {
+      "canonical_name": "LANDON|LEONARD||",
+      "display_name": "LANDON, LEONARD",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "WEIR|DALE||",
+      "display_name": "WEIR, DALE",
+      "n_records": 4,
+      "n_pro": 0,
+      "n_con": 4
+    },
+    {
+      "canonical_name": "ALTIER|RONALD||",
+      "display_name": "ALTIER, RONALD",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    },
+    {
+      "canonical_name": "GROTH|MATT||",
+      "display_name": "GROTH, MATT",
+      "n_records": 3,
+      "n_pro": 0,
+      "n_con": 3
+    }
+  ],
+  "material_quality_metric_count": 0,
+  "total_submissions": 2197,
+  "overall_pro_rate": 0.005917159763313609,
+  "overall_con_rate": 0.9872553482020938,
+  "window_queue_size": 0,
+  "record_queue_size": 0,
+  "cluster_queue_size": 0,
+  "window_high_count": 0,
+  "window_medium_count": 0,
+  "window_watch_count": 0
+}
